@@ -2,6 +2,7 @@
   Memory handling*/
 #include "rpc.h"
 
+//#define LARGETLB
 uint32_t *ram,*ram2,*rom,*vram;
 uint8_t *ramb,*ramb2,*romb,*vramb;
 uint8_t *dirtybuffer;
@@ -12,13 +13,30 @@ uint32_t *raddrl2;
 int mmu,memmode;
 
 static uint32_t readmemcache,readmemcache2;
+#ifdef LARGETLB
+static uint32_t writememcache[128],writememcache2[128];
+#else
 static uint32_t writememcache,writememcache2;
+#endif
+
 //static int timetolive;
+
+void clearmemcache()
+{
+#ifdef LARGETLB
+        int c;
+        for (c=0;c<128;c++)
+            writememcache[c]=0xFFFFFFFF;
+#else
+        writememcache=0xFFFFFFFF;
+#endif
+        readmemcache=0xFFFFFFFF;
+}
 
 void initmem(void)
 {
-        ram=(uint32_t *)malloc(32*1024*1024);
-        ram2=(uint32_t *)malloc(32*1024*1024);        
+        ram=(uint32_t *)malloc(2*1024*1024);
+        ram2=(uint32_t *)malloc(2*1024*1024);        
         rom=(uint32_t *)malloc(8*1024*1024);
         vram=(uint32_t *)malloc(2*1024*1024);
         ramb=(unsigned char *)ram;
@@ -41,13 +59,19 @@ void reallocmem(int ramsize)
         ramb2=(unsigned char *)ram2;
         memset(ram,0,ramsize);
         memset(ram2,0,ramsize);        
-//        error("RAMsize now %i\n",ramsize);
+//        error("RAMsize now %08X RAMmask now %08X\n",ramsize,rammask);
 }
 
 void resetmem(void)
 {
+        int c;
         readmemcache=0xFFFFFFFF;
+#ifdef LARGETLB
+        for (c=0;c<64;c++)
+            writememcache[c]=0xFFFFFFFF;
+#else
         writememcache=0xFFFFFFFF;
+#endif
 }
 
 uint32_t readmemfl(uint32_t addr)
@@ -238,10 +262,14 @@ uint32_t readmemb(uint32_t addr)
                 return 0;
                 break;
                 case 0x10000000: /*SIMM 0 bank 0*/
-                case 0x11000000:                
+                case 0x11000000:
+                case 0x12000000:
+                case 0x13000000:
                 return ramb[addr&rammask];
                 case 0x14000000: /*SIMM 0 bank 1*/
-                case 0x15000000:                
+                case 0x15000000:
+                case 0x16000000:
+                case 0x17000000:
                 return ramb2[addr&rammask];
         }
         return 0;
@@ -250,15 +278,27 @@ uint32_t readmemb(uint32_t addr)
         exit(-1);*/
 }
 
+#ifdef LARGETLB
+void writememl(uint32_t addrt, uint32_t val)
+#else
 void writememl(uint32_t addr, uint32_t val)
+#endif
 {
-//        if (addr>0x2104F1E && addr<0x2104F28) printf("Writel %08X %08X %08X\n",addr,val,PC);
-//        if (addr>0x214EF03 && addr<0x214EF24) printf("Writel %08X %08X %08X\n",addr,val,PC);
-//        if (addr==0x2104F08) printf("Write 2104F08 %08X %08X\n",val,PC);
-//        if (addr==0x24) printf("Write 24 %08X %08X\n",val,PC);
-//        if (addr>=0x2154BC4 && addr<=(0x2154BC4+0x3C)) printf("Write %08X %08X %07X\n",addr,val,PC);
+#ifdef LARGETLB
+        uint32_t addr;
+#endif
         if (mmu)
         {
+                #ifdef LARGETLB
+                if ((addrt>>12)==writememcache[(addrt>>12)&127]) addr=(addrt&0xFFF)+writememcache2[(addrt>>12)&127];
+                else
+                {
+                        writememcache[(addrt>>12)&127]=addrt>>12;
+                        addr=translateaddress(addrt,1);
+                        if (databort) return;
+                        writememcache2[(addrt>>12)&127]=addr&0xFFFFF000;
+                }
+                #else
                 if ((addr>>12)==writememcache) addr=(addr&0xFFF)+writememcache2;
                 else
                 {
@@ -266,15 +306,25 @@ void writememl(uint32_t addr, uint32_t val)
                         addr=translateaddress(addr,1);
                         if (databort) return;
                         writememcache2=addr&0xFFFFF000;
-//                        rpclog("MMU waddr %08X %08X %08X\n",addr,ram,&ram[((addr&rammask)&0xFFFFF000)>>2]);
+                        if ((addr&0x1F000000)==0x2000000)
+                           dirtybuffer[(addr&vrammask)>>12]=1;
+                        if (!vrammask && (addr&0x1FF00000)==0x10000000)
+                           dirtybuffer[(addr&rammask)>>12]=1;
                 }
+                #endif
         }
+        #ifdef LARGETLB
+        else
+           addr=addrt;
+        #endif
         switch (addr&0x1F000000)
         {
                 case 0x02000000: /*VRAM*/
-                if (!vrammask) return;
+//                if (!vrammask) return;
 //                rpclog("Write VRAM %08X %07X - %08X\n",addr,PC,val);
-                dirtybuffer[(addr&vrammask)>>10]=1;
+#ifdef LARGETLB
+                dirtybuffer[(addr&vrammask)>>12]=1;
+#endif
                 vram[(addr&vrammask)>>2]=val;
                 return;
 
@@ -316,8 +366,8 @@ void writememl(uint32_t addr, uint32_t val)
                 case 0x13000000:
 //                printf("SIMM0 w %08X %08X %07X\n",addr,val,PC);
                 ram[(addr&rammask)>>2]=val;
-                if (!model || (vrammask==0 && (addr&rammask)<0x100000))
-                   dirtybuffer[(addr&rammask)>>10]=1;
+//                if (!model || (vrammask==0 && (addr&rammask)<0x100000))
+//                   dirtybuffer[(addr&rammask)>>12]=1;
 //                dirtybuffer[(addr&rammask)>>10]=1;
                 return;
 
@@ -337,18 +387,27 @@ void writememl(uint32_t addr, uint32_t val)
         exit(-1);*/
 }
 
+#ifdef LARGETLB
+void writememb(uint32_t addrt, uint8_t val)
+#else
 void writememb(uint32_t addr, uint8_t val)
+#endif
 {
-/*        if (addr>0x2104F1E && addr<0x2104F28)
-        {
-                printf("Writeb %08X %02X %08X\n",addr,val,PC);
-//                timetolive=300;
-        }
-        if (addr>0x214EF03 && addr<0x214EF24) printf("Writeb %08X %02X %08X\n",addr,val,PC);*/
-//        if (addr==0x2104F08) printf("Writeb 2104F08 %02X %08X\n",val,PC);
-//        if (addr==0x2104F2D) printf("Writeb 2104F2D %02X %08X\n",val,PC);
+        #ifdef LARGETLB
+        uint32_t addr;
+        #endif
         if (mmu)
         {
+                #ifdef LARGETLB
+                if ((addrt>>12)==writememcache[(addrt>>12)&127]) addr=(addrt&0xFFF)+writememcache2[(addrt>>12)&127];
+                else
+                {
+                        writememcache[(addrt>>12)&127]=addrt>>12;
+                        addr=translateaddress(addrt,1);
+                        if (databort) return;
+                        writememcache2[(addrt>>12)&127]=addr&0xFFFFF000;
+                }
+                #else
                 if ((addr>>12)==writememcache) addr=(addr&0xFFF)+writememcache2;
                 else
                 {
@@ -356,13 +415,24 @@ void writememb(uint32_t addr, uint8_t val)
                         addr=translateaddress(addr,1);
                         if (databort) return;
                         writememcache2=addr&0xFFFFF000;
+                        if ((addr&0x1F000000)==0x2000000)
+                           dirtybuffer[(addr&vrammask)>>12]=1;
+                        if (!vrammask && (addr&0x1FF00000)==0x10000000)
+                           dirtybuffer[(addr&rammask)>>12]=1;
                 }
+                #endif
         }
+        #ifdef LARGETLB
+        else
+           addr=addrt;
+        #endif
         switch (addr&0x1F000000)
         {
                 case 0x02000000: /*VRAM*/
-                if (!vrammask) return;
-                dirtybuffer[(addr&vrammask)>>10]=1;
+//                if (!vrammask) return;
+#ifdef LARGETLB
+                dirtybuffer[(addr&vrammask)>>12]=1;
+#endif
 //                rpclog("Writeb VRAM %08X %07X - %02X %c\n",addr,PC,val,val); 
                 vramb[addr&vrammask]=val;
                 return;
@@ -398,12 +468,16 @@ void writememb(uint32_t addr, uint8_t val)
                 break;
                 case 0x10000000: /*SIMM 0 bank 0*/
                 case 0x11000000:
+                case 0x12000000:
+                case 0x13000000:
                 ramb[addr&rammask]=val;
-                if (!model || (vrammask==0 && (addr&rammask)<0x100000))
-                   dirtybuffer[(addr&rammask)>>10]=1;
+//                if (!model || (vrammask==0 && (addr&rammask)<0x100000))
+//                   dirtybuffer[(addr&rammask)>>12]=1;
                 return;
                 case 0x14000000: /*SIMM 0 bank 1*/
                 case 0x15000000:
+                case 0x16000000:
+                case 0x17000000:
                 ramb2[addr&rammask]=val;
 //                dirtybuffer[(addr&rammask)>>10]=1;
                 return;

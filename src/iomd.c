@@ -19,7 +19,8 @@ void updateirqs(void)
            irq=0;
         if (iomd.statf&iomd.maskf) irq|=2;
         if (!irq) armirq=0;
-//        printf("Update IRQs - %02X %02X %02X %02X %i %08X %08X %02X %02X\n",iomd.stata,iomd.maska,iomd.statb,iomd.maskb,irq,armregs[15],armregs[16],iomd.statf,iomd.maskf);
+//        if (output) rpclog("Update IRQs - %02X %02X %02X %02X  %02X %02X %02X %02X  %i %08X %08X %02X %02X\n",iomd.stata,iomd.maska,iomd.statb,iomd.maskb,iomd.statd,iomd.maskd,iomd.state,iomd.maske,irq,armregs[15],armregs[16],iomd.statf,iomd.maskf);
+//        if (output) rpclog("%02X %02X %02X %02X\n",(iomd.stata&iomd.maska) , (iomd.statb&iomd.maskb) , (iomd.statd&iomd.maskd) , (iomd.state&iomd.maske));
 }
 
 FILE *sndfile;
@@ -46,7 +47,7 @@ void initsound()
 
 void restartsound()
 {
-        if (as) stop_audio_stream(as);
+        stop_audio_stream(as);
         as=play_audio_stream(bufferlen,16,1,samplefreq,255,128);
 }
 
@@ -73,7 +74,7 @@ int dumpsound()
         int offset=(iomd.sndstat&1)<<1;
         unsigned long temp,page;
         int start,end;
-        if (!sndon) return -1;
+        if (!sndon) return;
 //        if (!sndfile) sndfile=fopen("sound.pcm","wb");
         page=soundaddr[offset]&0xFFFFF000;
         start=soundaddr[offset]&0xFF0;
@@ -86,10 +87,9 @@ int dumpsound()
                 oldfreq=samplefreq;
 //                if (!bufferlen) bufferlen=256;
                 restartsound();
-                return -1;
+                return;
         }
 //        rpclog("Sound %08X %08X %08X %08X %i %08X %03X %03X\n",soundaddr[0],soundaddr[1],soundaddr[2],soundaddr[3],offset,page,start,end);
-        /** Disabled: Causes segfault - No idea why or even what this does
         for (c=start;c<end;c+=4)
         {
                 temp=ram[((c+page)&rammask)>>2];
@@ -97,7 +97,6 @@ int dumpsound()
                 asp[d+1]=(temp>>16)^0x8000;
                 d+=2;
         }
-        **/
         iomd.state|=0x10;
         updateirqs();
         iomd.sndstat^=1;
@@ -105,7 +104,7 @@ int dumpsound()
 //        updatesndtime(end-start);
 //        if (sndsamples>=4096)
 //           transferbuffer();
-        return end - start;
+        return end-start;
 }
 
 void checksound()
@@ -138,7 +137,7 @@ void settimera(int latch)
            install_int_ex(timerairq,latch/2);
         else
            install_int_ex(timerairq,MSEC_TO_TIMER(latch/2000));
-        rpclog("Timer 0 %04X %i %i\n",latch,latch/2,latch/2000);
+//        rpclog("Timer 0 %04X %i %i\n",latch,latch/2,latch/2000);
 //        printf("Timer set to %i MSECs %i cycles %f seconds\n",latch/2000,latch,1193181.0f/(float)(latch/2));
 }
 
@@ -156,7 +155,7 @@ void settimerb(int latch)
            install_int_ex(timerbirq,latch/2);
         else
            install_int_ex(timerbirq,MSEC_TO_TIMER(latch/2000));
-        rpclog("Timer 1 %04X %i %i\n",latch,latch/2,latch/2000);
+//        rpclog("Timer 1 %04X %i %i\n",latch,latch/2,latch/2000);
 //        printf("Timer set to %i MSECs %i cycles %f seconds\n",latch/2000,latch,1193181.0f/(float)(latch/2));
 }
 
@@ -266,8 +265,8 @@ void writeiomd(uint32_t addr, uint32_t val)
                 iomd.vidcur=val&0x1FFFFF;
                 return;
                 case 0x1D4: /*Video DMA end*/
-                if (vrammask) iomd.vidend=(val+2048)&0x1FFFFF;
-                else          iomd.vidend=(val+8)&0x1FFFFF;
+                if (vrammask && model) iomd.vidend=(val+2048)&0x1FFFF0;
+                else                   iomd.vidend=(val+16)&0x1FFFF0;
                 return;
                 case 0x1D8: /*Video DMA start*/
                 iomd.vidstart=val&0x1FFFFF;

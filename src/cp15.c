@@ -3,7 +3,7 @@
 #include "rpc.h"
 
 uint32_t ins;
-uint32_t tlbcache[16384],tlbcache2[64];
+unsigned long tlbcache[16384],tlbcache2[64];
 int tlbcachepos;
 int tlbs,flushes;
 uint32_t pccache,readcache,writecache;
@@ -11,7 +11,7 @@ uint32_t opcode;
 struct cp15
 {
         uint32_t tlbbase,dacr;
-        uint32_t far,fsr,ctrl;
+        unsigned long far,fsr,ctrl;
 } cp15;
 
 void resetcp15(void)
@@ -75,10 +75,11 @@ void writecp15(uint32_t addr, uint32_t val)
                 case 6: /*Purge TLB*/
                 case 5: /*Flush TLB*/
 //                rpclog("TLB flush %08X %08X %07X %i %i %08X\n",addr,val,PC,ins,translations,lastcache);
+                clearmemcache();
                 pccache=readcache=writecache=0xFFFFFFFF;
                 raddrl=0xFFFFFFFF;
                 for (c=0;c<64;c++)
-                    if (tlbcache2[c] != 0xFFFFFFFF) tlbcache[tlbcache2[c]] = 0xFFFFFFFF;
+                    tlbcache[tlbcache2[c]]=0xFFFFFFFF;
                 for (c=0;c<64;c++)
                     tlbcache2[c]=0xFFFFFFFF;
                 flushes++;
@@ -140,7 +141,7 @@ uint32_t readcp15(uint32_t addr)
                         cp15.fsr=fsr;        \
                         return 0xFFFFFFFF
 
-int checkpermissions(int p, int fsr, int rw, uint32_t addr)
+int checkpermissions(int p, int fsr, int rw, unsigned long addr)
 {
         switch (p)
         {
@@ -196,11 +197,11 @@ uint32_t translateaddress(uint32_t addr, int rw)
                 case 1: /*Page table*/
                 sldaddr=((addr&0xFF000)>>10)|(fld&0xFFFFFC00);
                 if ((sldaddr&0x1F000000)==0x02000000)
-                   sld=vram[(sldaddr>>2)&vrammask];
+                   sld=vram[(sldaddr&vrammask)>>2];
                 else if (sldaddr&0x4000000)
-                   sld=ram2[(sldaddr>>2)&rammask];
+                   sld=ram2[(sldaddr&rammask)>>2];
                 else
-                   sld=ram[(sldaddr>>2)&rammask];
+                   sld=ram[(sldaddr&rammask)>>2];
                 temp=(addr&0xC00)>>9;
                 temp2=sld&(0x30<<temp);
                 temp2>>=(4+temp);
@@ -257,7 +258,7 @@ uint32_t *getpccache(uint32_t addr)
                 {
                         databort=0;
                         prefabort=1;
-                        return NULL;
+                        return;
                 }
         }
         else     addr2=addr;

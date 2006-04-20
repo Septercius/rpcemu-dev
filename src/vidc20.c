@@ -116,7 +116,7 @@ void drawscr()
 //        rpclog("XS %i YS %i\n",xs,ys);
         if (xs<2) xs=2;
         if (ys<1) ys=480;
-        if (xs<=448)
+        if (xs<=448 || (xs<=480 && ys<=352))
         {
                 xs<<=1;
                 doublesize=1;
@@ -167,8 +167,8 @@ void drawscr()
         if (c==1024) x=y=0;
         rpclog("found changed data at %06X %i : %i,%i  %i %i %i %i\n",addr,c,x,y,xs,bit8,xdiff[bit8],addr>>10);*/
         x=y=0;
-        drawit=dirtybuffer[addr>>10];
-        dirtybuffer[addr>>10]=0;
+        drawit=dirtybuffer[addr>>12];
+        dirtybuffer[addr>>12]=0;
         if (drawit) yl=0;
         iomd.vidstart&=0x1FFFFF;
         iomd.vidend&=0x1FFFFF;        
@@ -207,11 +207,11 @@ void drawscr()
                                         else
                                            addr+=16;
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -246,11 +246,11 @@ void drawscr()
                                         else
                                            addr+=16;
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -291,11 +291,11 @@ void drawscr()
                                         {
                                                 addr=iomd.vidstart;
                                         }
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -331,12 +331,12 @@ void drawscr()
                                            addr+=16;
                                         if (addr==iomd.vidend) 
                                            addr=iomd.vidstart;
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>10)]) vidp=bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -374,11 +374,11 @@ void drawscr()
                                         else
                                            addr+=16;
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -414,12 +414,12 @@ void drawscr()
                                         else
                                            addr+=16;
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                drawit=dirtybuffer[(addr>>12)];
 //                                                drawit=1;
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -468,12 +468,12 @@ void drawscr()
                                         else
                                            addr+=16;
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>10)]) vidp=bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -508,12 +508,12 @@ void drawscr()
                                         else
                                            addr+=16;
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>10)]) vidp=bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -552,12 +552,12 @@ void drawscr()
                                         else
                                            addr+=16;
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>10)]) vidp=bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -592,12 +592,12 @@ void drawscr()
                                         else
                                            addr+=16;
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>10)]) vidp=bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -634,12 +634,12 @@ void drawscr()
                                         else
                                            addr+=16;
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>10)]) vidp=bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -671,12 +671,12 @@ void drawscr()
                                         else
                                            addr+=16;
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
-                                        if (!(addr&0x3FF))
+                                        if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>10)]) vidp=bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>10)];
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>10)]=0;
+                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
