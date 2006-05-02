@@ -1,0 +1,23 @@
+Building on Linux
+-----------------
+
+A basic automake/auoconf framework exists, though the install
+capability requires a bit of work.
+
+To use:
+  $ aclocal
+  $ automake
+  $ autoconf
+  $ ./configure
+  $ make
+
+Currently RPCemu looks for configuration and roms relative to
+it's executable image, so you'll need to copy the resultant
+binary to the top-level directory with:
+
+  $ cp rpcemu ../
+
+Execute as normal with:
+  $ cd ../
+  $ ./rpcemu
+
