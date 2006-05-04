@@ -1188,7 +1188,6 @@ hostfs_file_8_create_dir(ARMul_State *state)
 {
   char ro_path[PATH_MAX];
   char host_path[PATH_MAX];
-  int s;
 
   assert(state);
 
@@ -1205,12 +1204,7 @@ hostfs_file_8_create_dir(ARMul_State *state)
   dbug_hostfs("\tPATH = %s\n", ro_path);
   dbug_hostfs("\tPATH2 = %s\n", host_path);
 
-#ifdef __unix
-  s = mkdir(host_path, 0755);
-#else
-  s = mkdir(host_path);
-#endif
-  if (s) {
+  if (mkdir(host_path)) {
     /* An error occurred whilst creating the directory */
 
     switch (errno) {

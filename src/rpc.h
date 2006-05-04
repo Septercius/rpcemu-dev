@@ -112,8 +112,6 @@ void writememl(uint32_t addr, uint32_t val);
 void writememb(uint32_t addr, uint8_t val);
 uint32_t readmemb(uint32_t addr);
 uint32_t translateaddress(uint32_t addr, int rw);
-void initmem(void);
-void reallocmem(int ramsize);
 
 //uint32_t mem_getphys(uint32_t addr);
 //uint32_t readmeml_phys(uint32_t addr);
@@ -130,9 +128,6 @@ unsigned char getkeyboardstat(void);
 unsigned char readkeyboarddata(void);
 unsigned char getmousestat(void);
 unsigned char readmousedata(void);
-void pollmouse(void);
-void pollkeyboard(void);
-
 
 /* 82c711.c */
 void callbackfdc(void);
@@ -140,34 +135,25 @@ uint8_t read82c711(uint32_t addr);
 uint8_t readfdcdma(uint32_t addr);
 void writefdcdma(uint32_t addr, uint8_t val);
 void write82c711(uint32_t addr, uint32_t val);
-void reset82c711(void);
-void loadadf(char *fn, int drive);
-void saveadf(char *fn, int drive);
 
 /* cmos.c */
 void reseti2c(void);
 void cmosi2cchange(int nuclock, int nudata);
-void loadcmos(void);
-void savecmos(void);
-
 
 /* vidc20.c */
 int getxs(void);
 int getys(void);
 void resetbuffer(void);
 void writevidc20(uint32_t val);
-void initvideo(void);
-void drawscr(void);
 
 /* iomd.c */
 void resetiomd(void);
 uint32_t readiomd(uint32_t addr);
 void writeiomd(uint32_t addr, uint32_t val);
 uint8_t readmb(void);
-int dumpsound(void);
-void iomdvsync(void);
 
-/* romload.c */
-int loadroms(void);
+char HOSTFS_ROOT[512];
 
+char discname[2][260];
+int drawscre;
 #endif

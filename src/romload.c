@@ -62,11 +62,6 @@ int loadroms()
         for (c=0;c<file;c++)
         {
                 f=fopen(romfns[c],"rb");
-                if (!f)
-                {
-                       printf("Unable to open %s: %s\n", romfns[c], strerror(errno));
-                       continue;
-                }
                 fseek(f,-1,SEEK_END);
                 len=ftell(f)+1;
                 fseek(f,0,SEEK_SET);

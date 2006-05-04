@@ -79,7 +79,7 @@ void writeidew(uint16_t val)
 void writeide(uint16_t addr, uint8_t val)
 {
   //        int c;
-//        rpclog("Write IDE %08X %02X %08X %08X\n",addr,val,PC-8,armregs[12]);
+//        if (addr!=0x1F6) rpclog("Write IDE %08X %02X %08X %08X\n",addr,val,PC-8,armregs[12]);
         switch (addr)
         {
                 case 0x1F0:
@@ -155,7 +155,7 @@ void writeide(uint16_t addr, uint8_t val)
                         ide.atastat=0x80;
                         idecallback=200;
                         return;
-                        case 0xA1: /*Identify packet device*/
+//                        case 0xA1: /*Identify packet device*/
                         case 0xE3: /*Idle*/
                         ide.atastat=0x80;
                         idecallback=200;
@@ -368,7 +368,7 @@ void callbackide(void)
                 iomd.statb|=2;
                 updateirqs();
                 return;
-                case 0xA1:
+//                case 0xA1:
                 case 0xE3:
                 ide.atastat=0x41;
                 ide.error=4;

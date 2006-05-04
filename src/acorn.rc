@@ -1,1 +1,70 @@
+#include <windows.h>
+#include "resources.h"
+
 allegro_icon ICON rpcemu.ico
+
+MainMenu MENU DISCARDABLE
+BEGIN
+        POPUP "&File"
+        BEGIN
+                MENUITEM "&Reset",      IDM_FILE_RESET
+                MENUITEM "E&xit",       IDM_FILE_EXIT
+        END
+        POPUP "&Disc"
+        BEGIN
+                MENUITEM "Load Disc &0",IDM_DISC_LD0
+                MENUITEM "Load Disc &1",IDM_DISC_LD1
+        END
+        POPUP "&Machine"
+        BEGIN
+#if 0
+                POPUP "&CPU"
+                BEGIN
+                        MENUITEM "ARM&610",  IDM_CPU_ARM610
+                        MENUITEM "ARM&710",  IDM_CPU_ARM710
+                        MENUITEM "ARM7&500", IDM_CPU_ARM7500
+                        MENUITEM "StrongARM",IDM_CPU_SA110
+                END
+                POPUP "&RAM"
+                BEGIN
+                        MENUITEM "&4 megs", IDM_RAM_4MEGS
+                        MENUITEM "&8 megs", IDM_RAM_8MEGS
+                        MENUITEM "&16 megs", IDM_RAM_16MEGS
+                        MENUITEM "&32 megs", IDM_RAM_32MEGS
+                        MENUITEM "&64 megs", IDM_RAM_64MEGS
+                        MENUITEM "&128 megs", IDM_RAM_128MEGS
+                END
+                POPUP "&VRAM"
+                BEGIN
+                        MENUITEM "&None",  IDM_VRAM_NONE
+                        MENUITEM "&2 megs",IDM_VRAM_2MEGS
+                END
+#endif
+                MENUITEM "&Configure...",IDM_CONFIG
+        END
+END
+
+ConfigureDlg DIALOG 20, 20, 178, 150
+STYLE WS_POPUP | DS_MODALFRAME | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU
+CAPTION "Configure RPCemu"
+FONT 8, "MS Sans Serif"
+BEGIN
+   GROUPBOX "CPU", GroupBox1, 5, 5, 75, 74 , WS_TABSTOP
+   RADIOBUTTON "ARM610", RadioButton1, 16, 15, 53, 12 , WS_TABSTOP
+   RADIOBUTTON "ARM7500", RadioButton2, 16, 30, 53, 12 , WS_TABSTOP
+   RADIOBUTTON "ARM710", RadioButton3, 16, 44, 53, 12 , WS_TABSTOP
+   RADIOBUTTON "StrongARM", RadioButton4, 16, 59, 53, 12 , WS_TABSTOP
+   GROUPBOX "RAM", GroupBox2, 92, 4, 77, 103 , WS_TABSTOP
+   RADIOBUTTON "4mb", RadioButton5, 101, 15, 53, 12 , WS_TABSTOP
+   RADIOBUTTON "8mb", RadioButton6, 101, 30, 53, 12 , WS_TABSTOP
+   RADIOBUTTON "16mb", RadioButton7, 101, 44, 53, 12 , WS_TABSTOP
+   RADIOBUTTON "32mb", RadioButton8, 101, 59, 53, 12 , WS_TABSTOP
+   RADIOBUTTON "64mb", RadioButton9, 101, 74, 53, 12 , WS_TABSTOP
+   RADIOBUTTON "128mb", RadioButton10, 101, 89, 53, 12 , WS_TABSTOP
+   GROUPBOX "VRAM", GroupBox3, 5, 79, 75, 43 , WS_TABSTOP
+   RADIOBUTTON "None", RadioButton11, 16, 89, 53, 12 , WS_TABSTOP
+   RADIOBUTTON "2mb", RadioButton12, 16, 103, 53, 12 , WS_TABSTOP
+   PUSHBUTTON "OK", IDOK, 11, 128, 69, 20 , WS_TABSTOP
+   PUSHBUTTON "Cancel", IDCANCEL, 91, 128, 69, 20 , WS_TABSTOP
+   CHECKBOX "Sound", CheckBox1, 101, 108, 64, 12, WS_TABSTOP
+END
