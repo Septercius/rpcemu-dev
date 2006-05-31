@@ -185,6 +185,7 @@ uint32_t translateaddress(uint32_t addr, int rw)
         translations++;
 //        rpclog("Uncached ");
         tlbs++;
+
         rw = rw;
         fld=tlbram[(vaddr>>2)&tlbrammask];
         switch (fld&3)
@@ -250,6 +251,7 @@ uint32_t translateaddress(uint32_t addr, int rw)
 uint32_t *getpccache(uint32_t addr)
 {
         uint32_t addr2;
+        addr&=~0xFFF;
         if (mmu)
         {
 //                rpclog("Translate prefetch %08X ",addr);
@@ -265,21 +267,21 @@ uint32_t *getpccache(uint32_t addr)
         switch (addr2&0x1F000000)
         {
                 case 0x00000000: /*ROM*/
-                return &rom[(addr2&0x7FF000)>>2];
+                return &rom[((addr2&0x7FF000)-addr)>>2];
                 case 0x02000000: /*VRAM*/
-                return &vram[(addr2&0x1FF000)>>2];
+                return &vram[((addr2&0x1FF000)-addr)>>2];
                 case 0x10000000: /*SIMM 0 bank 0*/
                 case 0x11000000:
                 case 0x12000000:
                 case 0x13000000:
 //                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
-                return &ram[((addr2&rammask)&~0xFFF)>>2];
+                return &ram[((addr2&rammask)-addr)>>2];
                 case 0x14000000: /*SIMM 0 bank 1*/
                 case 0x15000000:
                 case 0x16000000:
                 case 0x17000000:
 //                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
-                return &ram2[((addr2&rammask)&~0xFFF)>>2];
+                return &ram2[((addr2&rammask)-addr)>>2];
         }
         error("Bad PC %08X %08X\n",addr,addr2);
         dumpregs();

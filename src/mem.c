@@ -89,6 +89,7 @@ uint32_t readmemfl(uint32_t addr)
                         raddrl=addr&0xFFFFF000;
 //                        rpclog("Translate read ");
                         addr=translateaddress(addr,0);
+                        if (databort) rpclog("Dat abort reading %08X %08X\n",addr2,PC);
                         if (databort) return 0;
                         readmemcache2=addr&0xFFFFF000;
 //                        rpclog("MMU addr %08X %08X %08X %08X ",addr2,addr,raddrl,readmemcache2&0x7FF000);

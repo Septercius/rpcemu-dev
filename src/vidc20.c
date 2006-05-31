@@ -4,7 +4,8 @@
 #include "rpc.h"
 
 int readflash;
-int palchange;
+int palchange,curchange;
+int blits=0;
 float mips;
 BITMAP *b;
 int deskdepth;
@@ -94,25 +95,28 @@ void dblit(int xs, int yl, int yh)
 int ony,ocy;
 int xdiff[8]={8192,4096,2048,1024,512,512,256,256};
 int lastframeborder=0;
+unsigned long curcrc=0;
 void drawscr()
 {
         int x,y,xx,xxx;
         int xs=hder-hdsr;
         int ys=vder-vdsr;
-        int addr=iomd.vidinit&0x1FFFFF;
+        int addr;
         int cx=hcsr-hdsr;
         int cy=vcsr-vdsr,ny=vcer-vcsr;
         int ac=0;
-        int drawit=0;
+        int drawit=0,olddrawit=0;
         int yl=-1,yh;
         int c;
         int doublesize=0,doublehigh=0;
         unsigned long oldaddr,temp;
         int cursorcol[3];
         unsigned char *ramp;
-        unsigned short temp16;
+        unsigned short temp16,*ramw;
         unsigned long *vidp;
         unsigned short *vidp16;
+        int firstblock,lastblock;
+//        rpclog("Draw screen\n");
         iomd.vidend=(iomd.vidend&0x1FFFFF)|(iomd.vidinit&~0x1FFFFF);
         iomd.vidstart=(iomd.vidstart&0x1FFFFF)|(iomd.vidinit&~0x1FFFFF);        
 //        rpclog("XS %i YS %i\n",xs,ys);
@@ -157,6 +161,43 @@ void drawscr()
         }
         if (iomd.vidinit&0x10000000) ramp=ramb;
         else                         ramp=vramb;
+        ramw=(unsigned short *)ramp;
+        x=y=c=0;
+        firstblock=lastblock=-1;
+        while (y<ys)
+        {
+                if (dirtybuffer[c++])
+                {
+                        lastblock=c;
+                        if (firstblock==-1) firstblock=c;
+                }
+                x+=(xdiff[bit8]<<2);
+                while (x>xs)
+                {
+                        x-=xs;
+                        y++;
+                }
+        }
+        if (firstblock==-1 && !curchange) 
+        {
+                /*Not looking good for screen redraw - check to see if cursor data has changed*/
+                if (cinit&0x4000000) vidp=ram2;
+                else                 vidp=ram;
+                addr=(cinit&rammask)>>2;
+                temp=0;
+                for (c=0;c<ny;c++)
+                {
+                        temp+=vidp[addr]+(vidp[addr+1]);
+                        addr+=2;
+                }
+                /*If cursor data matches then no point redrawing screen - return*/
+                if (temp==curcrc)
+                   return;
+                curcrc=temp;                
+        }
+        addr=iomd.vidinit&0x1FFFFF;
+        curchange=0;
+//        rpclog("First block %i %08X last block %i %08X finished at %i %08X\n",firstblock,firstblock,lastblock,lastblock,c,c);
         x=y=0;
         drawit=dirtybuffer[addr>>12];
         if (drawit) dirtybuffer[addr>>12]--;
@@ -263,7 +304,7 @@ void drawscr()
                         xs>>=1;
                         for (y=0;y<ys;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(ony+ocy) && (y>=(ocy-2)))                                
                                 {
                                         drawit=1;
 //                                        yh=y+8;
@@ -358,9 +399,87 @@ void drawscr()
                         xs<<=1;
                         break;
                         case 4: /*16 bpp*/
+                #if 0
+                        xs>>=1;
+                        y=x=0;
+                        addr>>=1;
+                        xxx=addr&0x7FF;
+                        while (y<ys)
+                        {
+                                drawit=dirtybuffer[addr>>11];
+                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                   drawit=1;
+                                if (drawit)
+                                {
+                                        dirtybuffer[addr>>11]=0;
+                                        vidp=bmp_write_line(b,y);
+                                        if (yl==-1) yl=y;
+                                        for (c=(xxx>>1);c<2048;c+=8)
+                                        {
+                                                temp16=ramw[addr];
+                                                temp=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+1];
+                                                temp|=(pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16;
+                                                vidp[x++]=temp;
+                                                temp16=ramw[addr+2];
+                                                temp=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+3];
+                                                temp|=(pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16;
+                                                vidp[x++]=temp;
+                                                temp16=ramw[addr+4];
+                                                temp=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+5];
+                                                temp|=(pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16;
+                                                vidp[x++]=temp;
+                                                temp16=ramw[addr+6];
+                                                temp=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+7];
+                                                temp|=(pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16;
+                                                vidp[x++]=temp;
+/*                                                vidp[x+1]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+2];
+                                                vidp[x+2]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+3];
+                                                vidp[x+3]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+4];
+                                                vidp[x+4]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+5];
+                                                vidp[x+5]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+6];
+                                                vidp[x+6]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+7];
+                                                vidp[x+7]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;*/
+                                                addr+=8;
+//                                                x+=8;
+                                                if (x>=xs)
+                                                {
+                                                        x=0;
+                                                        y++;
+                                                        vidp=bmp_write_line(b,y);
+                                                }
+                                        }
+                                        xxx=0;
+                                        yh=y+1;
+                                }
+                                else
+                                {
+                                        if (xxx) x+=((2048-(xxx>>1))>>1);
+                                        else     x+=(2048>>1);
+                                        xxx=0;
+                                        while (x>xs)
+                                        {
+                                                x-=xs;
+                                                y++;
+                                        }
+                                        addr+=2048;
+                                }
+                        }
+                        xs<<=1;
+                #endif
+                xs>>=1;
                         for (y=0;y<ys;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(ony+ocy) && (y>=(ocy-1)))
                                 {
                                         drawit=1;
 //                                        yh=y+8;
@@ -369,39 +488,67 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp16=bmp_write_line(b,y);
-					yh=y;
+					vidp=bmp_write_line(b,y);
+					yh=y+1;
 				}
-                                for (x=0;x<xs;x+=8)
+                                for (x=0;x<xs;x+=4)
                                 {
                                         if (drawit)
                                         {
+                                                addr>>=1;
+                                                temp16=ramw[addr];
+                                                temp=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+1];
+                                                vidp[x]=((pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16)|temp;
+                                                temp16=ramw[addr+2];
+                                                temp=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+3];
+                                                vidp[x+1]=((pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16)|temp;
+                                                temp16=ramw[addr+4];
+                                                temp=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+5];
+                                                vidp[x+2]=((pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16)|temp;
+                                                temp16=ramw[addr+6];
+                                                temp=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                temp16=ramw[addr+7];
+                                                vidp[x+3]=((pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16)|temp;
+                                                addr<<=1;
+                                                addr+=16;
+                                                #if 0
                                                 for (xx=0;xx<8;xx+=2)
                                                 {
                                                         //VIDC20 pixel format is  xBBB BBGG GGGR RRRR
                                                         //Windows pixel format is RRRR RGGG GGGB BBBB
-                                                        temp16=ramp[addr]|(ramp[addr+1]<<8);
-                                                        vidp16[x+xx]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[(temp16>>8)&0xFF].b;
-                                                        temp16=ramp[addr+2]|(ramp[addr+3]<<8);
-                                                        vidp16[x+xx+1]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[(temp16>>8)&0xFF].b;
+                                                        temp16=ramw[addr>>1];
+                                                        vidp16[x+xx]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
+                                                        temp16=ramw[(addr+2)>>1];
+                                                        vidp16[x+xx+1]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
                                                         addr+=4;
                                                 }
+                                                #endif
                                         }
                                         else
                                            addr+=16;
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp16=bmp_write_line(b,y);
+                                                olddrawit=drawit;
                                                 drawit=dirtybuffer[(addr>>12)];
-                                                if (drawit) dirtybuffer[(addr>>12)]--;
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
+                                                if (drawit) 
+                                                {
+                                                        dirtybuffer[(addr>>12)]--;
+                                                        yh=y+1;
+                                                        if (yl==-1) yl=y;
+                                                }
+                                                if (y<(ony+ocy) && (y>=(ocy-1))) drawit=1;                                                
+                                                if (drawit && !olddrawit) vidp=bmp_write_line(b,y);
+//                                                if (drawit) yh=y+1;
+//                                                if (yl==-1 && drawit)
+//                                                   yl=y;
                                         }
                                 }
                         }
+                        xs<<=1;
                         break;
                         case 6: /*32 bpp*/
 //                        textprintf(b,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,xs,ys);
@@ -779,7 +926,7 @@ void drawscr()
                 if (cy<0) yl=0;
                 if (yh<(ny+cy)) yh=ny+cy;
         }
-        bmp_unwrite_line(b);        
+        bmp_unwrite_line(b); 
 /*        if (readflash)
         {
                 rectfill(screen,xs-40,4,xs-8,11,readflash);
@@ -798,6 +945,7 @@ void drawscr()
 //        rpclog("%i %02X\n",drawcode,bit8);        
 //        sleep(2);
 //        rpclog("Blitting from 0,%i size %i,%i\n",yl,xs,ys);
+//        blits++;
         switch (doublesize)
         {
                 case 0:// case 1: case 2: case 3:
@@ -879,6 +1027,7 @@ void writevidc20(uint32_t val)
                         vpal[0x101]=makecol(val&0xFF,(val>>8)&0xFF,(val>>16)&0xFF);
                         palchange=1;
                         vidcpal[0x101]=val;
+                        curchange=1;                        
                 }
                 break;
                 case 0x60: case 0x61: case 0x62: case 0x63:
@@ -891,8 +1040,9 @@ void writevidc20(uint32_t val)
                         cursor[1].g=(val>>8)&0xFF;
                         cursor[1].b=(val>>16)&0xFF;
                         vpal[0x102]=makecol(val&0xFF,(val>>8)&0xFF,(val>>16)&0xFF);
-                        palchange=1;
+                        palchange=1;                        
                         vidcpal[0x102]=val;
+                        curchange=1;                        
                 }
                 break;
                 case 0x70: case 0x71: case 0x72: case 0x73:
@@ -907,6 +1057,7 @@ void writevidc20(uint32_t val)
                         vpal[0x103]=makecol(val&0xFF,(val>>8)&0xFF,(val>>16)&0xFF);
                         palchange=1;
                         vidcpal[0x103]=val;
+                        curchange=1;
                 }
                 break;
                 case 0x83:
@@ -916,6 +1067,7 @@ void writevidc20(uint32_t val)
                 hder=val&0xFFE;
                 break;
                 case 0x86:
+                if (hcsr != (val&0xFFE)) curchange=1;
                 hcsr=val&0xFFE;
                 break;
                 case 0x93:
@@ -927,9 +1079,11 @@ void writevidc20(uint32_t val)
                 palchange=1;
                 break;
                 case 0x96:
+                if (vcsr != (val&0xFFF)) curchange=1;
                 vcsr=val&0xFFF;
                 break;
                 case 0x97:
+                if (vcer != (val&0xFFF)) curchange=1;
                 vcer=val&0xFFF;
                 break;
                 case 0xB0:

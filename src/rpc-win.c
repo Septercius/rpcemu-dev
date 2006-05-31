@@ -1,6 +1,7 @@
 /*RPCemu v0.3 by Tom Walker
   Main loop*/
 
+int blits;
 /*Uncomment for sound emulation (preliminary)
   Works okay on Windows 9x, sounds horrible on XP
   Could just be my sound card drivers though*/
@@ -45,7 +46,7 @@ FILE *arclog;
 void rpclog(const char *format, ...)
 {
    char buf[256];
-return;
+//return;
    va_list ap;
    va_start(ap, format);
    vsprintf(buf, format, ap);
@@ -298,7 +299,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         install_timer();
         install_mouse();
 
-//        arclog=fopen("arclog.txt","wt");
+        arclog=fopen("arclog.txt","wt");
         if (startrpcemu())
            return -1;
            
@@ -323,7 +324,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                 }
                 if (updatemips)
                 {
-                        sprintf(s,"RPCemu v0.4 - %f MIPS - %s",mips,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
+                        sprintf(s,"RPCemu v0.4 - %f MIPS %i blits - %s",mips,blits,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
                         SetWindowText(ghwnd, s);
                         updatemips=0;
                 }
@@ -353,8 +354,9 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
               sleep(1);
         #endif
         timeEndPeriod(1);
+        dumpregs();
         endrpcemu();
-//        fclose(arclog);
+        fclose(arclog);
         
         /* The program return-value is 0 - The value that PostQuitMessage() gave */
         return messages.wParam;
