@@ -1,10 +1,11 @@
-/*RPCemu v0.3 by Tom Walker
+/*RPCemu v0.5 by Tom Walker
   IOMD emulation*/
 
 #include <allegro.h>
 #include <stdio.h>
-#include "rpc.h"
+#include "rpcemu.h"
 
+int curchange;
 int samplefreq;
 uint32_t soundaddr[4];
 
@@ -67,6 +68,8 @@ void settimerb(int latch)
         else
            install_int_ex(timerbirq,MSEC_TO_TIMER(latch/2000));
 }
+
+int nextbuf;
 
 void writeiomd(uint32_t addr, uint32_t val)
 {
@@ -137,12 +140,15 @@ void writeiomd(uint32_t addr, uint32_t val)
                 case 0x184: /*Sound DMA end A*/
                 case 0x188: /*Sound DMA current B*/
                 case 0x18C: /*Sound DMA end B*/
+//                rpclog("Write %08X %02X\n",addr,val);
                 iomd.sndstat&=1;
                 iomd.state&=~0x10;
                 updateirqs();
                 soundaddr[(addr>>2)&3]=val;
+                nextbuf=1;
                 return;
                 case 0x190: /*Sound DMA control*/
+//                rpclog("Write %08X %02X\n",addr,val);
                 if (val&0x80)
                 {
                         iomd.sndstat=6;
@@ -155,10 +161,13 @@ void writeiomd(uint32_t addr, uint32_t val)
                 case 0x1C0: /*Cursor DMA*/
                 return;
                 case 0x1C4:
+//                if (cinit!=val) curchange=1;
                 cinit=val;
+//                curchange=1;
                 return;
                 case 0x1D0: /*Video DMA current*/
-                iomd.vidcur=val&0x1FFFFF;
+                iomd.vidcur=val&0x1FFFFF;                
+//                rpclog("Vidcur = %08X\n",val);
                 return;
                 case 0x1D4: /*Video DMA end*/
                 if (vrammask && model) iomd.vidend=(val+2048)&0x1FFFF0;

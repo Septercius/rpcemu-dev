@@ -1,4 +1,4 @@
-/*RPCemu v0.3 by Tom Walker
+/*RPCemu v0.5 by Tom Walker
   ARM6/7 emulation*/
   
 /*There are bits and pieces of StrongARM emulation in this file. All of the
@@ -15,15 +15,17 @@
   like as much they may be faster on platforms without branch prediction (eg XScale)*/
 //#define NEWLDRSTR
 
+/*Preliminary FPA emulation. RiscOS doesn't go to the desktop with this enabled, and
+  there aren't many instructions implemented*/
 //#define FPA
 
 #include <stdio.h>
 #include <string.h>
 
-#include "rpc.h"
-#include "hostfs.h"
+//#include <allegro.h>
 
-#include <allegro.h>
+#include "rpcemu.h"
+#include "hostfs.h"
 
 int r15diff;
 int flyback;

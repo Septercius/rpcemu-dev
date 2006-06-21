@@ -1,5 +1,9 @@
+/*RPCemu v0.5 by Tom Walker
+  Main loop
+  Should be platform independent*/
+
 #include <allegro.h>
-#include "rpc.h"
+#include "rpcemu.h"
 
 char discname[2][260]={"boot.adf","notboot.adf"};
 
@@ -46,8 +50,8 @@ void execrpcemu()
         if (drawscre)
         {
                 drawscre=0;
-                iomdvsync();
                 drawscr();
+                iomdvsync();
                 pollmouse();
                 pollkeyboard();
         }
@@ -86,6 +90,8 @@ void loadconfig()
         else if (!strcmp(p,"ARM710"))  model=2;
         else if (!strcmp(p,"SA110"))   model=3;
         else                           model=0;
+        soundenabled=get_config_int(NULL,"sound_enabled",NULL);
+        stretchmode=get_config_int(NULL,"stretch_mode",NULL);
 }
 
 void saveconfig()
@@ -103,4 +109,6 @@ void saveconfig()
         set_config_string(NULL,"cpu_type",s);
         if (vrammask) set_config_string(NULL,"vram_size","2");
         else          set_config_string(NULL,"vram_size","0");
+        set_config_int(NULL,"sound_enabled",soundenabled);
+        set_config_int(NULL,"stretch_mode",stretchmode);
 }

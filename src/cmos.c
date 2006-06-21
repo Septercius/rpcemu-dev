@@ -1,4 +1,4 @@
-/*RPCemu v0.3 by Tom Walker
+/*RPCemu v0.5 by Tom Walker
   I2C + CMOS RAM emulation*/
 #include <allegro.h>
 #ifndef __linux__
@@ -6,7 +6,7 @@
 #endif
 #include <stdio.h>
 #include <string.h>
-#include "rpc.h"
+#include "rpcemu.h"
 
 #ifndef __linux__
 SYSTEMTIME systemtime;

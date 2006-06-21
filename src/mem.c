@@ -1,6 +1,6 @@
-/*RPCemu v0.3 by Tom Walker
+/*RPCemu v0.5 by Tom Walker
   Memory handling*/
-#include "rpc.h"
+#include "rpcemu.h"
 
 //#define LARGETLB
 uint32_t *ram,*ram2,*rom,*vram;
@@ -9,6 +9,8 @@ uint8_t *dirtybuffer;
 
 uint32_t raddrl;
 uint32_t *raddrl2;
+uint32_t waddrl;
+uint32_t *waddrl2;
 
 int mmu,memmode;
 
@@ -18,6 +20,7 @@ static uint32_t writememcache[128],writememcache2[128];
 #else
 static uint32_t writememcache,writememcache2;
 #endif
+static uint32_t writemembcache,writemembcache2;
 
 //static int timetolive;
 
@@ -46,7 +49,7 @@ void initmem(void)
         dirtybuffer=(unsigned char *)malloc(512);
         memset(ram,0,2*1024*1024);
         memset(ram2,0,2*1024*1024);
-        raddrl=0xFFFFFFFF;
+        raddrl=waddrl=0xFFFFFFFF;
 }
 
 void reallocmem(int ramsize)
@@ -96,23 +99,23 @@ uint32_t readmemfl(uint32_t addr)
                         switch (readmemcache2&0x1F000000)
                         {
                                 case 0x00000000: /*ROM*/
-                                raddrl2=&rom[(readmemcache2&0x7FF000)>>2];
+                                raddrl2=&rom[((readmemcache2&0x7FF000)-raddrl)>>2];
 //                                rpclog("ROM %08X %08X\n",raddrl2,rom);
                                 break;
                                 case 0x02000000: /*VRAM*/
 //                                rpclog("VRAM %08X %07X\n");
-                                raddrl2=&vram[(readmemcache2&0x1FF000)>>2]; break;
+                                raddrl2=&vram[((readmemcache2&0x1FF000)-raddrl)>>2]; break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 case 0x11000000:
                                 case 0x12000000:
                                 case 0x13000000:
-                                raddrl2=&ram[(readmemcache2&rammask)>>2];
+                                raddrl2=&ram[((readmemcache2&rammask)-raddrl)>>2];
                                 break;
                                 case 0x14000000: /*SIMM 0 bank 1*/
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                raddrl2=&ram2[(readmemcache2&rammask)>>2];
+                                raddrl2=&ram2[((readmemcache2&rammask)-raddrl)>>2];
                                 break;
                                 default:
 //                                rpclog("Other\n");
@@ -124,26 +127,26 @@ uint32_t readmemfl(uint32_t addr)
         {
                 raddrl=addr&0xFFFFF000;
 //                rpclog("No MMU addr %08X %08X ",addr,raddrl);
-                switch (addr&0x1F000000)
+                switch (raddrl&0x1F000000)
                 {
                        case 0x00000000: /*ROM*/
 //                       rpclog("ROM\n");
-                       raddrl2=&rom[(addr&0x7FF000)>>2]; 
+                       raddrl2=&rom[((raddrl&0x7FF000)-raddrl)>>2];
                        break;
                        case 0x02000000: /*VRAM*/
 //                       rpclog("VRAM\n");
-                       raddrl2=&vram[(addr&0x1FF000)>>2];
+                       raddrl2=&vram[((raddrl&0x1FF000)-raddrl)>>2];
                        break;
                        case 0x10000000: /*SIMM 0 bank 0*/
                        case 0x11000000:
                        case 0x12000000:
                        case 0x13000000:
-                       raddrl2=&ram[((addr&rammask)&~0xFFF)>>2]; break;
+                       raddrl2=&ram[((raddrl&rammask)-raddrl)>>2]; break;
                        case 0x14000000: /*SIMM 0 bank 1*/
                        case 0x15000000:
                        case 0x16000000:
                        case 0x17000000:
-                       raddrl2=&ram2[((addr&rammask)&~0xFFF)>>2]; break;
+                       raddrl2=&ram2[((raddrl&rammask)-raddrl)>>2]; break;
                        default:
 //                       rpclog("Other\n");
                        raddrl=0xFFFFFFFF;
@@ -280,15 +283,77 @@ uint32_t readmemb(uint32_t addr)
 }
 
 #ifdef LARGETLB
-void writememl(uint32_t addrt, uint32_t val)
+void writememfl(uint32_t addrt, uint32_t val)
 #else
-void writememl(uint32_t addr, uint32_t val)
+void writememfl(uint32_t addr, uint32_t val)
 #endif
 {
 #ifdef LARGETLB
         uint32_t addr;
 #endif
+//        uint32_t addr2=addr;
+//        rpclog("Write %08X %08X %08X\n",addr,val,waddrl);
         if (mmu)
+        {
+                if ((addr>>12)==writememcache) addr=(addr&0xFFF)+writememcache2;
+                else
+                {
+                        writememcache=addr>>12;
+                        waddrl=addr&0xFFFFF000;
+                        addr=translateaddress(addr,1);
+                        if (databort) return;
+                        writememcache2=addr&0xFFFFF000;
+                        if ((addr&0x1F000000)==0x2000000)
+                           dirtybuffer[(addr&vrammask)>>12]=2;
+                        if (!vrammask && (addr&0x1FF00000)==0x10000000)
+                           dirtybuffer[(addr&rammask)>>12]=2;
+                        switch (writememcache2&0x1F000000)
+                        {
+                                case 0x02000000: /*VRAM*/
+                                waddrl2=&vram[(writememcache2&0x1FF000)>>2];
+                                break;
+                                case 0x10000000: /*SIMM 0 bank 0*/
+                                case 0x11000000:
+                                case 0x12000000:
+                                case 0x13000000:
+                                waddrl2=&ram[(writememcache2&rammask)>>2];
+                                break;
+                                case 0x14000000: /*SIMM 0 bank 1*/
+                                case 0x15000000:
+                                case 0x16000000:
+                                case 0x17000000:
+                                waddrl2=&ram2[(writememcache2&rammask)>>2];
+                                break;
+                                default:
+                                waddrl=0xFFFFFFFF;
+                        }
+                }
+        }
+        else
+        {
+                waddrl=addr&0xFFFFF000;
+                switch (waddrl&0x1F000000)
+                {
+                        case 0x02000000: /*VRAM*/
+                        waddrl2=&vram[(waddrl&0x1FF000)>>2];
+                        break;
+                        case 0x10000000: /*SIMM 0 bank 0*/
+                        case 0x11000000:
+                        case 0x12000000:
+                        case 0x13000000:
+                        waddrl2=&ram[(waddrl&rammask)>>2];
+                        break;
+                        case 0x14000000: /*SIMM 0 bank 1*/
+                        case 0x15000000:
+                        case 0x16000000:
+                        case 0x17000000:
+                        waddrl2=&ram2[(waddrl&rammask)>>2];
+                        break;
+                        default:
+                        waddrl=0xFFFFFFFF;
+                }
+        }
+/*        if (mmu)
         {
                 #ifdef LARGETLB
                 if ((addrt>>12)==writememcache[(addrt>>12)&127]) addr=(addrt&0xFFF)+writememcache2[(addrt>>12)&127];
@@ -313,7 +378,7 @@ void writememl(uint32_t addr, uint32_t val)
                            dirtybuffer[(addr&rammask)>>12]=2;
                 }
                 #endif
-        }
+        }*/
         #ifdef LARGETLB
         else
            addr=addrt;
@@ -411,13 +476,13 @@ void writememb(uint32_t addr, uint8_t val)
                         writememcache2[(addrt>>12)&127]=addr&0xFFFFF000;
                 }
                 #else
-                if ((addr>>12)==writememcache) addr=(addr&0xFFF)+writememcache2;
+                if ((addr>>12)==writemembcache) addr=(addr&0xFFF)+writemembcache2;
                 else
                 {
-                        writememcache=addr>>12;
+                        writemembcache=addr>>12;
                         addr=translateaddress(addr,1);
                         if (databort) return;
-                        writememcache2=addr&0xFFFFF000;
+                        writemembcache2=addr&0xFFFFF000;
                         if ((addr&0x1F000000)==0x2000000)
                            dirtybuffer[(addr&vrammask)>>12]=2;
                         if (!vrammask && (addr&0x1FF00000)==0x10000000)

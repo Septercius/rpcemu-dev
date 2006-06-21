@@ -1,4 +1,4 @@
-/*RPCemu v0.3 by Tom Walker
+/*RPCemu v0.5 by Tom Walker
   Main header file*/
 
 #ifndef _rpc_h
@@ -35,7 +35,13 @@ extern int prog32;
 extern uint32_t raddrl;
 extern uint32_t *raddrl2;
 //#define readmeml(a) readmemfl(a)
-#define readmeml(a) ((((a)&0xFFFFF000)==raddrl)?raddrl2[((a)&0xFFC)>>2]:readmemfl(a))
+#define readmeml(a) ((((a)&0xFFFFF000)==raddrl)?raddrl2[(a)>>2]:readmemfl(a))
+//#define readmeml(a) ((((a)&0xFFFFF000)==raddrl)?raddrl2[((a)&0xFFC)>>2]:readmemfl(a))
+
+extern uint32_t waddrl;
+extern uint32_t *waddrl2;
+//#define writememl(a,v) writememfl(a,v)
+#define writememl(a,v) if (((a)&0xFFFFF000)==waddrl) { waddrl2[((a)&0xFFC)>>2]=v; } else { writememfl(a,v); }
 
 extern uint32_t *ram,*ram2,*rom,*vram;
 extern uint8_t *ramb,*romb,*vramb;
@@ -71,9 +77,11 @@ char exname[512];
 
 int idecallback;
 
+/*Config*/
 int vrammask;
 int model;
 int rammask;
+int stretchmode;
 
 extern uint32_t soundaddr[4];
 
@@ -108,7 +116,7 @@ uint32_t *getpccache(uint32_t addr);
 //uint32_t readmeml(uint32_t addr);
 uint32_t readmemfl(uint32_t addr);
 uint32_t readmemb(uint32_t addr);
-void writememl(uint32_t addr, uint32_t val);
+//void writememl(uint32_t addr, uint32_t val);
 void writememb(uint32_t addr, uint8_t val);
 uint32_t readmemb(uint32_t addr);
 uint32_t translateaddress(uint32_t addr, int rw);
@@ -156,4 +164,7 @@ char HOSTFS_ROOT[512];
 
 char discname[2][260];
 int drawscre;
+
+/*Sound*/
+int soundenabled;
 #endif

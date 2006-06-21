@@ -1,11 +1,11 @@
-/*RPCemu v0.3 by Tom Walker
+/*RPCemu v0.5 by Tom Walker
   PC Combo emulation*/
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 
-#include "rpc.h"
+#include "rpcemu.h"
 
 int readflash=0;
 uint32_t ins;

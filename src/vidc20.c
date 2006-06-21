@@ -1,7 +1,7 @@
-/*RPCemu v0.3 by Tom Walker
+/*RPCemu v0.5 by Tom Walker
   VIDC20 emulation*/
 #include <allegro.h>
-#include "rpc.h"
+#include "rpcemu.h"
 
 int readflash;
 int palchange,curchange;
@@ -187,7 +187,7 @@ void drawscr()
                 temp=0;
                 for (c=0;c<ny;c++)
                 {
-                        temp+=vidp[addr]+(vidp[addr+1]);
+                        temp+=((vidp[addr]<<1)-(vidp[addr+1]>>1));
                         addr+=2;
                 }
                 /*If cursor data matches then no point redrawing screen - return*/
@@ -356,14 +356,14 @@ void drawscr()
 //                        rpclog("Start %08X End %08X Init %08X\n",iomd.vidstart,iomd.vidend,addr);
                         for (;y<ys;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(ony+ocy) && (y>=(ocy-1)))
                                 {
                                         drawit=1;
 //                                        yh=y+8;
                                         if (yl==-1)
                                            yl=y;
                                 }
-                                if (drawit) 
+                                if (drawit)
 				{
 					vidp=bmp_write_line(b,y);
 					yh=y;
@@ -385,6 +385,19 @@ void drawscr()
                                            addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
+                                                olddrawit=drawit;
+                                                drawit=dirtybuffer[(addr>>12)];
+                                                if (drawit)
+                                                {
+                                                        dirtybuffer[(addr>>12)]--;
+                                                        yh=y+1;
+                                                        if (yl==-1) yl=y;
+                                                }
+                                                if (y<(ony+ocy) && (y>=(ocy-1))) drawit=1;
+                                                if (drawit && !olddrawit) vidp=bmp_write_line(b,y);
+                                        }
+/*                                        if (!(addr&0xFFF))
+                                        {
                                                 if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
                                                 drawit=dirtybuffer[(addr>>12)];
                                                 if (drawit) dirtybuffer[(addr>>12)]--;
@@ -392,11 +405,12 @@ void drawscr()
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
-                                        }
+                                        }*/
                                 }
                                 x=0;
                         }
                         xs<<=1;
+  //                      rpclog("Yl %i Yh %i\n",yl,yh);
                         break;
                         case 4: /*16 bpp*/
                 #if 0
@@ -514,18 +528,6 @@ void drawscr()
                                                 vidp[x+3]=((pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16)|temp;
                                                 addr<<=1;
                                                 addr+=16;
-                                                #if 0
-                                                for (xx=0;xx<8;xx+=2)
-                                                {
-                                                        //VIDC20 pixel format is  xBBB BBGG GGGR RRRR
-                                                        //Windows pixel format is RRRR RGGG GGGB BBBB
-                                                        temp16=ramw[addr>>1];
-                                                        vidp16[x+xx]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
-                                                        temp16=ramw[(addr+2)>>1];
-                                                        vidp16[x+xx+1]=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
-                                                        addr+=4;
-                                                }
-                                                #endif
                                         }
                                         else
                                            addr+=16;
@@ -542,9 +544,6 @@ void drawscr()
                                                 }
                                                 if (y<(ony+ocy) && (y>=(ocy-1))) drawit=1;                                                
                                                 if (drawit && !olddrawit) vidp=bmp_write_line(b,y);
-//                                                if (drawit) yh=y+1;
-//                                                if (yl==-1 && drawit)
-//                                                   yl=y;
                                         }
                                 }
                         }
@@ -941,7 +940,6 @@ void drawscr()
 //        printf("Cursor %i %i %i\n",cx,cy,ny);
         ony=ny;
         ocy=cy;
-        ys=yh-yl;
 //        rpclog("%i %02X\n",drawcode,bit8);        
 //        sleep(2);
 //        rpclog("Blitting from 0,%i size %i,%i\n",yl,xs,ys);
@@ -949,27 +947,45 @@ void drawscr()
         switch (doublesize)
         {
                 case 0:// case 1: case 2: case 3:
+  //              case 3:
+        ys=yh-yl;
                 blit(b,screen,0,yl,0,yl,xs,ys);
                 return;
                 case 1:
+        ys=yh-yl;
                 stretch_blit(b,screen,
                              0,yl,xs,ys,
                              0,yl,xs<<1,ys);
                 return;
                 case 2:
-//                dblit(xs,yl,yh);
-//                blit(b2,screen,0,yl,0,yl,xs,ys);
-//                textprintf(screen,font,0,120,0xFFFF,"%i %i %i   ",yl,yh,ys);
-//                blit(b2,screen,0,yl<<1,0,yl<<1,xs,ys<<1);
-                stretch_blit(b,screen,
+                if (stretchmode)
+                {
+                        stretch_blit(b,screen,
+                             0,0,xs,ys,
+                             0,0,xs,ys<<1);
+                }
+                else
+                {
+                        ys=yh-yl;
+                        stretch_blit(b,screen,
                              0,yl,xs,ys,
                              0,yl<<1,xs,ys<<1);
+                }
                 return;
                 case 3:
-//                dblit(xs,yl,yh);                        
-                stretch_blit(b,screen,
+                if (stretchmode)
+                {
+                        stretch_blit(b,screen,
+                             0,0,xs,ys,
+                             0,0,xs<<1,ys<<1);
+                }
+                else
+                {
+                        ys=yh-yl;
+                        stretch_blit(b,screen,
                              0,yl,xs,ys,
                              0,yl<<1,xs<<1,ys<<1);
+                }
                 return;
         }
 //        printf("%i %i %i - ",hdsr,hder,hder-hdsr);
@@ -978,6 +994,7 @@ void drawscr()
 
 int samplefreq;
 unsigned long vidcpal[0x104];
+unsigned long b0,b1;
 void writevidc20(uint32_t val)
 {
         float f;
@@ -1087,10 +1104,22 @@ void writevidc20(uint32_t val)
                 vcer=val&0xFFF;
                 break;
                 case 0xB0:
-                val=(val&0xFF)+2;
-                f=(1000000.0f/(float)val)/4.0f;
+                b0=val;
+                rpclog("Write B0 %08X %08X\n",val,PC);
+                val=(b0&0xFF)+2;
+                if (b1&1) f=(1000000.0f/(float)val)/4.0f;
+                else      f=(705600.0f/(float)val)/4.0f;
                 samplefreq=(int)f;
-//                rpclog("Sample rate : %i ns %f hz\n",val,f);
+                rpclog("Sample rate : %i ns %f hz\n",val,f);
+                break;
+                case 0xB1:
+                rpclog("Write B1 %08X %08X\n",val,PC);
+                b1=val;
+                val=(b0&0xFF)+2;
+                if (b1&1) f=(1000000.0f/(float)val)/4.0f;
+                else      f=(705600.0f/(float)val)/4.0f;
+                samplefreq=(int)f;
+                rpclog("Sample rate : %i ns %f hz\n",val,f);
                 break;
                 case 0xE0:
                 if (((val>>5)&7)!=bit8)

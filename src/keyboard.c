@@ -1,4 +1,4 @@
-/*RPCemu v0.3 by Tom Walker
+/*RPCemu v0.5 by Tom Walker
   PS/2 keyboard and mouse emulation*/
 
 /*ARM command 0xFF - keyboard enters reset mode
@@ -16,7 +16,7 @@
   */
 
 #include <allegro.h>
-#include "rpc.h"
+#include "rpcemu.h"
 
 int xs,ys;
 

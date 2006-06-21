@@ -1,17 +1,21 @@
-/*RPCemu v0.3 by Tom Walker
-  Main loop*/
+/*RPCemu v0.5 by Tom Walker
+  Windows specific stuff
+  Also includes most sound emulation, since that is very Windows specific at
+  the moment.
+  Since I'm the only maintainer of this file, it's a complete mess.*/
 
 int blits;
 /*Uncomment for sound emulation (preliminary)
   Works okay on Windows 9x, sounds horrible on XP
   Could just be my sound card drivers though*/
-//#define THREADING
+#define THREADING
 #include <stdio.h>
 #include <allegro.h>
 #include <winalleg.h>
-#include "rpc.h"
+#include "rpcemu.h"
 #include "resources.h"
 
+int soundenabled=0;
 int sndon;
 int mousecapture=0;
 int tlbs,flushes;
@@ -134,28 +138,49 @@ void resetrpc()
   started at the moment*/
 int soundinited=0;
 AUDIOSTREAM *as=NULL;
-int sndbufsize=0;
+int sndbufsize=500;
 FILE *sndfile;
 int quited=0;
 int samplefreq,oldfreq;
 int armrunning,videorunning,soundrunning;
+#define BUFLEN 2048
+unsigned short sndbuffertemp[BUFLEN*4];
+int nextbuf=1;
 
+int quitsound=0;
 void soundthread(PVOID pvoid)
 {
-        int offset,c,d;
+        FILE *soundf;
+        int offset,c,d=0;
         unsigned short *p;
         unsigned long page,start,end,temp;
+        int bufferlen=1,bufferpos=0;
         soundrunning=1;
-        sndbufsize=500;
-        while (!quited)
+        as=NULL;
+//        rpclog("Sound thread starting\n");
+//        sndbufsize=500;
+//        soundf=fopen("sound.pcm","wb");
+        while (!quitsound)
         {
+                soundstartagain:
                 if (soundinited)
                 {
                         offset=(iomd.sndstat&1)<<1;
                         if (!as)
                         {
                                 if (sndbufsize)
-                                   as=play_audio_stream(sndbufsize,16,1,oldfreq,255,127);
+                                {
+                                        d=0;
+                                        bufferlen=1;
+                                        bufferpos=0;
+                                        while ((sndbufsize*bufferlen)<BUFLEN)
+                                        {
+//                                                rpclog("%i %i %i\n",sndbufsize,bufferlen,sndbufsize*bufferlen);
+                                                bufferlen++;
+                                        }
+//                                        rpclog("New sound buffer size %i freq %i bufferlen %i\n",sndbufsize,oldfreq,bufferlen);
+                                        as=play_audio_stream(sndbufsize*bufferlen,16,1,oldfreq,255,127);
+                                }
                                 else
                                 {
                                         iomd.state|=0x10;
@@ -165,14 +190,11 @@ void soundthread(PVOID pvoid)
                         }
                         if (as)
                         {
-                                p=NULL;
-                                while (!p)
+//                                rpclog("%i %i %i %02X\n",nextbuf,bufferpos,bufferlen,iomd.state);
+                                if (bufferpos<bufferlen && !(iomd.state&0x10))
                                 {
-                                        sleep(0);
-                                        p=get_audio_stream_buffer(as);
-                                }
-                                if (p)
-                                {
+//                                        rpclog("Sound int %i\n",d);
+                                        nextbuf=0;
                                         iomd.sndstat^=1;
                                         offset=(iomd.sndstat&1)<<1;
                                         page=soundaddr[offset]&0xFFFFF000;
@@ -193,29 +215,48 @@ void soundthread(PVOID pvoid)
                                                         p=get_audio_stream_buffer(as);
                                                 }
                                         }
-                                        d=0;
                                         for (c=start;c<end;c+=4)
                                         {
                                                 temp=ram[((c+page)&rammask)>>2];
-                                                p[d++]=(temp&0xFFFF)^0x8000;
-                                                p[d++]=(temp>>16)^0x8000;
+                                                sndbuffertemp[d++]=(temp&0xFFFF)^0x8000;
+                                                sndbuffertemp[d++]=(temp>>16)^0x8000;
                                         }
-                                        free_audio_stream_buffer(as);
+                                        bufferpos++;
                                         iomd.state|=0x10;
                                         updateirqs();
                                         iomd.sndstat|=6;
                                 }
+                                if (bufferpos>=bufferlen)
+                                {
+//                                        rpclog("Buffer update %i\n",bufferlen*sndbufsize*2);
+//                                        fflush(arclog);
+                                        bufferpos=0;
+                                        d=0;
+                                        p=NULL;
+                                        while (!p)
+                                        {
+                                                sleep(0);
+                                                p=get_audio_stream_buffer(as);
+                                        }
+                                        memcpy(p,sndbuffertemp,bufferlen*sndbufsize*4);
+                                        free_audio_stream_buffer(as);
+                                        for (d=0;d<(BUFLEN*4);d++)
+                                            sndbuffertemp[d]^=0x8000;
+//                                        fwrite(sndbuffertemp,bufferlen*sndbufsize*4,1,soundf);
+                                        d=0;
+                                }
                         }
                 }
-                soundstartagain:
                 while ((iomd.state&0x10) && !quited)
                 {
                         sleep(0);
                 }
-                sleep(1);
+//                sleep(1);
         }
+//        rpclog("Sound thread ending\n");
         if (as) stop_audio_stream(as);
-        soundrunning=0;
+        as=NULL;
+        soundrunning=quitsound=0;
         _endthread();
 }
 
@@ -279,7 +320,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         ghwnd = CreateWindowEx (
            0,                   /* Extended possibilites for variation */
            szClassName,         /* Classname */
-           "RPCemu v0.4",       /* Title Text */
+           "RPCemu v0.5",       /* Title Text */
            WS_OVERLAPPEDWINDOW, /* default window */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
@@ -307,15 +348,16 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate,BPS_TO_TIMER(60));
-        #ifndef THREADING
-        install_int_ex(sndupdate,BPS_TO_TIMER(10));
-        #else
-        install_sound(DIGI_AUTODETECT,0,0);
-        #endif
         timeBeginPeriod(1);
-                #ifdef THREADING
+        if (soundenabled)
+        {
+                install_sound(DIGI_AUTODETECT,0,0);
                 _beginthread(soundthread,0,NULL);
-                #endif
+        }
+        else
+        {
+                install_int_ex(sndupdate,BPS_TO_TIMER(10));
+        }
         while (!quited)
         {
                 if (infocus)
@@ -324,7 +366,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                 }
                 if (updatemips)
                 {
-                        sprintf(s,"RPCemu v0.4 - %f MIPS %i blits - %s",mips,blits,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
+                        sprintf(s,"RPCemu v0.5 - %f MIPS %i blits - %s",mips,blits,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
                         SetWindowText(ghwnd, s);
                         updatemips=0;
                 }
@@ -349,12 +391,14 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                 ClipCursor(&oldclip);
                 mousecapture=0;
         }
-        #ifdef THREADING
-        while (soundrunning)
-              sleep(1);
-        #endif
+        quitsound=1;
+        if (soundenabled)
+        {
+                while (soundrunning)
+                      sleep(1);
+        }
         timeEndPeriod(1);
-        dumpregs();
+//        dumpregs();
         endrpcemu();
         fclose(arclog);
         
@@ -401,6 +445,7 @@ void changedisc(HWND hwnd, int drive)
 int model2;
 int mask;
 int vrammask2;
+int soundenabled2;
 int chngram=0;
 
 BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -411,6 +456,8 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
         switch (message)
         {
                 case WM_INITDIALOG:
+                h=GetDlgItem(hdlg,CheckBox1);
+                SendMessage(h,BM_SETCHECK,soundenabled,0);
                 if (model<2) cpu=model^1;
                 else         cpu=model;
                 h=GetDlgItem(hdlg,RadioButton1+cpu);
@@ -429,11 +476,30 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                 SendMessage(h,BM_SETCHECK,1,0);
                 model2=model;
                 vrammask2=vrammask;
+                soundenabled2=soundenabled;
                 return TRUE;
                 case WM_COMMAND:
                 switch (LOWORD(wParam))
                 {
                         case IDOK:
+                        if (soundenabled && !soundenabled2)
+                        {
+                                quitsound=1;
+//                                while (soundrunning)
+//                                      sleep(1);
+//                                quitsound=0;
+//                                stop_audio_stream(as);
+                                install_int_ex(sndupdate,BPS_TO_TIMER(10));
+                        }
+                        if (soundenabled2 && !soundenabled)
+                        {
+                                remove_int(sndupdate);
+                                install_sound(DIGI_AUTODETECT,0,0);
+                                _beginthread(soundthread,0,NULL);
+                        }
+                        soundenabled=soundenabled2;
+                        if (model!=model2 || vrammask!=vrammask2 || chngram)
+                           resetrpc();
                         if (chngram)
                         {
                                 rammask=mask;
@@ -441,7 +507,6 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                         }
                         model=model2;
                         vrammask=vrammask2;
-                        resetrpc();
                         case IDCANCEL:
                         EndDialog(hdlg,0);
                         return TRUE;
@@ -460,7 +525,7 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                         vrammask2=0x1FFFFF;
                         return TRUE;
                         
-                        case RadioButton1: case RadioButton2: case RadioButton3: case RadioButton4:
+                        case RadioButton1: case RadioButton2: case RadioButton3:// case RadioButton4:
                         if (model<2) cpu=model2^1;
                         else         cpu=model2;
                         h=GetDlgItem(hdlg,RadioButton1+cpu);
@@ -483,6 +548,12 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                         SendMessage(h,BM_SETCHECK,1,0);
                         if (mask!=rammask) chngram=1;
                         else               chngram=0;
+                        return TRUE;
+                        
+                        case CheckBox1:
+                        soundenabled2^=1;
+                        h=GetDlgItem(hdlg,LOWORD(wParam));
+                        SendMessage(h,BM_SETCHECK,soundenabled2,0);
                         return TRUE;
                 }
                 break;
@@ -518,6 +589,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         return 0;
                         case IDM_CONFIG:
                         DialogBox(hinstance,TEXT("ConfigureDlg"),ghwnd,configdlgproc);
+                        return 0;
+                        case IDM_STRETCH:
+                        stretchmode^=1;
+                        CheckMenuItem(hmenu,IDM_STRETCH,(stretchmode)?MF_CHECKED:MF_UNCHECKED);
                         return 0;
                 }
                 break;

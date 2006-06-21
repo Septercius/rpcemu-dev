@@ -1,9 +1,9 @@
-/*RPCemu v0.3 by Tom Walker
+/*RPCemu v0.5 by Tom Walker
   System coprocessor + MMU emulation*/
-#include "rpc.h"
+#include "rpcemu.h"
 
 uint32_t ins;
-unsigned long tlbcache[16384],tlbcache2[64];
+uint32_t tlbcache[16384],tlbcache2[64];
 int tlbcachepos;
 int tlbs,flushes;
 uint32_t pccache,readcache,writecache;
@@ -39,7 +39,7 @@ void writecp15(uint32_t addr, uint32_t val)
                 cp15.ctrl=val;
                 mmu=val&1;
                 if (!mmu)
-                   raddrl=0xFFFFFFFF;
+                   raddrl=waddrl=0xFFFFFFFF;
                 prog32=val&0x10;
                 if (!prog32 && (mode&16))
                 {
@@ -48,7 +48,7 @@ void writecp15(uint32_t addr, uint32_t val)
                 return; /*We can probably ignore all other bits*/
                 case 2: /*TLB base*/
                 cp15.tlbbase=val&~0x3FFF;
-                raddrl=0xFFFFFFFF;
+                raddrl=waddrl=0xFFFFFFFF;
                 switch (cp15.tlbbase&0x1F000000)
                 {
                         case 0x02000000: /*VRAM - yes RiscOS 3.7 does put the TLB in VRAM at one point*/
@@ -77,7 +77,7 @@ void writecp15(uint32_t addr, uint32_t val)
 //                rpclog("TLB flush %08X %08X %07X %i %i %08X\n",addr,val,PC,ins,translations,lastcache);
                 clearmemcache();
                 pccache=readcache=writecache=0xFFFFFFFF;
-                raddrl=0xFFFFFFFF;
+                raddrl=waddrl=0xFFFFFFFF;
                 for (c=0;c<64;c++)
                     tlbcache[tlbcache2[c]]=0xFFFFFFFF;
                 for (c=0;c<64;c++)
@@ -99,7 +99,7 @@ void writecp15(uint32_t addr, uint32_t val)
                 case 7: /*Invalidate cache*/
 //                rpclog("Cache invalidate %08X\n",PC);
                 pccache=readcache=writecache=0xFFFFFFFF;
-                raddrl=0xFFFFFFFF;
+                raddrl=waddrl=0xFFFFFFFF;
                 return;
         }
 //        error("Bad write CP15 %08X %08X %07X\n",addr,val,PC);
