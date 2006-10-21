@@ -108,7 +108,7 @@ hostfs_ensure_buffer_size(size_t buffer_size_needed)
   if (buffer_size_needed > buffer_size) {
     buffer = realloc(buffer, buffer_size_needed);
     if (!buffer) {
-      fprintf(stderr, "HostFS could not increase buffer size to %u bytes\n",
+      fprintf(stderr, "HostFS could not increase buffer size to %zu bytes\n",
               buffer_size_needed);
       exit(EXIT_FAILURE);
     }
@@ -1204,7 +1204,7 @@ hostfs_file_8_create_dir(ARMul_State *state)
   dbug_hostfs("\tPATH = %s\n", ro_path);
   dbug_hostfs("\tPATH2 = %s\n", host_path);
 
-  if (mkdir(host_path)) {
+  if (mkdir(host_path, 0777)) {
     /* An error occurred whilst creating the directory */
 
     switch (errno) {

@@ -6,7 +6,7 @@
 #define HOSTFS_H
 
 //#include "armdefs.h"
-#include "rpc.h"
+#include "rpcemu.h"
 
 #define ARCEM_SWI_CHUNK    0x56ac0
 #define ARCEM_SWI_SHUTDOWN (ARCEM_SWI_CHUNK + 0)

@@ -3,7 +3,7 @@
 //CC = gcc-4.1 -march=athlon-4
 CFLAGS = -Wall -Wextra -O3 # -g1 -Werror
 
-LIBS = -pthread -lalleg-4.1 -L/usr/X11R6/lib -lX11 -lXext -lXpm -lXxf86vm -lXcursor -lm
+LIBS = -pthread -lalleg-4.2.0 -L/usr/X11R6/lib -lX11 -lXext -lXpm -lXxf86vm -lXcursor -lm
 
 EXE = ../rpcemu
 
