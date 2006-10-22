@@ -15,7 +15,7 @@
   like as much they may be faster on platforms without branch prediction (eg XScale)*/
 //#define NEWLDRSTR
 
-/*Preliminary FPA emulation. RiscOS doesn't go to the desktop with this enabled, and
+/*Preliminary FPA emulation. RISC OS doesn't go to the desktop with this enabled, and
   there aren't many instructions implemented*/
 //#define FPA
 
@@ -45,8 +45,8 @@ static void refillpipeline2(void);
 //static char bigs[256];
 //static FILE *olog;
 static unsigned char flaglookup[16][16];
-static unsigned long rotatelookup[4096];
-static int timetolive = 0;
+static uint32_t rotatelookup[4096];
+//static int timetolive = 0;
 uint32_t inscount;
 //static unsigned char cmosram[256];
 int armirq=0;
@@ -325,7 +325,7 @@ void dumpregs()
         FILE *f,*ff;
         char s[1024];
         int c;
-        unsigned long templ;
+        uint32_t templ;
         if (indumpregs) return;
         indumpregs=1;
         f=fopen("ram.dmp","wb");
@@ -468,9 +468,9 @@ static inline void setzn(uint32_t op)
 static char err2[512];
 
 #if 0
-inline unsigned long shift3s(unsigned long opcode)
+inline uint32_t shift3s(uint32_t opcode)
 {
-        unsigned long rmreg=armregs[RM];
+        uint32_t rmreg=armregs[RM];
         int shiftamount;
         int cflag;
         if (opcode&0x10) shiftamount=armregs[(opcode>>8)&15]&0xFF;
@@ -617,10 +617,10 @@ static inline uint32_t shift3(uint32_t opcode)
         }
 }
 
-/*unsigned long shift3(unsigned long opcode)
+/*uint32_t shift3(uint32_t opcode)
 {
-        unsigned long c=armregs[cpsr],c1;
-        unsigned long temp,temp2;
+        uint32_t c=armregs[cpsr],c1;
+        uint32_t temp,temp2;
         temp=shift3s(opcode);
         c1=armregs[cpsr];
         armregs[cpsr]=c;
@@ -637,7 +637,7 @@ static inline uint32_t shift3(uint32_t opcode)
 #if 0
 inline unsigned shift4(unsigned opcode)
 {
-        unsigned long rmreg=armregs[RM];
+        uint32_t rmreg=armregs[RM];
         int shiftamount;
         if (opcode&0x10) shiftamount=armregs[(opcode>>8)&15]&0xFF;
         else
@@ -719,10 +719,10 @@ inline unsigned shift4(unsigned opcode)
 //#endif
 
 #if 0
-unsigned long shift4(unsigned long opcode)
+uint32_t shift4(uint32_t opcode)
 {
         return shift4n(opcode);
-//        unsigned long temp,temp2;
+//        uint32_t temp,temp2;
 //        temp=shift4n(opcode);
 /*        temp2=shift4o(opcode);
         if (temp != temp2)
@@ -825,7 +825,7 @@ static void undefined(void)
 
 static void refillpipeline(void)
 {
-        unsigned long addr=PC-4;
+        uint32_t addr=PC-4;
         if ((addr>>12)!=pccache)
         {
                 pccache=addr>>12;
@@ -845,7 +845,7 @@ static void refillpipeline(void)
 
 static void refillpipeline2()
 {
-        unsigned long addr=PC-8;
+        uint32_t addr=PC-8;
         if ((addr>>12)!=pccache)
         {
                 pccache=addr>>12;
@@ -1451,15 +1451,15 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
 void execarm(int cycs)
 {
         uint32_t templ,templ2,addr,addr2;
-        uint32_t a,b,c,d,e,f;
-        int tempi;
+        //uint32_t a,b,c,d,e,f;
+        //int tempi;
         //int exec,c,cc,cyc,oldcyc,oldcyc2,d;
 	int cyc, oldcyc, oldcyc2;
 	//uint32_t c;
         unsigned char temp;
         //uint32_t oldr15[2];
 	//        FILE *f;
-        char s[80];
+        //char s[80];
         //char bigs[1024];
         int linecyc;
         cycles+=cycs;

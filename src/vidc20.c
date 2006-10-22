@@ -13,7 +13,7 @@ int oldsx,oldsy;
 RGB cursor[3];
 RGB border;
 int drawcode;
-unsigned long vpal[260];
+uint32_t vpal[260];
 void initvideo()
 {
         int depth;
@@ -56,12 +56,12 @@ void initvideo()
 int palindex;
 struct
 {
-        unsigned long r,g,b;
+        uint32_t r,g,b;
 } pal[256];
 PALETTE pal2;
 
-unsigned long hdsr,hcsr,hder;
-unsigned long vdsr,vcsr,vcer,vder;
+uint32_t hdsr,hcsr,hder;
+uint32_t vdsr,vcsr,vcer,vder;
 int bit8;
 
 int getxs()
@@ -95,7 +95,7 @@ void dblit(int xs, int yl, int yh)
 int ony,ocy;
 int xdiff[8]={8192,4096,2048,1024,512,512,256,256};
 int lastframeborder=0;
-unsigned long curcrc=0;
+uint32_t curcrc=0;
 void drawscr()
 {
         int x,y,xx,xxx;
@@ -106,15 +106,15 @@ void drawscr()
         int cy=vcsr-vdsr,ny=vcer-vcsr;
         int ac=0;
         int drawit=0,olddrawit=0;
-        int yl=-1,yh;
+        int yl=-1,yh = 0;
         int c;
         int doublesize=0,doublehigh=0;
-        unsigned long oldaddr,temp;
+        uint32_t oldaddr,temp;
         int cursorcol[3];
         unsigned char *ramp;
         unsigned short temp16,*ramw;
-        unsigned long *vidp;
-        unsigned short *vidp16;
+        uint32_t *vidp = NULL;
+        unsigned short *vidp16 = NULL;
         int firstblock,lastblock;
 //        rpclog("Draw screen\n");
         iomd.vidend=(iomd.vidend&0x1FFFFF)|(iomd.vidinit&~0x1FFFFF);
@@ -992,9 +992,9 @@ void drawscr()
 //        printf("%i %i %i\n",vdsr,vder,vder-vdsr);
 }
 
-int samplefreq;
-unsigned long vidcpal[0x104];
-unsigned long b0,b1;
+static int samplefreq;
+static uint32_t vidcpal[0x104];
+static uint32_t b0,b1;
 void writevidc20(uint32_t val)
 {
         float f;

@@ -2,7 +2,7 @@
   Memory handling*/
 #include "rpcemu.h"
 
-//#define LARGETLB
+
 uint32_t *ram,*ram2,*rom,*vram;
 uint8_t *ramb,*ramb2,*romb,*vramb;
 uint8_t *dirtybuffer;
@@ -24,7 +24,7 @@ static uint32_t writemembcache,writemembcache2;
 
 //static int timetolive;
 
-void clearmemcache()
+void clearmemcache(void)
 {
 #ifdef LARGETLB
         int c;
@@ -67,14 +67,14 @@ void reallocmem(int ramsize)
 
 void resetmem(void)
 {
-        int c;
-        readmemcache=0xFFFFFFFF;
 #ifdef LARGETLB
+	int c;
         for (c=0;c<64;c++)
             writememcache[c]=0xFFFFFFFF;
 #else
         writememcache=0xFFFFFFFF;
 #endif
+        readmemcache=0xFFFFFFFF;
 }
 
 uint32_t readmemfl(uint32_t addr)

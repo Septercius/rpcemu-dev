@@ -112,7 +112,9 @@ uint32_t readcp15(uint32_t addr);
 void resetcp15(void);
 uint32_t *getpccache(uint32_t addr);
 
+
 /* mem.c */
+//#define LARGETLB
 //uint32_t readmeml(uint32_t addr);
 uint32_t readmemfl(uint32_t addr);
 uint32_t readmemb(uint32_t addr);
@@ -120,6 +122,13 @@ uint32_t readmemb(uint32_t addr);
 void writememb(uint32_t addr, uint8_t val);
 uint32_t readmemb(uint32_t addr);
 uint32_t translateaddress(uint32_t addr, int rw);
+void clearmemcache(void);
+
+#ifdef LARGETLB
+void writememfl(uint32_t addrt, uint32_t val);
+#else
+void writememfl(uint32_t addr, uint32_t val);
+#endif
 
 //uint32_t mem_getphys(uint32_t addr);
 //uint32_t readmeml_phys(uint32_t addr);
@@ -138,6 +147,7 @@ unsigned char getmousestat(void);
 unsigned char readmousedata(void);
 
 /* 82c711.c */
+void reset82c711(void);
 void callbackfdc(void);
 uint8_t read82c711(uint32_t addr);
 uint8_t readfdcdma(uint32_t addr);

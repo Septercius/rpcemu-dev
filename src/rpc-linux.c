@@ -7,6 +7,8 @@
 #define MB_OK 1
 static void MessageBox(void *param, const char *message, 
 		       const char *title, int type) {
+  param = param;
+  type = type;
   printf("MessageBox: %s %s\n", title, message);
 }
 

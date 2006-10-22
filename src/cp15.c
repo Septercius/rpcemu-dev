@@ -11,7 +11,7 @@ uint32_t opcode;
 struct cp15
 {
         uint32_t tlbbase,dacr;
-        unsigned long far,fsr,ctrl;
+        uint32_t far,fsr,ctrl;
 } cp15;
 
 void resetcp15(void)
@@ -141,7 +141,7 @@ uint32_t readcp15(uint32_t addr)
                         cp15.fsr=fsr;        \
                         return 0xFFFFFFFF
 
-int checkpermissions(int p, int fsr, int rw, unsigned long addr)
+int checkpermissions(int p, int fsr, int rw, uint32_t addr)
 {
         switch (p)
         {
@@ -260,7 +260,7 @@ uint32_t *getpccache(uint32_t addr)
                 {
                         databort=0;
                         prefabort=1;
-                        return;
+                        return NULL;
                 }
         }
         else     addr2=addr;

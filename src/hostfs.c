@@ -434,7 +434,7 @@ hostfs_path_scan(const char *host_dir_path,
 {
   DIR *d;
   struct dirent *entry;
-  int c;
+  size_t c;
 
   assert(host_dir_path && object);
   assert(host_name && ro_leaf);
