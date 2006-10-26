@@ -39,6 +39,7 @@ int startrpcemu()
         loadadf("boot.adf",0);
         loadadf("notboot.adf",1);
         initvideo();
+        initsound();
         loadconfig();
         reallocmem(rammask+1);
         return 0;
@@ -54,6 +55,7 @@ void execrpcemu()
                 iomdvsync();
                 pollmouse();
                 pollkeyboard();
+                cmostick();
         }
 }
 
@@ -90,8 +92,8 @@ void loadconfig()
         else if (!strcmp(p,"ARM710"))  model=2;
         else if (!strcmp(p,"SA110"))   model=3;
         else                           model=0;
-        soundenabled=get_config_int(NULL,"sound_enabled",NULL);
-        stretchmode=get_config_int(NULL,"stretch_mode",NULL);
+        soundenabled=get_config_int(NULL,"sound_enabled",1);
+        stretchmode=get_config_int(NULL,"stretch_mode",0);
 }
 
 void saveconfig()

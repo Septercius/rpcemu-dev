@@ -260,7 +260,7 @@ uint32_t *getpccache(uint32_t addr)
                 {
                         databort=0;
                         prefabort=1;
-                        return NULL;
+                        return;
                 }
         }
         else     addr2=addr;

@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include "rpcemu.h"
 
+int cdromenabled=0;
+void atapicommand();
+int timetolive;
 int readflash;
 int dumpedread=0;
 struct
@@ -14,12 +17,14 @@ struct
         unsigned char fdisk;
         int pos;
         int spt,hpc;
+        int packetstatus;
 } ide;
 
 int idereset=0;
 unsigned short idebuffer[256];
 unsigned char *idebufferb;
 FILE *hdfile[2]={NULL,NULL};
+FILE *cdrom=NULL;
 void closeide0(void)
 {
         fclose(hdfile[0]);
@@ -61,6 +66,7 @@ void resetide(void)
         idebufferb=(unsigned char *)idebuffer;
         ide.spt=63;
         ide.hpc=16;
+//        cdrom=fopen("","rb");
 }
 
 void writeidew(uint16_t val)
@@ -68,6 +74,13 @@ void writeidew(uint16_t val)
 //        rpclog("Write data %08X %04X\n",ide.pos,val);
         idebuffer[ide.pos>>1]=val;
         ide.pos+=2;
+        if (ide.command==0xA0 && ide.pos>=0xC)
+        {
+                ide.pos=0;
+                ide.atastat=0x80;
+                ide.packetstatus=1;
+                idecallback=60;
+        }
         if (ide.pos>=512)
         {
                 ide.pos=0;
@@ -78,8 +91,8 @@ void writeidew(uint16_t val)
 
 void writeide(uint16_t addr, uint8_t val)
 {
-  //        int c;
-//        if (addr!=0x1F6) rpclog("Write IDE %08X %02X %08X %08X\n",addr,val,PC-8,armregs[12]);
+//        int c;
+//        if (output) rpclog("Write IDE %08X %02X %08X %08X\n",addr,val,PC-8,armregs[12]);
         switch (addr)
         {
                 case 0x1F0:
@@ -109,9 +122,12 @@ void writeide(uint16_t addr, uint8_t val)
                 case 0x1F6:
                 ide.head=val&0xF;
                 ide.drive=(val>>4)&1;
+                        ide.pos=0;
+                        ide.atastat=0x40;
                 return;
                 case 0x1F7: /*Command register*/
                 ide.command=val;
+//                rpclog("New IDE command - %02X %i %08X\n",ide.command,ide.drive,PC-8);
                 ide.error=0;
                 switch (val)
                 {
@@ -164,6 +180,12 @@ void writeide(uint16_t addr, uint8_t val)
                         ide.atastat=0x80;
                         idecallback=200;
                         return;
+                        case 0xA0: /*Packet (ATAPI command)*/
+                        ide.packetstatus=0;
+                        ide.atastat=0x80;
+                        idecallback=30;
+                        output=1;
+                        return;
                 }
                 error("Bad IDE command %02X\n",val);
                 exit(-1);
@@ -189,11 +211,16 @@ uint8_t readide(uint16_t addr)
         uint8_t temp;
 //        FILE *f;
 //        int c;
-//        rpclog("Read IDE %08X %08X\n",addr,PC-8);
+//        if (output) rpclog("Read IDE %08X %08X %08X\n",addr,PC-8,armregs[9]);
         switch (addr)
         {
                 case 0x1F0:
-//                rpclog("Read data %08X\n",ide.pos);
+/*                if (ide.command==0xA1 && !ide.pos)
+                {
+                        output=1;
+                        timetolive=20000;
+                }*/
+//                rpclog("Read data %08X ",ide.pos);
 /*                if (!dumpedread)
                 {
                         f=fopen("ram212.dmp","wb");
@@ -204,10 +231,12 @@ uint8_t readide(uint16_t addr)
                         fclose(f);
                 }*/
                 temp=idebufferb[ide.pos++];
+//                rpclog("%04X\n",temp);
                 if (ide.pos>=512)
                 {
                         ide.pos=0;
                         ide.atastat=0x40;
+//                        rpclog("End of transfer\n");
                 }
                 return temp;
                 case 0x1F1:
@@ -240,7 +269,7 @@ uint8_t readide(uint16_t addr)
 uint16_t readidew(void)
 {
         uint16_t temp;
-//        rpclog("Read data2 %08X %02X%02X\n",ide.pos,idebuffer[(ide.pos>>1)+1],idebuffer[(ide.pos>>1)]);
+//        if (output) rpclog("Read data2 %08X %02X%02X %07X\n",ide.pos,idebuffer[(ide.pos>>1)+1],idebuffer[(ide.pos>>1)],PC);
         temp=idebuffer[ide.pos>>1];
         ide.pos+=2;
         if (ide.pos>=512)
@@ -369,6 +398,35 @@ void callbackide(void)
                 updateirqs();
                 return;
                 case 0xA1:
+                if (ide.drive)
+                {
+                        memset(idebuffer,0,512);
+                        idebuffer[0]=0x8000|(5<<8)|0x80; /*ATAPI device, CD-ROM drive, removable media*/
+                        for (addr=10;addr<20;addr++)
+                            idebuffer[addr]=0x2020;
+                        for (addr=23;addr<47;addr++)
+                            idebuffer[addr]=0x2020;
+                        idebufferb[46^1]='v'; /*Firmware version*/
+                        idebufferb[47^1]='0';
+                        idebufferb[48^1]='.';
+                        idebufferb[49^1]='6';
+                        idebufferb[54^1]='R'; /*Drive model*/
+                        idebufferb[55^1]='P';
+                        idebufferb[56^1]='C';
+                        idebufferb[57^1]='e';
+                        idebufferb[58^1]='m';
+                        idebufferb[59^1]='u';
+                        idebufferb[60^1]='C';
+                        idebufferb[61^1]='D';
+                        idebuffer[49]=0x200; /*LBA supported*/
+                        ide.pos=0;
+                        ide.error=0;
+                        ide.atastat=0x08;
+                        iomd.statb|=2;
+                        updateirqs();
+                        return;
+                }
+                return;
                 case 0xE3:
                 ide.atastat=0x41;
                 ide.error=4;
@@ -376,6 +434,18 @@ void callbackide(void)
                 updateirqs();
                 return;
                 case 0xEC:
+                if (ide.drive && cdromenabled)
+                {
+                        ide.secount=1;
+                        ide.sector=1;
+                        ide.cylinder=0xEB14;
+                        ide.drive=ide.head=0;
+                        ide.atastat=0x41;
+                        ide.error=4;
+                        iomd.statb|=2;
+                        updateirqs();
+                        return;
+                }
                 memset(idebuffer,0,512);
                 idebuffer[1]=101; /*Cylinders*/
                 idebuffer[3]=16;  /*Heads*/
@@ -387,7 +457,7 @@ void callbackide(void)
                 idebufferb[46^1]='v'; /*Firmware version*/
                 idebufferb[47^1]='0';
                 idebufferb[48^1]='.';
-                idebufferb[49^1]='3';
+                idebufferb[49^1]='6';
                 idebufferb[54^1]='R'; /*Drive model*/
                 idebufferb[55^1]='P';
                 idebufferb[56^1]='C';
@@ -403,7 +473,66 @@ void callbackide(void)
                 iomd.statb|=2;
                 updateirqs();
                 return;
+                case 0xA0: /*Packet*/
+                if (!ide.packetstatus)
+                {
+                        ide.pos=0;
+                        ide.error=(ide.secount&0xF8)|1;
+                        ide.atastat=8;
+                        iomd.statb|=2;
+                        updateirqs();
+                        rpclog("Preparing to recieve packet max DRQ count %04X\n",ide.cylinder);
+                }
+                else if (ide.packetstatus==1)
+                {
+                        rpclog("packetstatus != 0!\n");
+                        rpclog("Packet data :\n");
+                        for (c=0;c<12;c++)
+                            rpclog("%02X\n",idebufferb[c]);
+                        ide.atastat=0x80;
+                        
+                        atapicommand();
+//                        exit(-1);
+                }
+                else if (ide.packetstatus==2)
+                {
+                        rpclog("packetstatus==2\n");
+                        ide.atastat=0x40;
+                        iomd.statb|=2;
+                        updateirqs();
+                }
+                return;
         }
 }
 /*Read 1F1*/
 /*Error &108A1 - parameters not recognised*/
+
+void atapicommand()
+{
+        int c;
+        switch (idebufferb[0])
+        {
+                case 0: /*Test unit ready*/
+                ide.packetstatus=2;
+                idecallback=50;
+                break;
+                case 0x43: /*Read TOC*/
+                switch (idebuffer[6])
+                {
+                        case 0xAA: /*Start address of lead-out*/
+                        break;
+                }
+                rpclog("Read bad track %02X in read TOC\n",idebuffer[6]);
+                rpclog("Packet data :\n");
+                for (c=0;c<12;c++)
+                    rpclog("%02X\n",idebufferb[c]);
+                exit(-1);
+                default:
+                rpclog("Bad ATAPI command %02X\n",idebufferb[0]);
+                rpclog("Packet data :\n");
+                for (c=0;c<12;c++)
+                    rpclog("%02X\n",idebufferb[c]);
+                exit(-1);
+        }
+}
+

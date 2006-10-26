@@ -4,6 +4,7 @@
   the moment.
   Since I'm the only maintainer of this file, it's a complete mess.*/
 
+int fullscreen;
 int blits;
 /*Uncomment for sound emulation (preliminary)
   Works okay on Windows 9x, sounds horrible on XP
@@ -50,6 +51,7 @@ FILE *arclog;
 void rpclog(const char *format, ...)
 {
    char buf[256];
+   if (!arclog) arclog=fopen("rlog.txt","wt");
 //return;
    va_list ap;
    va_start(ap, format);
@@ -136,6 +138,7 @@ void resetrpc()
 
 /*Ignore _ALL_ this for now. It doesn't work very well, and doesn't even get
   started at the moment*/
+/*Plus, it's just all been made obselete! See sound.c*/
 int soundinited=0;
 AUDIOSTREAM *as=NULL;
 int sndbufsize=500;
@@ -150,6 +153,7 @@ int nextbuf=1;
 int quitsound=0;
 void soundthread(PVOID pvoid)
 {
+        #if 0
         FILE *soundf;
         int offset,c,d=0;
         unsigned short *p;
@@ -257,6 +261,7 @@ void soundthread(PVOID pvoid)
         if (as) stop_audio_stream(as);
         as=NULL;
         soundrunning=quitsound=0;
+        #endif
         _endthread();
 }
 
@@ -320,7 +325,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         ghwnd = CreateWindowEx (
            0,                   /* Extended possibilites for variation */
            szClassName,         /* Classname */
-           "RPCemu v0.5",       /* Title Text */
+           "RPCemu v0.51",       /* Title Text */
            WS_OVERLAPPEDWINDOW, /* default window */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
@@ -339,8 +344,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         install_keyboard();
         install_timer();
         install_mouse();
-
-        arclog=fopen("arclog.txt","wt");
+infocus=0;
+//        arclog=fopen("arclog.txt","wt");
         if (startrpcemu())
            return -1;
            
@@ -351,13 +356,15 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         timeBeginPeriod(1);
         if (soundenabled)
         {
-                install_sound(DIGI_AUTODETECT,0,0);
-                _beginthread(soundthread,0,NULL);
+                initsound();
+//                install_sound(DIGI_AUTODETECT,0,0);
+//                _beginthread(soundthread,0,NULL);
         }
         else
         {
-                install_int_ex(sndupdate,BPS_TO_TIMER(10));
+//                install_int_ex(sndupdate,BPS_TO_TIMER(10));
         }
+infocus=1;
         while (!quited)
         {
                 if (infocus)
@@ -366,9 +373,15 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                 }
                 if (updatemips)
                 {
-                        sprintf(s,"RPCemu v0.5 - %f MIPS %i blits - %s",mips,blits,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
+                        sprintf(s,"RPCemu v0.51 - %f MIPS %i blits - %s",mips,blits,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
                         SetWindowText(ghwnd, s);
                         updatemips=0;
+                }
+                if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && fullscreen)
+                {
+                        fullscreen=0;
+                        togglefullscreen(0);
+                        mousecapture=0;
                 }
                 if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && mousecapture)
                 {
@@ -386,6 +399,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                         DispatchMessage(&messages);
                 }
         }
+        infocus=0;
         if (mousecapture)
         {
                 ClipCursor(&oldclip);
@@ -400,7 +414,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         timeEndPeriod(1);
 //        dumpregs();
         endrpcemu();
-        fclose(arclog);
+//        fclose(arclog);
         
         /* The program return-value is 0 - The value that PostQuitMessage() gave */
         return messages.wParam;
@@ -484,18 +498,12 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                         case IDOK:
                         if (soundenabled && !soundenabled2)
                         {
-                                quitsound=1;
-//                                while (soundrunning)
-//                                      sleep(1);
-//                                quitsound=0;
-//                                stop_audio_stream(as);
+                                closesound();
                                 install_int_ex(sndupdate,BPS_TO_TIMER(10));
                         }
                         if (soundenabled2 && !soundenabled)
                         {
-                                remove_int(sndupdate);
-                                install_sound(DIGI_AUTODETECT,0,0);
-                                _beginthread(soundthread,0,NULL);
+                                initsound();
                         }
                         soundenabled=soundenabled2;
                         if (model!=model2 || vrammask!=vrammask2 || chngram)
@@ -525,7 +533,7 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                         vrammask2=0x1FFFFF;
                         return TRUE;
                         
-                        case RadioButton1: case RadioButton2: case RadioButton3:// case RadioButton4:
+                        case RadioButton1: case RadioButton2: case RadioButton3: case RadioButton4:
                         if (model<2) cpu=model2^1;
                         else         cpu=model2;
                         h=GetDlgItem(hdlg,RadioButton1+cpu);
@@ -594,6 +602,15 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         stretchmode^=1;
                         CheckMenuItem(hmenu,IDM_STRETCH,(stretchmode)?MF_CHECKED:MF_UNCHECKED);
                         return 0;
+                        case IDM_FULLSCR:
+                        fullscreen=1;
+                if (mousecapture)
+                {
+                        ClipCursor(&oldclip);
+                        mousecapture=0;
+                }
+                        togglefullscreen(1);
+                        return 0;
                 }
                 break;
                 case WM_DESTROY:
@@ -611,7 +628,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 }
                 break;
                 case WM_LBUTTONUP:
-                if (!mousecapture)
+                if (!mousecapture && !fullscreen)
                 {
                         GetClipCursor(&oldclip);
                         GetWindowRect(hwnd,&arcclip);

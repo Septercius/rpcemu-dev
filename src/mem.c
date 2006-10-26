@@ -2,7 +2,8 @@
   Memory handling*/
 #include "rpcemu.h"
 
-
+int timetolive;
+//#define LARGETLB
 uint32_t *ram,*ram2,*rom,*vram;
 uint8_t *ramb,*ramb2,*romb,*vramb;
 uint8_t *dirtybuffer;
@@ -24,7 +25,7 @@ static uint32_t writemembcache,writemembcache2;
 
 //static int timetolive;
 
-void clearmemcache(void)
+void clearmemcache()
 {
 #ifdef LARGETLB
         int c;
@@ -67,20 +68,20 @@ void reallocmem(int ramsize)
 
 void resetmem(void)
 {
+        int c;
+        readmemcache=0xFFFFFFFF;
 #ifdef LARGETLB
-	int c;
         for (c=0;c<64;c++)
             writememcache[c]=0xFFFFFFFF;
 #else
         writememcache=0xFFFFFFFF;
 #endif
-        readmemcache=0xFFFFFFFF;
 }
 
 uint32_t readmemfl(uint32_t addr)
 {
         uint32_t addr2;
-
+        if (addr>=0x21D3738 && addr<0x21D3938) rpclog("Readl %08X %07X\n",addr,PC);
 //        if (!addr && !timetolive) timetolive=250;
         if (mmu)
         {
@@ -175,7 +176,7 @@ uint32_t readmemfl(uint32_t addr)
                 if (addr==0x3310000) return 0;
                 if ((addr&0xFFF000)==0x10000) /*82c711*/
                 {
-                        if ((addr&0xFFF)==0x7C0) return readidew();
+                        if ((addr&0xFFC)==0x7C0) return readidew();
                         return read82c711(addr);
                 }
                 break;
@@ -225,6 +226,15 @@ uint32_t mem_getphys(uint32_t addr)
 
 uint32_t readmemb(uint32_t addr)
 {
+        if (addr>=0x21D3738 && addr<0x21D3938)
+        {
+                rpclog("Readb %08X %07X\n",addr,PC);
+                if (PC==0x3B9699C)
+                {
+                        output=1;
+                        timetolive=50;
+                }
+        }
         if (mmu)
         {
                 if ((addr>>12)==readmemcache) addr=(addr&0xFFF)+readmemcache2;
@@ -408,8 +418,9 @@ void writememfl(uint32_t addr, uint32_t val)
                 }
                 if ((addr&0xFFF000)==0x10000) /*82c711*/
                 {
-                        if ((addr&0xFFF)==0x7C0)
+                        if ((addr&0xFFC)==0x7C0)
                         {
+                                if (output) rpclog("Write IDE W %08X %07X\n",val,PC-8);
                                 writeidew(val);
                                 return;
                         }

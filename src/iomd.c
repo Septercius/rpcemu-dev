@@ -6,8 +6,6 @@
 #include "rpcemu.h"
 
 int curchange;
-int samplefreq;
-uint32_t soundaddr[4];
 
 int sndon=0;
 static int flyback=0;
@@ -22,22 +20,42 @@ void updateirqs(void)
         if (!irq) armirq=0;
 }
 
-FILE *sndfile;
-int getbufferlen()
+void gentimerirq()
 {
-        int offset=(iomd.sndstat&1)<<1,start,end;        
-        start=soundaddr[offset]&0xFF0;
-        end=(soundaddr[offset+1]&0xFF0)+16;
-        return end-start;
+        if (!infocus) return;
+        if (inscount==lastinscount)
+        {
+                delaygenirqleft++;
+//                rpclog("Haven't moved! %i\n",inscount);
+                return;
+        }
+//           rpclog("Haven't moved!\n");
+        lastinscount=inscount;
+//        rpclog("IRQ %i\n",inscount);
+        iomd.t0c-=10000;
+        while (iomd.t0c<0 && iomd.t0l)
+        {
+                iomd.t0c+=iomd.t0l;
+                iomd.stata|=0x20;
+                updateirqs();
+        }
+        iomd.t1c-=10000;
+        while (iomd.t1c<0 && iomd.t1l)
+        {
+                iomd.t1c+=iomd.t1l;
+                iomd.stata|=0x40;
+                updateirqs();
+        }
+        if (soundinited && sndon)
+        {
+                soundcount-=10000;
+                if (soundcount<0)
+                {
+                        updatesoundirq();
+                        soundcount+=soundlatch;
+                }
+        }
 }
-
-AUDIOSTREAM *as;
-unsigned short *asp;
-int bufferlen=100;
-unsigned short sndbuffer[16384];
-int sndsamples,sndpos=0,sndoffset=0;
-
-int soundinited;
 
 void timerairq(void)
 {
@@ -48,10 +66,10 @@ void timerairq(void)
 void settimera(int latch)
 {
         latch++;
-        if ((latch/2000)==0)
+/*        if ((latch/2000)==0)
            install_int_ex(timerairq,latch/2);
         else
-           install_int_ex(timerairq,MSEC_TO_TIMER(latch/2000));
+           install_int_ex(timerairq,MSEC_TO_TIMER(latch/2000));*/
 }
 
 void timerbirq(void)
@@ -63,10 +81,10 @@ void timerbirq(void)
 void settimerb(int latch)
 {
         latch++;
-        if ((latch/2000)==0)
+/*        if ((latch/2000)==0)
            install_int_ex(timerbirq,latch/2);
         else
-           install_int_ex(timerbirq,MSEC_TO_TIMER(latch/2000));
+           install_int_ex(timerbirq,MSEC_TO_TIMER(latch/2000));*/
 }
 
 int nextbuf;
@@ -146,6 +164,7 @@ void writeiomd(uint32_t addr, uint32_t val)
                 updateirqs();
                 soundaddr[(addr>>2)&3]=val;
                 nextbuf=1;
+//                rpclog("Buffer A start %08X len %08X\nBuffer B start %08X len %08X\n",soundaddr[0],(soundaddr[1]-soundaddr[0])&0xFFC,soundaddr[2],(soundaddr[3]-soundaddr[2])&0xFFC);
                 return;
                 case 0x190: /*Sound DMA control*/
 //                rpclog("Write %08X %02X\n",addr,val);
@@ -295,6 +314,7 @@ void resetiomd(void)
         iomd.maska=iomd.maskb=iomd.maskc=iomd.maskd=iomd.maske=0;
         remove_int(timerairq);
         remove_int(timerbirq);
+        install_int_ex(gentimerirq,BPS_TO_TIMER(200));
 }
 
 void updateiomdtimers()

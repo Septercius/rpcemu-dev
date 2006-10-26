@@ -100,7 +100,7 @@ void saveadf(char *fn, int drive)
 }
 
 uint8_t scratch,linectrl;
-void reset82c711(void)
+void reset82c711()
 {
         configregs[0xA]=0;
         configregs[0xD]=0x65;

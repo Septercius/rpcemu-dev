@@ -12,7 +12,7 @@
 SYSTEMTIME systemtime;
 #endif
 uint32_t output,timetolive;
-//uint32_t *armregs[16];
+//unsigned long *armregs[16];
 int cmosstate=0;
 int i2cstate=0;
 int lastdata;

@@ -3,6 +3,7 @@
 #include <allegro.h>
 #include "rpcemu.h"
 
+int fullscreen=0;
 int readflash;
 int palchange,curchange;
 int blits=0;
@@ -14,6 +15,7 @@ RGB cursor[3];
 RGB border;
 int drawcode;
 uint32_t vpal[260];
+
 void initvideo()
 {
         int depth;
@@ -73,16 +75,63 @@ int getys()
         return vder-vdsr;
 }
 
+int fullresolutions[][2]=
+{
+        {320,200},
+        {320,240},
+        {400,300},
+        {512,384},
+        {640,400},
+        {640,480},
+        {800,600},
+        {1024,768},
+        {1280,1024},
+        {-1,-1}
+};
 
+int lastfullscreen=0;
 void resizedisplay(int x, int y)
 {
+        int c;
         if (x<16) x=16;
         if (y<16) y=16;
         if (x>1024) x=1024;
         if (y>768) y=768;
         oldsx=x;
         oldsy=y;
-        updatewindowsize(x,y);
+        if (fullscreen)
+        {
+                destroy_bitmap(b);
+                c=0;
+                while (fullresolutions[c][0]!=-1)
+                {
+                        if (fullresolutions[c][0]>=x && fullresolutions[c][1]>=y)
+                           break;
+                        c++;
+                }
+                if (fullresolutions[c][0]==-1) c--;
+                set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,fullresolutions[c][0],fullresolutions[c][1],0,0);
+                b=create_system_bitmap(x+16,y+16);
+                if (!b) /*Video bitmaps unavailable for some reason*/
+                   b=create_bitmap(x+16,y+16);
+                lastfullscreen=1;
+        }
+        else
+        {
+                if (lastfullscreen) destroy_bitmap(b);
+                if (lastfullscreen) set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
+                updatewindowsize(x,y);
+                if (lastfullscreen) b=create_system_bitmap(1024,768);
+                if (!b && lastfullscreen) /*Video bitmaps unavailable for some reason*/
+                   b=create_bitmap(1024,768);
+                lastfullscreen=0;
+        }
+}
+
+void togglefullscreen(int fs)
+{
+        oldsx=oldsy=-1;
+        memset(dirtybuffer,1,512);
 }
 
 void dblit(int xs, int yl, int yh)
@@ -96,6 +145,23 @@ int ony,ocy;
 int xdiff[8]={8192,4096,2048,1024,512,512,256,256};
 int lastframeborder=0;
 uint32_t curcrc=0;
+
+unsigned short crc;
+void calccrc(unsigned char byte)
+{
+        int i;
+	for (i = 0; i < 8; i++) {
+		if (crc & 0x8000) {
+			crc <<= 1;
+			if (!(byte & 0x80)) crc ^= 0x1021;
+		} else {
+			crc <<= 1;
+			if (byte & 0x80) crc ^= 0x1021;
+		}
+		byte <<= 1;
+	}
+}
+
 void drawscr()
 {
         int x,y,xx,xxx;
@@ -106,15 +172,15 @@ void drawscr()
         int cy=vcsr-vdsr,ny=vcer-vcsr;
         int ac=0;
         int drawit=0,olddrawit=0;
-        int yl=-1,yh = 0;
+        int yl=-1,yh;
         int c;
         int doublesize=0,doublehigh=0;
         uint32_t oldaddr,temp;
         int cursorcol[3];
         unsigned char *ramp;
         unsigned short temp16,*ramw;
-        uint32_t *vidp = NULL;
-        unsigned short *vidp16 = NULL;
+        uint32_t *vidp;
+        unsigned short *vidp16;
         int firstblock,lastblock;
 //        rpclog("Draw screen\n");
         iomd.vidend=(iomd.vidend&0x1FFFFF)|(iomd.vidinit&~0x1FFFFF);
@@ -159,9 +225,6 @@ void drawscr()
                 memset(dirtybuffer,1,512);
                 palchange=0;
         }
-        if (iomd.vidinit&0x10000000) ramp=ramb;
-        else                         ramp=vramb;
-        ramw=(unsigned short *)ramp;
         x=y=c=0;
         firstblock=lastblock=-1;
         while (y<ys)
@@ -178,23 +241,27 @@ void drawscr()
                         y++;
                 }
         }
+//        #if 0
         if (firstblock==-1 && !curchange) 
         {
                 /*Not looking good for screen redraw - check to see if cursor data has changed*/
-                if (cinit&0x4000000) vidp=ram2;
-                else                 vidp=ram;
-                addr=(cinit&rammask)>>2;
+                if (cinit&0x4000000) ramp=(unsigned char *)ram2;
+                else                 ramp=(unsigned char *)ram;
+                addr=(cinit&rammask);//>>2;
                 temp=0;
-                for (c=0;c<ny;c++)
-                {
-                        temp+=((vidp[addr]<<1)-(vidp[addr+1]>>1));
-                        addr+=2;
-                }
+                crc=0xFFFF;
+                for (c=0;c<(ny<<3);c++)
+                    calccrc(ramp[addr++]);
                 /*If cursor data matches then no point redrawing screen - return*/
-                if (temp==curcrc)
+                if (crc==curcrc)
                    return;
-                curcrc=temp;                
+                curcrc=crc;
         }
+        blits++;
+        if (iomd.vidinit&0x10000000) ramp=ramb;
+        else                         ramp=vramb;
+        ramw=(unsigned short *)ramp;
+//        #endif
         addr=iomd.vidinit&0x1FFFFF;
         curchange=0;
 //        rpclog("First block %i %08X last block %i %08X finished at %i %08X\n",firstblock,firstblock,lastblock,lastblock,c,c);
@@ -222,8 +289,8 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp=bmp_write_line(b,y);
-					yh=y;
+					vidp=(uint32_t *)bmp_write_line(b,y);
+					yh=y+1;
 				}
                                 for (;x<xs;x+=64)
                                 {
@@ -243,7 +310,7 @@ void drawscr()
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
                                                 drawit=dirtybuffer[(addr>>12)];
                                                 if (drawit) dirtybuffer[(addr>>12)]--;
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
@@ -269,8 +336,8 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp=bmp_write_line(b,y);
-					yh=y;
+					vidp=(uint32_t *)bmp_write_line(b,y);
+					yh=y+1;
 				}
                                 for (x=0;x<xs;x+=32)
                                 {
@@ -288,7 +355,7 @@ void drawscr()
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
                                                 drawit=dirtybuffer[(addr>>12)];
                                                 if (drawit) dirtybuffer[(addr>>12)]--;
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
@@ -313,8 +380,8 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp=bmp_write_line(b,y);
-					yh=y;
+					vidp=(uint32_t *)bmp_write_line(b,y);
+					yh=y+1;
 				}
 //                                rpclog("Line %i drawit %i addr %06X\n",y,drawit,addr);
                                 for (x=0;x<xs;x+=16)
@@ -338,7 +405,7 @@ void drawscr()
                                         }
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
                                                 drawit=dirtybuffer[(addr>>12)];
                                                 if (drawit) dirtybuffer[(addr>>12)]--;
 //                                                rpclog("Hit 4k boundary %06X %i,%i %i\n",addr,x,y,drawit);
@@ -365,8 +432,8 @@ void drawscr()
                                 }
                                 if (drawit)
 				{
-					vidp=bmp_write_line(b,y);
-					yh=y;
+					vidp=(uint32_t *)bmp_write_line(b,y);
+					yh=y+1;
 				}
                                 for (;x<xs;x+=8)
                                 {
@@ -394,7 +461,7 @@ void drawscr()
                                                         if (yl==-1) yl=y;
                                                 }
                                                 if (y<(ony+ocy) && (y>=(ocy-1))) drawit=1;
-                                                if (drawit && !olddrawit) vidp=bmp_write_line(b,y);
+                                                if (drawit && !olddrawit) vidp=(uint32_t *)bmp_write_line(b,y);
                                         }
 /*                                        if (!(addr&0xFFF))
                                         {
@@ -502,7 +569,7 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp=bmp_write_line(b,y);
+					vidp=(uint32_t *)bmp_write_line(b,y);
 					yh=y+1;
 				}
                                 for (x=0;x<xs;x+=4)
@@ -543,7 +610,9 @@ void drawscr()
                                                         if (yl==-1) yl=y;
                                                 }
                                                 if (y<(ony+ocy) && (y>=(ocy-1))) drawit=1;                                                
-                                                if (drawit && !olddrawit) vidp=bmp_write_line(b,y);
+                                                if (drawit && !olddrawit) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                if ((addr>>12)==lastblock && y>(ony+ocy))
+                                                   y=x=65536;
                                         }
                                 }
                         }
@@ -563,8 +632,8 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp16=bmp_write_line(b,y);
-					yh=y;
+					vidp16=(unsigned short *)bmp_write_line(b,y);
+					yh=y+1;
 				}
                                 for (x=0;x<xs;x+=4)
                                 {
@@ -584,7 +653,7 @@ void drawscr()
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp16=bmp_write_line(b,y);
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp16=(unsigned short *)bmp_write_line(b,y);
                                                 drawit=dirtybuffer[(addr>>12)];
 //                                                drawit=1;
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
@@ -618,8 +687,8 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp=bmp_write_line(b,y);
-					yh=y;
+					vidp=(uint32_t *)bmp_write_line(b,y);
+					yh=y+1;
 				}
                                 for (x=0;x<xs;x+=128)
                                 {
@@ -643,7 +712,7 @@ void drawscr()
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
                                                 drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
                                                 dirtybuffer[(addr>>12)]=0;
@@ -666,8 +735,8 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp=bmp_write_line(b,y);
-					yh=y;
+					vidp=(uint32_t *)bmp_write_line(b,y);
+					yh=y+1;
 				}
                                 for (x=0;x<xs;x+=64)
                                 {
@@ -687,7 +756,7 @@ void drawscr()
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
                                                 drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
                                                 dirtybuffer[(addr>>12)]=0;
@@ -710,8 +779,8 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp=bmp_write_line(b,y);
-					yh=y;
+					vidp=(uint32_t *)bmp_write_line(b,y);
+					yh=y+1;
 				}
                                 for (x=0;x<xs;x+=32)
                                 {
@@ -735,7 +804,7 @@ void drawscr()
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
                                                 drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
                                                 dirtybuffer[(addr>>12)]=0;
@@ -758,8 +827,8 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp=bmp_write_line(b,y);
-					yh=y;
+					vidp=(uint32_t *)bmp_write_line(b,y);
+					yh=y+1;
 				}
                                 for (x=0;x<xs;x+=16)
                                 {
@@ -779,7 +848,7 @@ void drawscr()
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
                                                 drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
                                                 dirtybuffer[(addr>>12)]=0;
@@ -802,8 +871,8 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp=bmp_write_line(b,y);
-					yh=y;
+					vidp=(uint32_t *)bmp_write_line(b,y);
+					yh=y+1;
 				}
                                 for (x=0;x<xs;x+=8)
                                 {
@@ -825,7 +894,7 @@ void drawscr()
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
                                                 drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
                                                 dirtybuffer[(addr>>12)]=0;
@@ -848,8 +917,8 @@ void drawscr()
                                 }
                                 if (drawit) 
 				{
-					vidp=bmp_write_line(b,y);
-					yh=y;
+					vidp=(uint32_t *)bmp_write_line(b,y);
+					yh=y+1;
 				}
                                 for (x=0;x<xs;x+=4)
                                 {
@@ -866,7 +935,7 @@ void drawscr()
                                         if (addr==iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
+                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
                                                 drawit=dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
                                                 dirtybuffer[(addr>>12)]=0;
@@ -882,10 +951,14 @@ void drawscr()
                         exit(-1);
                 }
         }
+                if (soundbufferfull)
+                {
+                        updatesoundbuffer();
+                }
         if (ny>1)
         {
-                if (cinit&0x4000000) ramp=ram2;
-                else                 ramp=ram;
+                if (cinit&0x4000000) ramp=(unsigned char *)ram2;
+                else                 ramp=(unsigned char *)ram;
                 addr=cinit&rammask;
                 switch (drawcode)
                 {
@@ -893,7 +966,7 @@ void drawscr()
                         for (y=0;y<ny;y++)
                         {
                                 if (y>=ys) break;
-                                vidp16=bmp_write_line(b,y+cy);
+                                vidp16=(unsigned short *)bmp_write_line(b,y+cy);
                                 for (x=0;x<32;x+=4)
                                 {
                                         if (ramp[addr]&3)      vidp16[x+cx]=vpal[(ramp[addr]&3)|0x100];
@@ -908,7 +981,7 @@ void drawscr()
                         for (y=0;y<ny;y++)
                         {
                                 if (y>=ys) break;
-                                vidp=bmp_write_line(b,y+cy);
+                                vidp=(uint32_t *)bmp_write_line(b,y+cy);
                                 for (x=0;x<32;x+=4)
                                 {
                                         if (ramp[addr]&3)      vidp[x+cx]=vpal[(ramp[addr]&3)|0x100];
@@ -944,47 +1017,47 @@ void drawscr()
 //        sleep(2);
 //        rpclog("Blitting from 0,%i size %i,%i\n",yl,xs,ys);
 //        blits++;
+                if (soundbufferfull)
+                {
+                        updatesoundbuffer();
+                }
         switch (doublesize)
         {
                 case 0:// case 1: case 2: case 3:
   //              case 3:
         ys=yh-yl;
-                blit(b,screen,0,yl,0,yl,xs,ys);
+                if (fullscreen) blit(b,screen,0,yl,(SCREEN_W-xs)>>1,yl+((SCREEN_H-oldsy)>>1),xs,ys);
+                else            blit(b,screen,0,yl,0,yl,xs,ys);
                 return;
                 case 1:
         ys=yh-yl;
-                stretch_blit(b,screen,
-                             0,yl,xs,ys,
-                             0,yl,xs<<1,ys);
+                if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
+                else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl,                      xs<<1,ys);
                 return;
                 case 2:
                 if (stretchmode)
                 {
-                        stretch_blit(b,screen,
-                             0,0,xs,ys,
-                             0,0,xs,ys<<1);
+                        if (fullscreen) stretch_blit(b,screen,0,0,xs,ys,0,0,xs,ys<<1);
+                        else            stretch_blit(b,screen,0,0,xs,ys,0,0,xs,ys<<1);
                 }
                 else
                 {
                         ys=yh-yl;
-                        stretch_blit(b,screen,
-                             0,yl,xs,ys,
-                             0,yl<<1,xs,ys<<1);
+                        if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-xs)>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs,ys<<1);
+                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,               yl<<1,                        xs,ys<<1);
                 }
                 return;
                 case 3:
                 if (stretchmode)
                 {
-                        stretch_blit(b,screen,
-                             0,0,xs,ys,
-                             0,0,xs<<1,ys<<1);
+                        if (fullscreen) stretch_blit(b,screen,0,0,xs,ys,0,0,xs<<1,ys<<1);
+                        else            stretch_blit(b,screen,0,0,xs,ys,0,0,xs<<1,ys<<1);
                 }
                 else
                 {
                         ys=yh-yl;
-                        stretch_blit(b,screen,
-                             0,yl,xs,ys,
-                             0,yl<<1,xs<<1,ys<<1);
+                        if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs<<1,ys<<1);
+                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl<<1,                        xs<<1,ys<<1);
                 }
                 return;
         }
@@ -992,15 +1065,19 @@ void drawscr()
 //        printf("%i %i %i\n",vdsr,vder,vder-vdsr);
 }
 
-static int samplefreq;
-static uint32_t vidcpal[0x104];
-static uint32_t b0,b1;
+int samplefreq;
+uint32_t vidcpal[0x104];
+uint32_t b0,b1;
 void writevidc20(uint32_t val)
 {
         float f;
+//        rpclog("Write VIDC %08X %07X\n",val,PC);
         switch (val>>24)
         {
-                case 0:
+                case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
+                case 8: case 9: case 0xA: case 0xB: case 0xC: case 0xD: case 0xE:
+                        case 0xF:
+//                rpclog("Write palette index %i %08X\n",palindex,val);
                 if (val!=vidcpal[palindex])
                 {
                         pal[palindex].r=makecol(val&0xFF,0,0);
@@ -1105,25 +1182,28 @@ void writevidc20(uint32_t val)
                 break;
                 case 0xB0:
                 b0=val;
-                rpclog("Write B0 %08X %08X\n",val,PC);
+//                rpclog("Write B0 %08X %08X\n",val,PC);
                 val=(b0&0xFF)+2;
                 if (b1&1) f=(1000000.0f/(float)val)/4.0f;
                 else      f=(705600.0f/(float)val)/4.0f;
                 samplefreq=(int)f;
-                rpclog("Sample rate : %i ns %f hz\n",val,f);
+                changesamplefreq();
+//                rpclog("Sample rate : %i ns %f hz\n",val,f);
                 break;
                 case 0xB1:
-                rpclog("Write B1 %08X %08X\n",val,PC);
+//                rpclog("Write B1 %08X %08X\n",val,PC);
                 b1=val;
                 val=(b0&0xFF)+2;
                 if (b1&1) f=(1000000.0f/(float)val)/4.0f;
                 else      f=(705600.0f/(float)val)/4.0f;
                 samplefreq=(int)f;
-                rpclog("Sample rate : %i ns %f hz\n",val,f);
+                changesamplefreq();
+//                rpclog("Sample rate : %i ns %f hz\n",val,f);
                 break;
                 case 0xE0:
                 if (((val>>5)&7)!=bit8)
                 {
+//                        rpclog("Change mode - %08X %i\n",val,(val>>5)&7);
                         bit8=(val>>5)&7;
                         resetbuffer();
                         palchange=1;
@@ -1137,9 +1217,3 @@ void resetbuffer()
         memset(dirtybuffer,1,512);
 //        rpclog("Reset buffer\n");
 }
-
-void dumpscreen()
-{
-        save_pcx("scrshot.pcx",b,pal);
-}
-
