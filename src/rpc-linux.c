@@ -2,13 +2,11 @@
   Main loop*/
 
 #include <allegro.h>
-#include "rpcemu.h"
+#include "rpc.h"
 
 #define MB_OK 1
 static void MessageBox(void *param, const char *message, 
 		       const char *title, int type) {
-  param = param;
-  type = type;
   printf("MessageBox: %s %s\n", title, message);
 }
 
@@ -58,7 +56,7 @@ int drawscre=0,flyback;
 
 void sndupdate(void)
 {
-//        dumpsound();
+        dumpsound();
         iomd.state|=0x10;
         updateirqs();
         iomd.sndstat ^= 1;

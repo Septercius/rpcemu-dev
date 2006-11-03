@@ -20,10 +20,13 @@ void updateirqs(void)
         if (!irq) armirq=0;
 }
 
+int clockcmos=0;
 void gentimerirq()
 {
+        int diff;
         if (!infocus) return;
-        if (inscount==lastinscount)
+        diff=inscount-lastinscount;
+        if (diff<5000 && diff>-5000)
         {
                 delaygenirqleft++;
 //                rpclog("Haven't moved! %i\n",inscount);
@@ -31,15 +34,18 @@ void gentimerirq()
         }
 //           rpclog("Haven't moved!\n");
         lastinscount=inscount;
+        clockcmos++;
+        if ((clockcmos&3)==0)
+           cmostick();
 //        rpclog("IRQ %i\n",inscount);
-        iomd.t0c-=10000;
+        iomd.t0c-=5000;//10000;
         while (iomd.t0c<0 && iomd.t0l)
         {
                 iomd.t0c+=iomd.t0l;
                 iomd.stata|=0x20;
                 updateirqs();
         }
-        iomd.t1c-=10000;
+        iomd.t1c-=5000;//10000;
         while (iomd.t1c<0 && iomd.t1l)
         {
                 iomd.t1c+=iomd.t1l;
@@ -48,11 +54,12 @@ void gentimerirq()
         }
         if (soundinited && sndon)
         {
-                soundcount-=10000;
+                soundcount-=5000;//10000;
                 if (soundcount<0)
                 {
                         updatesoundirq();
                         soundcount+=soundlatch;
+//                        rpclog("soundcount now %i %i\n",soundcount,soundlatch);
                 }
         }
 }
@@ -158,7 +165,7 @@ void writeiomd(uint32_t addr, uint32_t val)
                 case 0x184: /*Sound DMA end A*/
                 case 0x188: /*Sound DMA current B*/
                 case 0x18C: /*Sound DMA end B*/
-//                rpclog("Write %08X %02X\n",addr,val);
+//                rpclog("Write sound DMA %08X %02X\n",addr,val);
                 iomd.sndstat&=1;
                 iomd.state&=~0x10;
                 updateirqs();
@@ -167,7 +174,7 @@ void writeiomd(uint32_t addr, uint32_t val)
 //                rpclog("Buffer A start %08X len %08X\nBuffer B start %08X len %08X\n",soundaddr[0],(soundaddr[1]-soundaddr[0])&0xFFC,soundaddr[2],(soundaddr[3]-soundaddr[2])&0xFFC);
                 return;
                 case 0x190: /*Sound DMA control*/
-//                rpclog("Write %08X %02X\n",addr,val);
+//                rpclog("Write sound CTRL %08X %02X\n",addr,val);
                 if (val&0x80)
                 {
                         iomd.sndstat=6;
@@ -307,6 +314,7 @@ void dumpiomd(void)
 
 void resetiomd(void)
 {
+        remove_int(gentimerirq);
         iomd.stata=0x10;
         iomd.romcr0=iomd.romcr1=0x40;
         iomd.sndstat=6;
@@ -314,7 +322,10 @@ void resetiomd(void)
         iomd.maska=iomd.maskb=iomd.maskc=iomd.maskd=iomd.maske=0;
         remove_int(timerairq);
         remove_int(timerbirq);
-        install_int_ex(gentimerirq,BPS_TO_TIMER(200));
+        delaygenirqleft=0;
+        soundcount=100000;
+        iomd.t0c=iomd.t1c=iomd.t0l=iomd.t1l=0xFFFF;
+        install_int_ex(gentimerirq,BPS_TO_TIMER(400));
 }
 
 void updateiomdtimers()

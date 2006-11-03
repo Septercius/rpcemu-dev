@@ -284,6 +284,7 @@ void writefdc(uint32_t addr, uint32_t val)
         }
 }
 
+unsigned char printstat;
 void write82c711(uint32_t addr, uint32_t val)
 {
         uint32_t addr2;
@@ -304,14 +305,16 @@ void write82c711(uint32_t addr, uint32_t val)
 //                printf("Cleared config mode\n");
                 return;
         }
-//        printf("Write 82c711 %08X %08X %03X %07X %08X\n",addr,val,addr2,PC,armregs[12]);
+        if (addr2>=0x278 && addr2<=0x27A)
+           rpclog("Write 82c711 %08X %08X %03X %07X %08X\n",addr,val,addr2,PC,armregs[12]);
         if ((addr2>=0x3F0) && (addr2<=0x3F7)) writefdc(addr,val);
-        if ((addr2==0x27A) && (val&0x10))
+        if ((addr2==0x27A) && ((val&0x10) || ((printstat^val)&1 && !(val&1))))
         {
-//                printf("Printer interrupt %02X\n",iomd.maska);
+                rpclog("Printer interrupt %02X\n",iomd.maska);
                 iomd.stata|=1;
                 updateirqs();
         }
+        if (addr2==0x27A) printstat=val;
         if ((addr2==0x3F9) && (val&2))
         {
 //                printf("Serial transmit empty interrupt\n");
@@ -381,12 +384,38 @@ void fdcsenddata(uint8_t val)
         updateirqs();
 //        timetolive=50;
 }
-
+uint32_t lastaddr2;
 uint8_t read82c711(uint32_t addr)
 {
         uint32_t addr2;
+        FILE *dumpf;
+        int c;
         addr2=(addr>>2)&0x3FF;
-//        printf("Read 82c711 %08X %03X %08X\n",addr,addr2,PC);
+        if (addr2>=0x278 && addr2<=0x27A)
+           rpclog("Read 82c711 %08X %03X %08X\n",addr,addr2,PC);
+        if (addr2==0x279 && lastaddr2==0x279)
+        {
+                dumpf=fopen("e:\\devcpp\\rpc\\prn.dmp","wb");
+                if (!dumpf)
+                {
+                        error("dumpf not open!\n");
+                        exit(-1);
+                }
+                for (c=0x21F0000;c<0x21F1000;c+=4)
+                {
+                        addr2=readmemfl(c);
+                        rpclog("Readmeml %08X %08X %08X\n",c,addr2,dumpf);
+                        putc(addr2&0xFF,dumpf);
+                        putc(addr2>>8,dumpf);
+                        putc(addr2>>16,dumpf);
+                        putc(addr2>>24,dumpf);
+                        fflush(dumpf);
+                }
+                fclose(dumpf);
+                exit(-1);
+        }
+        lastaddr2=addr2;
+        if (addr2==0x279) return 0x90;
         if ((addr2>=0x1F0 && addr2<=0x1F7) || addr2==0x3F6)
         {
                 return readide(addr2);
@@ -400,6 +429,7 @@ uint8_t read82c711(uint32_t addr)
         }
         if (addr2==0x3FB) return linectrl;
         if (addr2==0x3FE) return scratch;
+
 /*        if (addr2==0x3F6)
         {
                 ide.atastat+=0x40;

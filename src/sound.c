@@ -84,7 +84,7 @@ void updatesoundirq()
         }
 //        fwrite(bigsoundbuffer,len<<2,1,sndfile);
 }
-
+FILE *sndfile;
 void updatesoundbuffer()
 {
         unsigned short *p;
@@ -107,6 +107,6 @@ void updatesoundbuffer()
             p[c]=bigsoundbuffer[bigsoundbufferselect^1][c]^0x8000;
         free_audio_stream_buffer(as);
 //                        rpclog("Writing buffer %i\n",bigsoundbufferselect^1);
-//        fwrite(bigsoundbuffer[bigsoundbufferselect^1],44100<<2,1,sndfile);
+//        fwrite(bigsoundbuffer[bigsoundbufferselect^1],BUFFERLEN<<2,1,sndfile);
 }
 

@@ -47,15 +47,15 @@ int startrpcemu()
 
 void execrpcemu()
 {
-        execarm(80000);
-        if (drawscre)
+        execarm(40000);
+        if (drawscre>0)
         {
-                drawscre=0;
+                drawscre--;
                 drawscr();
                 iomdvsync();
                 pollmouse();
                 pollkeyboard();
-                cmostick();
+//                cmostick();
         }
 }
 

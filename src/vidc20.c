@@ -16,6 +16,62 @@ RGB border;
 int drawcode;
 uint32_t vpal[260];
 
+int thread_yh,thread_yl,thread_xs,thread_ys,thread_doublesize;
+int blitready=0;
+int inblit=0;
+void blitterthread()
+{
+        int xs=thread_xs;
+        int ys=thread_ys;
+        int yh=thread_yh;
+        int yl=thread_yl;
+//        rpclog("Blitter thread - blitready %i\n",blitready);
+        if (!blitready) return;
+        inblit=1;
+        switch (thread_doublesize)
+        {
+                case 0:// case 1: case 2: case 3:
+  //              case 3:
+        ys=yh-yl;
+                if (fullscreen) blit(b,screen,0,yl,(SCREEN_W-xs)>>1,yl+((SCREEN_H-oldsy)>>1),xs,ys);
+                else            blit(b,screen,0,yl,0,yl,xs,ys);
+                break;
+                case 1:
+        ys=yh-yl;
+                if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
+                else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl,                      xs<<1,ys);
+                break;
+                case 2:
+                if (stretchmode)
+                {
+                        if (fullscreen) stretch_blit(b,screen,0,0,xs,ys,0,0,xs,ys<<1);
+                        else            stretch_blit(b,screen,0,0,xs,ys,0,0,xs,ys<<1);
+                }
+                else
+                {
+                        ys=yh-yl;
+                        if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-xs)>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs,ys<<1);
+                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,               yl<<1,                        xs,ys<<1);
+                }
+                break;
+                case 3:
+                if (stretchmode)
+                {
+                        if (fullscreen) stretch_blit(b,screen,0,0,xs,ys,0,0,xs<<1,ys<<1);
+                        else            stretch_blit(b,screen,0,0,xs,ys,0,0,xs<<1,ys<<1);
+                }
+                else
+                {
+                        ys=yh-yl;
+                        if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs<<1,ys<<1);
+                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl<<1,                        xs<<1,ys<<1);
+                }
+                break;
+        }
+        inblit=0;
+        blitready=0;
+}
+     
 void initvideo()
 {
         int depth;
@@ -99,6 +155,7 @@ void resizedisplay(int x, int y)
         if (y>768) y=768;
         oldsx=x;
         oldsy=y;
+        while (inblit || blitready) sleep(1);
         if (fullscreen)
         {
                 destroy_bitmap(b);
@@ -182,6 +239,19 @@ void drawscr()
         uint32_t *vidp;
         unsigned short *vidp16;
         int firstblock,lastblock;
+        #ifdef BLITTER_THREAD
+        while (blitready)
+        {
+                if (soundbufferfull)
+                {
+                        updatesoundbuffer();
+                }
+                sleep(0);
+//                blits++;
+//                return;
+        }
+        #endif
+        blits++;
 //        rpclog("Draw screen\n");
         iomd.vidend=(iomd.vidend&0x1FFFFF)|(iomd.vidinit&~0x1FFFFF);
         iomd.vidstart=(iomd.vidstart&0x1FFFFF)|(iomd.vidinit&~0x1FFFFF);        
@@ -257,7 +327,7 @@ void drawscr()
                    return;
                 curcrc=crc;
         }
-        blits++;
+//        blits++;
         if (iomd.vidinit&0x10000000) ramp=ramb;
         else                         ramp=vramb;
         ramw=(unsigned short *)ramp;
@@ -984,10 +1054,10 @@ void drawscr()
                                 vidp=(uint32_t *)bmp_write_line(b,y+cy);
                                 for (x=0;x<32;x+=4)
                                 {
-                                        if (ramp[addr]&3)      vidp[x+cx]=vpal[(ramp[addr]&3)|0x100];
-                                        if ((ramp[addr]>>2)&3) vidp[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
-                                        if ((ramp[addr]>>4)&3) vidp[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
-                                        if ((ramp[addr]>>6)&3) vidp[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
+                                        if ((x+cx)>=0 && ramp[addr]&3)      vidp[x+cx]=vpal[(ramp[addr]&3)|0x100];
+                                        if ((x+cx)>=0 && (ramp[addr]>>2)&3) vidp[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
+                                        if ((x+cx)>=0 && (ramp[addr]>>4)&3) vidp[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
+                                        if ((x+cx)>=0 && (ramp[addr]>>6)&3) vidp[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
                                         addr++;
                                 }
                         }
@@ -1021,6 +1091,15 @@ void drawscr()
                 {
                         updatesoundbuffer();
                 }
+        #ifdef BLITTER_THREAD
+                blitready=1;
+                thread_xs=xs;
+                thread_ys=ys;
+                thread_yl=yl;
+                thread_yh=yh;
+                thread_doublesize=doublesize;
+                return;
+        #endif
         switch (doublesize)
         {
                 case 0:// case 1: case 2: case 3:

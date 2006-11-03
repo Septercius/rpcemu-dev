@@ -6,10 +6,10 @@ int timetolive;
 //#define LARGETLB
 uint32_t *ram,*ram2,*rom,*vram;
 uint8_t *ramb,*ramb2,*romb,*vramb;
-uint8_t *dirtybuffer;
+uint8_t dirtybuffer[512];
 
-uint32_t raddrl;
-uint32_t *raddrl2;
+uint32_t raddrl[256];
+uint32_t *raddrl2[256];
 uint32_t waddrl;
 uint32_t *waddrl2;
 
@@ -39,6 +39,7 @@ void clearmemcache()
 
 void initmem(void)
 {
+        int c;
         ram=(uint32_t *)malloc(2*1024*1024);
         ram2=(uint32_t *)malloc(2*1024*1024);
         rom=(uint32_t *)malloc(8*1024*1024);
@@ -47,10 +48,11 @@ void initmem(void)
         ramb2=(unsigned char *)ram2;
         romb=(unsigned char *)rom;
         vramb=(unsigned char *)vram;
-        dirtybuffer=(unsigned char *)malloc(512);
         memset(ram,0,2*1024*1024);
         memset(ram2,0,2*1024*1024);
-        raddrl=waddrl=0xFFFFFFFF;
+        for (c=0;c<256;c++)
+            raddrl[c]=0xFFFFFFFF;
+        waddrl=0xFFFFFFFF;
 }
 
 void reallocmem(int ramsize)
@@ -81,7 +83,7 @@ void resetmem(void)
 uint32_t readmemfl(uint32_t addr)
 {
         uint32_t addr2;
-        if (addr>=0x21D3738 && addr<0x21D3938) rpclog("Readl %08X %07X\n",addr,PC);
+//        if (addr>=0x21D3738 && addr<0x21D3938) rpclog("Readl %08X %07X\n",addr,PC);
 //        if (!addr && !timetolive) timetolive=250;
         if (mmu)
         {
@@ -90,67 +92,76 @@ uint32_t readmemfl(uint32_t addr)
                 else
                 {
                         readmemcache=addr>>12;
-                        raddrl=addr&0xFFFFF000;
+                        raddrl[(addr>>12)&0xFF]=addr&0xFFFFF000;
 //                        rpclog("Translate read ");
                         addr=translateaddress(addr,0);
-                        if (databort) rpclog("Dat abort reading %08X %08X\n",addr2,PC);
-                        if (databort) return 0;
+//                        if (databort) rpclog("Dat abort reading %08X %08X\n",addr2,PC);
+                        if (databort)
+                        {
+                                raddrl[(addr2>>12)&0xFF]=0xFFFFFFFF;
+                                return 0;
+                        }
                         readmemcache2=addr&0xFFFFF000;
 //                        rpclog("MMU addr %08X %08X %08X %08X ",addr2,addr,raddrl,readmemcache2&0x7FF000);
                         switch (readmemcache2&0x1F000000)
                         {
                                 case 0x00000000: /*ROM*/
-                                raddrl2=&rom[((readmemcache2&0x7FF000)-raddrl)>>2];
+                                raddrl2[(addr2>>12)&0xFF]=&rom[((readmemcache2&0x7FF000)-raddrl[(addr2>>12)&0xFF])>>2];
+                                return raddrl2[(addr2>>12)&0xFF][(addr2)>>2];
 //                                rpclog("ROM %08X %08X\n",raddrl2,rom);
                                 break;
                                 case 0x02000000: /*VRAM*/
 //                                rpclog("VRAM %08X %07X\n");
-                                raddrl2=&vram[((readmemcache2&0x1FF000)-raddrl)>>2]; break;
+                                raddrl2[(addr2>>12)&0xFF]=&vram[((readmemcache2&0x1FF000)-raddrl[(addr2>>12)&0xFF])>>2];
+                                return raddrl2[(addr2>>12)&0xFF][(addr2)>>2];
+                                break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 case 0x11000000:
                                 case 0x12000000:
                                 case 0x13000000:
-                                raddrl2=&ram[((readmemcache2&rammask)-raddrl)>>2];
+                                raddrl2[(addr2>>12)&0xFF]=&ram[((readmemcache2&rammask)-raddrl[(addr2>>12)&0xFF])>>2];
+                                return raddrl2[(addr2>>12)&0xFF][(addr2)>>2];
                                 break;
                                 case 0x14000000: /*SIMM 0 bank 1*/
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                raddrl2=&ram2[((readmemcache2&rammask)-raddrl)>>2];
+                                raddrl2[(addr2>>12)&0xFF]=&ram2[((readmemcache2&rammask)-raddrl[(addr2>>12)&0xFF])>>2];
+                                return raddrl2[(addr2>>12)&0xFF][(addr2)>>2];
                                 break;
                                 default:
 //                                rpclog("Other\n");
-                                raddrl=0xFFFFFFFF;
+                                raddrl[(addr2>>12)&0xFF]=0xFFFFFFFF;
                         }
                 }
         }
         else
         {
-                raddrl=addr&0xFFFFF000;
+                raddrl[(addr>>12)&0xFF]=addr&0xFFFFF000;
 //                rpclog("No MMU addr %08X %08X ",addr,raddrl);
-                switch (raddrl&0x1F000000)
+                switch (raddrl[(addr>>12)&0xFF]&0x1F000000)
                 {
                        case 0x00000000: /*ROM*/
 //                       rpclog("ROM\n");
-                       raddrl2=&rom[((raddrl&0x7FF000)-raddrl)>>2];
+                       raddrl2[(addr>>12)&0xFF]=&rom[((raddrl[(addr>>12)&0xFF]&0x7FF000)-raddrl[(addr>>12)&0xFF])>>2];
                        break;
                        case 0x02000000: /*VRAM*/
 //                       rpclog("VRAM\n");
-                       raddrl2=&vram[((raddrl&0x1FF000)-raddrl)>>2];
+                       raddrl2[(addr>>12)&0xFF]=&vram[((raddrl[(addr>>12)&0xFF]&0x1FF000)-raddrl[(addr>>12)&0xFF])>>2];
                        break;
                        case 0x10000000: /*SIMM 0 bank 0*/
                        case 0x11000000:
                        case 0x12000000:
                        case 0x13000000:
-                       raddrl2=&ram[((raddrl&rammask)-raddrl)>>2]; break;
+                       raddrl2[(addr>>12)&0xFF]=&ram[((raddrl[(addr>>12)&0xFF]&rammask)-raddrl[(addr>>12)&0xFF])>>2]; break;
                        case 0x14000000: /*SIMM 0 bank 1*/
                        case 0x15000000:
                        case 0x16000000:
                        case 0x17000000:
-                       raddrl2=&ram2[((raddrl&rammask)-raddrl)>>2]; break;
+                       raddrl2[(addr>>12)&0xFF]=&ram2[((raddrl[(addr>>12)&0xFF]&rammask)-raddrl[(addr>>12)&0xFF])>>2]; break;
                        default:
 //                       rpclog("Other\n");
-                       raddrl=0xFFFFFFFF;
+                       raddrl[(addr>>12)&0xFF]=0xFFFFFFFF;
                 }
         }
         if ((addr&0x1C000000)==0x10000000)
@@ -224,9 +235,10 @@ uint32_t mem_getphys(uint32_t addr)
 
 
 
-uint32_t readmemb(uint32_t addr)
+uint32_t readmemfb(uint32_t addr)
 {
-        if (addr>=0x21D3738 && addr<0x21D3938)
+        uint32_t addr2;
+/*        if (addr>=0x21D3738 && addr<0x21D3938)
         {
                 rpclog("Readb %08X %07X\n",addr,PC);
                 if (PC==0x3B9699C)
@@ -234,8 +246,8 @@ uint32_t readmemb(uint32_t addr)
                         output=1;
                         timetolive=50;
                 }
-        }
-        if (mmu)
+        }*/
+/*        if (mmu)
         {
                 if ((addr>>12)==readmemcache) addr=(addr&0xFFF)+readmemcache2;
                 else
@@ -244,6 +256,50 @@ uint32_t readmemb(uint32_t addr)
                         addr=translateaddress(addr,0);
                         if (databort) return 0;                        
                         readmemcache2=addr&0xFFFFF000;
+                }
+        }*/
+        if (mmu)
+        {
+                addr2=addr;
+                if ((addr>>12)==readmemcache) addr=(addr&0xFFF)+readmemcache2;
+                else
+                {
+                        readmemcache=addr>>12;
+                        raddrl[(addr>>12)&0xFF]=addr&0xFFFFF000;
+//                        rpclog("Translate read ");
+                        addr=translateaddress(addr,0);
+//                        if (databort) rpclog("Dat abort reading %08X %08X\n",addr2,PC);
+                        if (databort)
+                        {
+                                raddrl[(addr2>>12)&0xFF]=0xFFFFFFFF;
+                                return 0;
+                        }
+                        readmemcache2=addr&0xFFFFF000;
+//                        rpclog("MMU addr %08X %08X %08X %08X ",addr2,addr,raddrl,readmemcache2&0x7FF000);
+                        switch (readmemcache2&0x1F000000)
+                        {
+                                case 0x00000000: /*ROM*/
+                                raddrl2[(addr2>>12)&0xFF]=&rom[((readmemcache2&0x7FF000)-raddrl[(addr2>>12)&0xFF])>>2];
+                                return ((unsigned char *)raddrl2[(addr2>>12)&0xFF])[(addr2)];
+                                case 0x02000000: /*VRAM*/
+                                raddrl2[(addr2>>12)&0xFF]=&vram[((readmemcache2&0x1FF000)-raddrl[(addr2>>12)&0xFF])>>2];
+                                return ((unsigned char *)raddrl2[(addr2>>12)&0xFF])[(addr2)];
+                                case 0x10000000: /*SIMM 0 bank 0*/
+                                case 0x11000000:
+                                case 0x12000000:
+                                case 0x13000000:
+                                raddrl2[(addr2>>12)&0xFF]=&ram[((readmemcache2&rammask)-raddrl[(addr2>>12)&0xFF])>>2];
+                                return ((unsigned char *)raddrl2[(addr2>>12)&0xFF])[(addr2)];
+                                case 0x14000000: /*SIMM 0 bank 1*/
+                                case 0x15000000:
+                                case 0x16000000:
+                                case 0x17000000:
+                                raddrl2[(addr2>>12)&0xFF]=&ram2[((readmemcache2&rammask)-raddrl[(addr2>>12)&0xFF])>>2];
+                                return ((unsigned char *)raddrl2[(addr2>>12)&0xFF])[(addr2)];
+                                default:
+//                                rpclog("Other\n");
+                                raddrl[(addr2>>12)&0xFF]=0xFFFFFFFF;
+                        }
                 }
         }
         switch (addr&0x1F000000)
@@ -420,7 +476,7 @@ void writememfl(uint32_t addr, uint32_t val)
                 {
                         if ((addr&0xFFC)==0x7C0)
                         {
-                                if (output) rpclog("Write IDE W %08X %07X\n",val,PC-8);
+//                                if (output) rpclog("Write IDE W %08X %07X\n",val,PC-8);
                                 writeidew(val);
                                 return;
                         }

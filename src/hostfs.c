@@ -778,7 +778,8 @@ hostfs_putbytes(ARMul_State *state)
   fseek(f, (long) state->Reg[4], SEEK_SET);
 
   for (i = 0; i < state->Reg[3]; i++) {
-    buffer[i] = ARMul_LoadByte(state, ptr++);
+    buffer[i] = ARMul_LoadByte(state, ptr);
+    ptr++;
   }
 
   fwrite(buffer, 1, state->Reg[3], f);
@@ -965,7 +966,8 @@ hostfs_file_0_save_file(ARMul_State *state)
 
   while (length >= BUFSIZE) {
     for (i = 0; i < BUFSIZE; i++) {
-      buffer[i] = ARMul_LoadByte(state, ptr++);
+      buffer[i] = ARMul_LoadByte(state, ptr);
+      ptr++;
     }
     /* TODO check for errors */
     fwrite(buffer, 1, BUFSIZE, f);
@@ -973,7 +975,8 @@ hostfs_file_0_save_file(ARMul_State *state)
   }
 
   for (i = 0; i < length; i++) {
-    buffer[i] = ARMul_LoadByte(state, ptr++);
+    buffer[i] = ARMul_LoadByte(state, ptr);
+    ptr++;
   }
   fwrite(buffer, 1, length, f);
 

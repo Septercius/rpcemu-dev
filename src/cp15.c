@@ -23,6 +23,9 @@ void resetcp15(void)
         for (c=0;c<64;c++)
             tlbcache2[c]=0xFFFFFFFF;
         tlbcachepos=0;
+        for (c=0;c<256;c++)
+            raddrl[c]=0xFFFFFFFF;
+        waddrl=0xFFFFFFFF;
 }
 
 int translations=0;
@@ -39,7 +42,11 @@ void writecp15(uint32_t addr, uint32_t val)
                 cp15.ctrl=val;
                 mmu=val&1;
                 if (!mmu)
-                   raddrl=waddrl=0xFFFFFFFF;
+                {
+                        for (c=0;c<256;c++)
+                            raddrl[c]=0xFFFFFFFF;
+                        waddrl=0xFFFFFFFF;
+                }
                 prog32=val&0x10;
                 if (!prog32 && (mode&16))
                 {
@@ -48,7 +55,9 @@ void writecp15(uint32_t addr, uint32_t val)
                 return; /*We can probably ignore all other bits*/
                 case 2: /*TLB base*/
                 cp15.tlbbase=val&~0x3FFF;
-                raddrl=waddrl=0xFFFFFFFF;
+                for (c=0;c<256;c++)
+                    raddrl[c]=0xFFFFFFFF;
+                waddrl=0xFFFFFFFF;
                 switch (cp15.tlbbase&0x1F000000)
                 {
                         case 0x02000000: /*VRAM - yes RiscOS 3.7 does put the TLB in VRAM at one point*/
@@ -77,7 +86,9 @@ void writecp15(uint32_t addr, uint32_t val)
 //                rpclog("TLB flush %08X %08X %07X %i %i %08X\n",addr,val,PC,ins,translations,lastcache);
                 clearmemcache();
                 pccache=readcache=writecache=0xFFFFFFFF;
-                raddrl=waddrl=0xFFFFFFFF;
+                for (c=0;c<256;c++)
+                    raddrl[c]=0xFFFFFFFF;
+                waddrl=0xFFFFFFFF;
                 for (c=0;c<64;c++)
                     tlbcache[tlbcache2[c]]=0xFFFFFFFF;
                 for (c=0;c<64;c++)
@@ -99,7 +110,9 @@ void writecp15(uint32_t addr, uint32_t val)
                 case 7: /*Invalidate cache*/
 //                rpclog("Cache invalidate %08X\n",PC);
                 pccache=readcache=writecache=0xFFFFFFFF;
-                raddrl=waddrl=0xFFFFFFFF;
+                for (c=0;c<256;c++)
+                    raddrl[c]=0xFFFFFFFF;
+                waddrl=0xFFFFFFFF;
                 return;
         }
 //        error("Bad write CP15 %08X %08X %07X\n",addr,val,PC);
@@ -169,7 +182,7 @@ int checkpermissions(int p, int fsr, int rw, uint32_t addr)
         return 0;
 }
 
-uint32_t translateaddress(uint32_t addr, int rw)
+uint32_t translateaddress2(uint32_t addr, int rw)
 {
         uint32_t vaddr=((addr>>18)&~3)|cp15.tlbbase;
         uint32_t fld;
@@ -177,11 +190,11 @@ uint32_t translateaddress(uint32_t addr, int rw)
         uint32_t oa=addr;
         int temp,temp2;
 //        rpclog("Translate %08X ",addr);
-        if (!(addr&0xFC000000) && !(tlbcache[(addr>>12)&0x3FFF]&0xFFF))
+/*        if (!(addr&0xFC000000) && !(tlbcache[(addr>>12)&0x3FFF]&0xFFF))
         {
 //                rpclog("Cached %08X\n",tlbcache[addr>>12]);
                 return tlbcache[addr>>12]|(addr&0xFFF);
-        }
+        }*/
         translations++;
 //        rpclog("Uncached ");
         tlbs++;
@@ -248,6 +261,17 @@ uint32_t translateaddress(uint32_t addr, int rw)
         exit(-1);
 }
 
+/*uint32_t translateaddress(uint32_t addr, int rw)
+{
+        if (!(addr&0xFC000000) && !(tlbcache[(addr>>12)&0x3FFF]&0xFFF))
+        {
+//                rpclog("Cached %08X\n",tlbcache[addr>>12]);
+                return tlbcache[addr>>12]|(addr&0xFFF);
+        }
+        return translateaddress2(addr,rw);
+}*/
+
+
 uint32_t *getpccache(uint32_t addr)
 {
         uint32_t addr2;
@@ -260,7 +284,7 @@ uint32_t *getpccache(uint32_t addr)
                 {
                         databort=0;
                         prefabort=1;
-                        return;
+                        return 0xFFFFFFFF;
                 }
         }
         else     addr2=addr;

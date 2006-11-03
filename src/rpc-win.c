@@ -4,18 +4,14 @@
   the moment.
   Since I'm the only maintainer of this file, it's a complete mess.*/
 
-int fullscreen;
-int blits;
-/*Uncomment for sound emulation (preliminary)
-  Works okay on Windows 9x, sounds horrible on XP
-  Could just be my sound card drivers though*/
-#define THREADING
 #include <stdio.h>
 #include <allegro.h>
 #include <winalleg.h>
 #include "rpcemu.h"
 #include "resources.h"
 
+int fullscreen;
+int blits;
 int soundenabled=0;
 int sndon;
 int mousecapture=0;
@@ -80,7 +76,7 @@ void sndupdate()
 
 void vblupdate()
 {
-        drawscre=1;
+        drawscre++;
 }
 
 /*  Declare Windows procedure  */
@@ -136,153 +132,35 @@ void resetrpc()
         reset82c711();
 }
 
+int quited=0;
+
 /*Ignore _ALL_ this for now. It doesn't work very well, and doesn't even get
   started at the moment*/
-/*Plus, it's just all been made obselete! See sound.c*/
-int soundinited=0;
-AUDIOSTREAM *as=NULL;
-int sndbufsize=500;
-FILE *sndfile;
-int quited=0;
-int samplefreq,oldfreq;
-int armrunning,videorunning,soundrunning;
-#define BUFLEN 2048
-unsigned short sndbuffertemp[BUFLEN*4];
-int nextbuf=1;
+/*Plus, it's just all been made obsolete! See sound.c*/
+int quitblitter=0;
+int blitrunning=0;
 
-int quitsound=0;
-void soundthread(PVOID pvoid)
+void _blitthread(PVOID pvoid)
 {
-        #if 0
-        FILE *soundf;
-        int offset,c,d=0;
-        unsigned short *p;
-        unsigned long page,start,end,temp;
-        int bufferlen=1,bufferpos=0;
-        soundrunning=1;
-        as=NULL;
-//        rpclog("Sound thread starting\n");
-//        sndbufsize=500;
-//        soundf=fopen("sound.pcm","wb");
-        while (!quitsound)
+        timeBeginPeriod(1);
+        blitrunning=1;
+        while (!quitblitter)
         {
-                soundstartagain:
-                if (soundinited)
-                {
-                        offset=(iomd.sndstat&1)<<1;
-                        if (!as)
-                        {
-                                if (sndbufsize)
-                                {
-                                        d=0;
-                                        bufferlen=1;
-                                        bufferpos=0;
-                                        while ((sndbufsize*bufferlen)<BUFLEN)
-                                        {
-//                                                rpclog("%i %i %i\n",sndbufsize,bufferlen,sndbufsize*bufferlen);
-                                                bufferlen++;
-                                        }
-//                                        rpclog("New sound buffer size %i freq %i bufferlen %i\n",sndbufsize,oldfreq,bufferlen);
-                                        as=play_audio_stream(sndbufsize*bufferlen,16,1,oldfreq,255,127);
-                                }
-                                else
-                                {
-                                        iomd.state|=0x10;
-                                        updateirqs();
-                                        iomd.sndstat|=6;
-                                }
-                        }
-                        if (as)
-                        {
-//                                rpclog("%i %i %i %02X\n",nextbuf,bufferpos,bufferlen,iomd.state);
-                                if (bufferpos<bufferlen && !(iomd.state&0x10))
-                                {
-//                                        rpclog("Sound int %i\n",d);
-                                        nextbuf=0;
-                                        iomd.sndstat^=1;
-                                        offset=(iomd.sndstat&1)<<1;
-                                        page=soundaddr[offset]&0xFFFFF000;
-                                        start=soundaddr[offset]&0xFF0;
-                                        end=(soundaddr[offset+1]&0xFF0)+16;
-                                        if (((end-start)>>2)!=sndbufsize || samplefreq!=oldfreq)
-                                        {
-                                                stop_audio_stream(as);
-                                                as=NULL;
-                                                sndbufsize=(end-start)>>2;
-                                                oldfreq=samplefreq;
-                                                iomd.sndstat^=1;
-                                                goto soundstartagain;
-                                                as=play_audio_stream(sndbufsize,16,1,44100,255,127);
-                                                p=NULL;
-                                                while (!p)
-                                                {
-                                                        p=get_audio_stream_buffer(as);
-                                                }
-                                        }
-                                        for (c=start;c<end;c+=4)
-                                        {
-                                                temp=ram[((c+page)&rammask)>>2];
-                                                sndbuffertemp[d++]=(temp&0xFFFF)^0x8000;
-                                                sndbuffertemp[d++]=(temp>>16)^0x8000;
-                                        }
-                                        bufferpos++;
-                                        iomd.state|=0x10;
-                                        updateirqs();
-                                        iomd.sndstat|=6;
-                                }
-                                if (bufferpos>=bufferlen)
-                                {
-//                                        rpclog("Buffer update %i\n",bufferlen*sndbufsize*2);
-//                                        fflush(arclog);
-                                        bufferpos=0;
-                                        d=0;
-                                        p=NULL;
-                                        while (!p)
-                                        {
-                                                sleep(0);
-                                                p=get_audio_stream_buffer(as);
-                                        }
-                                        memcpy(p,sndbuffertemp,bufferlen*sndbufsize*4);
-                                        free_audio_stream_buffer(as);
-                                        for (d=0;d<(BUFLEN*4);d++)
-                                            sndbuffertemp[d]^=0x8000;
-//                                        fwrite(sndbuffertemp,bufferlen*sndbufsize*4,1,soundf);
-                                        d=0;
-                                }
-                        }
-                }
-                while ((iomd.state&0x10) && !quited)
-                {
-                        sleep(0);
-                }
-//                sleep(1);
+                blitterthread();
+                sleep(0);
         }
-//        rpclog("Sound thread ending\n");
-        if (as) stop_audio_stream(as);
-        as=NULL;
-        soundrunning=quitsound=0;
-        #endif
-        _endthread();
+        blitrunning=0;
 }
 
-
-int oldsndlen=0;
-
-void updatesndtime(int len)
+void _closeblitthread()
 {
-        float temp;
-        int buflen=len;
-        len>>=2;
-        temp=((float)len/44100.0f)*1000.0f;
-        len=(int)temp;
-        if (len<2) len=2;
-        if (oldsndlen!=len)
+        if (blitrunning)
         {
-                install_int_ex(sndupdate,MSEC_TO_TIMER(len));
-                oldsndlen=len;
+                quitblitter=1;
+                while (blitrunning)
+                      sleep(1);
         }
 }
-
 HINSTANCE hinstance;
 /*You can start paying attention again now*/
 int WINAPI WinMain (HINSTANCE hThisInstance,
@@ -364,6 +242,11 @@ infocus=0;
         {
 //                install_int_ex(sndupdate,BPS_TO_TIMER(10));
         }
+        #ifdef BLITTER_THREAD
+        _beginthread(_blitthread,0,NULL);
+        atexit(_closeblitthread);
+        #endif
+        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 infocus=1;
         while (!quited)
         {
@@ -405,14 +288,13 @@ infocus=1;
                 ClipCursor(&oldclip);
                 mousecapture=0;
         }
-        quitsound=1;
-        if (soundenabled)
-        {
-                while (soundrunning)
-                      sleep(1);
-        }
+        #ifdef BLITTER_THREAD
+        quitblitter=1;
+        while (blitrunning)
+              sleep(1);
+        #endif
         timeEndPeriod(1);
-//        dumpregs();
+        dumpregs();
         endrpcemu();
 //        fclose(arclog);
         
@@ -618,6 +500,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 break;
                 case WM_SETFOCUS:
                 infocus=1;
+                resetbuffer();
                 break;
                 case WM_KILLFOCUS:
                 infocus=0;

@@ -95,7 +95,7 @@ void cmostick()
 
 #else
         int c,d;
-        systemtime.wMilliseconds+=2;
+        systemtime.wMilliseconds++;
         if (systemtime.wMilliseconds>=100)
         {
                 systemtime.wMilliseconds-=100;
