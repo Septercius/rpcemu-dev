@@ -7,6 +7,7 @@
 
 #include "rpcemu.h"
 
+void fdcsend(uint8_t val);
 int readflash=0;
 uint32_t ins;
 int timetolive;
@@ -244,6 +245,18 @@ void writefdc(uint32_t addr, uint32_t val)
                         fdccallback=50;
                         fdc.status=0x10;
                         break;
+
+                        case 0xE: /*Dump registers - not supported by 82c711
+                                    Used by Linux to identify FDC type.*/
+                fdc.st0=0x80;
+                fdcsend(fdc.st0);
+                fdc.incommand=0;
+                fdccallback=0;
+                fdc.status=0x80;
+                        break;
+//                        fdccallback=50;
+//                        fdc.status=0x10;
+//                        break;
 
                         case 0x0F: /*Seek*/
                         fdc.params=2;
@@ -496,6 +509,11 @@ void callbackfdc(void)
                         fdcsend(fdc.track);
                 }
                 break;
+//                case 0x0E: /*Dump registers - act as invalid command*/
+//                fdc.st0=0x80;
+//                fdcsend(fdc.st0);
+//                fdc.incommand=0;
+//                break;
                 case 0x0F: /*Seek*/
 //                printf("Seek to %i\n",fdc.parameters[1]);
                 fdc.track=fdc.parameters[1];

@@ -2,6 +2,9 @@
   System coprocessor + MMU emulation*/
 #include "rpcemu.h"
 
+unsigned long oldpc,oldpc2,oldpc3;
+int timetolive;
+
 uint32_t ins;
 uint32_t tlbcache[16384],tlbcache2[64];
 int tlbcachepos;
@@ -130,7 +133,8 @@ uint32_t readcp15(uint32_t addr)
                         case 0: return 0x41007100; /*ARM7500*/
                         case 1: return 0x41560610; /*ARM610*/
                         case 2: return 0x41567100; /*ARM710*/
-                        case 3: return 0x4456A100; /*StrongARM*/
+                        case 3: /*if (PC>0x10000000) output=1; */return 0x4401A100; /*SA110*/
+//                      case 3: return 0x4456A100; /*StrongARM*/
                 }
                 break;
                 case 1: /*Control*/
@@ -152,7 +156,8 @@ uint32_t readcp15(uint32_t addr)
 #define FAULT()         databort=1;          \
                         cp15.far=addr;       \
                         cp15.fsr=fsr;        \
-                        rpclog("PERMISSIONS FAULT! %08X\n",addr);  \
+                        if (output) \
+                                rpclog("PERMISSIONS FAULT! %08X %07X %08X %08X %08X %08X\n",addr,PC,opcode,oldpc,oldpc2,oldpc3);  \
                         return 0xFFFFFFFF
 
 int checkpermissions(int p, int fsr, int rw, uint32_t addr)
@@ -164,21 +169,23 @@ int checkpermissions(int p, int fsr, int rw, uint32_t addr)
                 {
                         case 0x000: /*No access*/
                         case 0x300: /*Unpredictable*/
-                        rpclog("Always fault\n");
+                        if (output) rpclog("Always fault\n");
                         FAULT();
                         case 0x100: /*Supervisor read-only*/
-                        if (!model || rw) { rpclog("Supervisor read only\n"); FAULT(); }
+                        break; /*delibrately broken for Linux*/
+                        /*Linux will crash very early on if this is implemented properly*/
+                        if (!memmode || rw) { if (output) rpclog("Supervisor read only\n"); FAULT(); }
                         break;
                         case 0x200: /*Read-only*/
-                        if (rw) { rpclog("Read only\n"); FAULT(); }
+                        if (rw) { if (output) rpclog("Read only\n"); FAULT(); }
                         break;
                 }
                 break;
                 case 1: /*Supervisor only*/
-                if (!memmode) { rpclog("Supervisor only\n"); FAULT(); }
+                if (!memmode) { if (output) rpclog("Supervisor only\n"); FAULT(); }
                 break;
                 case 2: /*User read-only*/
-                if (!memmode && rw) { rpclog("Read only\n"); FAULT(); }
+                if (!memmode && rw) { if (output) rpclog("Read only\n"); FAULT(); }
                 break;
         }
         return 0;
@@ -209,7 +216,7 @@ uint32_t translateaddress2(uint32_t addr, int rw)
                 databort=1;
                 cp15.far=addr;
                 cp15.fsr=5;
-                rpclog("Fault! %08X %07X %i\n",addr,PC,rw);
+//                rpclog("Fault! %08X %07X %i\n",addr,PC,rw);
 //                exit(-1);
                 return 0;
                 case 1: /*Page table*/

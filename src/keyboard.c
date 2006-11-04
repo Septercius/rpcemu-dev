@@ -64,13 +64,22 @@ void resetkeyboard(void)
 
 void writekbd(uint8_t v)
 {
-//        printf("Write keyboard %02X %08X\n",v,PC);
+//        rpclog("Write keyboard %02X %08X\n",v,PC);
         switch (v)
         {
                 case 0xFF:
                 kbdreset=2;
                 kcallback=4;
                 break;
+                case 0xF4:
+                kcallback=1;
+                kbdreset=0;
+                kbdcommand=0xF4;
+                break;
+                default:
+                kbdcommand=1;
+                kcallback=1;
+                kbdreset=0;
         }
 }
 
@@ -109,7 +118,7 @@ void keycallback(void)
         else if (kbdreset==2)
         {
                 kbdreset=3;
-                keyboardsend(0xFA);
+//                keyboardsend(0xFA);
                 kcallback=500;
         }
         else if (kbdreset==3)
@@ -120,7 +129,15 @@ void keycallback(void)
         }
         else switch (kbdcommand)
         {
+                case 1:
+                case 0xF4:
+//                        rpclog("Send key dataF4\n");
+                keyboardsend(0xFA);
+                kcallback=0;
+                kbdcommand=0;
+                break;
                 case 0xFE:
+//                        rpclog("Send key dataFE\n");
                 keyboardsend(kbdpacket[kbdpacketpos++]);
                 kcallback=0;
                 if (kbdpacketpos>=kbdpacketsize)
@@ -149,7 +166,7 @@ unsigned char readkeyboarddata(void)
         iomd.statb&=~0x80;
         updateirqs();
         if (kbdcommand==0xFE) kcallback=5;
-//        rpclog("Read keyboard data %02X\n",iomd.keydat);
+//        rpclog("Read keyboard data %02X %07X\n",iomd.keydat,PC);
         return iomd.keydat;
 }
 

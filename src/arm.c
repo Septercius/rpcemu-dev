@@ -392,11 +392,16 @@ void dumpregs()
         f=fopen("ram.dmp","wb");
         sprintf(s,"R 0=%08X R 4=%08X R 8=%08X R12=%08X\nR 1=%08X R 5=%08X R 9=%08X R13=%08X\nR 2=%08X R 6=%08X R10=%08X R14=%08X\nR 3=%08X R 7=%08X R11=%08X R15=%08X\n%i %s\n%08X %08X %08X",armregs[0],armregs[4],armregs[8],armregs[12],armregs[1],armregs[5],armregs[9],armregs[13],armregs[2],armregs[6],armregs[10],armregs[14],armregs[3],armregs[7],armregs[11],armregs[15],ins,(mmu)?"MMU enabled":"MMU disabled",oldpc,oldpc2,oldpc3);
         error("%s",s);
+        rpclog("%s",s);
         error("PC =%07X ins=%i R12f=%08X CPSR=%08X\n",PC,ins,fiqregs[12],armregs[16]);
         fwrite(ram,0x400000,1,f);
         fclose(f);
-        f=fopen("ram2.dmp","wb");
-        for (c=0x10450000;c<0x10460000;c++)
+        f=fopen("kernel.dmp","wb");
+        for (c=0xC0000000;c<0xC0100000;c++)
+            putc(readmemb(c),f);
+        fclose(f);
+        f=fopen("os.dmp","wb");
+        for (c=0x10000000;c<0x10010000;c++)
             putc(readmemb(c),f);
         fclose(f);
 
@@ -1617,27 +1622,12 @@ void execarm(int cycs)
                 linecyc=200;
                 while (linecyc>0)
                 {
+/*                        oldpc3=oldpc2;
+                        oldpc2=oldpc;
+                        oldpc=PC;*/
                         opcode=opcode2;
                         opcode2=opcode3;
                         oldcyc2=cycles;
-/*                        if ((PC>>15)==pccache)
-                           opcode3=pccache2[(PC&0x7FFF)>>2];
-                        else
-                        {
-                                templ2=PC>>15;
-                                templ=memstat[PC>>15];
-                                if (modepritabler[memmode][memstat[PC>>15]])
-                                {
-                                        pccache=PC>>15;
-                                        pccache2=mempoint[PC>>15];
-                                        opcode3=mempoint[PC>>15][(PC&0x7FFF)>>2];
-                                }
-                                else
-                                {
-				        opcode3=readmemf(PC);
-					pccache=0xFFFFFFFF;
-                                }
-                        }*/
                         if ((PC>>12)!=pccache)
                         {
                                 pccache=PC>>12;
@@ -4218,58 +4208,27 @@ void execarm(int cycs)
                         #endif
 //                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
                         #if 0
-//                      if (PC>=0xF000000 && blits>400) output=2;
-//                      if (PC==0x64 && blits>5) output=2;
-//                      if (PC==0xAD4068 && blits>400) output=2;
-  //                      if (PC==0x8E20) output=1;
-//                        if (PC==0x8E50) output=0;
-                        if (!mmu && blits>10)
-                        {
-                                if (!output) rpclog("Output on!\n");
-                                output=1;
-                        }
-                        if (oldpc==0x20 && oldpc2==0x20 && oldpc3==0x20)
-                        {
-                                rpclog("Locked at &20!\n%i ins",ins);
-                                dumpregs();
-                                exit(-1);
-                        }
                         if (output)
                         {
-//                                if (!olog) olog=fopen("olog.txt","wt");
-                                if (output==2)
-                                {
+                                ins++;
+//                                if (ins==88990000) output=2;
+                        }
+                        if (output==2)
+                        {
                                        rpclog(":%08X %08X %08X %08X %08X %08X %08X %08X %08X  %08X %08X %08X %08X\n",PC,armregs[0],armregs[1],armregs[2],armregs[3],armregs[4],armregs[5],armregs[6],armregs[7],oldpc,oldpc2,oldpc3,spsr[mode&15]);
                                         rpclog(":         %08X %08X %08X %08X %08X %08X %08X %08X  %08X %08X %08X %08X\n",armregs[8],armregs[9],armregs[10],armregs[11],armregs[12],armregs[13],armregs[14],armregs[15],opcode,opcode2,opcode3,armregs[16]);
-/*                                        if (PC==0x64 || PC==0xAD4068)
-                                        {
-                                                dumpregs();
-                                                exit(0);
-                                        }*/
-                                }
-//                                rpclog("%i : %07X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X  %08X %08X %08X - %08X %08X %08X %i R10=%08X R11=%08X R12=%08X %08X %08X %08X %08X\n",ins,PC,armregs[0],armregs[1],armregs[2],armregs[3],armregs[4],armregs[5],armregs[6],armregs[7],armregs[8],armregs[9],armregs[10],armregs[12],armregs[13],armregs[14],armregs[15],armregs[16],opcode3,mode,armregs[10],armregs[11],armregs[12],spsr[mode&15],armregs[16],armregs[15],armregs[14]);
-//                                fputs(err2,olog);
-//                        if (PC>=0x3B96168 && PC<=0x3B96190) output=2;
-//                        else output=1;
-/*                                if (timetolive)
+                                if (timetolive)
                                 {
                                         timetolive--;
                                         if (!timetolive)
-                                           output=0;
-                                }*/
-                                ins++;
-/*                                if (ins>=19780000)
-                                {
-                                        if (output==1) rpclog("Hit required instructions - output=2!\n");
-                                        output=2;
-                                }*/
+                                        {
+                                                output=1;
+//                                                exit(0);
+                                        }
+                                }
+//                                ins++;
                         }
                         #endif
-//                #endif
-/*                        if (PC==0x9498) { output=1; timetolive=55; }*/
-//                        if (PC==0x9520) timetolive=5;
-//                        if (PC==0x951C) timetolive=25;
-//                        if (PC==0x38FD7D4) printf("R10=%08X\n",armregs[10]);
                         linecyc-=(oldcyc2-cycles);
                         inscount++;
 //                        ins++;
