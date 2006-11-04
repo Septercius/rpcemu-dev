@@ -357,6 +357,7 @@ void writememfl(uint32_t addr, uint32_t val)
 #ifdef LARGETLB
         uint32_t addr;
 #endif
+//        if ((addr&~0x1F)==0x40) rpclog("Writef %08X %08X %08X\n",addr,val,PC);
 //        uint32_t addr2=addr;
 //        rpclog("Write %08X %08X %08X\n",addr,val,waddrl);
         if (mmu)
@@ -531,6 +532,7 @@ void writememb(uint32_t addr, uint8_t val)
         #ifdef LARGETLB
         uint32_t addr;
         #endif
+//        if ((addr&~0x1F)==0x40) rpclog("Writefb %08X %08X %08X\n",addr,val,PC);
         if (mmu)
         {
                 #ifdef LARGETLB

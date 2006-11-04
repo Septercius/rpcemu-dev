@@ -294,6 +294,8 @@ infocus=1;
               sleep(1);
         #endif
         timeEndPeriod(1);
+        output=2;
+        execarm(8000);
         dumpregs();
         endrpcemu();
 //        fclose(arclog);

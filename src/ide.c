@@ -173,6 +173,7 @@ void writeide(uint16_t addr, uint8_t val)
                         return;
                         case 0xA1: /*Identify packet device*/
                         case 0xE3: /*Idle*/
+  //                      case 0x08: /*???*/
                         ide.atastat=0x80;
                         idecallback=200;
                         return;
@@ -426,7 +427,7 @@ void callbackide(void)
                         updateirqs();
                         return;
                 }
-                return;
+//                return;
                 case 0xE3:
                 ide.atastat=0x41;
                 ide.error=4;

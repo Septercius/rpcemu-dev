@@ -10,6 +10,17 @@
 #include <string.h>
 
 #define GRAPHICS_TYPE GFX_AUTODETECT_WINDOWED
+
+/*This moves the calls to blit() and stretch_blit() to a seperate thread. It
+  gives a large speedup on a dual-core processor when lots of screen data is
+  being updated (eg a full 800x600 screen), and improves the sound stability a
+  bit. Not sure how it performs on a single core processor.
+  This alters vidc20.c a little - when the rest of drawscr() finishes, it sets a
+  flag instead of blitting. This is tested by blitterthread(), which must be
+  called regularly. If a thread is not created in the platform specific file,
+  then no blits happen, and the emulator will hang due to the synchronisation in
+  place.*/
+#define BLITTER_THREAD
   
 /*ARM*/
 extern uint32_t *usrregs[16],userregs[17],superregs[17],fiqregs[17],irqregs[17],abortregs[17],undefregs[17],systemregs[17];
@@ -32,12 +43,14 @@ extern int prog32;
   //unsigned char *ramb,*ramb2,*romb,*vramb;
   //unsigned char *dirtybuffer;
 
-extern uint32_t raddrl;
-extern uint32_t *raddrl2;
-#define readmeml(a) readmemfl(a)
+extern uint32_t raddrl[256];
+extern uint32_t *raddrl2[256];
+//#define readmeml(a) readmemfl(a)
 
-//#define readmeml(a) ((((a)&0xFFFFF000)==raddrl)?raddrl2[(a)>>2]:readmemfl(a))
+#define readmeml(a) ((((a)&0xFFFFF000)==raddrl[((a)>>12)&0xFF])?raddrl2[((a)>>12)&0xFF][(a)>>2]:readmemfl(a))
 //#define readmeml(a) ((((a)&0xFFFFF000)==raddrl)?raddrl2[((a)&0xFFC)>>2]:readmemfl(a))
+
+#define readmemb(a) ((((a)&0xFFFFF000)==raddrl[((a)>>12)&0xFF])?((unsigned char *)raddrl2[((a)>>12)&0xFF])[(a)]:readmemfb(a))
 
 extern uint32_t waddrl;
 extern uint32_t *waddrl2;
@@ -46,7 +59,10 @@ extern uint32_t *waddrl2;
 
 extern uint32_t *ram,*ram2,*rom,*vram;
 extern uint8_t *ramb,*romb,*vramb;
-extern uint8_t *dirtybuffer;
+extern uint8_t dirtybuffer[512];
+
+uint32_t tlbcache[16384];
+#define translateaddress(addr,rw) ((!((addr)&0xFC000000) && !(tlbcache[((addr)>>12)&0x3FFF]&0xFFF))?(tlbcache[(addr)>>12]|((addr)&0xFFF)):translateaddress2(addr,rw))
 
 extern int mmu,memmode;
 
@@ -118,11 +134,11 @@ uint32_t *getpccache(uint32_t addr);
 /* mem.c */
 //uint32_t readmeml(uint32_t addr);
 uint32_t readmemfl(uint32_t addr);
-uint32_t readmemb(uint32_t addr);
+uint32_t readmemfb(uint32_t addr);
 //void writememl(uint32_t addr, uint32_t val);
 void writememb(uint32_t addr, uint8_t val);
-uint32_t readmemb(uint32_t addr);
-uint32_t translateaddress(uint32_t addr, int rw);
+uint32_t readmemfb(uint32_t addr);
+//uint32_t translateaddress(uint32_t addr, int rw);
 
 //uint32_t mem_getphys(uint32_t addr);
 //uint32_t readmeml_phys(uint32_t addr);

@@ -305,8 +305,8 @@ void write82c711(uint32_t addr, uint32_t val)
 //                printf("Cleared config mode\n");
                 return;
         }
-        if (addr2>=0x278 && addr2<=0x27A)
-           rpclog("Write 82c711 %08X %08X %03X %07X %08X\n",addr,val,addr2,PC,armregs[12]);
+//        if (addr2>=0x278 && addr2<=0x27A)
+//           rpclog("Write 82c711 %08X %08X %03X %07X %08X\n",addr,val,addr2,PC,armregs[12]);
         if ((addr2>=0x3F0) && (addr2<=0x3F7)) writefdc(addr,val);
         if ((addr2==0x27A) && ((val&0x10) || ((printstat^val)&1 && !(val&1))))
         {

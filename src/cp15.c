@@ -61,17 +61,17 @@ void writecp15(uint32_t addr, uint32_t val)
                 switch (cp15.tlbbase&0x1F000000)
                 {
                         case 0x02000000: /*VRAM - yes RiscOS 3.7 does put the TLB in VRAM at one point*/
-                        tlbram=vram; tlbrammask=vrammask; break;
+                        tlbram=vram; tlbrammask=vrammask>>2; break;
                         case 0x10000000: /*SIMM 0 bank 0*/
                         case 0x11000000:
                         case 0x12000000:
                         case 0x13000000:
-                        tlbram=ram; tlbrammask=rammask; break;
+                        tlbram=ram; tlbrammask=rammask>>2; break;
                         case 0x14000000: /*SIMM 0 bank 1*/
                         case 0x15000000:
                         case 0x16000000:
                         case 0x17000000:
-                        tlbram=ram2; tlbrammask=rammask; break;
+                        tlbram=ram2; tlbrammask=rammask>>2; break;
                 }
 //                printf("CP15 tlb base now %08X\n",cp15.tlbbase);
                 return;
@@ -152,6 +152,7 @@ uint32_t readcp15(uint32_t addr)
 #define FAULT()         databort=1;          \
                         cp15.far=addr;       \
                         cp15.fsr=fsr;        \
+                        rpclog("PERMISSIONS FAULT! %08X\n",addr);  \
                         return 0xFFFFFFFF
 
 int checkpermissions(int p, int fsr, int rw, uint32_t addr)
@@ -163,20 +164,21 @@ int checkpermissions(int p, int fsr, int rw, uint32_t addr)
                 {
                         case 0x000: /*No access*/
                         case 0x300: /*Unpredictable*/
+                        rpclog("Always fault\n");
                         FAULT();
                         case 0x100: /*Supervisor read-only*/
-                        if (!model || rw) { FAULT(); }
+                        if (!model || rw) { rpclog("Supervisor read only\n"); FAULT(); }
                         break;
                         case 0x200: /*Read-only*/
-                        if (rw) { FAULT(); }
+                        if (rw) { rpclog("Read only\n"); FAULT(); }
                         break;
                 }
                 break;
                 case 1: /*Supervisor only*/
-                if (!memmode) { FAULT(); }
+                if (!memmode) { rpclog("Supervisor only\n"); FAULT(); }
                 break;
                 case 2: /*User read-only*/
-                if (!memmode && rw) { FAULT(); }
+                if (!memmode && rw) { rpclog("Read only\n"); FAULT(); }
                 break;
         }
         return 0;
@@ -207,6 +209,8 @@ uint32_t translateaddress2(uint32_t addr, int rw)
                 databort=1;
                 cp15.far=addr;
                 cp15.fsr=5;
+                rpclog("Fault! %08X %07X %i\n",addr,PC,rw);
+//                exit(-1);
                 return 0;
                 case 1: /*Page table*/
                 sldaddr=((addr&0xFF000)>>10)|(fld&0xFFFFFC00);
