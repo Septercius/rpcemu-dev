@@ -69,16 +69,16 @@ void writekbd(uint8_t v)
         {
                 case 0xFF:
                 kbdreset=2;
-                kcallback=4;
+                kcallback=4*4;
                 break;
                 case 0xF4:
-                kcallback=1;
+                kcallback=1*4;
                 kbdreset=0;
                 kbdcommand=0xF4;
                 break;
                 default:
                 kbdcommand=1;
-                kcallback=1;
+                kcallback=1*4;
                 kbdreset=0;
         }
 }
@@ -89,7 +89,7 @@ void writekbdenable(int v)
         if (v && !kbdenable)
         {
                 kbdreset=1;
-                kcallback=5;
+                kcallback=5*4;
         }
         if (v) kbdstat|=8;
         else   kbdstat&=~8;
@@ -119,7 +119,7 @@ void keycallback(void)
         {
                 kbdreset=3;
 //                keyboardsend(0xFA);
-                kcallback=500;
+                kcallback=500*4;
         }
         else if (kbdreset==3)
         {
@@ -165,7 +165,7 @@ unsigned char readkeyboarddata(void)
         kbdstat&=~0x20;
         iomd.statb&=~0x80;
         updateirqs();
-        if (kbdcommand==0xFE) kcallback=5;
+        if (kbdcommand==0xFE) kcallback=5*4;
 //        rpclog("Read keyboard data %02X %07X\n",iomd.keydat,PC);
         return iomd.keydat;
 }
@@ -429,7 +429,7 @@ int standardkeys[][2]=
         {KEY_DEL_PAD,0x71},{KEY_0_PAD,0x70},{KEY_1_PAD,0x69},{KEY_2_PAD,0x72},
         {KEY_3_PAD,0x7A},{KEY_4_PAD,0x6B},{KEY_5_PAD,0x73},{KEY_6_PAD,0x74},
         {KEY_7_PAD,0x6C},{KEY_8_PAD,0x75},{KEY_9_PAD,0x7D},{KEY_NUMLOCK,0x77},
-        {KEY_SCRLOCK,0x7E},
+        {KEY_SCRLOCK,0x7E},{KEY_BACKSLASH2,0x5C},
         {-1,-1}
 };
 

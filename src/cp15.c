@@ -58,8 +58,9 @@ void writecp15(uint32_t addr, uint32_t val)
                 return; /*We can probably ignore all other bits*/
                 case 2: /*TLB base*/
                 cp15.tlbbase=val&~0x3FFF;
-                for (c=0;c<256;c++)
-                    raddrl[c]=0xFFFFFFFF;
+                memset(raddrl,0xFF,1024);
+//                for (c=0;c<256;c++)
+//                    raddrl[c]=0xFFFFFFFF;
                 waddrl=0xFFFFFFFF;
                 switch (cp15.tlbbase&0x1F000000)
                 {
@@ -89,13 +90,15 @@ void writecp15(uint32_t addr, uint32_t val)
 //                rpclog("TLB flush %08X %08X %07X %i %i %08X\n",addr,val,PC,ins,translations,lastcache);
                 clearmemcache();
                 pccache=readcache=writecache=0xFFFFFFFF;
-                for (c=0;c<256;c++)
-                    raddrl[c]=0xFFFFFFFF;
+                memset(raddrl,0xFF,1024);
+//                for (c=0;c<256;c++)
+//                    raddrl[c]=0xFFFFFFFF;
                 waddrl=0xFFFFFFFF;
                 for (c=0;c<64;c++)
                     tlbcache[tlbcache2[c]]=0xFFFFFFFF;
-                for (c=0;c<64;c++)
-                    tlbcache2[c]=0xFFFFFFFF;
+                memset(tlbcache2,0xFF,256);
+//                for (c=0;c<64;c++)
+//                    tlbcache2[c]=0xFFFFFFFF;
                 flushes++;
                 tlbcachepos=0;
 /*                if (!translations) return;
@@ -113,8 +116,9 @@ void writecp15(uint32_t addr, uint32_t val)
                 case 7: /*Invalidate cache*/
 //                rpclog("Cache invalidate %08X\n",PC);
                 pccache=readcache=writecache=0xFFFFFFFF;
-                for (c=0;c<256;c++)
-                    raddrl[c]=0xFFFFFFFF;
+                memset(raddrl,0xFF,1024);
+//                for (c=0;c<256;c++)
+//                    raddrl[c]=0xFFFFFFFF;
                 waddrl=0xFFFFFFFF;
                 return;
         }

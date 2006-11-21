@@ -30,7 +30,7 @@ void blitterthread()
         inblit=1;
         switch (thread_doublesize)
         {
-                case 0:// case 1: case 2: case 3:
+                case 0: //case 1: case 2: case 3:
   //              case 3:
         ys=yh-yl;
                 if (fullscreen) blit(b,screen,0,yl,(SCREEN_W-xs)>>1,yl+((SCREEN_H-oldsy)>>1),xs,ys);
@@ -75,6 +75,7 @@ void blitterthread()
 void initvideo()
 {
         int depth;
+//        int tempo=0;
         depth=deskdepth=desktop_color_depth();
         if (depth==16 || depth==15)
         {
@@ -101,8 +102,10 @@ void initvideo()
 //        set_color_depth(8);
 //        if (depth!=15) set_color_depth(16);
 //        else           set_color_depth(15);
+#ifdef HARDWAREBLIT
         b=create_system_bitmap(1024,768);
         if (!b) /*Video bitmaps unavailable for some reason*/
+#endif
            b=create_bitmap(1024,768);
 //        b2=create_video_bitmap(1024,768);
 //        if (!b2) /*Video bitmaps unavailable for some reason*/
@@ -258,6 +261,7 @@ void drawscr()
 //        rpclog("XS %i YS %i\n",xs,ys);
         if (xs<2) xs=2;
         if (ys<1) ys=480;
+        #ifdef HARDWAREBLIT
         if (xs<=448 || (xs<=480 && ys<=352))
         {
                 xs<<=1;
@@ -268,6 +272,7 @@ void drawscr()
                 ys<<=1;
                 doublesize|=2;
         }
+        #endif
         if (ys>768) ys=768;
         if (xs>1024) xs=1024;
         if (ys!=oldsy || xs!=oldsx) resizedisplay(xs,ys);
@@ -1035,14 +1040,14 @@ void drawscr()
                         case 16:
                         for (y=0;y<ny;y++)
                         {
-                                if (y>=ys) break;
+                                if ((y+cy)>=ys) break;
                                 vidp16=(unsigned short *)bmp_write_line(b,y+cy);
                                 for (x=0;x<32;x+=4)
                                 {
-                                        if (ramp[addr]&3)      vidp16[x+cx]=vpal[(ramp[addr]&3)|0x100];
-                                        if ((ramp[addr]>>2)&3) vidp16[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
-                                        if ((ramp[addr]>>4)&3) vidp16[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
-                                        if ((ramp[addr]>>6)&3) vidp16[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
+                                        if ((x+cx)>=0 && ramp[addr]&3)      vidp16[x+cx]=vpal[(ramp[addr]&3)|0x100];
+                                        if ((x+cx)>=0 && (ramp[addr]>>2)&3) vidp16[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
+                                        if ((x+cx)>=0 && (ramp[addr]>>4)&3) vidp16[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
+                                        if ((x+cx)>=0 && (ramp[addr]>>6)&3) vidp16[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
                                         addr++;
                                 }
                         }
@@ -1050,7 +1055,7 @@ void drawscr()
                         case 32:
                         for (y=0;y<ny;y++)
                         {
-                                if (y>=ys) break;
+                                if ((y+cy)>=ys) break;
                                 vidp=(uint32_t *)bmp_write_line(b,y+cy);
                                 for (x=0;x<32;x+=4)
                                 {
@@ -1295,4 +1300,10 @@ void resetbuffer()
 {
         memset(dirtybuffer,1,512);
 //        rpclog("Reset buffer\n");
+}
+
+void closevideo()
+{
+        destroy_bitmap(b);
+        allegro_exit();
 }

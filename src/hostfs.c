@@ -357,7 +357,7 @@ hostfs_read_object_info(const char *host_pathname,
   /* Find where the leafname starts */
   slash = strrchr(host_pathname, '/');
   assert(slash); /* A '/' should always be present */
-  rpclog("host_pathname %s %s\n",host_pathname,HOSTFS_ROOT);
+//  rpclog("host_pathname %s %s\n",host_pathname,HOSTFS_ROOT);
 
   /* Search for a filetype or load-exec after a comma */
   comma = strrchr(slash + 1, ',');
@@ -444,7 +444,7 @@ hostfs_path_scan(const char *host_dir_path,
   if (!d) {
     switch (errno) {
     case ENOENT: /* Object not found */
-      rpclog("%s - object not found\n",host_dir_path);
+//      rpclog("%s - object not found\n",host_dir_path);
       object_info->type = OBJECT_TYPE_NOT_FOUND;
       break;
 
@@ -483,7 +483,7 @@ hostfs_path_scan(const char *host_dir_path,
         }
     /* Compare leaf and object names in case-insensitive manner */
     if (strcasecmp(ro_leaf, object) != 0) {
-        rpclog("%s <> %s\n",ro_leaf,object);
+//        rpclog("%s <> %s\n",ro_leaf,object);
       /* Names do not match */
       continue;
     }
@@ -491,14 +491,14 @@ hostfs_path_scan(const char *host_dir_path,
     /* A match has been found - exit the function early */
     strcpy(host_name, entry->d_name);
     closedir(d);
-    rpclog("Found match for %s - %s\n",host_dir_path,host_name);
+//    rpclog("Found match for %s - %s\n",host_dir_path,host_name);
     return;
   }
 
   closedir(d);
 
   object_info->type = OBJECT_TYPE_NOT_FOUND;
-rpclog("%s - object not found 2\n",host_dir_path);  
+//rpclog("%s - object not found 2\n",host_dir_path);
 }
 
 /**
@@ -529,7 +529,7 @@ hostfs_path_process(const char *ro_path,
   /* Initialise working Host component */
   component = &component_name[0];
   *component = '\0';
-  rpclog("Process path %s\n",ro_path);
+//  rpclog("Process path %s\n",ro_path);
 
   while (*ro_path) {
     switch (*ro_path) {
@@ -582,7 +582,7 @@ hostfs_path_process(const char *ro_path,
       break;
     }
 
-    rpclog("Component now %s\n",component_name);
+//    rpclog("Component now %s\n",component_name);
     ro_path++;
   }
 
@@ -1191,6 +1191,7 @@ hostfs_file_8_create_dir(ARMul_State *state)
 {
   char ro_path[PATH_MAX];
   char host_path[PATH_MAX];
+  int s;
 
   assert(state);
 
@@ -1207,7 +1208,12 @@ hostfs_file_8_create_dir(ARMul_State *state)
   dbug_hostfs("\tPATH = %s\n", ro_path);
   dbug_hostfs("\tPATH2 = %s\n", host_path);
 
-  if (mkdir(host_path)) {
+#ifdef __unix
+  s = mkdir(host_path, 0755);
+#else
+  s = mkdir(host_path);
+#endif
+  if (s) {
     /* An error occurred whilst creating the directory */
 
     switch (errno) {

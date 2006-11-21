@@ -11,6 +11,13 @@
 
 #define GRAPHICS_TYPE GFX_AUTODETECT_WINDOWED
 
+/*This determines whether RPCemu can use hardware to blit and scale the display.
+  If this is disabled then modes lower than 640x480 can look odd, and the system
+  is slower. However, this must be commented out on some ports (Linux)*/
+#ifndef __unix
+#define HARDWAREBLIT
+#endif
+
 /*This moves the calls to blit() and stretch_blit() to a seperate thread. It
   gives a large speedup on a dual-core processor when lots of screen data is
   being updated (eg a full 800x600 screen), and improves the sound stability a
@@ -20,14 +27,23 @@
   called regularly. If a thread is not created in the platform specific file,
   then no blits happen, and the emulator will hang due to the synchronisation in
   place.*/
+#ifndef __unix
 #define BLITTER_THREAD
-  
+#endif
+
+#define PREFETCH
+
 /*ARM*/
 extern uint32_t *usrregs[16],userregs[17],superregs[17],fiqregs[17],irqregs[17],abortregs[17],undefregs[17],systemregs[17];
 extern uint32_t spsr[16];
 extern uint32_t armregs[17];
 extern int armirq; //,armfiq;
-#define PC ((armregs[15])&r15mask)
+extern int cpsr;
+#ifdef PREFETCH
+#define PC (armregs[15]&r15mask)
+#else
+#define PC ((armregs[15]-8)&r15mask)
+#endif
 extern uint32_t ins,output;
 extern int r15mask;
 extern uint32_t mode;
@@ -172,6 +188,7 @@ int getxs(void);
 int getys(void);
 void resetbuffer(void);
 void writevidc20(uint32_t val);
+int refresh;
 
 /* iomd.c */
 void resetiomd(void);

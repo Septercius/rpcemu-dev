@@ -328,6 +328,11 @@ void resetiomd(void)
         install_int_ex(gentimerirq,BPS_TO_TIMER(400));
 }
 
+void endiomd()
+{
+        remove_int(gentimerirq);
+}
+
 void updateiomdtimers()
 {
         if (iomd.t0c<0)

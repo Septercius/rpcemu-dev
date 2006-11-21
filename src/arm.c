@@ -1,7 +1,9 @@
 /*RPCemu v0.5 by Tom Walker
   ARM6/7 emulation*/
+int swiout=0;
+int times8000=0;
 int blits;
-unsigned long oldpc,oldpc2,oldpc3;
+unsigned long oldpc,oldpc2,oldpc3,oldr13;
 /*31/10/06 - Various optimisations, mainly to ldmstm()
   I altered the most frequently used LDM/STM instructions to streamline the inner
   loops, which gives a 20-25% speed boost for those instructions. The most frequently
@@ -67,7 +69,7 @@ uint32_t inscount;
 //static unsigned char cmosram[256];
 int armirq=0;
 uint32_t output=0;
-static int cpsr;
+int cpsr;
 
 uint32_t *usrregs[16],userregs[17],superregs[17],fiqregs[17],irqregs[17],abortregs[17],undefregs[17],systemregs[17];
 uint32_t spsr[16];
@@ -132,14 +134,10 @@ static const int modepritablew[3][6]=
 
 uint32_t pccache,*pccache2;
 
+#ifdef PREFETCH
 static void refillpipeline(void)
 {
         uint32_t addr=(PC-4)>>2;
-/*        if (addr==0x1045A064)
-        {
-                output=1;
-                timetolive=15000;
-        }*/
         if ((addr>>10)!=pccache)
         {
                 pccache=addr>>10;
@@ -166,11 +164,15 @@ static void refillpipeline(void)
         }
         opcode3=pccache2[addr];
 }
+#else
+#define refillpipeline()
+#endif
 
 void updatemode(uint32_t m)
 {
         uint32_t c,om=mode;
         oldmode=mode;
+//        if (output) rpclog("Switch from mode %i to %i %07X\n",oldmode,m,PC);
 //        if (PC==0x8E30) output=1;
 //      if (output) rpclog("Update mode to %s mode %i %08X\n",(m&0x10)?"32-bit":"26-bit",m&15,PC);
 //      timetolive=1000;
@@ -378,22 +380,47 @@ void resetarm(void)
 }
 
 int indumpregs=0;
+int insnum[256];
 void dumpregs()
 {
         FILE *f,*ff;
         char s[1024];
-        int c;
+        int c,d,e;
         uint32_t templ;
-//        for (c=0x80;c<0xA0;c++)
-//            rpclog("Opcode %02X : %09i\n",c,inscounts[c]);
+/*        for (c=0;c<0x100;c++)
+        {
+                rpclog("Opcode %02X : %09i\n",c,inscounts[c]);
+                insnum[c]=c;
+        }
+        for (c=0;c<0x100;c++)
+        {
+                for (d=0;d<0x100;d++)
+                {
+                        if (c>d)
+                        {
+                                if (inscounts[c]<inscounts[d])
+                                {
+                                        templ=inscounts[c];
+                                        inscounts[c]=inscounts[d];
+                                        inscounts[d]=templ;
+                                        e=insnum[d];
+                                        insnum[d]=insnum[c];
+                                        insnum[c]=e;
+                                }
+                        }
+                }
+        }
+        rpclog("\nOrdered :\n");
+        for (c=0;c<0x100;c++)
+            rpclog("Opcode %02X : %09i\n",insnum[c],inscounts[c]);*/
 //        return;
         if (indumpregs) return;
         indumpregs=1;
         f=fopen("ram.dmp","wb");
         sprintf(s,"R 0=%08X R 4=%08X R 8=%08X R12=%08X\nR 1=%08X R 5=%08X R 9=%08X R13=%08X\nR 2=%08X R 6=%08X R10=%08X R14=%08X\nR 3=%08X R 7=%08X R11=%08X R15=%08X\n%i %s\n%08X %08X %08X",armregs[0],armregs[4],armregs[8],armregs[12],armregs[1],armregs[5],armregs[9],armregs[13],armregs[2],armregs[6],armregs[10],armregs[14],armregs[3],armregs[7],armregs[11],armregs[15],ins,(mmu)?"MMU enabled":"MMU disabled",oldpc,oldpc2,oldpc3);
-        error("%s",s);
+//        error("%s",s);
         rpclog("%s",s);
-        error("PC =%07X ins=%i R12f=%08X CPSR=%08X\n",PC,ins,fiqregs[12],armregs[16]);
+//        error("PC =%07X ins=%i R12f=%08X CPSR=%08X\n",PC,ins,fiqregs[12],armregs[16]);
         fwrite(ram,0x400000,1,f);
         fclose(f);
         f=fopen("kernel.dmp","wb");
@@ -406,7 +433,7 @@ void dumpregs()
         fclose(f);
 
         f=fopen("ram30.dmp","wb");
-        for (c=0xF0000000;c<0xF0400000;c+=4)
+        for (c=0x2228000;c<0x2229000;c+=4)
         {
                 templ=readmeml(c);
                 putc(templ,f);
@@ -457,7 +484,7 @@ void dumpregs()
         fclose(f);
         f=fopen("program.dmp","wb");
         databort=0;
-        for (c=0;c<0x400000;c++)
+        for (c=0;c<0x40000;c++)
         {
                 putc(readmemb(c+0x8000),f);
 //                if (databort) break;
@@ -625,7 +652,7 @@ static inline uint32_t shift3(uint32_t opcode)
                 shiftamount=armregs[(opcode>>8)&15]&0xFF;
                 if (shiftmode==3)
                    shiftamount&=0x1F;
-                cycles--;
+//                cycles--;
         }
         temp=armregs[RM];
 //        if (RM==15)        temp+=4;
@@ -900,7 +927,9 @@ static inline unsigned rotate(unsigned data)
 }
 
 #define rotate2(v) rotatelookup[v&4095]
-
+//#define rotval    (opcode&0xFF)
+//#define rotamount ((opcode>>7)&0x1E)
+//#define rotate2(opcode) ((rotval>>rotamount)|(rotval<<(32-rotamount)))
 static const int ldrlookup[4]={0,8,16,24};
 
 #define ldrresult(v,a) ((v>>ldrlookup[addr&3])|(v<<(32-ldrlookup[addr&3])))
@@ -922,10 +951,18 @@ static const int ldrlookup[4]={0,8,16,24};
         }
 }*/
 
-static void undefined(void)
+int hitu=0;
+void undefined(void)
 {
         uint32_t templ;
-//        rpclog("Undefined %i %i CPSR %08X R15 %08X\n",mode,prog32,armregs[16],armregs[15]);
+/*        rpclog("Undefined %08X %i %i CPSR %08X R15 %08X PC %08X\n",opcode,mode,prog32,armregs[16],armregs[15],PC);
+        if (hitu)
+        {
+                dumpregs();
+                exit(-1);
+        }
+        hitu=1;
+        output=2;*/
 //        printf("Undefined instruction\n");
 //        printf("R14 = %08X\n",armregs[14]);
 //        printf("%i : %07X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X  %08X %08X %08X - %08X %08X %08X %i R10=%08X\n",ins,PC,armregs[0],armregs[1],armregs[2],armregs[3],armregs[4],armregs[5],armregs[6],armregs[7],armregs[8],armregs[9],armregs[12],armregs[13],armregs[14],armregs[15],armregs[16],opcode,mode,armregs[10]);
@@ -949,7 +986,7 @@ static void undefined(void)
                 spsr[UNDEFINED]=(armregs[16]&~0x1F)|(templ&3);
                 armregs[15]=0x00000008;
                 armregs[16]|=0x80;
-                cycles-=4;
+//                cycles-=4;
                 refillpipeline();
         }
         else
@@ -960,7 +997,7 @@ static void undefined(void)
                 armregs[14]=templ;
                 armregs[15]&=0xFC000003;
                 armregs[15]|=0x08000008;
-                cycles-=4;
+//                cycles-=4;
                 refillpipeline();
         }
         if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
@@ -982,6 +1019,7 @@ static void undefined(void)
 
 static void refillpipeline2()
 {
+        #ifdef PREFETCH
         uint32_t addr=PC-8;
         if ((addr>>12)!=pccache)
         {
@@ -1010,6 +1048,7 @@ static void refillpipeline2()
         opcode3=pccache2[addr>>2];
 //        opcode2=readmeml(PC-8);
 //        opcode3=readmeml(PC-4);
+        #endif
 }
 
 static const uint32_t msrlookup[16]=
@@ -1026,11 +1065,14 @@ static const uint32_t msrlookup[16]=
 static void bad_opcode(uint32_t opcode) 
 {
      error("Bad opcode %02X %08X at %07X\n",(opcode >> 20) & 0xFF, opcode, PC);
+     rpclog("Bad opcode %02X %08X at %07X\n",(opcode >> 20) & 0xFF, opcode, PC);
      dumpregs();
      exit(EXIT_FAILURE);
 }
 
+#define writememfast(a,v) writememl(a,v)
 //#define writememfast(a,v) if (((a)&0xFFFFF000)==raddrl[((a)>>12)&0xFF]) raddrl2[((a)>>12)&0xFF][(a)>>2]=v; else writememl(a,v)
+//#define writememfast(a,v) if (((a)&0xFFFFF000)!=raddrl[((a)>>12)&0xFF]) { readmeml(a); } raddrl2[((a)>>12)&0xFF][(a)>>2]=v
 static void ldmstm(uint32_t ls_opcode, uint32_t opcode) 
 {
   uint32_t templ, mask, addr, c;
@@ -1103,12 +1145,12 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     if (c==15) armregs[15]=(armregs[15]&~r15mask)|((readmeml(addr)+4)&r15mask);
                     else       armregs[c]=readmeml(addr);
                     addr-=4;
-//                    cycles--;
+//                    //cycles--;
             }
             mask>>=1;
     }
     if (opcode&0x8000) refillpipeline();
-//    cycles-=3;
+//    //cycles-=3;
     break;
 
 
@@ -1126,7 +1168,7 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                                armregs[c]=readmeml(addr);
                             if (c==15 && (mode&16)) armregs[cpsr]=spsr[mode&15];
                             addr-=4;
-//                            cycles--;
+//                            //cycles--;
                     }
                     mask>>=1;
             }
@@ -1142,12 +1184,12 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     {
                             *usrregs[c]=readmeml(addr);
                             addr-=4;
-  //                          cycles--;
+  //                          //cycles--;
                     }
                     mask>>=1;
             }
     }
-//    cycles-=3;
+//    //cycles-=3;
     break;
 
     case 0x88: /*STMIA*/
@@ -1159,11 +1201,11 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     if (c==15) { writememl(addr,armregs[c]+r15diff); }
                     else       { writememl(addr,armregs[c]); }
                     addr+=4;
-//                    cycles--;
+//                    //cycles--;
             }
             mask<<=1;
     }
-//    cycles-=2;
+//    //cycles-=2;
     break;
 
 
@@ -1177,11 +1219,11 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     else       { writememl(addr,armregs[c]); }
                     addr+=4;
                     armregs[RN]+=4;
-//                    cycles--;
+//                    //cycles--;
             }
             mask<<=1;
     }
-//    cycles-=2;
+//    //cycles-=2;
     break;
 
         case 0x8B: /*LDMIA !*/
@@ -1232,11 +1274,11 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     if (c==15) { writememl(addr,*usrregs[c]+r15diff); }
                     else       { writememl(addr,*usrregs[c]); }
                     addr+=4;
-//                    cycles--;
+//                    //cycles--;
             }
             mask<<=1;
     }
-//    cycles-=2;
+//    //cycles-=2;
     break;
 
     case 0x8D: /*LDMIA ^*/
@@ -1253,7 +1295,7 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                                armregs[c]=readmeml(addr);
                             if (c==15 && (mode&16)) armregs[cpsr]=spsr[mode&15];
                             addr+=4;
-//                            cycles--;
+//                            //cycles--;
                     }
                     mask<<=1;
             }
@@ -1269,12 +1311,12 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     {
                             *usrregs[c]=readmeml(addr);
                             addr+=4;
-//                            cycles--;
+//                            //cycles--;
                     }
                     mask<<=1;
             }
     }
-//    cycles-=3;
+//    //cycles-=3;
     break;
 
     case 0x8F: /*LDMIA !^*/
@@ -1292,7 +1334,7 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                             if (c==15 && (mode&16)) armregs[cpsr]=spsr[mode&15];
                             addr+=4;
                             armregs[RN]+=4;
-//                            cycles--;
+//                            //cycles--;
                     }
                     mask<<=1;
             }
@@ -1309,12 +1351,12 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                             *usrregs[c]=readmeml(addr);
                             addr+=4;
                             armregs[RN]+=4;
-//                            cycles--;
+//                            //cycles--;
                     }
                     mask<<=1;
             }
     }
-//    cycles-=3;
+//    //cycles-=3;
     break;
 
     case 0x90: /*STMDB*/
@@ -1326,11 +1368,11 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     addr-=4;
                     if (c==15) { writememl(addr,armregs[c]+r15diff); }
                     else       { writememl(addr,armregs[c]); }
-//                    cycles--;
+//                    //cycles--;
             }
             mask>>=1;
     }
-//    cycles-=2;
+//    //cycles-=2;
     break;
 
         case 0x92: /*STMDB !*/
@@ -1340,7 +1382,7 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
         {
                 addr-=4;
                 armregs[RN]-=4;
-                writememl(addr,armregs[15]+r15diff);
+                writememfast(addr,armregs[15]+r15diff);
 //                templ=0;
         }
         for (c=14;c<16;c--)
@@ -1350,7 +1392,7 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                         addr-=4;
 //                        armregs[mask]-=4;
 //                        if (c==mask) { writememl(addr,addr+templ); }
-                        /*else         { */writememl(addr,armregs[c]);// templ=0;}
+                        /*else         { */writememfast(addr,armregs[c]);// templ=0;}
                 }
                 opcode<<=1;
         }
@@ -1406,11 +1448,11 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     addr-=4;
                     if (c==15) { writememl(addr,*usrregs[c]+r15diff); }
                     else       { writememl(addr,*usrregs[c]); }
-//                    cycles--;
+//                    //cycles--;
             }
             mask>>=1;
     }
-//    cycles-=2;
+//    //cycles-=2;
     break;
 
         case 0x95: /*LDMDB ^*/
@@ -1463,11 +1505,11 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     if (c==15)                { writememl(addr,*usrregs[c]+r15diff); }
                     else if (c==RN && !templ) { writememl(addr,*usrregs[c]+4); }
                     else                      { writememl(addr,*usrregs[c]); }
-//                    cycles--;
+//                    //cycles--;
             }
             mask>>=1;
     }
-//    cycles-=2;
+//    //cycles-=2;
     break;
     case 0x98: /*STMIB*/
     mask=1;
@@ -1478,11 +1520,11 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     addr+=4;
                     if (c==15) { writememl(addr,armregs[c]+r15diff); }
                     else       { writememl(addr,armregs[c]); }
-//                    cycles--;
+//                    //cycles--;
             }
             mask<<=1;
     }
-//    cycles-=2;
+//    //cycles-=2;
     break;
  
     case 0x9A: /*STMIB !*/
@@ -1497,11 +1539,11 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     if (c==15)                { writememl(addr,armregs[c]+r15diff); }
                     else if (c==RN && !templ) { writememl(addr,armregs[c]-4); }
                     else                      { writememl(addr,armregs[c]); }
-//                    cycles--;
+//                    //cycles--;
             }
             mask<<=1;
     }
-//    cycles-=2;
+//    //cycles-=2;
     break;
 
     case 0x9B: /*LDMIB !*/
@@ -1516,12 +1558,12 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                             armregs[RN]+=4;
                             if (c==15) armregs[15]=(armregs[15]&~r15mask)|((readmeml(addr)+4)&r15mask);
                             else       armregs[c]=readmeml(addr);
-//                            cycles--;
+//                            //cycles--;
                     }
                     mask<<=1;
             }
             if (opcode&0x8000) refillpipeline();
-//            cycles-=3;
+//            //cycles-=3;
             return;
     }
     case 0x99: /*LDMIB*/
@@ -1533,12 +1575,12 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     addr+=4;
                     if (c==15) armregs[15]=(armregs[15]&~r15mask)|((readmeml(addr)+4)&r15mask);
                     else       armregs[c]=readmeml(addr);
-//                    cycles--;
+//                    //cycles--;
             }
             mask<<=1;
     }
     if (opcode&0x8000) refillpipeline();
-//    cycles-=3;
+//    //cycles-=3;
     break;
     case 0x9C: /*STMIB ^*/
     mask=1;
@@ -1549,11 +1591,11 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     addr+=4;
                     if (c==15) { writememl(addr,*usrregs[c]+r15diff); }
                     else       { writememl(addr,*usrregs[c]); }
-//                    cycles--;
+//                    //cycles--;
             }
             mask<<=1;
     }
-//    cycles-=2;
+//    //cycles-=2;
     break;
 
     case 0x9D: /*LDMIB ^*/
@@ -1570,7 +1612,7 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                             else
                                armregs[c]=readmeml(addr);
                             if (c==15 && (mode&16)) armregs[cpsr]=spsr[mode&15];
-//                            cycles--;
+//                            //cycles--;
                     }
                     mask<<=1;
             }
@@ -1586,12 +1628,12 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
                     {
                             addr+=4;
                             *usrregs[c]=readmeml(addr);
-//                            cycles--;
+//                            //cycles--;
                     }
                     mask<<=1;
             }
     }
-//    cycles-=3;
+//    //cycles-=3;
     break;
 
 
@@ -1601,53 +1643,54 @@ static void ldmstm(uint32_t ls_opcode, uint32_t opcode)
 void execarm(int cycs)
 {
         uint32_t templ,templ2,addr,addr2;
-#ifdef STRONGARM
-//        uint32_t a,b,c,d,e,f;
-//        int tempi;
-#endif
-        //int exec,c,cc,cyc,oldcyc,oldcyc2,d;
-	int oldcyc, oldcyc2;
-	//uint32_t c;
         unsigned char temp;
-        //uint32_t oldr15[2];
-	//        FILE *f;
-//        char s[80];
-        //char bigs[1024];
         int linecyc;
         cycles+=cycs;
         while (cycles>0)
         {
-                oldcyc=cycles;
-                cyccount+=200;
-                linecyc=200;
-                while (linecyc>0)
+//                cyccount+=200;
+//                linecyc=200;
+//                while (linecyc>0)
+                for (linecyc=0;linecyc<200;linecyc++)
                 {
 /*                        oldpc3=oldpc2;
                         oldpc2=oldpc;
                         oldpc=PC;*/
+#ifdef PREFETCH
                         opcode=opcode2;
                         opcode2=opcode3;
-                        oldcyc2=cycles;
+#endif
                         if ((PC>>12)!=pccache)
                         {
                                 pccache=PC>>12;
                                 pccache2=getpccache(PC);
                                 if (pccache2==0xFFFFFFFF) opcode=pccache=pccache2;
+#ifdef PREFETCH
                                 else                      opcode3=pccache2[PC>>2];
+#else
+                                else                      opcode=pccache2[PC>>2];
+#endif
                         }
                         else
+#ifdef PREFETCH
                            opcode3=pccache2[PC>>2];
+#else
+                           opcode=pccache2[PC>>2];
+#endif
                         if (flaglookup[opcode>>28][armregs[cpsr]>>28] && !prefabort)
                         {
+//                                inscounts[(opcode>>20)&0xFF]++;
 #ifdef STRONGARM
                                 if ((opcode&0xE0000F0)==0xB0) /*LDRH/STRH*/
                                 {
-                                        error("Bad opcode %08X\n",opcode);
+                                        error("Bad LDRH/STRH opcode %08X\n",opcode);
+                                        dumpregs();
                                         exit(-1);
                                 }
                                 else if ((opcode&0xE1000D0)==0x1000D0) /*LDRS*/
                                 {
-                                        error("Bad opcode %08X\n",opcode);
+                                        error("Bad LDRH/STRH opcode %08X\n",opcode);
+                                        dumpregs();
                                         exit(-1);
                                 }
                                 else
@@ -1665,7 +1708,7 @@ void execarm(int cycs)
 					if (((opcode&0xE00090)==0x90)) /*MUL*/
 					{
 					      armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
-					      cycles-=17;
+					      //cycles-=17;
 					}
 					else
 					{
@@ -1680,7 +1723,7 @@ void execarm(int cycs)
 					             templ=shift2(opcode);
 						     armregs[RD]=GETADDR(RN)&templ;
 					      }
-					      cycles--;
+					      //cycles--;
 					}
 					break;
 
@@ -1689,7 +1732,7 @@ void execarm(int cycs)
 					{
 					       armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
 					       setzn(armregs[MULRD]);
-					       cycles-=17;
+					       //cycles-=17;
 					}
 					else
 					{
@@ -1706,7 +1749,7 @@ void execarm(int cycs)
 						       armregs[RD]=GETADDR(RN)&templ;
 						       setzn(armregs[RD]);
 					       }
-					       cycles--;
+					       //cycles--;
 					}
 					break;
 
@@ -1714,7 +1757,7 @@ void execarm(int cycs)
 					if (((opcode&0xE000090)==0x90)) /*MLA*/
 					{
 					       armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
-					       cycles-=17;
+					       //cycles-=17;
 					}
 					else
 					{
@@ -1729,7 +1772,7 @@ void execarm(int cycs)
 						      templ=shift2(opcode);
 						      armregs[RD]=GETADDR(RN)^templ;
 					       }
-					       cycles--;
+					       //cycles--;
                                         }
                                         break;
 
@@ -1738,7 +1781,7 @@ void execarm(int cycs)
                                         {
                                                 armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
                                                 setzn(armregs[MULRD]);
-                                                cycles-=17;
+                                                //cycles-=17;
                                         }
                                         else
                                         {
@@ -1755,7 +1798,7 @@ void execarm(int cycs)
                                                         armregs[RD]=GETADDR(RN)^templ;
                                                         setzn(armregs[RD]);
                                                 }
-                                                cycles--;
+                                                //cycles--;
                                         }
                                         break;
 
@@ -1772,7 +1815,7 @@ void execarm(int cycs)
                                                 templ=shift2(opcode);
                                                 armregs[RD]=GETADDR(RN)-templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x05: /*SUBS reg*/
                                         if (RD==15)
@@ -1787,7 +1830,7 @@ void execarm(int cycs)
                                                 setsub(GETADDR(RN),templ,GETADDR(RN)-templ);
                                                 armregs[RD]=GETADDR(RN)-templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x06: /*RSB reg*/
@@ -1802,7 +1845,7 @@ void execarm(int cycs)
                                                 templ=shift2(opcode);
                                                 armregs[RD]=templ-GETADDR(RN);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x07: /*RSBS reg*/
                                         if (RD==15)
@@ -1817,27 +1860,19 @@ void execarm(int cycs)
                                                 setsub(templ,GETADDR(RN),templ-GETADDR(RN));
                                                 armregs[RD]=templ-GETADDR(RN);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x08: /*ADD reg*/
-                                #ifdef STRONGARM                                        
-					if (((opcode&0x90)==0x90)) /*MULL*/
+                                #ifdef STRONGARM
+					if ((opcode&0x90)==0x90) /*MULL*/
 					{
                                                 uint64_t mula,mulb,mulres;
                                                 mula=(uint64_t)(uint32_t)armregs[MULRS];
                                                 mulb=(uint64_t)(uint32_t)armregs[MULRM];
                                                 mulres=mula*mulb;
-/*                                                a=(armregs[MULRS]&0xFFFF)*(armregs[MULRM]&0xFFFF);
-                                                b=(armregs[MULRS]&0xFFFF)*(armregs[MULRM]>>16);
-                                                c=(armregs[MULRS]>>16)*(armregs[MULRM]&0xFFFF);
-                                                d=(armregs[MULRS]>>16)*(armregs[MULRM]>>16);
-                                                e=b+c;
-                                                if (e<b) e+=0x10000;
-                                                f=e+(a>>16);
-                                                if (f<e) f+=0x10000;*/
-                                                armregs[MULRN]=mulres&0xFFFFFFFF;//(a&0xFFFF)|(f<<16);
-                                                armregs[MULRD]=mulres>>32;//d|(e>>16);
+                                                armregs[MULRN]=mulres&0xFFFFFFFF;
+                                                armregs[MULRD]=mulres>>32;
                                         }
                                         else
                                         {
@@ -1845,18 +1880,15 @@ void execarm(int cycs)
                                         if (RD==15)
                                         {
                                                 templ=shift2(opcode);
-//                                                printf("R15=%08X+%08X+4=",GETADDR(RN),templ);
                                                 armregs[15]=((GETADDR(RN)+templ+4)&r15mask)|(armregs[15]&~r15mask);
-//                                                printf("%08X %i\n",armregs[15],mode&16);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-//                                                templ=shift2(opcode);
-                                                armregs[RD]=GETADDR(RN)+shift2(opcode);//templ;
+                                                armregs[RD]=GETADDR(RN)+shift2(opcode);
                                         }
-                                        cycles--;
-                                #ifdef STRONGARM                                        
+                                        //cycles--;
+                                #ifdef STRONGARM
                                         }
                                 #endif
                                         break;
@@ -1868,16 +1900,8 @@ void execarm(int cycs)
                                                 mula=(uint64_t)(uint32_t)armregs[MULRS];
                                                 mulb=(uint64_t)(uint32_t)armregs[MULRM];
                                                 mulres=mula*mulb;
-/*                                                a=(armregs[MULRS]&0xFFFF)*(armregs[MULRM]&0xFFFF);
-                                                b=(armregs[MULRS]&0xFFFF)*(armregs[MULRM]>>16);
-                                                c=(armregs[MULRS]>>16)*(armregs[MULRM]&0xFFFF);
-                                                d=(armregs[MULRS]>>16)*(armregs[MULRM]>>16);
-                                                e=b+c;
-                                                if (e<b) e+=0x10000;
-                                                f=e+(a>>16);
-                                                if (f<e) f+=0x10000;*/
-                                                armregs[MULRN]=mulres&0xFFFFFFFF;//(a&0xFFFF)|(f<<16);
-                                                armregs[MULRD]=mulres>>32;//d|(e>>16);
+                                                armregs[MULRN]=mulres&0xFFFFFFFF;
+                                                armregs[MULRD]=mulres>>32;
                                                 armregs[cpsr]&=~0xC0000000;
                                                 if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
                                                 if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
@@ -1903,14 +1927,14 @@ void execarm(int cycs)
         //                                        printf("%08X\n",armregs[RD]);
         //                                        setzn(templ);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                 #ifdef STRONGARM                                                                                
                                         }
                                 #endif
                                         break;
                                 
                                         case 0x0A: /*ADC reg*/
-                                #ifdef STRONGARM                                        
+                                #ifdef STRONGARM
 					if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
 					{
                                                 error("Bad opcode %08X\n",opcode);
@@ -1932,13 +1956,13 @@ void execarm(int cycs)
                                                 templ=shift2(opcode);
                                                 armregs[RD]=GETADDR(RN)+templ+templ2;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
                                         break;
                                         case 0x0B: /*ADCS reg*/
-                                #ifdef STRONGARM                                        
+                                #ifdef STRONGARM
 					if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
 					{
                                                 error("Bad opcode %08X\n",opcode);
@@ -1961,14 +1985,14 @@ void execarm(int cycs)
                                                 setadc(GETADDR(RN),templ,GETADDR(RN)+templ+templ2);
                                                 armregs[RD]=GETADDR(RN)+templ+templ2;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
                                         break;
 
                                         case 0x0C: /*SBC reg*/
-                                #ifdef STRONGARM                                        
+                                #ifdef STRONGARM
 					if (((opcode&0xE000090)==0x000090)) /*SMULL*/
 					{
                                                 int64_t mula,mulb,mulres;
@@ -1993,13 +2017,13 @@ void execarm(int cycs)
                                                 templ=shift2(opcode);
                                                 armregs[RD]=GETADDR(RN)-(templ+templ2);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
                                         break;
                                         case 0x0D: /*SBCS reg*/
-                                #ifdef STRONGARM                                        
+                                #ifdef STRONGARM
 					if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
 					{
                                                 error("Bad opcode %08X\n",opcode);
@@ -2021,7 +2045,7 @@ void execarm(int cycs)
                                                 setsbc(GETADDR(RN),templ,GETADDR(RN)-(templ+templ2));
                                                 armregs[RD]=GETADDR(RN)-(templ+templ2);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
@@ -2057,13 +2081,13 @@ void execarm(int cycs)
                                                 templ=shift2(opcode);
                                                 armregs[RD]=templ-(GETADDR(RN)+templ2);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
                                         break;
                                         case 0x0F: /*RSCS reg*/
-                                #ifdef STRONGARM                                        
+                                #ifdef STRONGARM
 					if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
 					{
                                                 error("Bad opcode %08X\n",opcode);
@@ -2085,7 +2109,7 @@ void execarm(int cycs)
                                                 setsbc(templ,GETADDR(RN),templ-(GETADDR(RN)+templ2));
                                                 armregs[RD]=templ-(GETADDR(RN)+templ2);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
@@ -2098,7 +2122,7 @@ void execarm(int cycs)
                                                 templ=GETREG(RM);
                                                 LOADREG(RD,readmeml(addr));
                                                 writememl(addr,templ);
-                                                cycles-=3;
+                                                //cycles-=3;
                                         }
                                         else if (!(opcode&0xFFF)) /*MRS CPSR*/
                                         {
@@ -2106,7 +2130,7 @@ void execarm(int cycs)
                                                 {
                                                         armregs[16]=(armregs[15]&0xF0000000)|(armregs[15]&3);
                                                         armregs[16]|=((armregs[15]&0xC000000)>>20);
-//                                                        printf("CPSR %08X R15 %08X\n",armregs[16],armregs[15]);
+//                                                        if (output) rpclo("CPSR %08X R15 %08X\n",armregs[16],armregs[15]);
                                                 }
                                                 armregs[RD]=armregs[16];
                                         }
@@ -2129,7 +2153,7 @@ void execarm(int cycs)
                                         {
                                                 setzn(GETADDR(RN)&shift(opcode));
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x12: /*SWP byte*/
@@ -2139,7 +2163,7 @@ void execarm(int cycs)
                                                 templ=GETREG(RM);
                                                 LOADREG(RD,readmemb(addr));
                                                 writememb(addr,templ);
-                                                cycles-=3;
+                                                //cycles-=3;
                                         }
                                         else if (!(opcode&0xFF0)) /*MSR CPSR*/
                                         {
@@ -2147,7 +2171,7 @@ void execarm(int cycs)
                                                 armregs[16]&=~msrlookup[(opcode>>16)&0xF];
                                                 armregs[16]|=(armregs[RM]&msrlookup[(opcode>>16)&0xF]);
                                                 templ=armregs[16];
-//                                                printf("CPSR now %08X\n",armregs[16]);
+//                                                if (output) rpclog("%07X CPSR now %08X\n",PC,armregs[16]);
                                                 if (opcode&0x10000)
                                                 {
                                                         updatemode(armregs[16]&0x1F);
@@ -2175,7 +2199,7 @@ void execarm(int cycs)
                                         {
                                                 setzn(GETADDR(RN)^shift(opcode));
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x14: /*MSR SPSR*/
@@ -2203,7 +2227,7 @@ void execarm(int cycs)
                                                 templ=shift(opcode);
                                                 setsub(GETADDR(RN),templ,GETADDR(RN)-templ);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x16:
@@ -2230,7 +2254,7 @@ void execarm(int cycs)
                                         }
                                         else
                                            setadd(GETADDR(RN),shift2(opcode),GETADDR(RN)+shift2(opcode));
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x18: /*ORR reg*/
@@ -2245,7 +2269,7 @@ void execarm(int cycs)
                                                 templ=shift2(opcode);
                                                 armregs[RD]=GETADDR(RN)|templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x19: /*ORRS reg*/
                                         if (RD==15)
@@ -2261,7 +2285,7 @@ void execarm(int cycs)
                                                 armregs[RD]=GETADDR(RN)|templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x1A: /*MOV reg*/
@@ -2272,7 +2296,7 @@ void execarm(int cycs)
                                         }
                                         else
                                            armregs[RD]=shift2(opcode);
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x1B: /*MOVS reg*/
                                         if (RD==15)
@@ -2288,7 +2312,7 @@ void execarm(int cycs)
                                                 armregs[RD]=shift(opcode);
                                                 setzn(armregs[RD]);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x1C: /*BIC reg*/
@@ -2303,7 +2327,7 @@ void execarm(int cycs)
                                                 templ=shift2(opcode);
                                                 armregs[RD]=GETADDR(RN)&~templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x1D: /*BICS reg*/
                                         if (RD==15)
@@ -2319,7 +2343,7 @@ void execarm(int cycs)
                                                 armregs[RD]=GETADDR(RN)&~templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x1E: /*MVN reg*/
@@ -2330,7 +2354,7 @@ void execarm(int cycs)
                                         }
                                         else
                                            armregs[RD]=~shift2(opcode);
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x1F: /*MVNS reg*/
                                         if (RD==15)
@@ -2343,7 +2367,7 @@ void execarm(int cycs)
                                                 armregs[RD]=~shift(opcode);
                                                 setzn(armregs[RD]);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x20: /*AND imm*/
@@ -2358,7 +2382,7 @@ void execarm(int cycs)
                                                 templ=rotate2(opcode);
                                                 armregs[RD]=GETADDR(RN)&templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x21: /*ANDS imm*/
                                         if (RD==15)
@@ -2374,7 +2398,7 @@ void execarm(int cycs)
                                                 armregs[RD]=GETADDR(RN)&templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x22: /*EOR imm*/
@@ -2389,7 +2413,7 @@ void execarm(int cycs)
                                                 templ=rotate2(opcode);
                                                 armregs[RD]=GETADDR(RN)^templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x23: /*EORS imm*/
                                         if (RD==15)
@@ -2405,7 +2429,7 @@ void execarm(int cycs)
                                                 armregs[RD]=GETADDR(RN)^templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x24: /*SUB imm*/
@@ -2420,7 +2444,7 @@ void execarm(int cycs)
                                                 templ=rotate2(opcode);
                                                 armregs[RD]=GETADDR(RN)-templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x25: /*SUBS imm*/
                                         if (RD==15)
@@ -2439,7 +2463,7 @@ void execarm(int cycs)
                                                 setsub(templ2,templ,templ2-templ);
 //                                                armregs[RD]=GETADDR(RN)-templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x26: /*RSB imm*/
@@ -2454,7 +2478,7 @@ void execarm(int cycs)
                                                 templ=rotate2(opcode);
                                                 armregs[RD]=templ-GETADDR(RN);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x27: /*RSBS imm*/
                                         if (RD==15)
@@ -2469,7 +2493,7 @@ void execarm(int cycs)
                                                 setsub(templ,GETADDR(RN),templ-GETADDR(RN));
                                                 armregs[RD]=templ-GETADDR(RN);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x28: /*ADD imm*/
@@ -2484,7 +2508,7 @@ void execarm(int cycs)
                                                 templ=rotate2(opcode);
                                                 armregs[RD]=GETADDR(RN)+templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x29: /*ADDS imm*/
                                         if (RD==15)
@@ -2500,7 +2524,7 @@ void execarm(int cycs)
                                                 setadd(GETADDR(RN),templ,GETADDR(RN)+templ);
                                                 armregs[RD]=GETADDR(RN)+templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x2A: /*ADC imm*/
@@ -2517,7 +2541,7 @@ void execarm(int cycs)
                                                 templ=rotate2(opcode);
                                                 armregs[RD]=GETADDR(RN)+templ+templ2;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x2B: /*ADCS imm*/
                                         if (RD==15)
@@ -2534,7 +2558,7 @@ void execarm(int cycs)
                                                 setadc(GETADDR(RN),templ,GETADDR(RN)+templ+templ2);
                                                 armregs[RD]=GETADDR(RN)+templ+templ2;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x2C: /*SBC imm*/
@@ -2550,7 +2574,7 @@ void execarm(int cycs)
                                                 templ=rotate2(opcode);
                                                 armregs[RD]=GETADDR(RN)-(templ+templ2);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x2D: /*SBCS imm*/
                                         templ2=(CFSET)?0:1;
@@ -2566,7 +2590,7 @@ void execarm(int cycs)
                                                 setsbc(GETADDR(RN),templ,GETADDR(RN)-(templ+templ2));
                                                 armregs[RD]=GETADDR(RN)-(templ+templ2);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x2E: /*RSC imm*/
                                         templ2=(CFSET)?0:1;
@@ -2581,7 +2605,7 @@ void execarm(int cycs)
                                                 templ=rotate2(opcode);
                                                 armregs[RD]=templ-(GETADDR(RN)+templ2);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x2F: /*RSCS imm*/
                                         templ2=(CFSET)?0:1;
@@ -2597,7 +2621,7 @@ void execarm(int cycs)
                                                 setsbc(templ,GETADDR(RN),templ-(GETADDR(RN)+templ2));
                                                 armregs[RD]=templ-(GETADDR(RN)+templ2);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x31: /*TST imm*/
@@ -2613,7 +2637,7 @@ void execarm(int cycs)
                                         {
                                                 setzn(GETADDR(RN)&rotate(opcode));
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                 
                                         case 0x32: /*MSR rot->flags*/
@@ -2622,7 +2646,7 @@ void execarm(int cycs)
                                                 templ=rotate(opcode);
                                                 armregs[cpsr]=(armregs[cpsr]&~0xF0000000)|(templ&0xF0000000);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x33: /*TEQ imm*/
@@ -2655,7 +2679,7 @@ void execarm(int cycs)
                                         {
                                                 setzn(GETADDR(RN)^rotate(opcode));
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x35: /*CMP imm*/
@@ -2668,8 +2692,12 @@ void execarm(int cycs)
 //                                                refillpipeline();
                                         }
                                         else
-                                           setsub(GETADDR(RN),rotate(opcode),GETADDR(RN)-rotate(opcode));
-                                        cycles--;
+                                        {
+                                                templ=rotate(opcode);
+                                                templ2=GETADDR(RN);
+                                                setsub(templ2,templ,templ2-templ);
+                                        }
+                                        //cycles--;
                                         break;
 
                                         case 0x37: /*CMN imm*/
@@ -2683,7 +2711,7 @@ void execarm(int cycs)
                                         }
                                         else
                                            setadd(GETADDR(RN),rotate(opcode),GETADDR(RN)+rotate(opcode));
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x38: /*ORR imm*/
@@ -2698,7 +2726,7 @@ void execarm(int cycs)
                                                 templ=rotate2(opcode);
                                                 armregs[RD]=GETADDR(RN)|templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x39: /*ORRS imm*/
                                         if (RD==15)
@@ -2717,7 +2745,7 @@ void execarm(int cycs)
                                                 armregs[RD]=GETADDR(RN)|templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x3A: /*MOV imm*/
@@ -2728,7 +2756,7 @@ void execarm(int cycs)
                                         }
                                         else
                                            armregs[RD]=rotate2(opcode);
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x3B: /*MOVS imm*/
                                         if (RD==15)
@@ -2742,7 +2770,7 @@ void execarm(int cycs)
                                                 armregs[RD]=rotate(opcode);
                                                 setzn(armregs[RD]);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x3C: /*BIC imm*/
@@ -2757,7 +2785,7 @@ void execarm(int cycs)
                                                 templ=rotate2(opcode);
                                                 armregs[RD]=GETADDR(RN)&~templ;
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x3D: /*BICS imm*/
                                         if (RD==15)
@@ -2773,7 +2801,7 @@ void execarm(int cycs)
                                                 armregs[RD]=GETADDR(RN)&~templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0x3E: /*MVN imm*/
@@ -2784,7 +2812,7 @@ void execarm(int cycs)
                                         }
                                         else
                                            armregs[RD]=~rotate2(opcode);
-                                        cycles--;
+                                        //cycles--;
                                         break;
                                         case 0x3F: /*MVNS imm*/
                                         if (RD==15)
@@ -2797,7 +2825,7 @@ void execarm(int cycs)
                                                 armregs[RD]=~rotate(opcode);
                                                 setzn(armregs[RD]);
                                         }
-                                        cycles--;
+                                        //cycles--;
                                         break;
 //#endif
 #ifdef NEWLDRSTR
@@ -2807,7 +2835,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr-addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x41:
@@ -2818,7 +2846,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr-addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x42:
@@ -2827,7 +2855,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr-addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x43:
@@ -2838,7 +2866,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr-addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x44:
@@ -2847,7 +2875,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr-addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x45:
@@ -2857,7 +2885,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr-addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x46:
@@ -2866,7 +2894,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr-addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x47:
@@ -2876,7 +2904,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr-addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x48:
@@ -2885,7 +2913,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr+addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x49:
@@ -2896,7 +2924,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr+addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x4A:
@@ -2905,7 +2933,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr+addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x4B:
@@ -2916,7 +2944,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr+addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x4C:
@@ -2925,7 +2953,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr+addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x4D:
@@ -2935,7 +2963,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr+addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x4E:
@@ -2944,7 +2972,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr+addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x4F:
@@ -2954,7 +2982,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr+addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x50:
@@ -2963,7 +2991,7 @@ void execarm(int cycs)
 			addr-=addr2;
 			writememl(addr,armregs[RD]);
 		if (databort) break;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x51:
@@ -2974,7 +3002,7 @@ void execarm(int cycs)
 		templ=ldrresult(templ,addr);
 		if (databort) break;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x52:
@@ -2984,7 +3012,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x53:
@@ -2996,7 +3024,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x54:
@@ -3005,7 +3033,7 @@ void execarm(int cycs)
 			addr-=addr2;
 			writememb(addr,armregs[RD]);
 		if (databort) break;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x55:
@@ -3015,7 +3043,7 @@ void execarm(int cycs)
 			templ=readmemb(addr);
 		if (databort) break;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x56:
@@ -3025,7 +3053,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x57:
@@ -3036,7 +3064,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x58:
@@ -3045,7 +3073,7 @@ void execarm(int cycs)
 			addr+=addr2;
 			writememl(addr,armregs[RD]);
 		if (databort) break;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x59:
@@ -3056,7 +3084,7 @@ void execarm(int cycs)
 		templ=ldrresult(templ,addr);
 		if (databort) break;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x5A:
@@ -3066,7 +3094,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x5B:
@@ -3078,7 +3106,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x5C:
@@ -3087,7 +3115,7 @@ void execarm(int cycs)
 			addr+=addr2;
 			writememb(addr,armregs[RD]);
 		if (databort) break;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x5D:
@@ -3097,7 +3125,7 @@ void execarm(int cycs)
 			templ=readmemb(addr);
 		if (databort) break;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x5E:
@@ -3107,7 +3135,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x5F:
@@ -3118,7 +3146,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x60:
@@ -3127,7 +3155,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr-addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x61:
@@ -3138,7 +3166,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr-addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x62:
@@ -3147,7 +3175,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr-addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x63:
@@ -3158,7 +3186,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr-addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x64:
@@ -3167,7 +3195,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr-addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x65:
@@ -3177,7 +3205,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr-addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x66:
@@ -3186,7 +3214,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr-addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x67:
@@ -3196,7 +3224,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr-addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x68:
@@ -3205,7 +3233,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr+addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x69:
@@ -3216,7 +3244,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr+addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x6A:
@@ -3225,7 +3253,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr+addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x6B:
@@ -3236,7 +3264,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr+addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x6C:
@@ -3245,7 +3273,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr+addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x6D:
@@ -3255,7 +3283,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr+addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x6E:
@@ -3264,7 +3292,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr+addr2;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x6F:
@@ -3274,7 +3302,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr+addr2;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x70:
@@ -3283,7 +3311,7 @@ void execarm(int cycs)
 			addr-=addr2;
 			writememl(addr,armregs[RD]);
 		if (databort) break;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x71:
@@ -3294,7 +3322,7 @@ void execarm(int cycs)
 		templ=ldrresult(templ,addr);
 		if (databort) break;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x72:
@@ -3304,7 +3332,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x73:
@@ -3316,7 +3344,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x74:
@@ -3325,7 +3353,7 @@ void execarm(int cycs)
 			addr-=addr2;
 			writememb(addr,armregs[RD]);
 		if (databort) break;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x75:
@@ -3335,7 +3363,7 @@ void execarm(int cycs)
 			templ=readmemb(addr);
 		if (databort) break;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x76:
@@ -3345,7 +3373,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x77:
@@ -3356,7 +3384,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x78:
@@ -3365,7 +3393,7 @@ void execarm(int cycs)
 			addr+=addr2;
 			writememl(addr,armregs[RD]);
 		if (databort) break;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x79:
@@ -3376,7 +3404,7 @@ void execarm(int cycs)
 		templ=ldrresult(templ,addr);
 		if (databort) break;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x7A:
@@ -3386,7 +3414,7 @@ void execarm(int cycs)
 			writememl(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x7B:
@@ -3398,7 +3426,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x7C:
@@ -3407,7 +3435,7 @@ void execarm(int cycs)
 			addr+=addr2;
 			writememb(addr,armregs[RD]);
 		if (databort) break;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x7D:
@@ -3417,7 +3445,7 @@ void execarm(int cycs)
 			templ=readmemb(addr);
 		if (databort) break;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x7E:
@@ -3427,7 +3455,7 @@ void execarm(int cycs)
 			writememb(addr,armregs[RD]);
 		if (databort) break;
 			armregs[RN]=addr;
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 			case 0x7F:
@@ -3438,7 +3466,7 @@ void execarm(int cycs)
 		if (databort) break;
 			armregs[RN]=addr;
 			LOADREG(RD,templ);
-			cycles-=2;
+			//cycles-=2;
 			break;
 
 
@@ -3468,7 +3496,7 @@ void execarm(int cycs)
                                         {
                                                 if (opcode&0x200000) armregs[RN]=addr;
                                         }
-                                        cycles-=2;
+                                        //cycles-=2;
                                         break;
 
                                         case 0x43: case 0x4B: /*LDRT*/
@@ -3485,7 +3513,7 @@ void execarm(int cycs)
                                         templ2=readmeml(addr);
                                         memmode=templ;
                                         if (databort) break;
-                                        templ2=ldrresult(templ2,addr);
+                                        if (addr&3) templ2=ldrresult(templ2,addr);
                                         LOADREG(RD,templ2);
 //                                        if (RD==15) refillpipeline();
                                         if (!(opcode&0x1000000))
@@ -3497,7 +3525,7 @@ void execarm(int cycs)
                                         {
                                                 if (opcode&0x200000) armregs[RN]=addr;
                                         }
-                                        cycles-=3;
+                                        //cycles-=3;
                                         break;
 
                                         case 0x66: case 0x6E: /*STRBT*/
@@ -3523,7 +3551,7 @@ void execarm(int cycs)
                                         {
                                                 if (opcode&0x200000) armregs[RN]=addr;
                                         }
-                                        cycles-=2;
+                                        //cycles-=2;
                                         break;
 
                                         case 0x47: case 0x4F: /*LDRBT*/
@@ -3550,7 +3578,7 @@ void execarm(int cycs)
                                         {
                                                 if (opcode&0x200000) armregs[RN]=addr;
                                         }
-                                        cycles-=3;
+                                        //cycles-=3;
 /*                                        if (RD==7)
                                         {
                                                 if (!olog) olog=fopen("armlog.txt","wt");
@@ -3563,27 +3591,24 @@ void execarm(int cycs)
 			             writememb(armregs[RN],armregs[RD]);
 		                     if (databort) break;
         			     armregs[RN]+=(opcode&0xFFF);
-			             cycles-=2;
+			             //cycles-=2;
 //			             rpclog("STRB %07X\n",PC);
 			             break;
 
                 			case 0x59: /*LDR RD,[RN,#]*/
                 			addr=GETADDR(RN)+(opcode&0xFFF);
-                			templ2=readmeml(addr);
-                        		templ=ldrresult(templ2,addr);
-//                                        if (output==2) rpclog("LDR from %08X+%03X(%08X) = %08X %i\n",GETADDR(RN),opcode&0xFFF,addr,templ,databort);
+                			templ=readmeml(addr);
+                        		if (addr&3) templ=ldrresult(templ,addr);
                                		if (databort) break;
                 			LOADREG(RD,templ);
-                			cycles-=2;
                 			break;
 
                 			case 0x79: /*LDR RD,[RN,shift]*/
                 			addr=GETADDR(RN)+shift2(opcode);
-                        		templ2=readmeml(addr);
-                        		templ=ldrresult(templ2,addr);
+                        		templ=readmeml(addr);
+                        		if (addr&3) templ=ldrresult(templ,addr);
                         		if (databort) break;
                 			LOADREG(RD,templ);
-                			cycles-=2;
                 			break;
 
                 			case 0x7D: /*LDRB RD,[RN,shift]*/
@@ -3591,7 +3616,6 @@ void execarm(int cycs)
                 			templ=readmemb(addr);
                         		if (databort) break;
                         		armregs[RD]=templ;
-                			cycles-=2;
                 			break;
 //#endif
 
@@ -3628,7 +3652,7 @@ void execarm(int cycs)
                                         {
                                                 if (opcode&0x200000) armregs[RN]=addr;
                                         }
-                                        cycles-=2;
+                                        //cycles-=2;
                                         break;
 
                                         case 0x41: case 0x49: /*LDR*/
@@ -3649,7 +3673,7 @@ void execarm(int cycs)
                                                 addr+=addr2;
                                         }
                                         templ=readmeml(addr);
-                                        templ=ldrresult(templ,addr);
+                                        if (addr&3) templ=ldrresult(templ,addr);
                                         if (databort) break;
                                         if (!(opcode&0x1000000))
                                         {
@@ -3662,7 +3686,7 @@ void execarm(int cycs)
                                         }
                                         LOADREG(RD,templ);
 //                                        if (RD==15) refillpipeline();
-                                        cycles-=3;
+                                        //cycles-=3;
 /*                                        if (RD==7)
                                         {
                                                 if (!olog) olog=fopen("armlog.txt","wt");
@@ -3684,10 +3708,7 @@ void execarm(int cycs)
                                         if (opcode&0x2000000) addr2=shift2(opcode);
                                         else                  addr2=opcode&0xFFF;
                                         if (!(opcode&0x800000))  addr2=-addr2;
-                                        if (opcode&0x1000000)
-                                        {
-                                                addr+=addr2;
-                                        }
+                                        if (opcode&0x1000000)    addr+=addr2;
                                         templ=readmemb(addr);
                                         if (databort) break;
                                         if (!(opcode&0x1000000))
@@ -3700,7 +3721,7 @@ void execarm(int cycs)
                                                 if (opcode&0x200000) armregs[RN]=addr;
                                         }
                                         armregs[RD]=templ;
-                                        cycles-=3;
+                                        //cycles-=3;
                                         break;
 
                                         case 0x64: case 0x6C:
@@ -3731,7 +3752,7 @@ void execarm(int cycs)
                                         {
                                                 if (opcode&0x200000) armregs[RN]=addr;
                                         }
-                                        cycles-=2;
+                                        //cycles-=2;
                                         break;
 #endif
                                         
@@ -3744,7 +3765,7 @@ void execarm(int cycs)
                                         case 0x98: case 0x99: case 0x9A: case 0x9B:
                                         case 0x9C: case 0x9D: case 0x9E: case 0x9F:
                                         ldmstm((opcode>>20)&0xFF, opcode);
-                                        cycles--;
+                                        //cycles--;
                                         break;
 
                                         case 0xB0: case 0xB1: case 0xB2: case 0xB3: /*BL*/
@@ -3756,17 +3777,17 @@ void execarm(int cycs)
                                         armregs[14]=armregs[15]-4;
                                         armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
                                         refillpipeline();
-                                        cycles-=3;
+                                        //cycles-=3;
                                         break;
 
                                         case 0xA0: case 0xA1: case 0xA2: case 0xA3: /*B*/
                                         case 0xA4: case 0xA5: case 0xA6: case 0xA7:
                                         case 0xA8: case 0xA9: case 0xAA: case 0xAB:
-                                        case 0xAC: case 0xAD: case 0xAE: case 0xAF:
+                                        case 0xAC: case 0xAD: case 0xAE: //case 0xAF:
                                         templ=(opcode&0xFFFFFF)<<2;
                                         if (templ&0x2000000) templ|=0xFC000000;
                                         armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
-
+#ifdef PREFETCH
         templ=(PC-4)>>2;
         if ((templ>>10)!=pccache)
         {
@@ -3785,14 +3806,46 @@ void execarm(int cycs)
                 else                      opcode3=pccache2[templ];
         }
         else opcode3=pccache2[templ];
-
+#endif
 //                                        refillpipeline();
-                                        cycles-=3;
+                                        //cycles-=3;
                                         break;
-
+#if 1
+                                        case 0xAF: /*B*/
+                                        templ=((opcode&0xFFFFFF)<<2)|0xFC000000;
+//                                        if (templ&0x2000000) templ|=0xFC000000;
+                                        armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
+#ifdef PREFETCH
+        templ=(PC-4)>>2;
+        if ((templ>>10)==pccache)
+        {
+                opcode2=pccache2[templ];
+                opcode3=pccache2[templ+1];
+        }
+        else
+        {
+                pccache=templ>>10;
+                pccache2=getpccache(templ<<2);
+                if (pccache2==0xFFFFFFFF) pccache=pccache2;
+                else                      opcode2=pccache2[templ];
+                templ++;
+                if (!(templ&0x3FF) || pccache2==0xFFFFFFFF)
+                {
+                        pccache=templ>>10;
+                        pccache2=getpccache(templ<<2);
+                        if (pccache2==0xFFFFFFFF) pccache=pccache2;
+                        else                      opcode3=pccache2[templ];
+                }
+                else opcode3=pccache2[templ];
+        }
+#endif
+//                                        refillpipeline();
+                                        //cycles-=3;
+                                        break;
+#endif
                                         case 0xE0: case 0xE2: case 0xE4: case 0xE6: /*MCR*/
                                         case 0xE8: case 0xEA: case 0xEC: case 0xEE:
-#ifdef FP
+#ifdef FPA
                                         if (MULRS==1)
                                         {
                                                 fpaopcode(opcode);
@@ -3805,23 +3858,13 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-//                                                output=1;
-//                                                timetolive=500;
                                                 undefined();
-/*                                                templ=armregs[15]-4;
-                                                armregs[15]|=3;
-                                                updatemode(SUPERVISOR);
-                                                armregs[14]=templ;
-                                                armregs[15]&=0xFC000003;
-                                                armregs[15]|=0x08000008;
-                                                cycles-=4;
-                                                refillpipeline();*/
                                         }
                                         break;
 
                                         case 0xE1: case 0xE3: case 0xE5: case 0xE7: /*MRC*/
                                         case 0xE9: case 0xEB: case 0xED: case 0xEF:
-#ifdef FP
+#ifdef FPA
                                         if (MULRS==1)
                                         {
                                                 fpaopcode(opcode);
@@ -3836,14 +3879,6 @@ void execarm(int cycs)
                                         else
                                         {
                                                 undefined();
-/*                                                templ=armregs[15]-4;
-                                                armregs[15]|=3;
-                                                updatemode(SUPERVISOR);
-                                                armregs[14]=templ;
-                                                armregs[15]&=0xFC000003;
-                                                armregs[15]|=0x08000008;
-                                                cycles-=4;
-                                                refillpipeline();*/
                                         }
                                         break;
 
@@ -3856,7 +3891,7 @@ void execarm(int cycs)
                                         case 0xD4: case 0xD5: case 0xD6: case 0xD7:
                                         case 0xD8: case 0xD9: case 0xDA: case 0xDB:
                                         case 0xDC: case 0xDD: case 0xDE: case 0xDF:
-#ifdef FP
+#ifdef FPA
                                         if ((opcode&0xF00)==0x100 || (opcode&0xF00)==0x200)
                                            fpaopcode(opcode);
                                         else
@@ -3866,19 +3901,6 @@ void execarm(int cycs)
 #else
                                         undefined();
 #endif
-                                
-/*                                        if ((opcode>=0xEC500000) && (opcode<=0xEC500007))
-                                           arculfs(opcode&7);
-                                        else if (opcode==0xEC500008)
-                                        {
-                                                timetolive=500;
-                                        }
-                                        else
-                                        {*/
-//                                        undefined();
-//                                        timetolive=20;
-//                                        printf("0 : %08X 4 : %08X\n",readmeml(0),readmeml(4));
-//                                        }
                                         break;
 //#endif
                                         case 0xF0: case 0xF1: case 0xF2: case 0xF3: /*SWI*/
@@ -3892,8 +3914,28 @@ void execarm(int cycs)
                                                 if (PC==0x19E60) output=1;
                                                 lastswi=PC;
                                         }*/
-//                                        rpclog("SWI %05X %08X\n",opcode&0xFFFFF,PC);
+/*                                        if (output) rpclog("SWI %05X %08X %i %i\n",opcode&0xFFFFF,PC,ins,swiout);
+                                        if ((opcode&0xFFFFF)==0x20013 && PC==0x34CA4)
+                                        {
+                                                if (ins!=59)
+                                                {
+                                                        output=2;
+//                                                        timetolive=200;
+                                                }
+//                                                else         output=1;
+                                                ins=0;
+                                                swiout++;
+                                                if (swiout==5615) output=2;
+                                                if (swiout==3)
+                                                {
+                                                        dumpregs();
+                                                        exit(-1);
+                                                }
+                                        }*/
                                         templ=opcode&0xDFFFF;
+//                                        rpclog("SWI %05X %08X %07X\n",templ,opcode,PC);
+//                                        if ((templ&~0x1F)==0x404C0) /*MIDI*/
+//                                           rpclog("MIDI SWI %05X %07X  %08X %08X %08X %08X %08X\n",templ,PC,armregs[0],armregs[1],armregs[2],armregs[3],armregs[4]);
                                         #if 0
                                         if (templ==0x40240) /*ADFS_DiscOp*/
                                            rpclog("ADFS_DiscOp %08X  %08X  %08X %08X\n",armregs[1],armregs[2],armregs[3],armregs[4]);
@@ -3951,7 +3993,7 @@ void execarm(int cycs)
                                                 spsr[SUPERVISOR]=(armregs[16]&~0x1F)|(templ&3);
                                                 armregs[15]=0x0000000C;
                                                 armregs[16]|=0x80;
-                                                cycles-=4;
+                                                //cycles-=4;
                                                 refillpipeline();
                                         }
                                         else
@@ -3962,7 +4004,7 @@ void execarm(int cycs)
                                                 armregs[14]=templ;
                                                 armregs[15]&=0xFC000003;
                                                 armregs[15]|=0x0800000C;
-                                                cycles-=4;
+                                                //cycles-=4;
                                                 refillpipeline();
                                         }
 //                                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
@@ -4001,7 +4043,7 @@ void execarm(int cycs)
 //                                if (out2) printf("PC at the moment %07X %i %i %02X %08X\n",PC,ins,mode,armregs[16]&0xC0,armregs[15]);
                                 if (prefabort)       /*Prefetch abort*/
                                 {
-//                                rpclog("Pref abort Exception %i %i %i %08X\n",databort,armirq,prefabort,PC);
+//                                if (output) rpclog("Pref abort Exception %i %i %i %08X\n",databort,armirq,prefabort,PC);
 //                                exit(-1);
 /*                                error("Exception %i %i %i\n",databort,armirq,prefabort);
                                 dumpregs();
@@ -4046,7 +4088,8 @@ void execarm(int cycs)
                                 }
                                 else if (databort==1)     /*Data abort*/
                                 {
-//                                rpclog("Dat abort Exception %i %i %i %08X\n",databort,armirq,prefabort,PC);
+//                                if (output) rpclog("Dat abort Exception %i %i %i %08X\n",databort,armirq,prefabort,PC);
+//                                dumpregs();
  //                               output=1;
  //                               timetolive=25;
 /*                                dumpregs();
@@ -4158,7 +4201,7 @@ void execarm(int cycs)
                                 }
                                 else if ((armirq&1) && !(armregs[16]&0x80)) /*IRQ*/
                                 {
-//                                        if (output) rpclog("IRQ %02X %02X %02X %02X %08X\n",iomd.stata&iomd.maska,iomd.statb&iomd.maskb,iomd.statc&iomd.maskc,iomd.statd&iomd.maskd,PC);
+//                                        if (output) rpclog("IRQ %02X %02X %02X %02X %08X %08X %02X %08X\n",iomd.stata&iomd.maska,iomd.statb&iomd.maskb,iomd.statc&iomd.maskc,iomd.statd&iomd.maskd,PC,armregs[13],mode,irqregs[0]);
 //                                        if (output) printf("IRQ %i %i\n",prog32,mode&16);
                                         if (mode&16)
                                         {
@@ -4197,6 +4240,18 @@ void execarm(int cycs)
                         }
                         armirq=irq;
                         armregs[15]+=4;
+/*                        if (armregs[13]==0x1F00000 && armregs[13]!=oldr13)
+                        {
+                                rpclog("R13 = 1EFFFF0 from %08X\n",oldr13);
+                        }
+                        oldr13=armregs[13];*/
+/*                        if (PC==0x8008)
+                        {
+                                rpclog("Hit 8000\n");
+                                times8000++;
+                                output=1;
+                                ins=0;
+                        }*/
                 #if 0
                         if (PC==(lastswi+4))
                         {
@@ -4211,6 +4266,8 @@ void execarm(int cycs)
                         if (output)
                         {
                                 ins++;
+                                if (swiout && ins>59) output=2;
+//                                if (times8000==9 && ins==6600000) output=2;
 //                                if (ins==88990000) output=2;
                         }
                         if (output==2)
@@ -4229,10 +4286,11 @@ void execarm(int cycs)
 //                                ins++;
                         }
                         #endif
-                        linecyc-=(oldcyc2-cycles);
-                        inscount++;
+//                        linecyc--;
+//                        inscount++;
 //                        ins++;
                 }
+                inscount+=200;
 /*                iomd.t0c--;
                 iomd.t1c--;
                 if ((iomd.t0c<0) || (iomd.t1c<0)) updateiomdtimers();*/
@@ -4305,5 +4363,6 @@ void execarm(int cycs)
                                 gentimerirq();
                         }
                 }
+                cycles-=200;
         }
 }

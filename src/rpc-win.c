@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <allegro.h>
 #include <winalleg.h>
+#include <commctrl.h>
 #include "rpcemu.h"
 #include "resources.h"
 
@@ -230,7 +231,7 @@ infocus=0;
         atexit(releasemousecapture);
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
-        install_int_ex(vblupdate,BPS_TO_TIMER(60));
+        install_int_ex(vblupdate,BPS_TO_TIMER(refresh));
         timeBeginPeriod(1);
         if (soundenabled)
         {
@@ -294,8 +295,6 @@ infocus=1;
               sleep(1);
         #endif
         timeEndPeriod(1);
-        output=2;
-        execarm(8000);
         dumpregs();
         endrpcemu();
 //        fclose(arclog);
@@ -344,6 +343,7 @@ int model2;
 int mask;
 int vrammask2;
 int soundenabled2;
+int refresh2;
 int chngram=0;
 
 BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -351,9 +351,13 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
         HWND h;
         int c;
         int cpu;
+        char s[10];
         switch (message)
         {
                 case WM_INITDIALOG:
+                        h=GetDlgItem(hdlg,Slider1);
+                        SendMessage(h,TBM_SETRANGE,TRUE,MAKELONG(20/5,100/5));
+                        SendMessage(h,TBM_SETPOS,TRUE,refresh/5);
                 h=GetDlgItem(hdlg,CheckBox1);
                 SendMessage(h,BM_SETCHECK,soundenabled,0);
                 if (model<2) cpu=model^1;
@@ -375,6 +379,7 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                 model2=model;
                 vrammask2=vrammask;
                 soundenabled2=soundenabled;
+                refresh2=refresh;
                 return TRUE;
                 case WM_COMMAND:
                 switch (LOWORD(wParam))
@@ -399,6 +404,8 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                         }
                         model=model2;
                         vrammask=vrammask2;
+                        refresh=refresh2;
+                        install_int_ex(vblupdate,BPS_TO_TIMER(refresh));
                         case IDCANCEL:
                         EndDialog(hdlg,0);
                         return TRUE;
@@ -449,6 +456,15 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                         return TRUE;
                 }
                 break;
+                case WM_HSCROLL:
+                h=GetDlgItem(hdlg,Slider1);
+                c=SendMessage(h,TBM_GETPOS,0,0);
+                h=GetDlgItem(hdlg,Text1);
+                sprintf(s,"%ihz",c*5);
+                SendMessage(h,WM_SETTEXT,0,s);
+                refresh2=c*5;
+                break;
+
         }
         return FALSE;
 }

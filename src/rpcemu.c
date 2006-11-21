@@ -30,6 +30,7 @@ int startrpcemu()
                 return -1;
         }
         resetarm();
+        resetfpa();
         resetiomd();
         resetkeyboard();
         reset82c711();
@@ -61,6 +62,7 @@ void execrpcemu()
 
 void endrpcemu()
 {
+        endiomd();
         saveadf(discname[0], 0);
         saveadf(discname[1], 1);
         free(vram);
@@ -69,6 +71,7 @@ void endrpcemu()
         free(rom);
         savecmos();
         saveconfig();
+        closevideo();
 }
 
 void loadconfig()
@@ -94,6 +97,7 @@ void loadconfig()
         else                           model=0;
         soundenabled=get_config_int(NULL,"sound_enabled",1);
         stretchmode=get_config_int(NULL,"stretch_mode",0);
+        refresh=get_config_int(NULL,"refresh_rate",60);
 }
 
 void saveconfig()
@@ -113,4 +117,5 @@ void saveconfig()
         else          set_config_string(NULL,"vram_size","0");
         set_config_int(NULL,"sound_enabled",soundenabled);
         set_config_int(NULL,"stretch_mode",stretchmode);
+        set_config_int(NULL,"refresh_rate",refresh);
 }
