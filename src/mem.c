@@ -1,6 +1,7 @@
 /*RPCemu v0.5 by Tom Walker
   Memory handling*/
 #include "rpcemu.h"
+#include "hostfs.h"
 
 int timetolive;
 //#define LARGETLB
@@ -70,14 +71,14 @@ void reallocmem(int ramsize)
 
 void resetmem(void)
 {
-        int c;
-        readmemcache=0xFFFFFFFF;
 #ifdef LARGETLB
+        int c;
         for (c=0;c<64;c++)
             writememcache[c]=0xFFFFFFFF;
 #else
         writememcache=0xFFFFFFFF;
 #endif
+        readmemcache=0xFFFFFFFF;
 }
 
 uint32_t readmemfl(uint32_t addr)
@@ -96,7 +97,7 @@ uint32_t readmemfl(uint32_t addr)
 //                        rpclog("Translate read ");
                         addr=translateaddress(addr,0);
 //                        if (databort) rpclog("Dat abort reading %08X %08X\n",addr2,PC);
-                        if (databort)
+                        if (armirq&0x40)
                         {
                                 raddrl[(addr2>>12)&0xFF]=0xFFFFFFFF;
                                 return 0;
@@ -269,7 +270,7 @@ uint32_t readmemfb(uint32_t addr)
 //                        rpclog("Translate read ");
                         addr=translateaddress(addr,0);
 //                        if (databort) rpclog("Dat abort reading %08X %08X\n",addr2,PC);
-                        if (databort)
+                        if (armirq&0x40)
                         {
                                 raddrl[(addr2>>12)&0xFF]=0xFFFFFFFF;
                                 return 0;
@@ -368,11 +369,11 @@ void writememfl(uint32_t addr, uint32_t val)
                         writememcache=addr>>12;
                         waddrl=addr&0xFFFFF000;
                         addr=translateaddress(addr,1);
-                        if (databort) return;
+                        if (armirq&0x40) return;
                         writememcache2=addr&0xFFFFF000;
                         if ((addr&0x1F000000)==0x2000000)
                            dirtybuffer[(addr&vrammask)>>12]=2;
-                        if (!vrammask && (addr&0x1FF00000)==0x10000000)
+                        if ((!vrammask || !model) && (addr&0x1FF00000)==0x10000000)
                            dirtybuffer[(addr&rammask)>>12]=2;
                         switch (writememcache2&0x1F000000)
                         {
@@ -541,7 +542,7 @@ void writememb(uint32_t addr, uint8_t val)
                 {
                         writememcache[(addrt>>12)&127]=addrt>>12;
                         addr=translateaddress(addrt,1);
-                        if (databort) return;
+                        if (armirq&0x40) return;
                         writememcache2[(addrt>>12)&127]=addr&0xFFFFF000;
                 }
                 #else
@@ -550,11 +551,11 @@ void writememb(uint32_t addr, uint8_t val)
                 {
                         writemembcache=addr>>12;
                         addr=translateaddress(addr,1);
-                        if (databort) return;
+                        if (armirq&0x40) return;
                         writemembcache2=addr&0xFFFFF000;
                         if ((addr&0x1F000000)==0x2000000)
                            dirtybuffer[(addr&vrammask)>>12]=2;
-                        if (!vrammask && (addr&0x1FF00000)==0x10000000)
+                        if ((!vrammask || !model) && (addr&0x1FF00000)==0x10000000)
                            dirtybuffer[(addr&rammask)>>12]=2;
                 }
                 #endif

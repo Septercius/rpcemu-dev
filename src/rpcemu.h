@@ -31,6 +31,11 @@
 #define BLITTER_THREAD
 #endif
 
+/*This makes the RISC OS mouse pointer follow the host pointer exactly. Useful
+  for Linux port, however use mouse capturing if possible - mousehack has some
+  bugs*/
+#define mousehack 0
+
 #define PREFETCH
 
 /*ARM*/
@@ -55,6 +60,8 @@ void dumpregs(void);
 
 extern int databort,prefabort;
 extern int prog32;
+
+uint32_t oldpc,oldpc2,oldpc3;
   //unsigned long *ram,*ram2,*rom,*vram;
   //unsigned char *ramb,*ramb2,*romb,*vramb;
   //unsigned char *dirtybuffer;
@@ -98,6 +105,7 @@ struct iomd
         int mousex,mousey;
 } iomd;
 
+void gentimerirq();
 int delaygenirqleft, delaygenirq;
 
 int i2cclock,i2cdata;
@@ -146,18 +154,17 @@ void writecp15(uint32_t addr, uint32_t val);
 uint32_t readcp15(uint32_t addr);
 void resetcp15(void);
 uint32_t *getpccache(uint32_t addr);
+uint32_t translateaddress2(uint32_t addr, int rw);
 
 /* mem.c */
-//uint32_t readmeml(uint32_t addr);
 uint32_t readmemfl(uint32_t addr);
 uint32_t readmemfb(uint32_t addr);
-//void writememl(uint32_t addr, uint32_t val);
 void writememb(uint32_t addr, uint8_t val);
+void writememfl(uint32_t addr, uint32_t val);
 uint32_t readmemfb(uint32_t addr);
-//uint32_t translateaddress(uint32_t addr, int rw);
-
-//uint32_t mem_getphys(uint32_t addr);
-//uint32_t readmeml_phys(uint32_t addr);
+void clearmemcache();
+void initmem(void);
+void reallocmem(int ramsize);
 
 /* keyboard.c */
 void resetkeyboard(void);
@@ -171,41 +178,71 @@ unsigned char getkeyboardstat(void);
 unsigned char readkeyboarddata(void);
 unsigned char getmousestat(void);
 unsigned char readmousedata(void);
+void pollmouse();
+void pollkeyboard();
+
+void doosmouse();
+void setmouseparams(uint32_t a);
+void getunbufmouse(uint32_t a);
+void setmousepos(uint32_t a);
+void osbyte106(uint32_t a);
+void setpointer(uint32_t a);
+void getosmouse();
+void getmousepos(int *x, int *y);
+
 
 /* 82c711.c */
+void reset82c711();
 void callbackfdc(void);
 uint8_t read82c711(uint32_t addr);
 uint8_t readfdcdma(uint32_t addr);
 void writefdcdma(uint32_t addr, uint8_t val);
 void write82c711(uint32_t addr, uint32_t val);
+void loadadf(char *fn, int drive);
+void saveadf(char *fn, int drive);
 
 /* cmos.c */
+void loadcmos();
+void savecmos();
 void reseti2c(void);
 void cmosi2cchange(int nuclock, int nudata);
+void cmostick();
 
 /* vidc20.c */
+void initvideo();
+void closevideo();
+void blitterthread();
 int getxs(void);
 int getys(void);
 void resetbuffer(void);
 void writevidc20(uint32_t val);
+void drawscr();
+void togglefullscreen(int fs);
 int refresh;
 
 /* iomd.c */
 void resetiomd(void);
+void endiomd();
 uint32_t readiomd(uint32_t addr);
 void writeiomd(uint32_t addr, uint32_t val);
 uint8_t readmb(void);
+void iomdvsync();
 
 char HOSTFS_ROOT[512];
+char HOSTFS_ROOT1[512];
 
 char discname[2][260];
 int drawscre;
 
 /*Sound*/
+void initsound();
+void closesound();
+void changesamplefreq();
 int soundenabled;
 int soundbufferfull;
 void updatesoundirq();
 void updatesoundbuffer();
+int getbufferlen();
 uint32_t soundaddr[4];
 int samplefreq;
 int soundinited,soundlatch,soundcount;
@@ -213,4 +250,18 @@ int soundinited,soundlatch,soundcount;
 /*Generic*/
 int lastinscount;
 int infocus;
+
+/*FPA*/
+void resetfpa();
+void dumpfpa();
+void fpaopcode(uint32_t opcode);
+
+
+int loadroms();
+
+/*rpcemu.c*/
+int startrpcemu();
+void execrpcemu();
+void endrpcemu();
+
 #endif

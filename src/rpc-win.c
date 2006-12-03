@@ -173,9 +173,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         MSG messages;            /* Here messages to the application are saved */
         WNDCLASSEX wincl;        /* Data structure for the windowclass */
         char s[128];
-        unsigned char d;
-        FILE *f;
-        int c;
 
         hinstance=hThisInstance;
         /* The Window structure */
@@ -241,7 +238,7 @@ infocus=0;
         }
         else
         {
-//                install_int_ex(sndupdate,BPS_TO_TIMER(10));
+                install_int_ex(sndupdate,BPS_TO_TIMER(10));
         }
         #ifdef BLITTER_THREAD
         _beginthread(_blitthread,0,NULL);
@@ -295,7 +292,7 @@ infocus=1;
               sleep(1);
         #endif
         timeEndPeriod(1);
-        dumpregs();
+//        dumpregs();
         endrpcemu();
 //        fclose(arclog);
         
@@ -305,7 +302,6 @@ infocus=1;
 
 void changedisc(HWND hwnd, int drive)
 {
-        char *p;
         char fn[512];
         char start[512];
         OPENFILENAME ofn;
@@ -358,6 +354,9 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                         h=GetDlgItem(hdlg,Slider1);
                         SendMessage(h,TBM_SETRANGE,TRUE,MAKELONG(20/5,100/5));
                         SendMessage(h,TBM_SETPOS,TRUE,refresh/5);
+                h=GetDlgItem(hdlg,Text1);
+                sprintf(s,"%ihz",refresh);
+                SendMessage(h,WM_SETTEXT,0,(LPARAM)s);
                 h=GetDlgItem(hdlg,CheckBox1);
                 SendMessage(h,BM_SETCHECK,soundenabled,0);
                 if (model<2) cpu=model^1;
@@ -461,7 +460,7 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                 c=SendMessage(h,TBM_GETPOS,0,0);
                 h=GetDlgItem(hdlg,Text1);
                 sprintf(s,"%ihz",c*5);
-                SendMessage(h,WM_SETTEXT,0,s);
+                SendMessage(h,WM_SETTEXT,0,(LPARAM)s);
                 refresh2=c*5;
                 break;
 
@@ -472,8 +471,6 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
         HMENU hmenu;
-        int temp;
-        char s[512];
         switch (message)                  /* handle the messages */
         {
                 case WM_CREATE:

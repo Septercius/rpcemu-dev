@@ -376,10 +376,16 @@ void mscallback(void)
 }
 
 unsigned char oldmouseb=0;
+
 void pollmouse()
 {
         int x,y;
         unsigned char mouseb=mouse_b&7;
+        if (mousehack)
+        {
+                iomd.mousex=iomd.mousey=0;
+                return;
+        }
         if (key[KEY_MENU]) mouseb|=4;
         get_mouse_mickeys(&x,&y);
         iomd.mousex+=x;
@@ -532,4 +538,138 @@ void pollkeyboard()
                         }
                 }
         }
+}
+
+short ml,mr,mt,mb;
+int activex[5],activey[5];
+void doosmouse()
+{
+        short temp;
+        return;
+        if (!mousehack) return;
+//        printf("doosmouse\n");
+//        if (!mousehack || fullscreen) return;
+        temp=(getys()<<1)-((mouse_y/*-offsety*/)<<1);
+//        if (temp<0) temp=0;
+        if (temp<mt) temp=mt;
+        if (temp>mb) temp=mb;
+//        ymouse=temp;
+//        writememl(0x5B8,temp);
+        writememl(0x5A4,temp);
+        temp=(mouse_x/*-offsetx*/)<<1;
+        if (temp>mr) temp=mr;
+        if (temp<ml) temp=ml;
+//        xmouse=temp;
+//        writememl(0x5B4,temp);
+        writememl(0x5A0,temp);
+/*        *armregs[0]=mouse_x;
+        if (mouse_x>639) *armregs[0]=639;
+        *armregs[1]=mouse_y>>1;
+        temp=0;
+        if (mouse_b&1) temp|=1;
+        if (mouse_b&2) temp|=4;
+        if (mouse_b&4) temp|=2;
+        if (key[KEY_MENU]) temp|=2;
+        *armregs[2]=temp;
+        *armregs[3]=0;*/
+}
+
+void setmousepos(uint32_t a)
+{
+        unsigned short temp,temp2;
+//        printf("setmousepos\n");
+        temp=readmemb(a+1)|(readmemb(a+2)<<8);
+        temp=temp>>1;
+        temp2=readmemb(a+3)|(readmemb(a+4)<<8);
+        temp2=((mb+1)-temp2)>>1;
+//        position_mouse(temp,temp2);
+}
+
+void getunbufmouse(uint32_t a)
+{
+        short temp;
+//        return;
+//        printf("getunbufmouse\n");
+        temp=(getys()<<1)-((mouse_y/*-offsety*/)<<1);
+        if (temp<mt) temp=mt;
+        if (temp>mb) temp=mb;
+        writememb(a+1,temp&0xFF);
+        writememb(a+2,(temp>>8)&0xFF);
+        temp=(mouse_x/*-offsetx*/)<<1;
+        if (temp>mr) temp=mr;
+        if (temp<ml) temp=ml;
+        writememb(a+3,temp&0xFF);
+        writememb(a+4,(temp>>8)&0xFF);
+}
+
+int point=0;
+void getmousepos(int *x, int *y)
+{
+        short temp;
+        temp=(getys()<<1)-(mouse_y<<1);
+//        printf("Mouse Y - %i %i  ",mouse_y,temp);
+        if (temp<mt) temp=mt;
+        if (temp>mb) temp=mb;
+//        printf("%i %i  %i  ",mt,mb,temp);
+        temp=((getys()<<1)-temp)>>1;
+//        printf("%i %i\n",temp,(int)temp-activey[point]);
+        *y=(int)temp-activey[point];
+        temp=mouse_x<<1;
+        if (temp>mr) temp=mr;
+        if (temp<ml) temp=ml;
+        temp>>=1;
+        *x=(int)temp-activex[point];
+}
+        
+void setpointer(uint32_t a)
+{
+        int num=readmemb(a+1);
+        if (num>4) return;
+        activex[num]=readmemb(a+4);
+        activey[num]=readmemb(a+5);
+//        printf("setpointer %i %i %i\n",num,activex,activey);
+}
+
+void osbyte106(uint32_t a)
+{
+        point=a;
+        if (point&0x80) point=0;
+        if (point>4) point=0;
+//        printf("osbyte 106 %i %i\n",a,point);
+}
+void getosmouse()
+{
+        long temp;
+        temp=(getys()<<1)-(mouse_y<<1);
+        if (temp<mt) temp=mt;
+        if (temp>mb) temp=mb;
+        armregs[1]=temp;
+        temp=mouse_x<<1;
+        if (temp>mr) temp=mr;
+        if (temp<ml) temp=ml;
+        armregs[0]=temp;
+        temp=0;
+        if (mouse_b&1) temp|=4;
+        if (mouse_b&2) temp|=1;
+        if (mouse_b&4) temp|=2;
+        if (key[KEY_MENU]) temp|=2;
+        armregs[2]=temp;
+        armregs[3]=0;
+}
+
+void setmouseparams(uint32_t a)
+{
+        ml=readmemb(a+1)|(readmemb(a+2)<<8);
+        mt=readmemb(a+3)|(readmemb(a+4)<<8);
+        mr=readmemb(a+5)|(readmemb(a+6)<<8);
+        mb=readmemb(a+7)|(readmemb(a+8)<<8);
+//        printf("Mouse params %04X %04X %04X %04X\n",ml,mr,mt,mb);
+//        fputs(bigs,olog);
+}
+
+void resetmouse()
+{
+        ml=mt=0;
+        mr=0x4FF;
+        mb=0x3FF;
 }

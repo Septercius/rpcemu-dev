@@ -222,25 +222,25 @@ void calccrc(unsigned char byte)
 	}
 }
 
+int ovcsr,ohcsr;
+
 void drawscr()
 {
-        int x,y,xx,xxx;
+        int x,y,xx;
         int xs=hder-hdsr;
         int ys=vder-vdsr;
         int addr;
         int cx=hcsr-hdsr;
         int cy=vcsr-vdsr,ny=vcer-vcsr;
-        int ac=0;
         int drawit=0,olddrawit=0;
-        int yl=-1,yh;
+        int yl=-1,yh=-1;
         int c;
-        int doublesize=0,doublehigh=0;
-        uint32_t oldaddr,temp;
-        int cursorcol[3];
+        int doublesize=0;
+        uint32_t temp;
         unsigned char *ramp;
         unsigned short temp16,*ramw;
-        uint32_t *vidp;
-        unsigned short *vidp16;
+        uint32_t *vidp=NULL;
+        unsigned short *vidp16=NULL;
         int firstblock,lastblock;
         #ifdef BLITTER_THREAD
         while (blitready)
@@ -295,6 +295,16 @@ void drawscr()
                 resetbuffer();
         }
         if (drawit) yl=0;
+        
+        if (mousehack)
+        {
+                getmousepos(&cx,&cy);
+                if (cy!=ovcsr || cx!=ohcsr) curchange=1;
+                ovcsr=cy;
+                ohcsr=cx;
+//                printf("Mouse at %i,%i %i\n",cx,cy,ny);
+        }
+        
         if (palchange)
         {
                 memset(dirtybuffer,1,512);
@@ -1035,20 +1045,24 @@ void drawscr()
                 if (cinit&0x4000000) ramp=(unsigned char *)ram2;
                 else                 ramp=(unsigned char *)ram;
                 addr=cinit&rammask;
+//                printf("Mouse now at %i,%i\n",cx,cy);
                 switch (drawcode)
                 {
                         case 16:
                         for (y=0;y<ny;y++)
                         {
                                 if ((y+cy)>=ys) break;
-                                vidp16=(unsigned short *)bmp_write_line(b,y+cy);
-                                for (x=0;x<32;x+=4)
+                                if ((y+cy)>=0)
                                 {
-                                        if ((x+cx)>=0 && ramp[addr]&3)      vidp16[x+cx]=vpal[(ramp[addr]&3)|0x100];
-                                        if ((x+cx)>=0 && (ramp[addr]>>2)&3) vidp16[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
-                                        if ((x+cx)>=0 && (ramp[addr]>>4)&3) vidp16[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
-                                        if ((x+cx)>=0 && (ramp[addr]>>6)&3) vidp16[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
-                                        addr++;
+                                        vidp16=(unsigned short *)bmp_write_line(b,y+cy);
+                                        for (x=0;x<32;x+=4)
+                                        {
+                                                if ((x+cx)>=0   && ramp[addr]&3)      vidp16[x+cx]=vpal[(ramp[addr]&3)|0x100];
+                                                if ((x+cx+1)>=0 && (ramp[addr]>>2)&3) vidp16[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
+                                                if ((x+cx+2)>=0 && (ramp[addr]>>4)&3) vidp16[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
+                                                if ((x+cx+3)>=0 && (ramp[addr]>>6)&3) vidp16[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
+                                                addr++;
+                                        }
                                 }
                         }
                         break;
@@ -1056,14 +1070,17 @@ void drawscr()
                         for (y=0;y<ny;y++)
                         {
                                 if ((y+cy)>=ys) break;
-                                vidp=(uint32_t *)bmp_write_line(b,y+cy);
-                                for (x=0;x<32;x+=4)
+                                if ((y+cy)>=0)
                                 {
-                                        if ((x+cx)>=0 && ramp[addr]&3)      vidp[x+cx]=vpal[(ramp[addr]&3)|0x100];
-                                        if ((x+cx)>=0 && (ramp[addr]>>2)&3) vidp[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
-                                        if ((x+cx)>=0 && (ramp[addr]>>4)&3) vidp[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
-                                        if ((x+cx)>=0 && (ramp[addr]>>6)&3) vidp[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
-                                        addr++;
+                                        vidp=(uint32_t *)bmp_write_line(b,y+cy);
+                                        for (x=0;x<32;x+=4)
+                                        {
+                                                if ((x+cx)>=0   && ramp[addr]&3)      vidp[x+cx]=vpal[(ramp[addr]&3)|0x100];
+                                                if ((x+cx+1)>=0 && (ramp[addr]>>2)&3) vidp[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
+                                                if ((x+cx+2)>=0 && (ramp[addr]>>4)&3) vidp[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
+                                                if ((x+cx+3)>=0 && (ramp[addr]>>6)&3) vidp[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
+                                                addr++;
+                                        }
                                 }
                         }
                         break;
@@ -1245,6 +1262,7 @@ void writevidc20(uint32_t val)
                 hder=val&0xFFE;
                 break;
                 case 0x86:
+//                printf("HCSR write %03X\n",val&0xFFE);
                 if (hcsr != (val&0xFFE)) curchange=1;
                 hcsr=val&0xFFE;
                 break;
@@ -1257,10 +1275,12 @@ void writevidc20(uint32_t val)
                 palchange=1;
                 break;
                 case 0x96:
+//                printf("VCSR write %03X\n",val&0xFFF);
                 if (vcsr != (val&0xFFF)) curchange=1;
                 vcsr=val&0xFFF;
                 break;
                 case 0x97:
+//                printf("VCER write %03X\n",val&0xFFF);
                 if (vcer != (val&0xFFF)) curchange=1;
                 vcer=val&0xFFF;
                 break;

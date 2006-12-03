@@ -58,7 +58,7 @@ void updatesoundirq()
         uint32_t page,start,end,temp;
         int offset=(iomd.sndstat&1)<<1;
         int len;
-        int c,d=0;
+        int c;
         page=soundaddr[offset]&0xFFFFF000;
         start=soundaddr[offset]&0xFF0;
         end=(soundaddr[offset+1]&0xFF0)+16;

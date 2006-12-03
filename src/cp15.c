@@ -2,7 +2,7 @@
   System coprocessor + MMU emulation*/
 #include "rpcemu.h"
 
-unsigned long oldpc,oldpc2,oldpc3;
+//unsigned long oldpc,oldpc2,oldpc3;
 int timetolive;
 
 uint32_t ins;
@@ -95,7 +95,10 @@ void writecp15(uint32_t addr, uint32_t val)
 //                    raddrl[c]=0xFFFFFFFF;
                 waddrl=0xFFFFFFFF;
                 for (c=0;c<64;c++)
-                    tlbcache[tlbcache2[c]]=0xFFFFFFFF;
+                {
+                        if (tlbcache2[c]!=0xFFFFFFFF)
+                           tlbcache[tlbcache2[c]]=0xFFFFFFFF;
+                }
                 memset(tlbcache2,0xFF,256);
 //                for (c=0;c<64;c++)
 //                    tlbcache2[c]=0xFFFFFFFF;
@@ -157,7 +160,8 @@ uint32_t readcp15(uint32_t addr)
         exit(-1);
 }
 
-#define FAULT()         databort=1;          \
+//databort=1;
+#define FAULT()         armirq|=0x40;        \
                         cp15.far=addr;       \
                         cp15.fsr=fsr;        \
                         if (output) \
@@ -217,7 +221,7 @@ uint32_t translateaddress2(uint32_t addr, int rw)
         switch (fld&3)
         {
                 case 0: /*Fault*/
-                databort=1;
+                armirq|=0x40;
                 cp15.far=addr;
                 cp15.fsr=5;
 //                rpclog("Fault! %08X %07X %i\n",addr,PC,rw);
@@ -295,32 +299,34 @@ uint32_t *getpccache(uint32_t addr)
         {
 //                rpclog("Translate prefetch %08X ",addr);
                 addr2=translateaddress(addr,0);
-                if (databort)
+                if (armirq&0x40)
                 {
-                        databort=0;
-                        prefabort=1;
-                        return 0xFFFFFFFF;
+                        armirq&=~0x40;
+                        armirq|=0x80;
+//                        databort=0;
+//                        prefabort=1;
+                        return (uint32_t *)0xFFFFFFFF;
                 }
         }
         else     addr2=addr;
         switch (addr2&0x1F000000)
         {
                 case 0x00000000: /*ROM*/
-                return &rom[((addr2&0x7FF000)-addr)>>2];
+                return &rom[(int32_t)((addr2&0x7FF000)-addr)>>2];
                 case 0x02000000: /*VRAM*/
-                return &vram[((addr2&0x1FF000)-addr)>>2];
+                return &vram[(int32_t)((addr2&0x1FF000)-addr)>>2];
                 case 0x10000000: /*SIMM 0 bank 0*/
                 case 0x11000000:
                 case 0x12000000:
                 case 0x13000000:
 //                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
-                return &ram[((addr2&rammask)-addr)>>2];
+                return &ram[(int32_t)((addr2&rammask)-addr)>>2];
                 case 0x14000000: /*SIMM 0 bank 1*/
                 case 0x15000000:
                 case 0x16000000:
                 case 0x17000000:
 //                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
-                return &ram2[((addr2&rammask)-addr)>>2];
+                return &ram2[(int32_t)((addr2&rammask)-addr)>>2];
         }
         error("Bad PC %08X %08X\n",addr,addr2);
         dumpregs();

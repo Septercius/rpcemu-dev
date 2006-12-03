@@ -12,6 +12,7 @@
 #define ARCEM_SWI_SHUTDOWN (ARCEM_SWI_CHUNK + 0)
 #define ARCEM_SWI_HOSTFS   (ARCEM_SWI_CHUNK + 1)
 #define ARCEM_SWI_DEBUG    (ARCEM_SWI_CHUNK + 2)
+#define ARCEM_SWI_HOSTCD   (ARCEM_SWI_CHUNK + 3)
 
 typedef uint32_t ARMword;
 typedef struct {
@@ -20,6 +21,7 @@ typedef struct {
 
 
 void hostfs(ARMul_State *state);
+void hostcd(ARMul_State *state);
 
 #define ARMul_LoadWordS(state, address) readmeml(address)
 #define ARMul_LoadByte(state, address) readmemb(address)

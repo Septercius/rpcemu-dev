@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "rpcemu.h"
 
+int skip512[2];
 int cdromenabled=0;
 void atapicommand();
 int timetolive;
@@ -16,12 +17,13 @@ struct
         unsigned char command;
         unsigned char fdisk;
         int pos;
-        int spt,hpc;
+        int packlen;
+        int spt[2],hpc[2];
         int packetstatus;
 } ide;
 
 int idereset=0;
-unsigned short idebuffer[256];
+unsigned short idebuffer[2048];
 unsigned char *idebufferb;
 FILE *hdfile[2]={NULL,NULL};
 FILE *cdrom=NULL;
@@ -51,6 +53,27 @@ void resetide(void)
                 }
                 atexit(closeide0);
         }
+        idebufferb=(unsigned char *)idebuffer;
+        fseek(hdfile[0],0xFC1,SEEK_SET);
+        ide.spt[0]=getc(hdfile[0]);
+        ide.hpc[0]=getc(hdfile[0]);
+        skip512[0]=1;
+//        rpclog("First check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
+        if (!ide.spt[0] || !ide.hpc[0])
+        {
+                fseek(hdfile[0],0xDC1,SEEK_SET);
+                ide.spt[0]=getc(hdfile[0]);
+                ide.hpc[0]=getc(hdfile[0]);
+//                rpclog("Second check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
+                skip512[0]=0;
+                if (!ide.spt[0] || !ide.hpc[0])
+                {
+                        ide.spt[0]=63;
+                        ide.hpc[0]=16;
+                        skip512[0]=1;
+//        rpclog("Final check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
+                }
+        }
         if (!hdfile[1])
         {
                 hdfile[1]=fopen("hd5.hdf","rb+");
@@ -63,10 +86,27 @@ void resetide(void)
                 }
                 atexit(closeide1);
         }
-        idebufferb=(unsigned char *)idebuffer;
-        ide.spt=63;
-        ide.hpc=16;
-//        cdrom=fopen("","rb");
+        fseek(hdfile[1],0xFC1,SEEK_SET);
+        ide.spt[1]=getc(hdfile[1]);
+        ide.hpc[1]=getc(hdfile[1]);
+        skip512[1]=1;
+        if (!ide.spt[1] || !ide.hpc[1])
+        {
+                fseek(hdfile[1],0xDC1,SEEK_SET);
+                ide.spt[1]=getc(hdfile[1]);
+                ide.hpc[1]=getc(hdfile[1]);
+                skip512[1]=0;
+                if (!ide.spt[1] || !ide.hpc[1])
+                {
+                        ide.spt[1]=63;
+                        ide.hpc[1]=16;
+                        skip512[1]=1;
+                }
+        }
+//        idebufferb=(unsigned char *)idebuffer;
+//        ide.spt=63;
+//        ide.hpc=16;
+//        cdrom=fopen("d://au_cd8.iso","rb");
 }
 
 void writeidew(uint16_t val)
@@ -92,7 +132,7 @@ void writeidew(uint16_t val)
 void writeide(uint16_t addr, uint8_t val)
 {
 //        int c;
-//        if (output) rpclog("Write IDE %08X %02X %08X %08X\n",addr,val,PC-8,armregs[12]);
+//        rpclog("Write IDE %08X %02X %08X %08X\n",addr,val,PC-8,armregs[12]);
         switch (addr)
         {
                 case 0x1F0:
@@ -212,7 +252,7 @@ uint8_t readide(uint16_t addr)
         uint8_t temp;
 //        FILE *f;
 //        int c;
-//        if (output) rpclog("Read IDE %08X %08X %08X\n",addr,PC-8,armregs[9]);
+//        rpclog("Read IDE %08X %08X %08X\n",addr,PC-8,armregs[9]);
         switch (addr)
         {
                 case 0x1F0:
@@ -270,13 +310,16 @@ uint8_t readide(uint16_t addr)
 uint16_t readidew(void)
 {
         uint16_t temp;
+//        if (ide.command==0xA0) rpclog("Read data2 %08X %04X %07X\n",ide.pos,idebuffer[(ide.pos>>1)],PC);
 //        if (output) rpclog("Read data2 %08X %02X%02X %07X\n",ide.pos,idebuffer[(ide.pos>>1)+1],idebuffer[(ide.pos>>1)],PC);
         temp=idebuffer[ide.pos>>1];
         ide.pos+=2;
-        if (ide.pos>=512)
+        if ((ide.pos>=512 && ide.command!=0xA0) || (ide.command==0xA0 && ide.pos>=ide.packlen))
         {
+//                rpclog("Over! packlen %i %i\n",ide.packlen,ide.pos);
                 ide.pos=0;
                 ide.atastat=0x40;
+                ide.packetstatus=0;
                 if (ide.command==0x20)
                 {
                         ide.secount--;
@@ -284,11 +327,11 @@ uint16_t readidew(void)
                         {
                                 ide.atastat=0x08;
                                 ide.sector++;
-                                if (ide.sector==(ide.spt+1))
+                                if (ide.sector==(ide.spt[ide.drive]+1))
                                 {
                                         ide.sector=1;
                                         ide.head++;
-                                        if (ide.head==(ide.hpc))
+                                        if (ide.head==(ide.hpc[ide.drive]))
                                         {
                                                 ide.head=0;
                                                 ide.cylinder++;
@@ -327,8 +370,10 @@ void callbackide(void)
                 updateirqs();
                 return;
                 case 0x20: /*Read sectors*/
+//                rpclog("Read sector %i %i %i\n",ide.hpc[ide.drive],ide.spt[ide.drive],skip512[ide.drive]);
                 readflash=1;
-                addr=((((ide.cylinder*ide.hpc)+ide.head)*ide.spt)+(ide.sector))*512;
+                addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+(ide.sector-1)+skip512[ide.drive])*512;
+//                rpclog("Read %i %i %i %08X\n",ide.cylinder,ide.head,ide.sector,addr);
                 /*                if (ide.cylinder || ide.head)
                 {
                         error("Read from other cylinder/head");
@@ -344,7 +389,7 @@ void callbackide(void)
                 return;
                 case 0x30: /*Write sector*/
                 readflash=2;
-                addr=((((ide.cylinder*ide.hpc)+ide.head)*ide.spt)+(ide.sector))*512;
+                addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+(ide.sector-1)+skip512[ide.drive])*512;
 //                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
                 fseek(hdfile[ide.drive],addr,SEEK_SET);
                 fwrite(idebuffer,512,1,hdfile[ide.drive]);
@@ -356,11 +401,11 @@ void callbackide(void)
                         ide.atastat=0x08;
                         ide.pos=0;
                         ide.sector++;
-                        if (ide.sector==(ide.spt+1))
+                        if (ide.sector==(ide.spt[ide.drive]+1))
                         {
                                 ide.sector=1;
                                 ide.head++;
-                                if (ide.head==(ide.hpc))
+                                if (ide.head==(ide.hpc[ide.drive]))
                                 {
                                         ide.head=0;
                                         ide.cylinder++;
@@ -378,7 +423,7 @@ void callbackide(void)
                 updateirqs();
                 return;
                 case 0x50: /*Format track*/
-                addr=(((ide.cylinder*ide.hpc)+ide.head)*ide.spt)*512;
+                addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+skip512[ide.drive])*512;
 //                rpclog("Format cyl %i head %i offset %08X secount %I\n",ide.cylinder,ide.head,addr,ide.secount);
                 fseek(hdfile[ide.drive],addr,SEEK_SET);
                 memset(idebufferb,0,512);
@@ -391,8 +436,8 @@ void callbackide(void)
                 updateirqs();
                 return;
                 case 0x91: /*Set parameters*/
-                ide.spt=ide.secount;
-                ide.hpc=ide.head+1;
+                ide.spt[ide.drive]=ide.secount;
+                ide.hpc[ide.drive]=ide.head+1;
 //                rpclog("%i sectors per track, %i heads per cylinder\n",ide.spt,ide.hpc);
                 ide.atastat=0x40;
                 iomd.statb|=2;
@@ -489,7 +534,8 @@ void callbackide(void)
                         rpclog("packetstatus != 0!\n");
                         rpclog("Packet data :\n");
                         for (c=0;c<12;c++)
-                            rpclog("%02X\n",idebufferb[c]);
+                            rpclog("%02X ",idebufferb[c]);
+                        rpclog("\n");
                         ide.atastat=0x80;
                         
                         atapicommand();
@@ -502,15 +548,37 @@ void callbackide(void)
                         iomd.statb|=2;
                         updateirqs();
                 }
+                else if (ide.packetstatus==3)
+                {
+                        ide.atastat=8;
+                        rpclog("Recieve data packet!\n");
+                        iomd.statb|=2;
+                        updateirqs();
+                        ide.packetstatus=4;
+                }
                 return;
         }
 }
-/*Read 1F1*/
-/*Error &108A1 - parameters not recognised*/
+
+/*ATAPI CD-ROM emulation
+  This is incomplete and hence disabled by default. In order to use it you have
+  to set cdromenabled to 1, and open an ISO image to cdrom (see resetide()).
+  Also the ISO length (blocks) is hardwired to the length of the AU_CD8 image.
+  This is not usable in RISC OS at the moment due to the Mode Sense command not
+  being implemented - the documentation I have is quite ambiguous. I'm not
+  entirely sure what RISC OS wants from it.
+  */
+unsigned char atapibuffer[256];
+int atapilen;
 
 void atapicommand()
 {
         int c;
+        int len;
+        int msf;
+        int blocks=95932;
+        rpclog("New ATAPI command %02X\n",idebufferb[0]);
+                msf=idebufferb[1]&2;
         switch (idebufferb[0])
         {
                 case 0: /*Test unit ready*/
@@ -518,16 +586,124 @@ void atapicommand()
                 idecallback=50;
                 break;
                 case 0x43: /*Read TOC*/
-                switch (idebuffer[6])
+                len=4;
+                if (idebufferb[6]>1 && idebufferb[6]!=0xAA)
+                {
+                        rpclog("Read bad track %02X in read TOC\n",idebufferb[6]);
+                        rpclog("Packet data :\n");
+                        for (c=0;c<12;c++)
+                            rpclog("%02X ",idebufferb[c]);
+                        rpclog("\n");
+                        exit(-1);
+                }
+
+        if (idebufferb[6] <= 1) {
+          idebufferb[len++] = 0; // Reserved
+          idebufferb[len++] = 0x14; // ADR, control
+          idebufferb[len++] = 1; // Track number
+          idebufferb[len++] = 0; // Reserved
+
+          // Start address
+          if (msf) {
+            idebufferb[len++] = 0; // reserved
+            idebufferb[len++] = 0; // minute
+            idebufferb[len++] = 2; // second
+            idebufferb[len++] = 0; // frame
+          } else {
+            idebufferb[len++] = 0;
+            idebufferb[len++] = 0;
+            idebufferb[len++] = 0;
+            idebufferb[len++] = 0; // logical sector 0
+          }
+        }
+
+                idebufferb[2]=idebufferb[3]=1; /*First and last track numbers*/
+        idebufferb[len++] = 0; // Reserved
+        idebufferb[len++] = 0x16; // ADR, control
+        idebufferb[len++] = 0xaa; // Track number
+        idebufferb[len++] = 0; // Reserved
+
+        if (msf) {
+          idebufferb[len++] = 0; // reserved
+          idebufferb[len++] = (uint8_t)(((blocks + 150) / 75) / 60); // minute
+          idebufferb[len++] = (uint8_t)(((blocks + 150) / 75) % 60); // second
+          idebufferb[len++] = (uint8_t)((blocks + 150) % 75); // frame;
+        } else {
+          idebufferb[len++] = (blocks >> 24) & 0xff;
+          idebufferb[len++] = (blocks >> 16) & 0xff;
+          idebufferb[len++] = (blocks >> 8) & 0xff;
+          idebufferb[len++] = (blocks >> 0) & 0xff;
+        }
+        idebufferb[0] = ((len-2) >> 8) & 0xff;
+        idebufferb[1] = (len-2) & 0xff;
+
+        rpclog("ATAPI buffer len %i\n",len);
+        for (c=0;c<len;c++) rpclog("%02X ",idebufferb[c]);
+        rpclog("\n");
+        ide.packetstatus=3;
+        ide.cylinder=len;
+        ide.secount=2;
+//        ide.atastat=8;
+        ide.pos=0;
+                idecallback=60;
+                ide.packlen=len;
+        rpclog("Sending packet\n");
+        return;
+        
+                switch (idebufferb[6])
                 {
                         case 0xAA: /*Start address of lead-out*/
                         break;
                 }
-                rpclog("Read bad track %02X in read TOC\n",idebuffer[6]);
+                rpclog("Read bad track %02X in read TOC\n",idebufferb[6]);
                 rpclog("Packet data :\n");
                 for (c=0;c<12;c++)
                     rpclog("%02X\n",idebufferb[c]);
                 exit(-1);
+                
+                case 0xBE: /*Read CD*/
+                printf("Read CD : start LBA %02X%02X%02X%02X Length %02X%02X%02X Flags %02X\n",idebufferb[2],idebufferb[3],idebufferb[4],idebufferb[5],idebufferb[6],idebufferb[7],idebufferb[8],idebufferb[9]);
+                if (idebufferb[9]!=0x10)
+                {
+                        rpclog("Bad flags bits %02X\n",idebufferb[9]);
+                        exit(-1);
+                }
+                if (idebufferb[6] || idebufferb[7] || (idebufferb[8]!=1))
+                {
+                        rpclog("More than 1 sector!\n");
+                        exit(-1);
+                }
+                c=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
+                fseek(cdrom,c*2048,SEEK_SET);
+                fread(idebufferb,2048,1,cdrom);
+                ide.packetstatus=3;
+                ide.cylinder=2048;
+                ide.secount=2;
+                ide.pos=0;
+                idecallback=60;
+                ide.packlen=2048;
+                return;
+                
+                case 0x44: /*Read Header*/
+                if (msf)
+                {
+                        rpclog("Read Header MSF!\n");
+                        exit(-1);
+                }
+                for (c=0;c<4;c++) idebufferb[c+4]=idebufferb[c+2];
+                idebufferb[0]=1; /*2048 bytes user data*/
+                idebufferb[1]=idebufferb[2]=idebufferb[3]=0;
+                
+                ide.packetstatus=3;
+                ide.cylinder=8;
+                ide.secount=2;
+                ide.pos=0;
+                idecallback=60;
+                ide.packlen=8;
+                return;
+                
+                case 0x5A: /*Mode Sense*/
+                
                 default:
                 rpclog("Bad ATAPI command %02X\n",idebufferb[0]);
                 rpclog("Packet data :\n");
@@ -541,7 +717,7 @@ void atapicommand()
 void filecoresectorop()
 {
         int c,d;
-        unsigned long temp[256];
+        uint32_t temp[256];
         fseek(hdfile[(armregs[2]>>29)&1],((armregs[2]&0x1FFFFFFF)<<9)+512,SEEK_SET);
         for (c=armregs[4];c>0;c-=512)
         {

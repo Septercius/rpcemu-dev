@@ -45,7 +45,7 @@ FILE *arclog;
 void rpclog(const char *format, ...)
 {
    char buf[256];
-return;
+//return;
    va_list ap;
    va_start(ap, format);
    vsprintf(buf, format, ap);
@@ -103,7 +103,7 @@ int main (void)
         install_timer();
         install_mouse();
 infocus=0;
-//        arclog=fopen("arclog.txt","wt");
+        arclog=fopen("arclog.txt","wt");
         if (startrpcemu())
            return -1;
         install_int_ex(domips,MSEC_TO_TIMER(1000));

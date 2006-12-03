@@ -77,14 +77,15 @@ char HOSTFS_ROOT[512];
 #define NOT_IMPLEMENTED 255
 
 #define DEFAULT_ATTRIBUTES  0x03
-#define DEFAULT_FILE_TYPE   RISC_OS_FILE_TYPE_TEXT
+int DEFAULT_FILE_TYPE;
+//#define DEFAULT_FILE_TYPE   RISC_OS_FILE_TYPE_TEXT
 #define MINIMUM_BUFFER_SIZE 32768
 
 static FILE *open_file[MAX_OPEN_FILES + 1]; /* array subscript 0 is never used */
 
 static unsigned char *buffer = NULL;
 static size_t buffer_size = 0;
-
+#define NDEBUG
 #ifdef NDEBUG
 static inline void dbug_hostfs(const char *format, ...) {}
 #else
@@ -538,6 +539,7 @@ hostfs_path_process(const char *ro_path,
 
       hostfs_read_object_info(host_pathname, ro_leaf, object_info);
       if (object_info->type == OBJECT_TYPE_NOT_FOUND) {
+                dbug_hostfs("OBJECT NOT FOUND %s %s\n",host_pathname,ro_leaf);
         return;
       }
 
@@ -1425,8 +1427,9 @@ hostfs_read_dir(ARMul_State *state, bool with_info)
   dbug_hostfs("\tPATH = %s\n", ro_path);
 
   hostfs_path_process(ro_path, host_pathname, ro_leaf, &object_info);
-
+dbug_hostfs("ROPATH %s HOSTPATH %s\n",ro_path,host_pathname);
   if (object_info.type != OBJECT_TYPE_DIRECTORY) {
+                dbug_hostfs("Bad type %i\n",object_info.type);
     /* TODO Improve error return */
     state->Reg[3] = 0;
     state->Reg[4] = -1;
@@ -1443,6 +1446,7 @@ hostfs_read_dir(ARMul_State *state, bool with_info)
     struct dirent *entry = NULL;
 
     d = opendir(host_pathname);
+    dbug_hostfs("Opendir %s %i\n",host_pathname,d);
     if (!d) {
       fprintf(stderr, "HostFS could not open directory \'%s\': %s\n",
               host_pathname, strerror(errno));
@@ -1454,7 +1458,7 @@ hostfs_read_dir(ARMul_State *state, bool with_info)
     /* Skip a number of directory entries according to the offset */
     while ((count < offset) && ((entry = readdir(d)) != NULL)) {
       char entry_path[PATH_MAX];
-
+dbug_hostfs("Entry %s\n",entry->d_name);
       /* Hidden files are completely ignored */
       if (entry->d_name[0] == '.') {
         continue;
@@ -1625,8 +1629,33 @@ hostfs(ARMul_State *state)
 {
   assert(state);
   assert(state->Reg[9] <= 7);
+  strcpy(HOSTFS_ROOT,HOSTFS_ROOT1);
+  DEFAULT_FILE_TYPE=RISC_OS_FILE_TYPE_TEXT;
+  printf("*** HostFS Call *** %i %i %s\n",state->Reg[9],state->Reg[0],HOSTFS_ROOT);
 
-//  rpclog("*** HostFS Call *** %i %i\n",state->Reg[9],state->Reg[0]);
+  switch (state->Reg[9]) {
+  case 0: hostfs_open(state);     break;
+  case 1: hostfs_getbytes(state); break;
+  case 2: hostfs_putbytes(state); break;
+  case 3: hostfs_args(state);     break;
+  case 4: hostfs_close(state);    break;
+  case 5: hostfs_file(state);     break;
+  case 6: hostfs_func(state);     break;
+  case 7: hostfs_gbpb(state);     break;
+  default:
+    fprintf(stderr, "!!! ERROR !!! - unknown op in R9\n");
+    break;
+  }
+}
+
+void
+hostcd(ARMul_State *state)
+{
+  assert(state);
+  assert(state->Reg[9] <= 7);
+  strcpy(HOSTFS_ROOT,"H:/");
+  DEFAULT_FILE_TYPE=RISC_OS_FILE_TYPE_DATA;
+  printf("*** HostCD Call *** %i %i %s\n",state->Reg[9],state->Reg[0],HOSTFS_ROOT);
 
   switch (state->Reg[9]) {
   case 0: hostfs_open(state);     break;
