@@ -121,9 +121,9 @@ char exname[512];
 int idecallback;
 
 /*Config*/
-int vrammask;
+uint32_t vrammask;
 int model;
-int rammask;
+uint32_t rammask;
 int stretchmode;
 
 extern uint32_t soundaddr[4];

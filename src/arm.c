@@ -1,9 +1,12 @@
 /*RPCemu v0.5 by Tom Walker
   ARM6/7 emulation*/
+
+#include <stdint.h>
+
 int swiout=0;
 int times8000=0;
 int blits;
-unsigned long oldpc,oldpc2,oldpc3,oldr13;
+uint32_t oldpc,oldpc2,oldpc3,oldr13;
 /*31/10/06 - Various optimisations, mainly to ldmstm()
   I altered the most frequently used LDM/STM instructions to streamline the inner
   loops, which gives a 20-25% speed boost for those instructions. The most frequently
