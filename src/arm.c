@@ -2178,9 +2178,16 @@ void execarm(int cycs)
                                                 if (opcode&0x10000)
                                                 {
                                                         updatemode(armregs[16]&0x1F);
-                                                        if (!(mode&16))
+                                                        if (!(mode&16)) {
                                                            armregs[15]=(armregs[15]&~3)|(armregs[16]&3);
+							   armregs[15]=(armregs[15]&~0xC000000)|((armregs[16]&0xC0) << 20);
+							}
                                                 }
+
+						if (opcode & 0x80000) {
+							if (!(mode & 16))
+								armregs[15]=(armregs[15]&~0xF0000000)|(armregs[16]&0xF0000000);
+						}
                                                 armregs[16]=templ;
                                         }
                                         else
@@ -2644,11 +2651,42 @@ void execarm(int cycs)
                                         break;
                                 
                                         case 0x32: /*MSR rot->flags*/
-                                        if ((opcode&0x3FF000)==0x28F000)
-                                        {
-                                                templ=rotate(opcode);
-                                                armregs[cpsr]=(armregs[cpsr]&~0xF0000000)|(templ&0xF0000000);
-                                        }
+					templ = rotate(opcode);
+
+					if (output)
+						rpclog("MSR: %08x (%08x - %08x)\n", opcode, armregs[15], armregs[16]);
+
+					if (mode & 0xF) {
+						if (opcode & 0x10000) {
+							armregs[16] = (armregs[16] & ~ 0xFF) | (templ & 0xFF);
+							if ((mode & 0x10) == 0) {
+								armregs[15] = (armregs[15] & ~ 0x3) | (templ & 0x3);
+								armregs[15] = (armregs[15] & ~ 0xC000000) | ((templ & 0xC0) << 20);
+							}
+						}
+						if (opcode & 0x20000)
+							armregs[16] = (armregs[16] & ~ 0xFF00) | (templ & 0xFF00);
+						if (opcode & 0x40000)
+							armregs[16] = (armregs[16] & ~ 0xFF0000) | (templ & 0xFF0000);
+					}
+					
+                                        if (opcode & 0x80000) {
+						armregs[16] = (armregs[16] & ~ 0xFF000000) | (templ & 0xFF000000);
+						if ((mode & 0x10) == 0) {
+							armregs[15] = (armregs[15] & ~ 0xF0000000) | (templ & 0xF0000000);
+						}
+					}
+
+					if (output)
+						rpclog("%08x - %08x\n", armregs[15], armregs[16]);
+
+					if ((armregs[16] & 0x1F) != mode) {
+						if (output)
+							rpclog("changing mode to %02x (was %02x)\n", armregs[16] & 0x1F, mode);
+
+						updatemode(armregs[16] & 0x1F);
+					}
+
                                         //cycles--;
                                         break;
 
