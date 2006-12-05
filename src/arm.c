@@ -1,13 +1,14 @@
 /*RPCemu v0.5 by Tom Walker
   ARM6/7 emulation*/
-
-#include <stdint.h>
-
 int swiout=0;
 int times8000=0;
 int blits;
-uint32_t oldpc,oldpc2,oldpc3,oldr13;
-/*31/10/06 - Various optimisations, mainly to ldmstm()
+
+/*3/12/06 - databort and prefabort have been rolled into bits 6 and 7 of armirq.
+  This gives a minor speedup.
+  MSR fixes from John-Mark Bell allow RISC OS 6 to work.
+
+  31/10/06 - Various optimisations, mainly to ldmstm()
   I altered the most frequently used LDM/STM instructions to streamline the inner
   loops, which gives a 20-25% speed boost for those instructions. The most frequently
   used by far is 0x92 (STMDB !, used 5x more than any other) followed by 0x89, 0x8B,
@@ -35,12 +36,14 @@ uint32_t oldpc,oldpc2,oldpc3,oldr13;
   like as much they may be faster on platforms without branch prediction (eg XScale)*/
 //#define NEWLDRSTR
 
-/*Preliminary FPA emulation. RiscOS doesn't go to the desktop with this enabled, and
-  there aren't many instructions implemented*/
+/*Preliminary FPA emulation. This works to an extent - !Draw works with it, !SICK
+  seems to (FPA Whetstone scores are around 100x without), but !AMPlayer doesn't
+  work, and GCC stuff tends to crash.*/
 //#define FPA
 
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 int inscounts[256];
 //#include <allegro.h>
@@ -73,6 +76,7 @@ uint32_t inscount;
 int armirq=0;
 uint32_t output=0;
 int cpsr;
+uint32_t *pcpsr;
 
 uint32_t *usrregs[16],userregs[17],superregs[17],fiqregs[17],irqregs[17],abortregs[17],undefregs[17],systemregs[17];
 uint32_t spsr[16];
@@ -102,6 +106,7 @@ int prog32;
 #define VFLAG 0x10000000
 #define IFLAG 0x08000000
 
+//int RD;
 #define RD ((opcode>>12)&0xF)
 #define RN ((opcode>>16)&0xF)
 #define RM (opcode&0xF)
@@ -145,10 +150,10 @@ static void refillpipeline(void)
         {
                 pccache=addr>>10;
                 pccache2=getpccache(addr<<2);
-                if (pccache2==0xFFFFFFFF)
+                if ((uint32_t)pccache2==0xFFFFFFFF)
                 {
                         opcode2=opcode3=0xFFFFFFFF;
-                        pccache=pccache2;
+                        pccache=(uint32_t)pccache2;
                         return;
                 }
         }
@@ -158,10 +163,10 @@ static void refillpipeline(void)
         {
                 pccache=addr>>10;
                 pccache2=getpccache(addr<<2);
-                if (pccache2==0xFFFFFFFF)
+                if ((uint32_t)pccache2==0xFFFFFFFF)
                 {
                         opcode3=0xFFFFFFFF;
-                        pccache=pccache2;
+                        pccache=(uint32_t)pccache2;
                         return;
                 }
         }
@@ -296,6 +301,7 @@ void updatemode(uint32_t m)
         {
                 mmask=31;
                 cpsr=16;
+                pcpsr=&armregs[16];
 //                printf("Now 32-bit mode %i %08X %i\n",mode&15,PC,ins);
                 r15mask=0xFFFFFFFC;
                 if (!(om&16))
@@ -303,13 +309,14 @@ void updatemode(uint32_t m)
                         armregs[16]=(armregs[15]&0xF0000000)|mode;
                         armregs[16]|=((armregs[15]&0xC000000)>>20);
                         armregs[15]&=0x3FFFFFC;
-                        if (output) printf("Switching to 32-bit mode : CPSR %08X\n",armregs[16]);
+  //                      if (output) printf("Switching to 32-bit mode : CPSR %08X\n",armregs[16]);
                 }
         }
         else
         {
                 mmask=3;
                 cpsr=15;
+                pcpsr=&armregs[15];
 //                printf("Now 26-bit mode %i %08X %i\n",mode&15,PC,ins);
                 r15mask=0x3FFFFFC;
                 if (om&16)
@@ -384,8 +391,11 @@ void resetarm(void)
 
 int indumpregs=0;
 int insnum[256];
+
 void dumpregs()
 {
+}
+#if 0
         FILE *f,*ff;
         char s[1024];
         int c,d,e;
@@ -417,11 +427,11 @@ void dumpregs()
         for (c=0;c<0x100;c++)
             rpclog("Opcode %02X : %09i\n",insnum[c],inscounts[c]);*/
 //        return;
-        if (indumpregs) return;
-        indumpregs=1;
+//        if (indumpregs) return;
+//        indumpregs=1;
         f=fopen("ram.dmp","wb");
         sprintf(s,"R 0=%08X R 4=%08X R 8=%08X R12=%08X\nR 1=%08X R 5=%08X R 9=%08X R13=%08X\nR 2=%08X R 6=%08X R10=%08X R14=%08X\nR 3=%08X R 7=%08X R11=%08X R15=%08X\n%i %s\n%08X %08X %08X",armregs[0],armregs[4],armregs[8],armregs[12],armregs[1],armregs[5],armregs[9],armregs[13],armregs[2],armregs[6],armregs[10],armregs[14],armregs[3],armregs[7],armregs[11],armregs[15],ins,(mmu)?"MMU enabled":"MMU disabled",oldpc,oldpc2,oldpc3);
-//        error("%s",s);
+        error("%s",s);
         rpclog("%s",s);
 //        error("PC =%07X ins=%i R12f=%08X CPSR=%08X\n",PC,ins,fiqregs[12],armregs[16]);
         fwrite(ram,0x400000,1,f);
@@ -486,7 +496,8 @@ void dumpregs()
         fclose(ff);
         fclose(f);
         f=fopen("program.dmp","wb");
-        databort=0;
+        armirq=0;
+//        databort=0;
         for (c=0;c<0x40000;c++)
         {
                 putc(readmemb(c+0x8000),f);
@@ -495,6 +506,9 @@ void dumpregs()
         fclose(f);
         indumpregs=0;
 }
+#endif
+
+#define dumpregs()
 
 int loadrom()
 {
@@ -542,25 +556,37 @@ int loadrom()
 #define checkneg(v) (v&0x80000000)
 #define checkpos(v) !(v&0x80000000)
 
-static inline void setadd(uint32_t op1, uint32_t op2, uint32_t res)
+/*static inline */void setadd(uint32_t op1, uint32_t op2, uint32_t res)
 {
-        armregs[cpsr]&=0xFFFFFFF;
+/*        armregs[cpsr]&=0xFFFFFFF;
         if (!res)                           armregs[cpsr]|=ZFLAG;
         else if (checkneg(res))             armregs[cpsr]|=NFLAG;
         if (res<op1)                        armregs[cpsr]|=CFLAG;
-        if ((op1^res)&(op2^res)&0x80000000) armregs[cpsr]|=VFLAG;
+        if ((op1^res)&(op2^res)&0x80000000) armregs[cpsr]|=VFLAG;*/
+        unsigned long temp=0;
+        if (!res)                           temp=ZFLAG;
+        else if (checkneg(res))             temp=NFLAG;
+        if (res<op1)                        temp|=CFLAG;
+        if ((op1^res)&(op2^res)&0x80000000) temp|=VFLAG;
+        *pcpsr=((*pcpsr)&0xFFFFFFF)|(temp);
 }
 
 static inline void setsub(uint32_t op1, uint32_t op2, uint32_t res)
 {
-        armregs[cpsr]&=0xFFFFFFF;
+/*        armregs[cpsr]&=0xFFFFFFF;
         if (!res)                           armregs[cpsr]|=ZFLAG;
         else if (checkneg(res))             armregs[cpsr]|=NFLAG;
         if (res<=op1)                       armregs[cpsr]|=CFLAG;
-        if ((op1^op2)&(op1^res)&0x80000000) armregs[cpsr]|=VFLAG;
+        if ((op1^op2)&(op1^res)&0x80000000) armregs[cpsr]|=VFLAG;*/
+        unsigned long temp=0;
+        if (!res)                           temp=ZFLAG;
+        else if (checkneg(res))             temp=NFLAG;
+        if (res<=op1)                       temp|=CFLAG;
+        if ((op1^op2)&(op1^res)&0x80000000) temp|=VFLAG;
+        *pcpsr=((*pcpsr)&0xFFFFFFF)|(temp);
 }
 
-static inline void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
+/*static inline */void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
 {
         armregs[cpsr]&=0xFFFFFFF;
         if (!res)                           armregs[cpsr]|=ZFLAG;
@@ -573,7 +599,7 @@ static inline void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
             armregs[cpsr]|=VFLAG;
 }
 
-static inline void setadc(uint32_t op1, uint32_t op2, uint32_t res)
+/*static inline */void setadc(uint32_t op1, uint32_t op2, uint32_t res)
 {
         armregs[cpsr]&=0xFFFFFFF;
         if ((checkneg(op1) && checkneg(op2)) ||
@@ -586,97 +612,54 @@ static inline void setadc(uint32_t op1, uint32_t op2, uint32_t res)
         else if (checkneg(res))            armregs[cpsr]|=NFLAG;
 }
 
+#if 0
 static inline void setzn(uint32_t op)
 {
-        armregs[cpsr]&=0x3FFFFFFF;
+/*        armregs[cpsr]&=0x3FFFFFFF;
         if (!op)               armregs[cpsr]|=ZFLAG;
-        else if (checkneg(op)) armregs[cpsr]|=NFLAG;
-}
-static char err2[512];
-
-#if 0
-inline unsigned long shift3s(unsigned long opcode)
-{
-        unsigned long rmreg=armregs[RM];
-        int shiftamount;
-        int cflag;
-        if (opcode&0x10) shiftamount=armregs[(opcode>>8)&15]&0xFF;
-        else             shiftamount=(opcode>>7)&0x1F;
-        switch ((opcode>>5)&3)
-        {
-                case 0: /*LSL*/
-                if ((rmreg<<(shiftamount-1))&0x80000000) armregs[cpsr]|=CFLAG;
-                else                                     armregs[cpsr]&=~CFLAG;
-                return rmreg<<shiftamount;
-                case 1: /*LSR*/
-                if (shiftamount)
-                {
-                        if ((rmreg>>(shiftamount-1))&1) armregs[cpsr]|=CFLAG;
-                        else                            armregs[cpsr]&=~CFLAG;
-                        return rmreg>>shiftamount;
-                }
-                if (rmreg&0x80000000) armregs[cpsr]|=CFLAG;
-                else                  armregs[cpsr]&=~CFLAG;
-                return 0;
-                case 2: /*ASR*/
-                if (!shiftamount)
-                {
-                        if (rmreg&0x80000000) armregs[cpsr]|=CFLAG;
-                        else                  armregs[cpsr]&=~CFLAG;
-                        return (rmreg&0x80000000)?0xFFFFFFFF:0;
-                }
-                if (((int)rmreg>>(shiftamount-1))&1) armregs[cpsr]|=CFLAG;
-                else                                 armregs[cpsr]&=~CFLAG;
-                return (int)rmreg>>shiftamount;
-                case 3: /*ROR*/
-                if (shiftamount)
-                {
-                        if ((rmreg>>(shiftamount-1))&1) armregs[cpsr]|=CFLAG;
-                        else                            armregs[cpsr]&=~CFLAG;
-                        return (rmreg>>shiftamount)|(rmreg<<(32-shiftamount));
-                }
-                cflag=(armregs[cpsr]&CFLAG)?0x80000000:1;
-                if (rmreg&1) armregs[cpsr]|=CFLAG;
-                else         armregs[cpsr]&=~CFLAG;
-                return (rmreg>>1)|cflag;
-        }
+        else if (checkneg(op)) armregs[cpsr]|=NFLAG;*/
+        unsigned long temp=0;
+        if (!op)               temp=ZFLAG;
+        else if (checkneg(op)) temp=NFLAG;
+        *pcpsr=((*pcpsr)&0x3FFFFFFF)|(temp);
 }
 #endif
 
-static inline uint32_t shift3(uint32_t opcode)
+#define setzn(op) templ=0; \
+        if (!(op))               templ=ZFLAG; \
+        if (checkneg((op))) templ=NFLAG; \
+        *pcpsr=((*pcpsr)&0x3FFFFFFF)|(templ);
+        
+static char err2[512];
+
+uint32_t shift3(uint32_t opcode)
 {
-        uint32_t shiftmode=(opcode>>5)&3;
+        uint32_t shiftmode=opcode&0x60;//(opcode>>5)&3;
         uint32_t shiftamount=(opcode>>7)&31;
         uint32_t temp;
         int cflag=CFSET;
-        if (!(opcode&0xFF0)) return armregs[RM];
         if (opcode&0x10)
         {
                 shiftamount=armregs[(opcode>>8)&15]&0xFF;
                 if (shiftmode==3)
                    shiftamount&=0x1F;
-//                cycles--;
         }
         temp=armregs[RM];
-//        if (RM==15)        temp+=4;
-        if (opcode&0x100000 && shiftamount) armregs[cpsr]&=~CFLAG;
+        if (shiftamount) armregs[cpsr]&=~CFLAG;
         switch (shiftmode)
         {
                 case 0: /*LSL*/
                 if (!shiftamount) return temp;
                 if (shiftamount==32)
                 {
-                        if (temp&1 && opcode&0x100000) armregs[cpsr]|=CFLAG;
+                        if (temp&1) armregs[cpsr]|=CFLAG;
                         return 0;
                 }
                 if (shiftamount>32) return 0;
-                if (opcode&0x100000)
-                {
-                        if ((temp<<(shiftamount-1))&0x80000000) armregs[cpsr]|=CFLAG;
-                }
+                if ((temp<<(shiftamount-1))&0x80000000) armregs[cpsr]|=CFLAG;
                 return temp<<shiftamount;
 
-                case 1: /*LSR*/
+                case 0x20: /*LSR*/
                 if (!shiftamount && !(opcode&0x10))
                 {
                         shiftamount=32;
@@ -684,193 +667,82 @@ static inline uint32_t shift3(uint32_t opcode)
                 if (!shiftamount) return temp;
                 if (shiftamount==32)
                 {
-                        if (temp&0x80000000 && opcode&0x100000) armregs[cpsr]|=CFLAG;
-                        else if (opcode&0x100000)               armregs[cpsr]&=~CFLAG;
+                        if (temp&0x80000000) armregs[cpsr]|=CFLAG;
+                        else                 armregs[cpsr]&=~CFLAG;
                         return 0;
                 }
                 if (shiftamount>32) return 0;
-                if (opcode&0x100000)
-                {
-                        if ((temp>>(shiftamount-1))&1) armregs[cpsr]|=CFLAG;
-                }
+                if ((temp>>(shiftamount-1))&1) armregs[cpsr]|=CFLAG;
                 return temp>>shiftamount;
 
-                case 2: /*ASR*/
+                case 0x40: /*ASR*/
                 if (!shiftamount)
                 {
                         if (opcode&0x10) return temp;
                 }
                 if (shiftamount>=32 || !shiftamount)
                 {
-                        if (temp&0x80000000 && opcode&0x100000) armregs[cpsr]|=CFLAG;
-                        else if (opcode&0x100000)               armregs[cpsr]&=~CFLAG;
+                        if (temp&0x80000000) armregs[cpsr]|=CFLAG;
+                        else                 armregs[cpsr]&=~CFLAG;
                         if (temp&0x80000000) return 0xFFFFFFFF;
                         return 0;
                 }
-                if (opcode&0x100000)
-                {
-                        if (((int)temp>>(shiftamount-1))&1) armregs[cpsr]|=CFLAG;
-                }
+                if (((int)temp>>(shiftamount-1))&1) armregs[cpsr]|=CFLAG;
                 return (int)temp>>shiftamount;
 
-                case 3: /*ROR*/
-                if (opcode&0x100000) armregs[cpsr]&=~CFLAG;
+                default: /*ROR*/
+                armregs[cpsr]&=~CFLAG;
                 if (!shiftamount && !(opcode&0x10))
                 {
-                        if (opcode&0x100000 && temp&1) armregs[cpsr]|=CFLAG;
+                        if (temp&1) armregs[cpsr]|=CFLAG;
                         return (((cflag)?1:0)<<31)|(temp>>1);
                 }
                 if (!shiftamount)
                 {
-                        if (opcode&0x100000) armregs[cpsr]|=cflag;
+                        armregs[cpsr]|=cflag;
                         return temp;
                 }
                 if (!(shiftamount&0x1F))
                 {
-                        if (opcode&0x100000 && temp&0x80000000) armregs[cpsr]|=CFLAG;
+                        if (temp&0x80000000) armregs[cpsr]|=CFLAG;
                         return temp;
                 }
-                if (opcode&0x100000)
-                {
-                        if (((temp>>shiftamount)|(temp<<(32-shiftamount)))&0x80000000) armregs[cpsr]|=CFLAG;
-                }
+                if (((temp>>shiftamount)|(temp<<(32-shiftamount)))&0x80000000) armregs[cpsr]|=CFLAG;
                 return (temp>>shiftamount)|(temp<<(32-shiftamount));
                 break;
-                default:
-                sprintf(err2,"Shift mode %i amount %i\n",shiftmode,shiftamount);
-                error("%s",err2);
-                dumpregs();
-                exit(-1);
         }
 }
-
-/*unsigned long shift3(unsigned long opcode)
-{
-        unsigned long c=armregs[cpsr],c1;
-        unsigned long temp,temp2;
-        temp=shift3s(opcode);
-        c1=armregs[cpsr];
-        armregs[cpsr]=c;
-        temp2=shift3o(opcode);
-        if (temp != temp2 || c1 != armregs[cpsr])
-           rpclog("shift mismatch : new %08X %08X  old %08X %08X  data %08X mode %i amount %i %s %08X %08X\n",temp,c1,temp2,armregs[cpsr],armregs[RM],(opcode>>5)&3,(opcode>>7)&0x1F,(opcode&0x10)?"register":"immediate",opcode,armregs[(opcode>>8)&15]);
-        return temp2;
-}*/
 
 #define shift(o)  ((o&0xFF0)?shift3(o):armregs[RM])
 #define shift2(o) ((o&0xFF0)?shift4(o):armregs[RM])
 
-
-#if 0
-inline unsigned shift4(unsigned opcode)
-{
-        unsigned long rmreg=armregs[RM];
-        int shiftamount;
-        if (opcode&0x10) shiftamount=armregs[(opcode>>8)&15]&0xFF;
-        else
-        {
-                shiftamount=(opcode>>7)&0x1F;
-                if (!shiftamount) shiftamount=32;
-        }
-        switch ((opcode>>5)&3)
-        {
-                case 0: /*LSL*/
-                if (shiftamount>31) return 0;
-                return rmreg<<shiftamount;
-                case 1: /*LSR*/
-                if (shiftamount>31) return 0;
-//                if (!shiftamount && !(opcode&0x10)) return 0;
-                return rmreg>>shiftamount;
-                case 2: /*ASR*/
-                if (shiftamount>31) return (rmreg&0x80000000)?0xFFFFFFFF:0;
-                return (int)rmreg>>shiftamount;
-                case 3: /*ROR*/
-                if ((shiftamount!=32) || (opcode&0x10)) return (rmreg>>shiftamount)|(rmreg<<(32-shiftamount));
-                return (rmreg>>1)|((armregs[15]&CFLAG)?0x80000000:0);
-        }
-}
-#endif
-
-#if 0
-inline unsigned shift4(unsigned opcode)
-{
-        unsigned shiftmode=(opcode>>5)&3;
-        unsigned shiftamount=(opcode>>7)&31;
-        uint32_t temp;
-        int cflag=CFSET;
-        if (!(opcode&0xFF0)) return armregs[RM];
-        if (opcode&0x10)
-        {
-                shiftamount=armregs[(opcode>>8)&15]&0xFF;
-                if (shiftmode==3)
-                   shiftamount&=0x1F;
-//                cycles--;
-        }
-        temp=armregs[RM];
-//        if (RM==15) temp+=4;
-        switch (shiftmode)
-        {
-                case 0: /*LSL*/
-                if (!shiftamount)    return temp;
-                if (shiftamount>=32) return 0;
-                return temp<<shiftamount;
-
-                case 1: /*LSR*/
-                if (!shiftamount && !(opcode&0x10))    return 0;
-                if (shiftamount>=32) return 0;
-                return temp>>shiftamount;
-
-                case 2: /*ASR*/
-                if (!shiftamount && !(opcode&0x10)) shiftamount=32;
-                if (shiftamount>=32)
-                {
-                        if (temp&0x80000000)
-                           return 0xFFFFFFFF;
-                        return 0;
-                }
-                return (int)temp>>shiftamount;
-
-                case 3: /*ROR*/
-                if (!shiftamount && !(opcode&0x10)) return (((cflag)?1:0)<<31)|(temp>>1);
-                if (!shiftamount)                   return temp;
-                return (temp>>shiftamount)|(temp<<(32-shiftamount));
-                break;
-
-                default:
-                sprintf(err2,"Shift2 mode %i amount %i\n",shiftmode,shiftamount);
-                error("%s",err2);
-                dumpregs();
-                exit(-1);
-        }
-}
-#endif
-
-unsigned shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount)
+//#if 0
+unsigned shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
 {
                 switch (shiftmode)
                 {
                         case 0: /*LSL*/
-                        if (!shiftamount)    return armregs[RM];
+                        if (!shiftamount)    return rm;
                         return 0; /*shiftamount>=32*/
 
-                        case 1: /*LSR*/
-                        if (!shiftamount && (opcode&0x10)) return armregs[RM];
+                        case 0x20: /*LSR*/
+                        if (!shiftamount && (opcode&0x10)) return rm;
                         return 0; /*shiftamount>=32*/
 
-                        case 2: /*ASR*/
+                        case 0x40: /*ASR*/
                         if (!shiftamount && !(opcode&0x10)) shiftamount=32;
                         if (shiftamount>=32)
                         {
-                                if (armregs[RM]&0x80000000)
+                                if (rm&0x80000000)
                                    return 0xFFFFFFFF;
                                 return 0;
                         }
-                        return (int)armregs[RM]>>shiftamount;
+                        return (int)rm>>shiftamount;
 
-                        case 3: /*ROR*/
-                        if (!(opcode&0x10)) return (((CFSET)?1:0)<<31)|(armregs[RM]>>1);
+                        case 0x60: /*ROR*/
+                        if (!(opcode&0x10)) return (((CFSET)?1:0)<<31)|(rm>>1);
                         shiftamount&=0x1F;
-                        return (armregs[RM]>>shiftamount)|(armregs[RM]<<(32-shiftamount));
+                        return (rm>>shiftamount)|(rm<<(32-shiftamount));
 
                         default:
                         sprintf(err2,"Shift2 mode %i amount %i\n",shiftmode,shiftamount);
@@ -879,49 +751,40 @@ unsigned shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount)
                         exit(-1);
                 }
 }
+//#endif
 
 inline unsigned shift4(unsigned opcode)
 {
-        unsigned shiftmode=(opcode>>5)&3;
+        unsigned shiftmode=opcode&0x60;
         unsigned shiftamount=(opcode&0x10)?(armregs[(opcode>>8)&15]&0xFF):((opcode>>7)&31);
+        uint32_t rm=armregs[RM];
         if ((shiftamount-1)>=31)
         {
-                return shift5(opcode,shiftmode,shiftamount);
+//              if (!shiftamount && !shiftmode) return rm;
+                return shift5(opcode,shiftmode,shiftamount,rm);
         }
         else
         {
                 switch (shiftmode)
                 {
                         case 0: /*LSL*/
-                        return armregs[RM]<<shiftamount;
-                        case 1: /*LSR*/
-                        return armregs[RM]>>shiftamount;
-                        case 2: /*ASR*/
-                        return (int)armregs[RM]>>shiftamount;
-                        case 3: /*ROR*/
-                        return (armregs[RM]>>shiftamount)|(armregs[RM]<<(32-shiftamount));
+                        return rm<<shiftamount;
+                        case 0x20: /*LSR*/
+                        return rm>>shiftamount;
+                        case 0x40: /*ASR*/
+                        return (int)rm>>shiftamount;
+                        default: /*ROR*/
+                        return (rm>>shiftamount)|(rm<<(32-shiftamount));
                 }
         }
+//        return 0;
 }
-
-#if 0
-unsigned long shift4(unsigned long opcode)
-{
-        return shift4n(opcode);
-//        unsigned long temp,temp2;
-//        temp=shift4n(opcode);
-/*        temp2=shift4o(opcode);
-        if (temp != temp2)
-           rpclog("shift mismatch : new %08X  old %08X  data %08X mode %i amount %i %s %08X %08X\n",temp,temp2,armregs[RM],(opcode>>5)&3,(opcode>>7)&0x1F,(opcode&0x10)?"register":"immediate",opcode,armregs[(opcode>>8)&15]);
-        return temp2;*/
-}
-#endif
 
 static inline unsigned rotate(unsigned data)
 {
         uint32_t rotval;
         rotval=rotatelookup[data&4095];
-        if (data&0x100000 && data&0xF00)
+        if (/*data&0x100000 && */data&0xF00)
         {
                 if (rotval&0x80000000) armregs[cpsr]|=CFLAG;
                 else                   armregs[cpsr]&=~CFLAG;
@@ -930,95 +793,12 @@ static inline unsigned rotate(unsigned data)
 }
 
 #define rotate2(v) rotatelookup[v&4095]
-//#define rotval    (opcode&0xFF)
-//#define rotamount ((opcode>>7)&0x1E)
-//#define rotate2(opcode) ((rotval>>rotamount)|(rotval<<(32-rotamount)))
 static const int ldrlookup[4]={0,8,16,24};
 
 #define ldrresult(v,a) ((v>>ldrlookup[addr&3])|(v<<(32-ldrlookup[addr&3])))
 
-/*uint32_t ldrresult(uint32_t val, uint32_t addr)
-{
-//        if (addr&3) printf("Unaligned access\n");
-//        return val;
-        switch (addr&3)
-        {
-                case 0:
-                return val;
-                case 1:
-                return (val>>8)|(val<<24);
-                case 2:
-                return (val>>16)|(val<<16);
-                case 3:
-                return (val>>24)|(val<<8);
-        }
-}*/
-
+#define undefined() exception(UNDEFINED,8,4)
 int hitu=0;
-void undefined(void)
-{
-        uint32_t templ;
-/*        rpclog("Undefined %08X %i %i CPSR %08X R15 %08X PC %08X\n",opcode,mode,prog32,armregs[16],armregs[15],PC);
-        if (hitu)
-        {
-                dumpregs();
-                exit(-1);
-        }
-        hitu=1;
-        output=2;*/
-//        printf("Undefined instruction\n");
-//        printf("R14 = %08X\n",armregs[14]);
-//        printf("%i : %07X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X  %08X %08X %08X - %08X %08X %08X %i R10=%08X\n",ins,PC,armregs[0],armregs[1],armregs[2],armregs[3],armregs[4],armregs[5],armregs[6],armregs[7],armregs[8],armregs[9],armregs[12],armregs[13],armregs[14],armregs[15],armregs[16],opcode,mode,armregs[10]);
-//        printf("%i %i\n",mode,prog32);
-        if (mode&16)
-        {
-                templ=armregs[15]-4;
-                spsr[UNDEFINED]=armregs[16];
-                updatemode(UNDEFINED|16);
-                armregs[16]&=~0x1F;
-                armregs[14]=templ;
-                armregs[16]|=0x9B;
-                armregs[15]=0x00000008;
-                refillpipeline();
-        }
-        else if (prog32)
-        {
-                templ=armregs[15]-4;
-                updatemode(UNDEFINED|16);
-                armregs[14]=templ&0x3FFFFFC;
-                spsr[UNDEFINED]=(armregs[16]&~0x1F)|(templ&3);
-                armregs[15]=0x00000008;
-                armregs[16]|=0x80;
-//                cycles-=4;
-                refillpipeline();
-        }
-        else
-        {
-                templ=armregs[15]-4;
-                armregs[15]|=3;
-                updatemode(SUPERVISOR);
-                armregs[14]=templ;
-                armregs[15]&=0xFC000003;
-                armregs[15]|=0x08000008;
-//                cycles-=4;
-                refillpipeline();
-        }
-        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-}
-/*
-#define undefined()\
-                                        templ=armregs[15]-4; \
-                                        armregs[15]|=3;\
-                                        updatemode(SUPERVISOR);\
-                                        armregs[14]=templ;\
-                                        armregs[15]&=0xFC000003;\
-                                        armregs[15]|=0x08000008;\
-                                        refillpipeline();\
-                                        cycles--
-*/
-//static int accc=0;
-//static FILE *slogfile;
-
 
 static void refillpipeline2()
 {
@@ -1028,10 +808,10 @@ static void refillpipeline2()
         {
                 pccache=addr>>12;
                 pccache2=getpccache(addr);
-                if (pccache2==0xFFFFFFFF)
+                if ((uint32_t)pccache2==0xFFFFFFFF)
                 {
                         opcode2=opcode3=0xFFFFFFFF;
-                        pccache=pccache2;
+                        pccache=(uint32_t)pccache2;
                         return;
                 }
         }
@@ -1041,10 +821,10 @@ static void refillpipeline2()
         {
                 pccache=addr>>12;
                 pccache2=getpccache(addr);
-                if (pccache2==0xFFFFFFFF)
+                if ((uint32_t)pccache2==0xFFFFFFFF)
                 {
                         opcode3=0xFFFFFFFF;
-                        pccache=pccache2;
+                        pccache=(uint32_t)pccache2;
                         return;
                 }
         }
@@ -1062,9 +842,6 @@ static const uint32_t msrlookup[16]=
         0xFFFF0000,0xFFFF00FF,0xFFFFFF00,0xFFFFFFFF
 };
 
-//static uint32_t oldr12;
-
-
 static void bad_opcode(uint32_t opcode) 
 {
      error("Bad opcode %02X %08X at %07X\n",(opcode >> 20) & 0xFF, opcode, PC);
@@ -1073,10 +850,48 @@ static void bad_opcode(uint32_t opcode)
      exit(EXIT_FAILURE);
 }
 
+void exception(int mmode, uint32_t address, int diff)
+{
+        uint32_t templ;
+        unsigned char irq=0xC0;
+        if (mmode==SUPERVISOR) irq=0x80;
+        if (mode&16)
+        {
+                templ=armregs[15]-diff;
+                spsr[mmode]=armregs[16];
+                updatemode(mmode|16);
+                armregs[14]=templ;
+                armregs[16]&=~0x1F;
+                armregs[16]|=0x10|mmode|irq;
+                armregs[15]=address;
+                refillpipeline();
+        }
+        else if (prog32)
+        {
+                templ=armregs[15]-diff;
+                updatemode(mmode|16);
+                armregs[14]=templ&0x3FFFFFC;
+                spsr[mmode]=(armregs[16]&~0x1F)|(templ&3);
+                spsr[mmode]&=~0x10;
+                armregs[16]|=irq;
+                armregs[15]=address;
+                refillpipeline();
+        }
+        else
+        {
+                templ=armregs[15]-diff;
+                armregs[15]|=3;
+                updatemode(SUPERVISOR);
+                armregs[14]=templ;
+                armregs[15]&=0xFC000003;
+                armregs[15]|=((irq<<20)|address);
+                refillpipeline();
+        }
+}
 #define writememfast(a,v) writememl(a,v)
 //#define writememfast(a,v) if (((a)&0xFFFFF000)==raddrl[((a)>>12)&0xFF]) raddrl2[((a)>>12)&0xFF][(a)>>2]=v; else writememl(a,v)
 //#define writememfast(a,v) if (((a)&0xFFFFF000)!=raddrl[((a)>>12)&0xFF]) { readmeml(a); } raddrl2[((a)>>12)&0xFF][(a)>>2]=v
-static void ldmstm(uint32_t ls_opcode, uint32_t opcode) 
+static inline void ldmstm(uint32_t ls_opcode, uint32_t opcode)
 {
   uint32_t templ, mask, addr, c;
 //                                inscounts[(opcode>>20)&0xFF]++;
@@ -1648,6 +1463,8 @@ void execarm(int cycs)
         uint32_t templ,templ2,addr,addr2;
         unsigned char temp;
         int linecyc;
+        int target;
+//        int RD;
         cycles+=cycs;
         while (cycles>0)
         {
@@ -1667,7 +1484,7 @@ void execarm(int cycs)
                         {
                                 pccache=PC>>12;
                                 pccache2=getpccache(PC);
-                                if (pccache2==0xFFFFFFFF) opcode=pccache=pccache2;
+                                if ((uint32_t)pccache2==0xFFFFFFFF) opcode=pccache=(uint32_t)pccache2;
 #ifdef PREFETCH
                                 else                      opcode3=pccache2[PC>>2];
 #else
@@ -1680,10 +1497,13 @@ void execarm(int cycs)
 #else
                            opcode=pccache2[PC>>2];
 #endif
-                        if (flaglookup[opcode>>28][armregs[cpsr]>>28] && !prefabort)
+                        target=(opcode>>20)&0xFF;
+                        if (flaglookup[opcode>>28][(*pcpsr)>>28] && !(armirq&0x80))//prefabort)
                         {
 //                                inscounts[(opcode>>20)&0xFF]++;
 #ifdef STRONGARM
+//                                if ((opcode&0xE000090)==0x90)
+//                                {
                                 if ((opcode&0xE0000F0)==0xB0) /*LDRH/STRH*/
                                 {
                                         error("Bad LDRH/STRH opcode %08X\n",opcode);
@@ -1695,11 +1515,15 @@ void execarm(int cycs)
                                         error("Bad LDRH/STRH opcode %08X\n",opcode);
                                         dumpregs();
                                         exit(-1);
+//                                }
+//                                goto domain;
                                 }
                                 else
                                 {
+//                                        domain:
+//                                        GETRD;
 #endif
-                                switch ((opcode>>20)&0xFF)
+                                switch (target)//((opcode>>20)&0xFF)
                                 {
 				        case 0x00: /*AND reg*/
 				  /*    if (!opcode)
@@ -1829,7 +1653,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=shift(opcode);
+                                                templ=shift2(opcode);
                                                 setsub(GETADDR(RN),templ,GETADDR(RN)-templ);
                                                 armregs[RD]=GETADDR(RN)-templ;
                                         }
@@ -1859,7 +1683,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=shift(opcode);
+                                                templ=shift2(opcode);
                                                 setsub(templ,GETADDR(RN),templ-GETADDR(RN));
                                                 armregs[RD]=templ-GETADDR(RN);
                                         }
@@ -1923,7 +1747,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=shift(opcode);
+                                                templ=shift2(opcode);
                                                 setadd(GETADDR(RN),templ,GETADDR(RN)+templ);
         //                                        printf("ADDS %08X+%08X = ",GETADDR(RN),templ);
                                                 armregs[RD]=GETADDR(RN)+templ;
@@ -1984,7 +1808,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 templ2=CFSET;
-                                                templ=shift(opcode);
+                                                templ=shift2(opcode);
                                                 setadc(GETADDR(RN),templ,GETADDR(RN)+templ+templ2);
                                                 armregs[RD]=GETADDR(RN)+templ+templ2;
                                         }
@@ -2044,7 +1868,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=shift(opcode);
+                                                templ=shift2(opcode);
                                                 setsbc(GETADDR(RN),templ,GETADDR(RN)-(templ+templ2));
                                                 armregs[RD]=GETADDR(RN)-(templ+templ2);
                                         }
@@ -2108,7 +1932,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=shift(opcode);
+                                                templ=shift2(opcode);
                                                 setsbc(templ,GETADDR(RN),templ-(GETADDR(RN)+templ2));
                                                 armregs[RD]=templ-(GETADDR(RN)+templ2);
                                         }
@@ -2180,14 +2004,9 @@ void execarm(int cycs)
                                                         updatemode(armregs[16]&0x1F);
                                                         if (!(mode&16)) {
                                                            armregs[15]=(armregs[15]&~3)|(armregs[16]&3);
-							   armregs[15]=(armregs[15]&~0xC000000)|((armregs[16]&0xC0) << 20);
-							}
+                                                           armregs[15]=(armregs[15]&~0xC000000)|((armregs[16]&0xC0) << 20);
+                                                        }
                                                 }
-
-						if (opcode & 0x80000) {
-							if (!(mode & 16))
-								armregs[15]=(armregs[15]&~0xF0000000)|(armregs[16]&0xF0000000);
-						}
                                                 armregs[16]=templ;
                                         }
                                         else
@@ -2234,7 +2053,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=shift(opcode);
+                                                templ=shift2(opcode);
                                                 setsub(GETADDR(RN),templ,GETADDR(RN)-templ);
                                         }
                                         //cycles--;
@@ -2467,7 +2286,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=rotate(opcode);
+                                                templ=rotate2(opcode);
                                                 templ2=GETADDR(RN);
                                                 armregs[RD]=templ2-templ;
                                                 setsub(templ2,templ,templ2-templ);
@@ -2499,7 +2318,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=rotate(opcode);
+                                                templ=rotate2(opcode);
                                                 setsub(templ,GETADDR(RN),templ-GETADDR(RN));
                                                 armregs[RD]=templ-GETADDR(RN);
                                         }
@@ -2530,7 +2349,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=rotate(opcode);
+                                                templ=rotate2(opcode);
                                                 setadd(GETADDR(RN),templ,GETADDR(RN)+templ);
                                                 armregs[RD]=GETADDR(RN)+templ;
                                         }
@@ -2564,7 +2383,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 templ2=CFSET;
-                                                templ=rotate(opcode);
+                                                templ=rotate2(opcode);
                                                 setadc(GETADDR(RN),templ,GETADDR(RN)+templ+templ2);
                                                 armregs[RD]=GETADDR(RN)+templ+templ2;
                                         }
@@ -2596,7 +2415,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=rotate(opcode);
+                                                templ=rotate2(opcode);
                                                 setsbc(GETADDR(RN),templ,GETADDR(RN)-(templ+templ2));
                                                 armregs[RD]=GETADDR(RN)-(templ+templ2);
                                         }
@@ -2627,7 +2446,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=rotate(opcode);
+                                                templ=rotate2(opcode);
                                                 setsbc(templ,GETADDR(RN),templ-(GETADDR(RN)+templ2));
                                                 armregs[RD]=templ-(GETADDR(RN)+templ2);
                                         }
@@ -2651,10 +2470,16 @@ void execarm(int cycs)
                                         break;
                                 
                                         case 0x32: /*MSR rot->flags*/
-					templ = rotate(opcode);
+/*                                        if ((opcode&0x3FF000)==0x28F000)
+                                        {
+                                                templ=rotate(opcode);
+                                                armregs[cpsr]=(armregs[cpsr]&~0xF0000000)|(templ&0xF0000000);
+                                        }*/
 
-					if (output)
-						rpclog("MSR: %08x (%08x - %08x)\n", opcode, armregs[15], armregs[16]);
+					templ = rotate2(opcode);
+
+//					if (output)
+//						rpclog("MSR: %08x (%08x - %08x)\n", opcode, armregs[15], armregs[16]);
 
 					if (mode & 0xF) {
 						if (opcode & 0x10000) {
@@ -2669,7 +2494,7 @@ void execarm(int cycs)
 						if (opcode & 0x40000)
 							armregs[16] = (armregs[16] & ~ 0xFF0000) | (templ & 0xFF0000);
 					}
-					
+
                                         if (opcode & 0x80000) {
 						armregs[16] = (armregs[16] & ~ 0xFF000000) | (templ & 0xFF000000);
 						if ((mode & 0x10) == 0) {
@@ -2677,15 +2502,16 @@ void execarm(int cycs)
 						}
 					}
 
-					if (output)
-						rpclog("%08x - %08x\n", armregs[15], armregs[16]);
+//					if (output)
+//						rpclog("%08x - %08x\n", armregs[15], armregs[16]);
 
 					if ((armregs[16] & 0x1F) != mode) {
-						if (output)
-							rpclog("changing mode to %02x (was %02x)\n", armregs[16] & 0x1F, mode);
+//						if (output)
+//							rpclog("changing mode to %02x (was %02x)\n", armregs[16] & 0x1F, mode);
 
 						updatemode(armregs[16] & 0x1F);
 					}
+
 
                                         //cycles--;
                                         break;
@@ -2734,7 +2560,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=rotate(opcode);
+                                                templ=rotate2(opcode);
                                                 templ2=GETADDR(RN);
                                                 setsub(templ2,templ,templ2-templ);
                                         }
@@ -2751,7 +2577,7 @@ void execarm(int cycs)
 //                                                refillpipeline();
                                         }
                                         else
-                                           setadd(GETADDR(RN),rotate(opcode),GETADDR(RN)+rotate(opcode));
+                                           setadd(GETADDR(RN),rotate2(opcode),GETADDR(RN)+rotate2(opcode));
                                         //cycles--;
                                         break;
 
@@ -3527,7 +3353,7 @@ void execarm(int cycs)
                                         memmode=0;
                                         writememl(addr,armregs[RD]);
                                         memmode=templ;
-                                        if (databort) break;
+                                        if (armirq&0x40) break;
                                         if (!(opcode&0x1000000))
                                         {
                                                 addr+=addr2;
@@ -3553,7 +3379,7 @@ void execarm(int cycs)
                                         memmode=0;
                                         templ2=readmeml(addr);
                                         memmode=templ;
-                                        if (databort) break;
+                                        if (armirq&0x40) break;
                                         if (addr&3) templ2=ldrresult(templ2,addr);
                                         LOADREG(RD,templ2);
 //                                        if (RD==15) refillpipeline();
@@ -3582,7 +3408,7 @@ void execarm(int cycs)
                                         memmode=0;
                                         writememb(addr,armregs[RD]);
                                         memmode=templ;
-                                        if (databort) break;
+                                        if (armirq&0x40) break;
                                         if (!(opcode&0x1000000))
                                         {
                                                 addr+=addr2;
@@ -3608,7 +3434,7 @@ void execarm(int cycs)
                                         memmode=0;
                                         templ2=readmemb(addr);
                                         memmode=templ;
-                                        if (databort) break;
+                                        if (armirq&0x40) break;
                                         LOADREG(RD,templ2);
                                         if (!(opcode&0x1000000))
                                         {
@@ -3630,7 +3456,7 @@ void execarm(int cycs)
 //#if 0
 			             case 0x4C: /*STRB RD,[RN],#*/
 			             writememb(armregs[RN],armregs[RD]);
-		                     if (databort) break;
+		                     if (armirq&0x40) break;
         			     armregs[RN]+=(opcode&0xFFF);
 			             //cycles-=2;
 //			             rpclog("STRB %07X\n",PC);
@@ -3640,7 +3466,7 @@ void execarm(int cycs)
                 			addr=GETADDR(RN)+(opcode&0xFFF);
                 			templ=readmeml(addr);
                         		if (addr&3) templ=ldrresult(templ,addr);
-                               		if (databort) break;
+                               		if (armirq&0x40) break;
                 			LOADREG(RD,templ);
                 			break;
 
@@ -3648,14 +3474,14 @@ void execarm(int cycs)
                 			addr=GETADDR(RN)+shift2(opcode);
                         		templ=readmeml(addr);
                         		if (addr&3) templ=ldrresult(templ,addr);
-                        		if (databort) break;
+                        		if (armirq&0x40) break;
                 			LOADREG(RD,templ);
                 			break;
 
                 			case 0x7D: /*LDRB RD,[RN,shift]*/
                 			addr=GETADDR(RN)+shift2(opcode);
                 			templ=readmemb(addr);
-                        		if (databort) break;
+                        		if (armirq&0x40) break;
                         		armregs[RD]=templ;
                 			break;
 //#endif
@@ -3679,7 +3505,7 @@ void execarm(int cycs)
                                         }
                                         if (RD==15) { writememl(addr,armregs[RD]+r15diff); }
                                         else        { writememl(addr,armregs[RD]); }
-                                        if (databort)
+                                        if (armirq&0x40)
                                         {
 //                                                rpclog("Data abort\n");
                                                 break;
@@ -3715,7 +3541,7 @@ void execarm(int cycs)
                                         }
                                         templ=readmeml(addr);
                                         if (addr&3) templ=ldrresult(templ,addr);
-                                        if (databort) break;
+                                        if (armirq&0x40) break;
                                         if (!(opcode&0x1000000))
                                         {
                                                 addr+=addr2;
@@ -3726,14 +3552,6 @@ void execarm(int cycs)
                                                 if (opcode&0x200000) armregs[RN]=addr;
                                         }
                                         LOADREG(RD,templ);
-//                                        if (RD==15) refillpipeline();
-                                        //cycles-=3;
-/*                                        if (RD==7)
-                                        {
-                                                if (!olog) olog=fopen("armlog.txt","wt");
-                                                sprintf(s,"LDR R7 %08X,%07X\n",armregs[7],PC);
-                                                fputs(s,olog);
-                                        }*/
                                         break;
 
                                         case 0x65: case 0x6D:
@@ -3751,7 +3569,7 @@ void execarm(int cycs)
                                         if (!(opcode&0x800000))  addr2=-addr2;
                                         if (opcode&0x1000000)    addr+=addr2;
                                         templ=readmemb(addr);
-                                        if (databort) break;
+                                        if (armirq&0x40) break;
                                         if (!(opcode&0x1000000))
                                         {
                                                 addr+=addr2;
@@ -3783,7 +3601,7 @@ void execarm(int cycs)
                                                 addr+=addr2;
                                         }
                                         writememb(addr,armregs[RD]);
-                                        if (databort) break;
+                                        if (armirq&0x40) break;
                                         if (!(opcode&0x1000000))
                                         {
                                                 addr+=addr2;
@@ -3834,17 +3652,17 @@ void execarm(int cycs)
         {
                 pccache=templ>>10;
                 pccache2=getpccache(templ<<2);
-                if (pccache2==0xFFFFFFFF) pccache=pccache2;
-                else                      opcode2=pccache2[templ];
+                if ((uint32_t)pccache2==0xFFFFFFFF) pccache=(uint32_t)pccache2;
+                else                                opcode2=pccache2[templ];
         }
         else opcode2=pccache2[templ];
         templ++;
-        if (!(templ&0x3FF) || pccache2==0xFFFFFFFF)
+        if (!(templ&0x3FF) || (uint32_t)pccache2==0xFFFFFFFF)
         {
                 pccache=templ>>10;
                 pccache2=getpccache(templ<<2);
-                if (pccache2==0xFFFFFFFF) pccache=pccache2;
-                else                      opcode3=pccache2[templ];
+                if ((uint32_t)pccache2==0xFFFFFFFF) pccache=(uint32_t)pccache2;
+                else                                opcode3=pccache2[templ];
         }
         else opcode3=pccache2[templ];
 #endif
@@ -3867,15 +3685,15 @@ void execarm(int cycs)
         {
                 pccache=templ>>10;
                 pccache2=getpccache(templ<<2);
-                if (pccache2==0xFFFFFFFF) pccache=pccache2;
-                else                      opcode2=pccache2[templ];
+                if ((uint32_t)pccache2==0xFFFFFFFF) pccache=(uint32_t)pccache2;
+                else                                opcode2=pccache2[templ];
                 templ++;
-                if (!(templ&0x3FF) || pccache2==0xFFFFFFFF)
+                if (!(templ&0x3FF) || (uint32_t)pccache2==0xFFFFFFFF)
                 {
                         pccache=templ>>10;
                         pccache2=getpccache(templ<<2);
-                        if (pccache2==0xFFFFFFFF) pccache=pccache2;
-                        else                      opcode3=pccache2[templ];
+                        if ((uint32_t)pccache2==0xFFFFFFFF) pccache=(uint32_t)pccache2;
+                        else                                opcode3=pccache2[templ];
                 }
                 else opcode3=pccache2[templ];
         }
@@ -3948,63 +3766,40 @@ void execarm(int cycs)
                                         case 0xF4: case 0xF5: case 0xF6: case 0xF7:
                                         case 0xF8: case 0xF9: case 0xFA: case 0xFB:
                                         case 0xFC: case 0xFD: case 0xFE: case 0xFF:
-/*                                        if (PC<0x1800000)
-                                        {
-                                                rpclog("SWI %05X %08X %08X %08X %08X %c %c %07X %i\n",opcode&0xFFFFF,armregs[0],armregs[1],armregs[2],armregs[3],((opcode&0xFF)>0x20)?(opcode&0xFF):'.',((armregs[0]&0xFF)>0x20)?(armregs[0]&0xFF):'.',PC,inssinceswi);
-                                                inssinceswi=0;
-                                                if (PC==0x19E60) output=1;
-                                                lastswi=PC;
-                                        }*/
-/*                                        if (output) rpclog("SWI %05X %08X %i %i\n",opcode&0xFFFFF,PC,ins,swiout);
-                                        if ((opcode&0xFFFFF)==0x20013 && PC==0x34CA4)
-                                        {
-                                                if (ins!=59)
-                                                {
-                                                        output=2;
-//                                                        timetolive=200;
-                                                }
-//                                                else         output=1;
-                                                ins=0;
-                                                swiout++;
-                                                if (swiout==5615) output=2;
-                                                if (swiout==3)
-                                                {
-                                                        dumpregs();
-                                                        exit(-1);
-                                                }
-                                        }*/
                                         templ=opcode&0xDFFFF;
-//                                        rpclog("SWI %05X %08X %07X\n",templ,opcode,PC);
-//                                        if ((templ&~0x1F)==0x404C0) /*MIDI*/
-//                                           rpclog("MIDI SWI %05X %07X  %08X %08X %08X %08X %08X\n",templ,PC,armregs[0],armregs[1],armregs[2],armregs[3],armregs[4]);
-                                        #if 0
-                                        if (templ==0x40240) /*ADFS_DiscOp*/
-                                           rpclog("ADFS_DiscOp %08X  %08X  %08X %08X\n",armregs[1],armregs[2],armregs[3],armregs[4]);
-                                        if (templ==0x4024D) /*ADFS_SectorOp*/
-                                           rpclog("ADFS_SectorOp %08X  %08X  %08X %08X\n",armregs[1],armregs[2],armregs[3],armregs[4]);
-                                        if (templ==0x40540) /*FileCore_DiscOp*/
-                                           rpclog("FileCore_DiscOp %08X  %08X  %08X %08X\n",armregs[1],armregs[2],armregs[3],armregs[4]);
-                                        if (templ==0x4054A) /*FileCore_SectorOp*/
-                                           rpclog("FileCore_SectorOp %08X  %08X  %08X %08X\n",armregs[1],armregs[2],armregs[3],armregs[4]);
-                                           #endif
-/*                                        if ((templ&0x4FFFF)==0x4075D)
+//                                        if (templ==0x34) printf("OS_CallAVector %08X %08X %08X\n",armregs[9],armregs[0],armregs[1]);
+                                        if (mousehack && templ==7 && armregs[0]==0x15)
                                         {
-                                                rpclog("ColourTrans_WritePalette %08X %08X %08X %08X %08X %07X\n",armregs[0],armregs[1],armregs[2],armregs[3],armregs[4],PC);
+//                                                printf("OSWORD call %i\n",readmemb(armregs[1]));
+                                                if (readmemb(armregs[1])==1)
+                                                {
+                                                        setmouseparams(armregs[1]);
+                                                        break;
+                                                }
+                                                else if (readmemb(armregs[1])==4)
+                                                {
+                                                        getunbufmouse(armregs[1]);
+                                                        break;
+                                                }
+                                                else if (readmemb(armregs[1])==3)
+                                                {
+                                                        setmousepos(armregs[1]);
+                                                        break;
+                                                }
+                                                else if (readmemb(armregs[1])==5)
+                                                {
+                                                        setmousepos(armregs[1]);
+                                                        break;
+                                                }
+                                                else
+                                                  goto realswi;
                                         }
-                                        if ((templ&0x4FFFF)==7 && armregs[0]==12)
+                                        else if (mousehack && templ==0x1C)
                                         {
-                                                rpclog("OSWORD 12 %02X %02X %02X %02X %02X %07X\n",readmemb(armregs[0]),readmemb(armregs[0]+1),readmemb(armregs[0]+2),readmemb(armregs[0]+3),readmemb(armregs[0]+4),PC);
-                                        }*/
-/*                                        if ((templ&0x1FFFF)==6)
-                                        {
-                                                rpclog("OS_Byte %i %08X %08X %08X %08X\n",armregs[0],armregs[0],armregs[1],armregs[2],PC);
-                                        }*/
-//                                        if (templ>0x200 && templ!=0x41502) rpclog("SWI %05X %07X\n",templ,PC);
-/*                                        if (templ==0x4054A && ((armregs[2]>>29)&~1)==4 && (armregs[1]&0xF)==9) //FileCore_SectorOp
-                                        {
-                                                filecoresectorop();
+                                                getosmouse();
+                                                armregs[15]&=~VFLAG;
                                         }
-					else */if (templ == ARCEM_SWI_HOSTFS)
+                                        else if (templ == ARCEM_SWI_HOSTFS)
 					  {
 //                                                        rpclog("HOSTFS SWI\n");
 //                                                        dbug_hostfs("ARCEM_SWI %08X\n",templ);
@@ -4013,52 +3808,72 @@ void execarm(int cycs)
 					    hostfs(&state);
 //					    dbug_hostfs("Results : %08X %08X %08X %08X\n",armregs[2],armregs[3],armregs[4],armregs[5]);
 					  }
+                                        else if (templ == ARCEM_SWI_HOSTCD)
+					  {
+//                                                        rpclog("HOSTFS SWI\n");
+//                                                        dbug_hostfs("ARCEM_SWI %08X\n",templ);
+					    ARMul_State state;
+					    state.Reg = armregs;
+					    hostcd(&state);
+//					    dbug_hostfs("Results : %08X %08X %08X %08X\n",armregs[2],armregs[3],armregs[4],armregs[5]);
+					  }
 					  else
 					  {
-                                        if (mode&16)
-                                        {
-                                                templ=armregs[15]-4;
-                                                spsr[SUPERVISOR]=armregs[16];
-                                                updatemode(SUPERVISOR|16);
-                                                armregs[14]=templ;
-                                                armregs[16]&=~0x1F;
-                                                armregs[16]|=0x93;
-                                                armregs[15]=0x0000000C;
-                                                refillpipeline();
-                                        }
-                                        else if (prog32)
-                                        {
-                                                templ=armregs[15]-4;
-                                                updatemode(SUPERVISOR|16);
-                                                armregs[14]=templ&0x3FFFFFC;
-                                                spsr[SUPERVISOR]=(armregs[16]&~0x1F)|(templ&3);
-                                                armregs[15]=0x0000000C;
-                                                armregs[16]|=0x80;
-                                                //cycles-=4;
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                templ=armregs[15]-4;
-                                                armregs[15]|=3;
-                                                updatemode(SUPERVISOR);
-                                                armregs[14]=templ;
-                                                armregs[15]&=0xFC000003;
-                                                armregs[15]|=0x0800000C;
-                                                //cycles-=4;
-                                                refillpipeline();
-                                        }
+                                                        realswi:
+                                                        if (mousehack && templ==7 && armregs[0]==0x15 && readmemb(armregs[1])==0)
+                                                           setpointer(armregs[1]);
+                                                        if (mousehack && templ==6 && armregs[0]==106)
+                                                           osbyte106(armregs[1]);
+//                                                        templ=armregs[15]-4;
+exception(SUPERVISOR,0xC,4);
+
+/*
+                                                if (mode&16)
+                                                {
+                                                        templ=armregs[15]-4;
+                                                        spsr[SUPERVISOR]=armregs[16];
+                                                        updatemode(SUPERVISOR|16);
+                                                        armregs[14]=templ;
+                                                        armregs[16]&=~0x1F;
+                                                        armregs[16]|=0x93;
+                                                        armregs[15]=0x0000000C;
+                                                        refillpipeline();
+                                                }
+                                                else if (prog32)
+                                                {
+                                                        templ=armregs[15]-4;
+                                                        updatemode(SUPERVISOR|16);
+                                                        armregs[14]=templ&0x3FFFFFC;
+                                                        spsr[SUPERVISOR]=(armregs[16]&~0x1F)|(templ&3);
+                                                        armregs[15]=0x0000000C;
+                                                        armregs[16]|=0x80;
+                                                        //cycles-=4;
+                                                        refillpipeline();
+                                                }
+                                                else
+                                                {
+                                                        templ=armregs[15]-4;
+                                                        armregs[15]|=3;
+                                                        updatemode(SUPERVISOR);
+                                                        armregs[14]=templ;
+                                                        armregs[15]&=0xFC000003;
+                                                        armregs[15]|=0x0800000C;
+                                                        //cycles-=4;
+                                                        refillpipeline();
+                                                }*/
+//        templ=(PC-4)>>2;
+//refillpipeline();
 //                                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
                                         }
                                         break;
 
 				          default:
 					    {
-					      int ls_opcode = (opcode >> 20) & 0xff;
+/*					      int ls_opcode = (opcode >> 20) & 0xff;
 
 					      if (ls_opcode >= 0x80 && ls_opcode <= 0xa0)
 					        ldmstm(ls_opcode, opcode);
-                                              else
+                                              else*/
 					        bad_opcode(opcode);
 					    }
                                 }
@@ -4066,7 +3881,7 @@ void execarm(int cycs)
 #ifdef STRONGARM
                         }
 #endif
-                        if (databort|armirq|prefabort)
+                        if (/*databort|*/armirq)//|prefabort)
                         {
 /*                                if (mode&16)
                                 {
@@ -4082,95 +3897,20 @@ void execarm(int cycs)
                                 }
 //                                if (output) rpclog("Exception process - %i %i %i %08X %08X %i\n",databort,armirq,prefabort,armregs[15],armregs[16],inscount);
 //                                if (out2) printf("PC at the moment %07X %i %i %02X %08X\n",PC,ins,mode,armregs[16]&0xC0,armregs[15]);
-                                if (prefabort)       /*Prefetch abort*/
+                                if (armirq&0xC0)
                                 {
-//                                if (output) rpclog("Pref abort Exception %i %i %i %08X\n",databort,armirq,prefabort,PC);
-//                                exit(-1);
-/*                                error("Exception %i %i %i\n",databort,armirq,prefabort);
-                                dumpregs();
-                                exit(-1);*/
-                                        databort=0;
-                                        prefabort=0;
-                                        if (mode&16)
-                                        {
-                                                templ=armregs[15];
-                                                spsr[ABORT]=armregs[16];
-                                                updatemode(ABORT|16);
-                                                armregs[14]=templ;
-                                                armregs[16]&=~0x1F;
-                                                armregs[16]|=0xD7;
-                                                armregs[15]=0x000000010;
-                                                refillpipeline();
-//                                                timetolive=500;
-                                        }
-                                        else if (prog32)
-                                        {
-                                                templ=armregs[15];
-                                                updatemode(ABORT|16);
-                                                armregs[14]=templ&0x3FFFFFC;
-                                                spsr[ABORT]=(armregs[16]&~0x1F)|(templ&3);
-                                                spsr[ABORT]&=~0x10;
-                                                armregs[16]&=~0x1F;
-                                                armregs[16]|=0xD7;
-                                                armregs[15]=0x000000010;
-                                                refillpipeline();
-//                                                printf("R8 %08X R11 %08X R12 %08X R13 %08X\n",armregs[8],armregs[11],armregs[12],armregs[13]);
-                                        }
-                                        else
-                                        {
-                                                templ=armregs[15];
-                                                armregs[15]|=3;
-                                                updatemode(SUPERVISOR);
-                                                armregs[14]=templ;
-                                                armregs[15]&=0xFC000003;
-                                                armregs[15]|=0x0C000010;
-                                                refillpipeline();
-                                        }
+//                                        exception(ABORT,(armirq&0x80)?0x10:0x14,0);
+//                                        armirq&=~0xC0;
+//                                        #if 0
+                                if (armirq&0x80)//prefabort)       /*Prefetch abort*/
+                                {
+                                        armirq&=~0xC0;
+                                        exception(ABORT,0x10,0);
                                 }
-                                else if (databort==1)     /*Data abort*/
+                                else if (armirq&0x40)//databort==1)     /*Data abort*/
                                 {
-//                                if (output) rpclog("Dat abort Exception %i %i %i %08X\n",databort,armirq,prefabort,PC);
-//                                dumpregs();
- //                               output=1;
- //                               timetolive=25;
-/*                                dumpregs();
-                                exit(-1);*/
-                                        databort=0;
-                                        if (mode&16)
-                                        {
-                                                templ=armregs[15];
-                                                spsr[ABORT]=armregs[16];
-                                                updatemode(ABORT|16);
-                                                armregs[14]=templ;
-                                                armregs[16]&=~0x1F;
-                                                armregs[16]|=0xD7;
-                                                armregs[15]=0x000000014;
-                                                refillpipeline();
-//                                                timetolive=500;
-                                        }
-                                        else if (prog32)
-                                        {
-                                                templ=armregs[15];
-                                                updatemode(ABORT|16);
-                                                armregs[14]=templ&0x3FFFFFC;
-                                                spsr[ABORT]=(armregs[16]&~0x1F)|(templ&3);
-                                                spsr[ABORT]&=~0x10;
-                                                armregs[16]&=~0x1F;
-                                                armregs[16]|=0xD7;
-                                                armregs[15]=0x000000014;
-                                                refillpipeline();
-//                                                printf("R8 %08X R11 %08X R12 %08X R13 %08X\n",armregs[8],armregs[11],armregs[12],armregs[13]);
-                                        }
-                                        else
-                                        {
-                                                templ=armregs[15];
-                                                armregs[15]|=3;
-                                                updatemode(SUPERVISOR);
-                                                armregs[14]=templ;
-                                                armregs[15]&=0xFC000003;
-                                                armregs[15]|=0x0C000014;
-                                                refillpipeline();
-                                        }
+                                        armirq&=~0xC0;
+                                        exception(ABORT,0x14,0);
                                 }
                                 else if (databort==2) /*Address Exception*/
                                 {
@@ -4186,64 +3926,17 @@ void execarm(int cycs)
                                         refillpipeline();
                                         databort=0;
                                 }
+//                                #endif
+                                }
                                 else if ((armirq&2) && !(armregs[16]&0x40)) /*FIQ*/
                                 {
-//                                        if (output) rpclog("FIQ - PC %08X\n",PC);
-/*                                        if (!fiqregs[11])
-                                        {
-                                                timetolive=500;
-                                        }*/
-//                                        if (output) printf("FIQ - FIQ R8=%08X\n",fiqregs[8]);
-//                                        printf("%i : %07X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X  %08X %08X %08X - %08X %08X %08X %i R10=%08X\n",ins,PC,armregs[0],armregs[1],armregs[2],armregs[3],armregs[4],armregs[5],armregs[6],armregs[7],armregs[8],armregs[9],armregs[12],armregs[13],armregs[14],armregs[15],armregs[16],opcode,mode,armregs[10]);
-/*                                printf("Exception %i %i %i\n",databort,armirq,prefabort);
-                                dumpregs();
-                                exit(-1);
-                                        templ=armregs[15];
-                                        armregs[15]|=3;
-                                        updatemode(FIQ);
-                                        armregs[14]=templ;
-                                        armregs[15]&=0xFC000001;
-                                        armregs[15]|=0x0C000020;
-                                        refillpipeline();*/
-                                        if (mode&16)
-                                        {
-                                                templ=armregs[15];
-                                                spsr[FIQ]=armregs[16];
-                                                updatemode(FIQ|16);
-                                                armregs[14]=templ;
-                                                armregs[16]&=~0x1F;
-                                                armregs[16]|=0xD1;
-                                                armregs[15]=0x000000020;
-                                                refillpipeline();
-//                                                timetolive=500;
-                                        }
-                                        else if (prog32)
-                                        {
-                                                templ=armregs[15];
-                                                updatemode(FIQ|16);
-                                                armregs[14]=templ&0x3FFFFFC;
-                                                spsr[FIQ]=(armregs[16]&~0x1F)|(templ&3);
-                                                spsr[FIQ]&=~0x10;
-                                                armregs[16]|=0xC0;
-                                                armregs[15]=0x000000020;
-                                                refillpipeline();
-//                                                printf("R8 %08X R11 %08X R12 %08X R13 %08X\n",armregs[8],armregs[11],armregs[12],armregs[13]);
-                                        }
-                                        else
-                                        {
-                                                templ=armregs[15];
-                                                armregs[15]|=3;
-                                                updatemode(FIQ);
-                                                armregs[14]=templ;
-                                                armregs[15]&=0xFC000001;
-                                                armregs[15]|=0x0C000020;
-                                                refillpipeline();
-                                        }
+                                        exception(FIQ,0x20,0);
                                 }
                                 else if ((armirq&1) && !(armregs[16]&0x80)) /*IRQ*/
                                 {
 //                                        if (output) rpclog("IRQ %02X %02X %02X %02X %08X %08X %02X %08X\n",iomd.stata&iomd.maska,iomd.statb&iomd.maskb,iomd.statc&iomd.maskc,iomd.statd&iomd.maskd,PC,armregs[13],mode,irqregs[0]);
 //                                        if (output) printf("IRQ %i %i\n",prog32,mode&16);
+//                                        exception(IRQ,0x1C,0x80,0);
                                         if (mode&16)
                                         {
                                                 templ=armregs[15];
