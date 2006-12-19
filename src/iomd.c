@@ -13,11 +13,11 @@ static int flyback=0;
 void updateirqs(void)
 {
         if ((iomd.stata&iomd.maska) || (iomd.statb&iomd.maskb) || (iomd.statd&iomd.maskd) || (iomd.state&iomd.maske))
-           irq=1;
+           irq|=1;
         else
-           irq=0;
+           irq&=~1;
         if (iomd.statf&iomd.maskf) irq|=2;
-        if (!irq) armirq=0;
+        if (!(irq&3)) armirq&=~3;
 }
 
 int clockcmos=0;
@@ -25,15 +25,15 @@ void gentimerirq()
 {
         int diff;
         if (!infocus) return;
-        diff=inscount-lastinscount;
-        if (diff<5000 && diff>-5000)
+        diff=rinscount-lastinscount;
+        if (diff<10000)
         {
                 delaygenirqleft++;
 //                rpclog("Haven't moved! %i\n",inscount);
                 return;
         }
 //           rpclog("Haven't moved!\n");
-        lastinscount=inscount;
+        lastinscount=rinscount;
         clockcmos++;
         if ((clockcmos&3)==0)
            cmostick();
@@ -138,11 +138,11 @@ void writeiomd(uint32_t addr, uint32_t val)
                 case 0x40: iomd.t0l=(iomd.t0l&0xFF00)|(val&0xFF); break;
                 case 0x44: iomd.t0l=(iomd.t0l&0xFF)|((val&0xFF)<<8); break;
                 case 0x48: iomd.t0c=iomd.t0l-1; settimera(iomd.t0l); break;
-                case 0x4C: iomd.t0r=iomd.t0c--; if (iomd.t0c<0) iomd.t0c=iomd.t0l; break;
+                case 0x4C: iomd.t0r=iomd.t0c--; if (iomd.t0c<0) iomd.t0c+=iomd.t0l; break;
                 case 0x50: iomd.t1l=(iomd.t1l&0xFF00)|(val&0xFF); break;
                 case 0x54: iomd.t1l=(iomd.t1l&0xFF)|((val&0xFF)<<8); break;
                 case 0x58: iomd.t1c=iomd.t1l-1; settimerb(iomd.t1l); break;
-                case 0x5C: iomd.t1r=iomd.t1c--; if (iomd.t1c<0) iomd.t1c=iomd.t1l; break;
+                case 0x5C: iomd.t1r=iomd.t1c--; if (iomd.t1c<0) iomd.t1c+=iomd.t1l; break;
                 case 0x68: /*Int C mask*/
                 iomd.maskc=val;
                 return;
@@ -272,8 +272,8 @@ uint32_t readiomd(uint32_t addr)
                 if (model==0) return 0x5B; /*ARM7500*/
                 return 0xD4;               /*IOMD*/
                 case 0x9C: return 0; /*Chip version*/
-                case 0xA0: return iomd.mousex;
-                case 0xA4: return -iomd.mousey;
+                case 0xA0: rpclog("Read mousex %i\n",iomd.mousex); return iomd.mousex;
+                case 0xA4: rpclog("Read mousey %i\n",-iomd.mousey); return -iomd.mousey;
                 case 0xA8: return readmousedata(); /*Mouse data*/
                 case 0xAC: return getmousestat(); /*Mouse control*/
                 case 0x180: case 0x184: case 0x188: case 0x18C: return 0;
@@ -351,6 +351,7 @@ void updateiomdtimers()
 
 void iomdvsync()
 {
+//        rpclog("Vsync high\n");
         iomd.stata|=8;
         updateirqs();
         flyback=20;

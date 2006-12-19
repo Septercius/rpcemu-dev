@@ -18,6 +18,7 @@
 #include <allegro.h>
 #include "rpcemu.h"
 
+int mcalls;
 int xs,ys;
 
 int mousecapture;
@@ -137,7 +138,7 @@ void keycallback(void)
                 kbdcommand=0;
                 break;
                 case 0xFE:
-//                        rpclog("Send key dataFE\n");
+  //                      rpclog("Send key dataFE %i %02X\n",kbdpacketpos,kbdpacket[kbdpacketpos]);
                 keyboardsend(kbdpacket[kbdpacketpos++]);
                 kcallback=0;
                 if (kbdpacketpos>=kbdpacketsize)
@@ -149,7 +150,7 @@ void keycallback(void)
                 {
                         kcallback=5;
                 }*/
-//                printf("keycallback now %i\n",kcallback);
+//                rpclog("keycallback now %i\n",kcallback);
                 break;
         }
 }
@@ -387,10 +388,13 @@ void pollmouse()
                 return;
         }
         if (key[KEY_MENU]) mouseb|=4;
+        poll_mouse();
         get_mouse_mickeys(&x,&y);
         iomd.mousex+=x;
         iomd.mousey+=y;
+//        rpclog("Poll mouse %i %i %i %i\n",x,y,iomd.mousex,iomd.mousey);
         if (mousecapture) position_mouse(getxs()>>1,getys()>>1);
+        mcalls++;
         if (model) return;
         if (!mousepoll) return;
         if (!x && !y && (mouseb==oldmouseb)) return;
@@ -490,6 +494,7 @@ void pollkeyboard()
                 {
                         keys2[c]=key[c];
                         temp=findkey(c);
+//                        rpclog("Found key %i %s\n",c,(keys2[c])?"down":"up");
 //                        printf("Found key %i %02X\n",c,temp);
                         if (temp!=-1)
                         {

@@ -17,6 +17,9 @@
 #define IDM_VRAM_NONE     40050
 #define IDM_VRAM_2MEGS    40051
 #define IDM_CONFIG        40052
+#define IDM_STRETCH       40053
+#define IDM_FULLSCR       40054
+#define IDM_BLITOPT       40055
 
 #define RadioButton1  1000
 #define RadioButton2  1001
@@ -34,5 +37,10 @@
 #define GroupBox1 1020
 #define GroupBox2 1021
 #define GroupBox3 1022
+#define GroupBox4 1023
 
 #define CheckBox1 1030
+
+#define Slider1 1040
+
+#define Text1 1050

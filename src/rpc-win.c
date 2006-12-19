@@ -4,6 +4,7 @@
   the moment.
   Since I'm the only maintainer of this file, it's a complete mess.*/
 
+int mcalls=0;
 #include <stdio.h>
 #include <allegro.h>
 #include <winalleg.h>
@@ -49,7 +50,7 @@ void rpclog(const char *format, ...)
 {
    char buf[256];
    if (!arclog) arclog=fopen("rlog.txt","wt");
-//return;
+return;
    va_list ap;
    va_start(ap, format);
    vsprintf(buf, format, ap);
@@ -254,7 +255,7 @@ infocus=1;
                 }
                 if (updatemips)
                 {
-                        sprintf(s,"RPCemu v0.51 - %f MIPS %i blits - %s",mips,blits,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
+                        sprintf(s,"RPCemu v0.51 - %f MIPS - %s",mips,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
                         SetWindowText(ghwnd, s);
                         updatemips=0;
                 }
@@ -501,12 +502,16 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         return 0;
                         case IDM_FULLSCR:
                         fullscreen=1;
-                if (mousecapture)
-                {
-                        ClipCursor(&oldclip);
-                        mousecapture=0;
-                }
+                        if (mousecapture)
+                        {
+                                ClipCursor(&oldclip);
+                                mousecapture=0;
+                        }
                         togglefullscreen(1);
+                        return 0;
+                        case IDM_BLITOPT:
+                        skipblits^=1;
+                        CheckMenuItem(hmenu,IDM_BLITOPT,(skipblits)?MF_CHECKED:MF_UNCHECKED);
                         return 0;
                 }
                 break;

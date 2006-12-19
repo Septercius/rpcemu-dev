@@ -26,7 +26,9 @@
   flag instead of blitting. This is tested by blitterthread(), which must be
   called regularly. If a thread is not created in the platform specific file,
   then no blits happen, and the emulator will hang due to the synchronisation in
-  place.*/
+  place.
+  In Windows, on many systems, this _must_ be enabled. Otherwise mouse & keyboard
+  response will be appallingly bad.*/
 #ifndef __unix
 #define BLITTER_THREAD
 #endif
@@ -34,7 +36,11 @@
 /*This makes the RISC OS mouse pointer follow the host pointer exactly. Useful
   for Linux port, however use mouse capturing if possible - mousehack has some
   bugs*/
+#ifdef __unix
+#define mousehack 1
+#else
 #define mousehack 0
+#endif
 
 #define PREFETCH
 
@@ -85,7 +91,7 @@ extern uint8_t *ramb,*romb,*vramb;
 extern uint8_t dirtybuffer[512];
 
 uint32_t tlbcache[16384];
-#define translateaddress(addr,rw) ((!((addr)&0xFC000000) && !(tlbcache[((addr)>>12)&0x3FFF]&0xFFF))?(tlbcache[(addr)>>12]|((addr)&0xFFF)):translateaddress2(addr,rw))
+#define translateaddress(addr,rw,prefetch) ((!((addr)&0xFC000000) && !(tlbcache[((addr)>>12)&0x3FFF]&0xFFF))?(tlbcache[(addr)>>12]|((addr)&0xFFF)):translateaddress2(addr,rw,prefetch))
 
 extern int mmu,memmode;
 
@@ -121,14 +127,15 @@ char exname[512];
 int idecallback;
 
 /*Config*/
-uint32_t vrammask;
+int vrammask;
 int model;
-uint32_t rammask;
+int rammask;
 int stretchmode;
 
 extern uint32_t soundaddr[4];
 
 extern uint32_t inscount;
+int rinscount;
 int cyccount;
 
 /* arm.c */
@@ -154,7 +161,7 @@ void writecp15(uint32_t addr, uint32_t val);
 uint32_t readcp15(uint32_t addr);
 void resetcp15(void);
 uint32_t *getpccache(uint32_t addr);
-uint32_t translateaddress2(uint32_t addr, int rw);
+uint32_t translateaddress2(uint32_t addr, int rw, int prefetch);
 
 /* mem.c */
 uint32_t readmemfl(uint32_t addr);
@@ -219,6 +226,7 @@ void writevidc20(uint32_t val);
 void drawscr();
 void togglefullscreen(int fs);
 int refresh;
+int skipblits;
 
 /* iomd.c */
 void resetiomd(void);

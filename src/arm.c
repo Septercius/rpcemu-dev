@@ -330,12 +330,21 @@ void updatemode(uint32_t m)
         }
 }
 
+int stmlookup[256];
 void resetarm(void)
 {
         int c,d,exec = 0,data;
 //        atexit(dumpregs);
         uint32_t rotval,rotamount;
         for (c=0;c<256;c++) inscounts[c]=0;
+        for (c=0;c<256;c++)
+        {
+                stmlookup[c]=0;
+                for (d=0;d<8;d++)
+                {
+                        if (c&(1<<d)) stmlookup[c]+=4;
+                }
+        }
         r15mask=0x3FFFFFC;
 //        if (!olog)
 //           olog=fopen("armlog.txt","wt");
@@ -394,8 +403,8 @@ int insnum[256];
 
 void dumpregs()
 {
-}
-#if 0
+/*}*/
+//#if 0
         FILE *f,*ff;
         char s[1024];
         int c,d,e;
@@ -428,24 +437,34 @@ void dumpregs()
             rpclog("Opcode %02X : %09i\n",insnum[c],inscounts[c]);*/
 //        return;
 //        if (indumpregs) return;
-//        indumpregs=1;
-        f=fopen("ram.dmp","wb");
+        indumpregs=1;
+//        f=fopen("ram.dmp","wb");
         sprintf(s,"R 0=%08X R 4=%08X R 8=%08X R12=%08X\nR 1=%08X R 5=%08X R 9=%08X R13=%08X\nR 2=%08X R 6=%08X R10=%08X R14=%08X\nR 3=%08X R 7=%08X R11=%08X R15=%08X\n%i %s\n%08X %08X %08X",armregs[0],armregs[4],armregs[8],armregs[12],armregs[1],armregs[5],armregs[9],armregs[13],armregs[2],armregs[6],armregs[10],armregs[14],armregs[3],armregs[7],armregs[11],armregs[15],ins,(mmu)?"MMU enabled":"MMU disabled",oldpc,oldpc2,oldpc3);
-        error("%s",s);
+//        error("%s",s);
         rpclog("%s",s);
 //        error("PC =%07X ins=%i R12f=%08X CPSR=%08X\n",PC,ins,fiqregs[12],armregs[16]);
-        fwrite(ram,0x400000,1,f);
-        fclose(f);
-        f=fopen("kernel.dmp","wb");
-        for (c=0xC0000000;c<0xC0100000;c++)
+//        fwrite(ram,0x400000,1,f);
+//        fclose(f);
+memmode=1;
+/*        f=fopen("kernel.dmp","wb");
+        for (c=0xC0000000;c<0xC0200000;c+=4096)
+        {
+                armirq=0;
+                pccache2=getpccache(c);
+                rpclog("pccache %08X\n",pccache2);
+                if (pccache2!=0xFFFFFFFF)
+                {
+                        rpclog("Writing\n");
+                        fwrite(&pccache2[c>>2],4096,1,f);
+                }
+        }
+        fclose(f);*/
+/*        f=fopen("ram.dmp","wb");
+        for (c=0x8000;c<0x60000;c++)
             putc(readmemb(c),f);
-        fclose(f);
-        f=fopen("os.dmp","wb");
-        for (c=0x10000000;c<0x10010000;c++)
-            putc(readmemb(c),f);
-        fclose(f);
+        fclose(f);*/
 
-        f=fopen("ram30.dmp","wb");
+/*        f=fopen("ram30.dmp","wb");
         for (c=0x2228000;c<0x2229000;c+=4)
         {
                 templ=readmeml(c);
@@ -503,10 +522,10 @@ void dumpregs()
                 putc(readmemb(c+0x8000),f);
 //                if (databort) break;
         }
-        fclose(f);
+        fclose(f);*/
         indumpregs=0;
 }
-#endif
+//#endif
 
 #define dumpregs()
 
@@ -715,6 +734,8 @@ uint32_t shift3(uint32_t opcode)
 
 #define shift(o)  ((o&0xFF0)?shift3(o):armregs[RM])
 #define shift2(o) ((o&0xFF0)?shift4(o):armregs[RM])
+#define shift_ldrstr(o) shift2(o)
+//#define shift_ldrstr(o) ((o&0xFF0)?shift_ldrstr2(o):armregs[RM])
 
 //#if 0
 unsigned shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
@@ -753,14 +774,13 @@ unsigned shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint3
 }
 //#endif
 
-inline unsigned shift4(unsigned opcode)
+static inline unsigned shift4(unsigned opcode)
 {
         unsigned shiftmode=opcode&0x60;
         unsigned shiftamount=(opcode&0x10)?(armregs[(opcode>>8)&15]&0xFF):((opcode>>7)&31);
         uint32_t rm=armregs[RM];
         if ((shiftamount-1)>=31)
         {
-//              if (!shiftamount && !shiftmode) return rm;
                 return shift5(opcode,shiftmode,shiftamount,rm);
         }
         else
@@ -777,9 +797,50 @@ inline unsigned shift4(unsigned opcode)
                         return (rm>>shiftamount)|(rm<<(32-shiftamount));
                 }
         }
-//        return 0;
+}
+#if 0
+unsigned shift_ldrstr3(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
+{
+                switch (shiftmode)
+                {
+                        case 0: /*LSL*/
+                        return rm;
+                        case 0x20: /*LSR*/
+                        return 0;
+                        case 0x40: /*ASR*/
+                        if (rm&0x80000000) return 0xFFFFFFFF;
+                        return 0;
+                        default: /*ROR*/
+                        return (((*pcpsr)/*armregs[cpsr]*/&CFLAG)<<2)|(rm>>1);
+//                        return (((CFSET)?1:0)<<31)|(rm>>1);
+                }
 }
 
+static inline unsigned shift_ldrstr2(unsigned opcode)
+{
+        unsigned shiftmode=opcode&0x60;
+        unsigned shiftamount=(opcode>>7)&31;
+        uint32_t rm=armregs[RM];
+        if (!shiftamount)
+        {
+                shift_ldrstr3(opcode,shiftmode,shiftamount,rm);
+        }
+        else
+        {
+                switch (shiftmode)
+                {
+                        case 0: /*LSL*/
+                        return rm<<shiftamount;
+                        case 0x20: /*LSR*/
+                        return rm>>shiftamount;
+                        case 0x40: /*ASR*/
+                        return (int)rm>>shiftamount;
+                        default: /*ROR*/
+                        return (rm>>shiftamount)|(rm<<(32-shiftamount));
+                }
+        }
+}
+#endif
 static inline unsigned rotate(unsigned data)
 {
         uint32_t rotval;
@@ -894,10 +955,10 @@ void exception(int mmode, uint32_t address, int diff)
 static inline void ldmstm(uint32_t ls_opcode, uint32_t opcode)
 {
   uint32_t templ, mask, addr, c;
+  uint32_t *rn;
 //                                inscounts[(opcode>>20)&0xFF]++;
   //  addr = mem_getphys(armregs[RN]);
   addr = armregs[RN];
-
   switch (ls_opcode) 
     {
 
@@ -918,20 +979,28 @@ static inline void ldmstm(uint32_t ls_opcode, uint32_t opcode)
     break;
 
     case 0x82: /*STMDA !*/
-    mask=0x8000;
-    for (c=15;c<16;c--)
-    {
-            if (opcode&mask)
-            {
-                    if (c==15) { writememl(addr,armregs[c]+r15diff); }
-                    else       { writememl(addr,armregs[c]); }
-                    addr-=4;
-                    armregs[RN]-=4;
-//                    cycles--;
-            }
-            mask>>=1;
-    }
-//    cycles-=2;
+        rn=&armregs[RN];
+        templ=stmlookup[opcode&0xFF]+stmlookup[(opcode>>8)&0xFF];
+        c=15;
+        while (!(opcode&0x8000))
+        {
+                opcode<<=1;
+                c--;
+        }
+        if (c==15) { writememfast(addr,armregs[15]+r15diff); }
+        else       { writememfast(addr,armregs[c]); }
+        addr-=4;
+        c--;
+        *rn-=templ;
+        for (c;c<16;c--)
+        {
+                if (opcode&0x4000)
+                {
+                        writememfast(addr,armregs[c]);
+                        addr-=4;
+                }
+                opcode<<=1;
+        }
     break;
                                 
     case 0x83: /*LDMDA !*/
@@ -1028,21 +1097,30 @@ static inline void ldmstm(uint32_t ls_opcode, uint32_t opcode)
 
 
     case 0x8A: /*STMIA !*/
-    mask=1;
-    for (c=0;c<16;c++)
-    {
-            if (opcode&mask)
-            {
-                    if (c==15) { writememl(addr,armregs[c]+r15diff); }
-                    else       { writememl(addr,armregs[c]); }
-                    addr+=4;
-                    armregs[RN]+=4;
-//                    //cycles--;
-            }
-            mask<<=1;
-    }
-//    //cycles-=2;
-    break;
+        rn=&armregs[RN];
+        templ=stmlookup[opcode&0xFF]+stmlookup[(opcode>>8)&0xFF];
+        c=0;
+        while (!(opcode&1))
+        {
+                opcode>>=1;
+                c++;
+        }
+        if (c==15) { writememfast(addr,armregs[15]+r15diff); }
+        else       { writememfast(addr,armregs[c]); }
+        addr+=4;
+        c++;
+        *rn+=templ;
+        for (;c<16;c++)
+        {
+                if (opcode&2)
+                {
+                        if (c==15) { writememfast(addr,armregs[15]+r15diff); }
+                        else       { writememfast(addr,armregs[c]); }
+                        addr+=4;
+                }
+                opcode>>=1;
+        }
+        break;
 
         case 0x8B: /*LDMIA !*/
         if (!(opcode&(1<<RN)))
@@ -1194,27 +1272,28 @@ static inline void ldmstm(uint32_t ls_opcode, uint32_t opcode)
     break;
 
         case 0x92: /*STMDB !*/
-        mask=RN;
-//        templ=4;
-        if (opcode&0x8000)
+        rn=&armregs[RN];
+        templ=stmlookup[opcode&0xFF]+stmlookup[(opcode>>8)&0xFF];
+        c=15;
+        while (!(opcode&0x8000))
         {
-                addr-=4;
-                armregs[RN]-=4;
-                writememfast(addr,armregs[15]+r15diff);
-//                templ=0;
+                opcode<<=1;
+                c--;
         }
-        for (c=14;c<16;c--)
+        addr-=4;
+        if (c==15) { writememfast(addr,armregs[15]+r15diff); }
+        else       { writememfast(addr,armregs[c]); }
+        c--;
+        *rn-=templ;
+        for (c;c<16;c--)
         {
                 if (opcode&0x4000)
                 {
                         addr-=4;
-//                        armregs[mask]-=4;
-//                        if (c==mask) { writememl(addr,addr+templ); }
-                        /*else         { */writememfast(addr,armregs[c]);// templ=0;}
+                        writememfast(addr,armregs[c]);
                 }
                 opcode<<=1;
         }
-        armregs[mask]=addr;
         break;
 
         case 0x93: /*LDMDB !*/
@@ -1346,7 +1425,30 @@ static inline void ldmstm(uint32_t ls_opcode, uint32_t opcode)
     break;
  
     case 0x9A: /*STMIB !*/
-    mask=1;
+        rn=&armregs[RN];
+        templ=stmlookup[opcode&0xFF]+stmlookup[(opcode>>8)&0xFF];
+        c=0;
+        while (!(opcode&1))
+        {
+                opcode>>=1;
+                c++;
+        }
+        addr+=4;
+        if (c==15) { writememfast(addr,armregs[15]+r15diff); }
+        else       { writememfast(addr,armregs[c]); }
+        c++;
+        *rn+=templ;
+        for (;c<16;c++)
+        {
+                if (opcode&2)
+                {
+                        addr+=4;
+                        if (c==15) { writememfast(addr,armregs[15]+r15diff); }
+                        else       { writememfast(addr,armregs[c]); }
+                }
+                opcode>>=1;
+        }
+/*    mask=1;
     templ=0;
     for (c=0;c<16;c++)
     {
@@ -1360,7 +1462,7 @@ static inline void ldmstm(uint32_t ls_opcode, uint32_t opcode)
 //                    //cycles--;
             }
             mask<<=1;
-    }
+    }*/
 //    //cycles-=2;
     break;
 
@@ -1963,7 +2065,8 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-					        bad_opcode(opcode);
+                                                undefined();
+//					        bad_opcode(opcode);
                                         }
                                         break;
                                         
@@ -3342,7 +3445,7 @@ void execarm(int cycs)
                                         case 0x42: case 0x4A: /*STRT*/
                                         case 0x62: case 0x6A:
                                         addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift2(opcode);
+                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
                                         if (!(opcode&0x800000))  addr2=-addr2;
                                         if (opcode&0x1000000)
@@ -3368,7 +3471,7 @@ void execarm(int cycs)
 
                                         case 0x43: case 0x4B: /*LDRT*/
                                         addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift2(opcode);
+                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
                                         if (!(opcode&0x800000))  addr2=-addr2;
                                         if (opcode&0x1000000)
@@ -3397,7 +3500,7 @@ void execarm(int cycs)
 
                                         case 0x66: case 0x6E: /*STRBT*/
                                         addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift2(opcode);
+                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
                                         if (!(opcode&0x800000))  addr2=-addr2;
                                         if (opcode&0x1000000)
@@ -3423,7 +3526,7 @@ void execarm(int cycs)
 
                                         case 0x47: case 0x4F: /*LDRBT*/
                                         addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift2(opcode);
+                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
                                         if (!(opcode&0x800000))  addr2=-addr2;
                                         if (opcode&0x1000000)
@@ -3471,7 +3574,7 @@ void execarm(int cycs)
                 			break;
 
                 			case 0x79: /*LDR RD,[RN,shift]*/
-                			addr=GETADDR(RN)+shift2(opcode);
+                			addr=GETADDR(RN)+shift_ldrstr(opcode);
                         		templ=readmeml(addr);
                         		if (addr&3) templ=ldrresult(templ,addr);
                         		if (armirq&0x40) break;
@@ -3479,7 +3582,7 @@ void execarm(int cycs)
                 			break;
 
                 			case 0x7D: /*LDRB RD,[RN,shift]*/
-                			addr=GETADDR(RN)+shift2(opcode);
+                			addr=GETADDR(RN)+shift_ldrstr(opcode);
                 			templ=readmemb(addr);
                         		if (armirq&0x40) break;
                         		armregs[RD]=templ;
@@ -3496,7 +3599,7 @@ void execarm(int cycs)
                                                 break;
                                         }
                                         addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift2(opcode);
+                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
                                         if (!(opcode&0x800000))  addr2=-addr2;
                                         if (opcode&0x1000000)
@@ -3532,7 +3635,7 @@ void execarm(int cycs)
                                                 break;
                                         }
                                         addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift2(opcode);
+                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
                                         if (!(opcode&0x800000))  addr2=-addr2;
                                         if (opcode&0x1000000)
@@ -3564,7 +3667,7 @@ void execarm(int cycs)
                                         case 0x45: case 0x4D: /*LDRB*/
                                         case 0x55: case 0x57: case 0x5D: case 0x5F:
                                         addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift2(opcode);
+                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
                                         if (!(opcode&0x800000))  addr2=-addr2;
                                         if (opcode&0x1000000)    addr+=addr2;
@@ -3593,7 +3696,7 @@ void execarm(int cycs)
                                         case 0x44: /*case 0x4C:*/ case 0x4E: /*STRB*/
                                         case 0x54: case 0x56: case 0x5C: case 0x5E:
                                         addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift2(opcode);
+                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
                                         if (!(opcode&0x800000))  addr2=-addr2;
                                         if (opcode&0x1000000)
@@ -3910,7 +4013,7 @@ exception(SUPERVISOR,0xC,4);
                                 else if (armirq&0x40)//databort==1)     /*Data abort*/
                                 {
                                         armirq&=~0xC0;
-                                        exception(ABORT,0x14,0);
+                                        exception(ABORT,0x14,-4);
                                 }
                                 else if (databort==2) /*Address Exception*/
                                 {
@@ -3995,6 +4098,7 @@ exception(SUPERVISOR,0xC,4);
                         inssinceswi++;
                         if (inssinceswi==207229) output=0;
                         #endif
+                        ins++;
 //                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
                         #if 0
                         if (output)
@@ -4025,6 +4129,7 @@ exception(SUPERVISOR,0xC,4);
 //                        ins++;
                 }
                 inscount+=200;
+                rinscount+=200;
 /*                iomd.t0c--;
                 iomd.t1c--;
                 if ((iomd.t0c<0) || (iomd.t1c<0)) updateiomdtimers();*/
@@ -4075,7 +4180,11 @@ exception(SUPERVISOR,0xC,4);
                                 updateirqs();
                         }
                 }
-                if (flyback) flyback--;
+                if (flyback)
+                {
+                        flyback--;
+//                        if (!flyback) rpclog("Vsync low\n");
+                }
 //                printf("T0 now %04X\n",iomd.t0c);
 //                cyc=(oldcyc-cycles);
                 if (soundbufferfull)

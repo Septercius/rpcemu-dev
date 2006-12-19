@@ -36,7 +36,7 @@ int sndsamples,sndpos=0,sndoffset=0;
 int soundinited;
 
 int soundcount=0,soundlatch;
-unsigned short bigsoundbuffer[2][44100<<1];
+unsigned short bigsoundbuffer[8][44100<<1];
 int bigsoundbufferselect=0,bigsoundpos=0;
 int updatebigsound=0;
 
@@ -46,9 +46,12 @@ void changesamplefreq()
 {
         if (samplefreq!=oldsamplefreq)
         {
+        
 //                rpclog("Change sample freq from %i to %i\n",oldsamplefreq,samplefreq);
-                stop_audio_stream(as);
-                as=play_audio_stream(BUFFERLEN,16,1,samplefreq,255,128);
+//                stop_audio_stream(as);
+//                as=play_audio_stream(BUFFERLEN,16,1,samplefreq,255,128);
+
+                voice_set_frequency(as->voice,samplefreq);
                 oldsamplefreq=samplefreq;
         }
 }
@@ -76,14 +79,16 @@ void updatesoundirq()
                 bigsoundbuffer[bigsoundbufferselect][bigsoundpos++]=(temp>>16);//&0x8000;
                 if (bigsoundpos>=(BUFFERLEN<<1))
                 {
-//                        rpclog("Just finished buffer %i\n",bigsoundbufferselect);
-                        bigsoundbufferselect^=1;
+                        rpclog("Just finished buffer %i\n",bigsoundbufferselect);
+                        bigsoundbufferselect++;
+                        bigsoundbufferselect&=7;
                         bigsoundpos=0;
-                        soundbufferfull=1;
+                        soundbufferfull++;
                 }
         }
 //        fwrite(bigsoundbuffer,len<<2,1,sndfile);
 }
+int curbigsoundbuffer=0;
 FILE *sndfile;
 void updatesoundbuffer()
 {
@@ -100,13 +105,15 @@ void updatesoundbuffer()
         }*/
         p=get_audio_stream_buffer(as);
         if (!p) return;
-        soundbufferfull=0;
+        soundbufferfull--;
 //        while (!p)
 //              p=get_audio_stream_buffer(as);
         for (c=0;c<(BUFFERLEN<<1);c++)
-            p[c]=bigsoundbuffer[bigsoundbufferselect^1][c]^0x8000;
+            p[c]=bigsoundbuffer[curbigsoundbuffer][c]^0x8000;
         free_audio_stream_buffer(as);
-//                        rpclog("Writing buffer %i\n",bigsoundbufferselect^1);
+        rpclog("Writing buffer %i\n",curbigsoundbuffer);
+        curbigsoundbuffer++;
+        curbigsoundbuffer&=7;
 //        fwrite(bigsoundbuffer[bigsoundbufferselect^1],BUFFERLEN<<2,1,sndfile);
 }
 

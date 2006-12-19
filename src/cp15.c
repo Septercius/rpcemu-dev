@@ -2,6 +2,7 @@
   System coprocessor + MMU emulation*/
 #include "rpcemu.h"
 
+int indumpregs;
 //unsigned long oldpc,oldpc2,oldpc3;
 int timetolive;
 
@@ -55,6 +56,7 @@ void writecp15(uint32_t addr, uint32_t val)
                 {
                         updatemode(mode&15);
                 }
+//                rpclog("CP15 control write %08X\n",val);
                 return; /*We can probably ignore all other bits*/
                 case 2: /*TLB base*/
                 cp15.tlbbase=val&~0x3FFF;
@@ -160,15 +162,23 @@ uint32_t readcp15(uint32_t addr)
         exit(-1);
 }
 
+/*DOMAIN -
+  No access - fault
+  Client - checkpermissions
+  Manager - always allow*/
+//54F13001
+//1010042e
 //databort=1;
 #define FAULT()         armirq|=0x40;        \
-                        cp15.far=addr;       \
-                        cp15.fsr=fsr;        \
-                        if (output) \
-                                rpclog("PERMISSIONS FAULT! %08X %07X %08X %08X %08X %08X\n",addr,PC,opcode,oldpc,oldpc2,oldpc3);  \
+                        if (!prefetch) \
+                        { \
+                                cp15.far=addr;       \
+                                cp15.fsr=fsr;        \
+                        } \
+                        if (output) rpclog("PERMISSIONS FAULT! %08X %07X %08X %08X %08X %08X %i %03X %08X %08X %08X %08X\n",addr,PC,opcode,oldpc,oldpc2,oldpc3,p,cp15.ctrl&0x300,fld,sld,armregs[16],cp15.dacr);  \
                         return 0xFFFFFFFF
 
-int checkpermissions(int p, int fsr, int rw, uint32_t addr)
+int checkpermissions(int p, int fsr, int rw, uint32_t addr, uint32_t fld, uint32_t sld, int prefetch)
 {
         switch (p)
         {
@@ -180,7 +190,7 @@ int checkpermissions(int p, int fsr, int rw, uint32_t addr)
                         if (output) rpclog("Always fault\n");
                         FAULT();
                         case 0x100: /*Supervisor read-only*/
-                        break; /*delibrately broken for Linux*/
+//                        break; /*delibrately broken for Linux*/
                         /*Linux will crash very early on if this is implemented properly*/
                         if (!memmode || rw) { if (output) rpclog("Supervisor read only\n"); FAULT(); }
                         break;
@@ -190,6 +200,7 @@ int checkpermissions(int p, int fsr, int rw, uint32_t addr)
                 }
                 break;
                 case 1: /*Supervisor only*/
+//                break;
                 if (!memmode) { if (output) rpclog("Supervisor only\n"); FAULT(); }
                 break;
                 case 2: /*User read-only*/
@@ -199,13 +210,27 @@ int checkpermissions(int p, int fsr, int rw, uint32_t addr)
         return 0;
 }
 
-uint32_t translateaddress2(uint32_t addr, int rw)
+int checkdomain(uint32_t addr, int domain, int type, int prefetch)
+{
+        int temp=cp15.dacr>>(domain<<1);
+        if (!(temp&3))
+        {
+                armirq|=0x40;
+                if (prefetch) return 0;
+                cp15.far=addr;
+                cp15.fsr=(type==1)?11:9;
+//                rpclog("Domain fault\n");
+        }
+        return temp&3;
+}
+
+uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 {
         uint32_t vaddr=((addr>>18)&~3)|cp15.tlbbase;
         uint32_t fld;
         uint32_t sldaddr,sld; //,taddr;
         uint32_t oa=addr;
-        int temp,temp2;
+        int temp,temp2,temp3;
 //        rpclog("Translate %08X ",addr);
 /*        if (!(addr&0xFC000000) && !(tlbcache[(addr>>12)&0x3FFF]&0xFFF))
         {
@@ -218,16 +243,19 @@ uint32_t translateaddress2(uint32_t addr, int rw)
 
         rw = rw;
         fld=tlbram[(vaddr>>2)&tlbrammask];
+        if (fld&3) temp3=checkdomain(addr,(fld>>5)&15,fld&3,prefetch);
         switch (fld&3)
         {
                 case 0: /*Fault*/
                 armirq|=0x40;
+                if (prefetch) return 0;
                 cp15.far=addr;
                 cp15.fsr=5;
 //                rpclog("Fault! %08X %07X %i\n",addr,PC,rw);
 //                exit(-1);
                 return 0;
                 case 1: /*Page table*/
+                if (!temp3) return 0;
                 sldaddr=((addr&0xFF000)>>10)|(fld&0xFFFFFC00);
                 if ((sldaddr&0x1F000000)==0x02000000)
                    sld=vram[(sldaddr&vrammask)>>2];
@@ -235,11 +263,23 @@ uint32_t translateaddress2(uint32_t addr, int rw)
                    sld=ram2[(sldaddr&rammask)>>2];
                 else
                    sld=ram[(sldaddr&rammask)>>2];
+                if (!(sld&3)) /*Unmapped*/
+                {
+                        armirq|=0x40;
+                        if (prefetch) return 0;
+                        cp15.far=addr;
+                        cp15.fsr=7|((fld>>1)&0xF0);
+//                        rpclog("Unmapped! %08X %07X %i\n",addr,PC,ins);
+                        return 0;
+                }
                 temp=(addr&0xC00)>>9;
                 temp2=sld&(0x30<<temp);
                 temp2>>=(4+temp);
-                if (checkpermissions(temp2,15,rw,addr))
-                   return 0xFFFFFFFF;
+                if (temp3!=3)
+                {
+                        if (checkpermissions(temp2,15,rw,addr,fld,sld,prefetch))
+                           return 0xFFFFFFFF;
+                }
                 addr=(sld&0xFFFFF000)|(addr&0xFFF);
                 if (!(oa&0xFC000000))
                 {
@@ -254,8 +294,12 @@ uint32_t translateaddress2(uint32_t addr, int rw)
 //                rpclog("%08X %08X %08X %08X\n",addr,sld,oa,tlbcache[oa>>12]);
                 return addr;
                 case 2: /*Section*/
-                if (checkpermissions((fld&0xC00)>>10,13,rw,addr))
-                   return 0xFFFFFFFF;                
+                if (!temp3) return 0;
+                if (temp3!=3)
+                {
+                        if (checkpermissions((fld&0xC00)>>10,13,rw,addr,fld,0xFFFFFFFF,prefetch))
+                           return 0xFFFFFFFF;
+                }
                 addr=(addr&0xFFFFF)|(fld&0xFFF00000);
                 if (!(oa&0xFC000000))
                 {
@@ -297,16 +341,18 @@ uint32_t *getpccache(uint32_t addr)
         addr&=~0xFFF;
         if (mmu)
         {
-//                rpclog("Translate prefetch %08X ",addr);
-                addr2=translateaddress(addr,0);
+                if (indumpregs) rpclog("Translate prefetch %08X %02X ",addr,armirq);
+                addr2=translateaddress(addr,0,1);
                 if (armirq&0x40)
                 {
+                        if (indumpregs) rpclog("Abort!\n");
                         armirq&=~0x40;
                         armirq|=0x80;
 //                        databort=0;
 //                        prefabort=1;
                         return (uint32_t *)0xFFFFFFFF;
                 }
+                if (indumpregs) rpclog("\n");
         }
         else     addr2=addr;
         switch (addr2&0x1F000000)

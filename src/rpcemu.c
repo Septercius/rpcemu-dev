@@ -51,6 +51,7 @@ void execrpcemu()
         execarm(40000);
         if (drawscre>0)
         {
+//                rpclog("Drawscre %i\n",drawscre);
                 drawscre--;
                 drawscr();
                 iomdvsync();
@@ -99,6 +100,7 @@ void loadconfig()
         soundenabled=get_config_int(NULL,"sound_enabled",1);
         stretchmode=get_config_int(NULL,"stretch_mode",0);
         refresh=get_config_int(NULL,"refresh_rate",60);
+        skipblits=get_config_int(NULL,"blit_optimisation",0);
 }
 
 void saveconfig()
@@ -119,4 +121,5 @@ void saveconfig()
         set_config_int(NULL,"sound_enabled",soundenabled);
         set_config_int(NULL,"stretch_mode",stretchmode);
         set_config_int(NULL,"refresh_rate",refresh);
+        set_config_int(NULL,"blit_optimisation",skipblits);
 }

@@ -338,7 +338,7 @@ void drawscr()
                 for (c=0;c<(ny<<3);c++)
                     calccrc(ramp[addr++]);
                 /*If cursor data matches then no point redrawing screen - return*/
-                if (crc==curcrc)
+                if (crc==curcrc && (blits&7) && skipblits)
                    return;
                 curcrc=crc;
         }
@@ -1122,6 +1122,7 @@ void drawscr()
                 thread_doublesize=doublesize;
                 return;
         #endif
+//        rpclog("Blit %i %i %i %i\n",xs,yl,yh,yh-yl);
         switch (doublesize)
         {
                 case 0:// case 1: case 2: case 3:

@@ -95,7 +95,7 @@ uint32_t readmemfl(uint32_t addr)
                         readmemcache=addr>>12;
                         raddrl[(addr>>12)&0xFF]=addr&0xFFFFF000;
 //                        rpclog("Translate read ");
-                        addr=translateaddress(addr,0);
+                        addr=translateaddress(addr,0,0);
 //                        if (databort) rpclog("Dat abort reading %08X %08X\n",addr2,PC);
                         if (armirq&0x40)
                         {
@@ -227,7 +227,7 @@ uint32_t mem_getphys(uint32_t addr)
                 else
                 {
                         readmemcache = addr >> 12;
-                        addr = translateaddress(addr,0);
+                        addr = translateaddress(addr,0,0);
                         readmemcache2 = addr & 0xFFFFF000;
                 }
         }
@@ -268,7 +268,7 @@ uint32_t readmemfb(uint32_t addr)
                         readmemcache=addr>>12;
                         raddrl[(addr>>12)&0xFF]=addr&0xFFFFF000;
 //                        rpclog("Translate read ");
-                        addr=translateaddress(addr,0);
+                        addr=translateaddress(addr,0,0);
 //                        if (databort) rpclog("Dat abort reading %08X %08X\n",addr2,PC);
                         if (armirq&0x40)
                         {
@@ -368,7 +368,7 @@ void writememfl(uint32_t addr, uint32_t val)
                 {
                         writememcache=addr>>12;
                         waddrl=addr&0xFFFFF000;
-                        addr=translateaddress(addr,1);
+                        addr=translateaddress(addr,1,0);
                         if (armirq&0x40) return;
                         writememcache2=addr&0xFFFFF000;
                         if ((addr&0x1F000000)==0x2000000)
@@ -541,7 +541,7 @@ void writememb(uint32_t addr, uint8_t val)
                 else
                 {
                         writememcache[(addrt>>12)&127]=addrt>>12;
-                        addr=translateaddress(addrt,1);
+                        addr=translateaddress(addrt,1,0);
                         if (armirq&0x40) return;
                         writememcache2[(addrt>>12)&127]=addr&0xFFFFF000;
                 }
@@ -550,7 +550,7 @@ void writememb(uint32_t addr, uint8_t val)
                 else
                 {
                         writemembcache=addr>>12;
-                        addr=translateaddress(addr,1);
+                        addr=translateaddress(addr,1,0);
                         if (armirq&0x40) return;
                         writemembcache2=addr&0xFFFFF000;
                         if ((addr&0x1F000000)==0x2000000)
