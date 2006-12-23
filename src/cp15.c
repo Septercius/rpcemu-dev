@@ -358,21 +358,21 @@ uint32_t *getpccache(uint32_t addr)
         switch (addr2&0x1F000000)
         {
                 case 0x00000000: /*ROM*/
-                return &rom[(int32_t)((addr2&0x7FF000)-addr)>>2];
+                return &rom[((long)(addr2&0x7FF000)-(long)addr)>>2];
                 case 0x02000000: /*VRAM*/
-                return &vram[(int32_t)((addr2&0x1FF000)-addr)>>2];
+                return &vram[((long)(addr2&0x1FF000)-(long)addr)>>2];
                 case 0x10000000: /*SIMM 0 bank 0*/
                 case 0x11000000:
                 case 0x12000000:
                 case 0x13000000:
 //                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
-                return &ram[(int32_t)((addr2&rammask)-addr)>>2];
+                return &ram[((long)(addr2&rammask)-(long)addr)>>2];
                 case 0x14000000: /*SIMM 0 bank 1*/
                 case 0x15000000:
                 case 0x16000000:
                 case 0x17000000:
 //                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
-                return &ram2[(int32_t)((addr2&rammask)-addr)>>2];
+                return &ram2[((long)(addr2&rammask)-(long)addr)>>2];
         }
         error("Bad PC %08X %08X\n",addr,addr2);
         dumpregs();

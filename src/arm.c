@@ -1562,10 +1562,10 @@ static inline void ldmstm(uint32_t ls_opcode, uint32_t opcode)
 
 void execarm(int cycs)
 {
-        uint32_t templ,templ2,addr,addr2;
-        unsigned char temp;
         int linecyc;
         int target;
+        uint32_t templ,templ2,addr,addr2;
+        unsigned char temp;
 //        int RD;
         cycles+=cycs;
         while (cycles>0)

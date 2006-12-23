@@ -54,6 +54,7 @@ void initmem(void)
         for (c=0;c<256;c++)
             raddrl[c]=0xFFFFFFFF;
         waddrl=0xFFFFFFFF;
+printf("Init RAM %X\n",ram);
 }
 
 void reallocmem(int ramsize)
@@ -66,6 +67,7 @@ void reallocmem(int ramsize)
         ramb2=(unsigned char *)ram2;
         memset(ram,0,ramsize);
         memset(ram2,0,ramsize);
+printf("Init RAM %X %i\n",ram,ramsize);
 //        error("RAMsize now %08X RAMmask now %08X\n",ramsize,rammask);
 }
 
@@ -103,31 +105,32 @@ uint32_t readmemfl(uint32_t addr)
                                 return 0;
                         }
                         readmemcache2=addr&0xFFFFF000;
+//printf("Long read %08X\n",addr);
 //                        rpclog("MMU addr %08X %08X %08X %08X ",addr2,addr,raddrl,readmemcache2&0x7FF000);
                         switch (readmemcache2&0x1F000000)
                         {
                                 case 0x00000000: /*ROM*/
-                                raddrl2[(addr2>>12)&0xFF]=&rom[((readmemcache2&0x7FF000)-raddrl[(addr2>>12)&0xFF])>>2];
+                                raddrl2[(addr2>>12)&0xFF]=&rom[((long)(readmemcache2&0x7FF000)-(long)raddrl[(addr2>>12)&0xFF])>>2];
                                 return raddrl2[(addr2>>12)&0xFF][(addr2)>>2];
 //                                rpclog("ROM %08X %08X\n",raddrl2,rom);
                                 break;
                                 case 0x02000000: /*VRAM*/
 //                                rpclog("VRAM %08X %07X\n");
-                                raddrl2[(addr2>>12)&0xFF]=&vram[((readmemcache2&0x1FF000)-raddrl[(addr2>>12)&0xFF])>>2];
+                                raddrl2[(addr2>>12)&0xFF]=&vram[((long)(readmemcache2&0x1FF000)-(long)raddrl[(addr2>>12)&0xFF])>>2];
                                 return raddrl2[(addr2>>12)&0xFF][(addr2)>>2];
                                 break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 case 0x11000000:
                                 case 0x12000000:
                                 case 0x13000000:
-                                raddrl2[(addr2>>12)&0xFF]=&ram[((readmemcache2&rammask)-raddrl[(addr2>>12)&0xFF])>>2];
+                                raddrl2[(addr2>>12)&0xFF]=&ram[((long)(readmemcache2&rammask)-(long)raddrl[(addr2>>12)&0xFF])>>2];
                                 return raddrl2[(addr2>>12)&0xFF][(addr2)>>2];
                                 break;
                                 case 0x14000000: /*SIMM 0 bank 1*/
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                raddrl2[(addr2>>12)&0xFF]=&ram2[((readmemcache2&rammask)-raddrl[(addr2>>12)&0xFF])>>2];
+                                raddrl2[(addr2>>12)&0xFF]=&ram2[((long)(readmemcache2&rammask)-(long)raddrl[(addr2>>12)&0xFF])>>2];
                                 return raddrl2[(addr2>>12)&0xFF][(addr2)>>2];
                                 break;
                                 default:
@@ -144,22 +147,22 @@ uint32_t readmemfl(uint32_t addr)
                 {
                        case 0x00000000: /*ROM*/
 //                       rpclog("ROM\n");
-                       raddrl2[(addr>>12)&0xFF]=&rom[((raddrl[(addr>>12)&0xFF]&0x7FF000)-raddrl[(addr>>12)&0xFF])>>2];
+                       raddrl2[(addr>>12)&0xFF]=&rom[((long)(raddrl[(addr>>12)&0xFF]&0x7FF000)-(long)raddrl[(addr>>12)&0xFF])>>2];
                        break;
                        case 0x02000000: /*VRAM*/
 //                       rpclog("VRAM\n");
-                       raddrl2[(addr>>12)&0xFF]=&vram[((raddrl[(addr>>12)&0xFF]&0x1FF000)-raddrl[(addr>>12)&0xFF])>>2];
+                       raddrl2[(addr>>12)&0xFF]=&vram[((long)(raddrl[(addr>>12)&0xFF]&0x1FF000)-(long)raddrl[(addr>>12)&0xFF])>>2];
                        break;
                        case 0x10000000: /*SIMM 0 bank 0*/
                        case 0x11000000:
                        case 0x12000000:
                        case 0x13000000:
-                       raddrl2[(addr>>12)&0xFF]=&ram[((raddrl[(addr>>12)&0xFF]&rammask)-raddrl[(addr>>12)&0xFF])>>2]; break;
+                       raddrl2[(addr>>12)&0xFF]=&ram[((long)(raddrl[(addr>>12)&0xFF]&rammask)-(long)raddrl[(addr>>12)&0xFF])>>2]; break;
                        case 0x14000000: /*SIMM 0 bank 1*/
                        case 0x15000000:
                        case 0x16000000:
                        case 0x17000000:
-                       raddrl2[(addr>>12)&0xFF]=&ram2[((raddrl[(addr>>12)&0xFF]&rammask)-raddrl[(addr>>12)&0xFF])>>2]; break;
+                       raddrl2[(addr>>12)&0xFF]=&ram2[((long)(raddrl[(addr>>12)&0xFF]&rammask)-(long)raddrl[(addr>>12)&0xFF])>>2]; break;
                        default:
 //                       rpclog("Other\n");
                        raddrl[(addr>>12)&0xFF]=0xFFFFFFFF;
@@ -280,22 +283,22 @@ uint32_t readmemfb(uint32_t addr)
                         switch (readmemcache2&0x1F000000)
                         {
                                 case 0x00000000: /*ROM*/
-                                raddrl2[(addr2>>12)&0xFF]=&rom[((readmemcache2&0x7FF000)-raddrl[(addr2>>12)&0xFF])>>2];
+                                raddrl2[(addr2>>12)&0xFF]=&rom[((long)(readmemcache2&0x7FF000)-(long)raddrl[(addr2>>12)&0xFF])>>2];
                                 return ((unsigned char *)raddrl2[(addr2>>12)&0xFF])[(addr2)];
                                 case 0x02000000: /*VRAM*/
-                                raddrl2[(addr2>>12)&0xFF]=&vram[((readmemcache2&0x1FF000)-raddrl[(addr2>>12)&0xFF])>>2];
+                                raddrl2[(addr2>>12)&0xFF]=&vram[((long)(readmemcache2&0x1FF000)-(long)raddrl[(addr2>>12)&0xFF])>>2];
                                 return ((unsigned char *)raddrl2[(addr2>>12)&0xFF])[(addr2)];
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 case 0x11000000:
                                 case 0x12000000:
-                                case 0x13000000:
-                                raddrl2[(addr2>>12)&0xFF]=&ram[((readmemcache2&rammask)-raddrl[(addr2>>12)&0xFF])>>2];
+                                case 0x13000000:				
+                                raddrl2[(addr2>>12)&0xFF]=&ram[((long)(readmemcache2&rammask)-(long)raddrl[(addr2>>12)&0xFF])>>2];
                                 return ((unsigned char *)raddrl2[(addr2>>12)&0xFF])[(addr2)];
                                 case 0x14000000: /*SIMM 0 bank 1*/
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                raddrl2[(addr2>>12)&0xFF]=&ram2[((readmemcache2&rammask)-raddrl[(addr2>>12)&0xFF])>>2];
+                                raddrl2[(addr2>>12)&0xFF]=&ram2[((long)(readmemcache2&rammask)-(long)raddrl[(addr2>>12)&0xFF])>>2];
                                 return ((unsigned char *)raddrl2[(addr2>>12)&0xFF])[(addr2)];
                                 default:
 //                                rpclog("Other\n");

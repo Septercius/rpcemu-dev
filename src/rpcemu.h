@@ -72,6 +72,16 @@ uint32_t oldpc,oldpc2,oldpc3;
   //unsigned char *ramb,*ramb2,*romb,*vramb;
   //unsigned char *dirtybuffer;
 
+/* mem.c */
+uint32_t readmemfl(uint32_t addr);
+uint32_t readmemfb(uint32_t addr);
+void writememb(uint32_t addr, uint8_t val);
+void writememfl(uint32_t addr, uint32_t val);
+uint32_t readmemfb(uint32_t addr);
+void clearmemcache();
+void initmem(void);
+void reallocmem(int ramsize);
+
 extern uint32_t raddrl[256];
 extern uint32_t *raddrl2[256];
 //#define readmeml(a) readmemfl(a)
@@ -162,16 +172,6 @@ uint32_t readcp15(uint32_t addr);
 void resetcp15(void);
 uint32_t *getpccache(uint32_t addr);
 uint32_t translateaddress2(uint32_t addr, int rw, int prefetch);
-
-/* mem.c */
-uint32_t readmemfl(uint32_t addr);
-uint32_t readmemfb(uint32_t addr);
-void writememb(uint32_t addr, uint8_t val);
-void writememfl(uint32_t addr, uint32_t val);
-uint32_t readmemfb(uint32_t addr);
-void clearmemcache();
-void initmem(void);
-void reallocmem(int ramsize);
 
 /* keyboard.c */
 void resetkeyboard(void);
