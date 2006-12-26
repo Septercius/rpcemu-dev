@@ -1,4 +1,4 @@
-/*RPCemu v0.5 by Tom Walker
+/*RPCemu v0.6 by Tom Walker
   Windows specific stuff
   Also includes most sound emulation, since that is very Windows specific at
   the moment.
@@ -49,8 +49,8 @@ FILE *arclog;
 void rpclog(const char *format, ...)
 {
    char buf[256];
-   if (!arclog) arclog=fopen("rlog.txt","wt");
 return;
+   if (!arclog) arclog=fopen("rlog.txt","wt");
    va_list ap;
    va_start(ap, format);
    vsprintf(buf, format, ap);

@@ -1629,33 +1629,9 @@ hostfs(ARMul_State *state)
 {
   assert(state);
   assert(state->Reg[9] <= 7);
-  strcpy(HOSTFS_ROOT,HOSTFS_ROOT1);
+  
   DEFAULT_FILE_TYPE=RISC_OS_FILE_TYPE_TEXT;
-  printf("*** HostFS Call *** %i %i %s\n",state->Reg[9],state->Reg[0],HOSTFS_ROOT);
-
-  switch (state->Reg[9]) {
-  case 0: hostfs_open(state);     break;
-  case 1: hostfs_getbytes(state); break;
-  case 2: hostfs_putbytes(state); break;
-  case 3: hostfs_args(state);     break;
-  case 4: hostfs_close(state);    break;
-  case 5: hostfs_file(state);     break;
-  case 6: hostfs_func(state);     break;
-  case 7: hostfs_gbpb(state);     break;
-  default:
-    fprintf(stderr, "!!! ERROR !!! - unknown op in R9\n");
-    break;
-  }
-}
-
-void
-hostcd(ARMul_State *state)
-{
-  assert(state);
-  assert(state->Reg[9] <= 7);
-  strcpy(HOSTFS_ROOT,"H:/");
-  DEFAULT_FILE_TYPE=RISC_OS_FILE_TYPE_DATA;
-  printf("*** HostCD Call *** %i %i %s\n",state->Reg[9],state->Reg[0],HOSTFS_ROOT);
+//  printf("*** HostFS Call *** %i %i %s\n",state->Reg[9],state->Reg[0],HOSTFS_ROOT);
 
   switch (state->Reg[9]) {
   case 0: hostfs_open(state);     break;

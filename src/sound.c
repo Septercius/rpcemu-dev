@@ -56,6 +56,17 @@ void changesamplefreq()
         }
 }
 
+void stopsound()
+{
+        voice_set_volume(as->voice,0);
+}
+
+void continuesound()
+{
+        voice_set_frequency(as->voice,samplefreq);
+        voice_set_volume(as->voice,255);
+}
+
 void updatesoundirq()
 {
         uint32_t page,start,end,temp;

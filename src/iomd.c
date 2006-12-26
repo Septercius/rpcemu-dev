@@ -17,6 +17,7 @@ void updateirqs(void)
         else
            irq&=~1;
         if (iomd.statf&iomd.maskf) irq|=2;
+        else                       irq&=~2;
         if (!(irq&3)) armirq&=~3;
 }
 

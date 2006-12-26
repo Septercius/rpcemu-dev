@@ -56,7 +56,7 @@ void writecp15(uint32_t addr, uint32_t val)
                 {
                         updatemode(mode&15);
                 }
-//                rpclog("CP15 control write %08X\n",val);
+                printf("CP15 control write %08X %08X\n",val,PC);
                 return; /*We can probably ignore all other bits*/
                 case 2: /*TLB base*/
                 cp15.tlbbase=val&~0x3FFF;
@@ -153,8 +153,10 @@ uint32_t readcp15(uint32_t addr)
                 case 3: /*DACR*/
                 return cp15.dacr;
                 case 5: /*Fault status*/
+                printf("Fault status read %08X\n",cp15.fsr);
                 return cp15.fsr;
                 case 6: /*Fault address*/
+                printf("Fault address read %08X\n",cp15.far);
                 return cp15.far;
         }
         error("Bad read CP15 %08X %07X\n",addr,PC);
@@ -175,7 +177,7 @@ uint32_t readcp15(uint32_t addr)
                                 cp15.far=addr;       \
                                 cp15.fsr=fsr;        \
                         } \
-                        if (output) rpclog("PERMISSIONS FAULT! %08X %07X %08X %08X %08X %08X %i %03X %08X %08X %08X %08X\n",addr,PC,opcode,oldpc,oldpc2,oldpc3,p,cp15.ctrl&0x300,fld,sld,armregs[16],cp15.dacr);  \
+                        if (0) printf("PERMISSIONS FAULT! %08X %07X %08X %08X %08X %08X %i %03X %08X %08X %08X %08X\n",addr,PC,opcode,oldpc,oldpc2,oldpc3,p,cp15.ctrl&0x300,fld,sld,armregs[16],cp15.dacr);  \
                         return 0xFFFFFFFF
 
 int checkpermissions(int p, int fsr, int rw, uint32_t addr, uint32_t fld, uint32_t sld, int prefetch)
@@ -216,6 +218,7 @@ int checkdomain(uint32_t addr, int domain, int type, int prefetch)
         if (!(temp&3))
         {
                 armirq|=0x40;
+//                printf("Domain fault! %08X %i %i %i %08X\n",addr,domain,type,prefetch,temp);
                 if (prefetch) return 0;
                 cp15.far=addr;
                 cp15.fsr=(type==1)?11:9;
@@ -251,7 +254,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 if (prefetch) return 0;
                 cp15.far=addr;
                 cp15.fsr=5;
-//                rpclog("Fault! %08X %07X %i\n",addr,PC,rw);
+//                printf("Fault! %08X %07X %i\n",addr,PC,rw);
 //                exit(-1);
                 return 0;
                 case 1: /*Page table*/
@@ -269,7 +272,11 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         if (prefetch) return 0;
                         cp15.far=addr;
                         cp15.fsr=7|((fld>>1)&0xF0);
-//                        rpclog("Unmapped! %08X %07X %i\n",addr,PC,ins);
+//                        printf("Unmapped! %08X %07X %i\n",addr,PC,ins);
+//                        output=1;
+//                        timetolive=100;
+//                        dumpregs();
+//                        exit(-1);
                         return 0;
                 }
                 temp=(addr&0xC00)>>9;
@@ -341,18 +348,18 @@ uint32_t *getpccache(uint32_t addr)
         addr&=~0xFFF;
         if (mmu)
         {
-                if (indumpregs) rpclog("Translate prefetch %08X %02X ",addr,armirq);
+//                if (indumpregs) rpclog("Translate prefetch %08X %02X ",addr,armirq);
                 addr2=translateaddress(addr,0,1);
                 if (armirq&0x40)
                 {
-                        if (indumpregs) rpclog("Abort!\n");
+//                        if (indumpregs) rpclog("Abort!\n");
                         armirq&=~0x40;
                         armirq|=0x80;
 //                        databort=0;
 //                        prefabort=1;
                         return (uint32_t *)0xFFFFFFFF;
                 }
-                if (indumpregs) rpclog("\n");
+//                if (indumpregs) rpclog("\n");
         }
         else     addr2=addr;
         switch (addr2&0x1F000000)

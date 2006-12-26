@@ -37,11 +37,14 @@
   for Linux port, however use mouse capturing if possible - mousehack has some
   bugs*/
 #ifdef __unix
-#define mousehack 1
+#define mousehackena 1
 #else
-#define mousehack 0
+#define mousehackena 0
 #endif
 
+#define mousehack (mousehackena&&mousehackon)
+
+int mousehackon;
 #define PREFETCH
 
 /*ARM*/
@@ -237,7 +240,6 @@ uint8_t readmb(void);
 void iomdvsync();
 
 char HOSTFS_ROOT[512];
-char HOSTFS_ROOT1[512];
 
 char discname[2][260];
 int drawscre;
@@ -272,4 +274,5 @@ int startrpcemu();
 void execrpcemu();
 void endrpcemu();
 
+int quited;
 #endif

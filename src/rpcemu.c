@@ -17,11 +17,11 @@ int startrpcemu()
         get_executable_name(exname,511);
         p=get_filename(exname);
         *p=0;
-        append_filename(HOSTFS_ROOT1,exname,"hostfs",511);
+        append_filename(HOSTFS_ROOT,exname,"hostfs",511);
         for (c=0;c<511;c++)
         {
-                if (HOSTFS_ROOT1[c]=='\\')
-                   HOSTFS_ROOT1[c]='/';
+                if (HOSTFS_ROOT[c]=='\\')
+                   HOSTFS_ROOT[c]='/';
         }
         initmem();
         if (loadroms())

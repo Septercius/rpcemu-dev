@@ -436,12 +436,13 @@ void dumpregs()
         for (c=0;c<0x100;c++)
             rpclog("Opcode %02X : %09i\n",insnum[c],inscounts[c]);*/
 //        return;
-//        if (indumpregs) return;
+        if (indumpregs) return;
         indumpregs=1;
 //        f=fopen("ram.dmp","wb");
         sprintf(s,"R 0=%08X R 4=%08X R 8=%08X R12=%08X\nR 1=%08X R 5=%08X R 9=%08X R13=%08X\nR 2=%08X R 6=%08X R10=%08X R14=%08X\nR 3=%08X R 7=%08X R11=%08X R15=%08X\n%i %s\n%08X %08X %08X",armregs[0],armregs[4],armregs[8],armregs[12],armregs[1],armregs[5],armregs[9],armregs[13],armregs[2],armregs[6],armregs[10],armregs[14],armregs[3],armregs[7],armregs[11],armregs[15],ins,(mmu)?"MMU enabled":"MMU disabled",oldpc,oldpc2,oldpc3);
 //        error("%s",s);
         rpclog("%s",s);
+        printf("%s",s);
 //        error("PC =%07X ins=%i R12f=%08X CPSR=%08X\n",PC,ins,fiqregs[12],armregs[16]);
 //        fwrite(ram,0x400000,1,f);
 //        fclose(f);
@@ -459,10 +460,10 @@ memmode=1;
                 }
         }
         fclose(f);*/
-/*        f=fopen("ram.dmp","wb");
+        f=fopen("ram.dmp","wb");
         for (c=0x8000;c<0x60000;c++)
             putc(readmemb(c),f);
-        fclose(f);*/
+        fclose(f);
 
 /*        f=fopen("ram30.dmp","wb");
         for (c=0x2228000;c<0x2229000;c+=4)
@@ -1637,6 +1638,7 @@ void execarm(int cycs)
 					if (((opcode&0xE00090)==0x90)) /*MUL*/
 					{
 					      armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
+					      if (MULRD==MULRM) armregs[MULRD]=0;
 					      //cycles-=17;
 					}
 					else
@@ -1659,8 +1661,9 @@ void execarm(int cycs)
 				        case 0x01: /*ANDS reg*/
 					if (((opcode&0xE000090)==0x90)) /*MULS*/
 					{
-					       armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
-					       setzn(armregs[MULRD]);
+					        armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
+					        if (MULRD==MULRM) armregs[MULRD]=0;
+					        setzn(armregs[MULRD]);
 					       //cycles-=17;
 					}
 					else
@@ -1686,6 +1689,7 @@ void execarm(int cycs)
 					if (((opcode&0xE000090)==0x90)) /*MLA*/
 					{
 					       armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
+					       if (MULRD==MULRM) armregs[MULRD]=0;
 					       //cycles-=17;
 					}
 					else
@@ -1706,9 +1710,10 @@ void execarm(int cycs)
                                         break;
 
                                         case 0x03: /*EORS reg*/
-                                        if (((opcode&0xE000090)==0x90)) /*MLA*/
+                                        if (((opcode&0xE000090)==0x90)) /*MLAS*/
                                         {
                                                 armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
+					        if (MULRD==MULRM) armregs[MULRD]=0;
                                                 setzn(armregs[MULRD]);
                                                 //cycles-=17;
                                         }
@@ -3911,15 +3916,6 @@ void execarm(int cycs)
 					    hostfs(&state);
 //					    dbug_hostfs("Results : %08X %08X %08X %08X\n",armregs[2],armregs[3],armregs[4],armregs[5]);
 					  }
-                                        else if (templ == ARCEM_SWI_HOSTCD)
-					  {
-//                                                        rpclog("HOSTFS SWI\n");
-//                                                        dbug_hostfs("ARCEM_SWI %08X\n",templ);
-					    ARMul_State state;
-					    state.Reg = armregs;
-					    hostcd(&state);
-//					    dbug_hostfs("Results : %08X %08X %08X %08X\n",armregs[2],armregs[3],armregs[4],armregs[5]);
-					  }
 					  else
 					  {
                                                         realswi:
@@ -4033,6 +4029,7 @@ exception(SUPERVISOR,0xC,4);
                                 }
                                 else if ((armirq&2) && !(armregs[16]&0x40)) /*FIQ*/
                                 {
+//                                        printf("FIQ %02X %02X\n",iomd.statf,iomd.maskf);
                                         exception(FIQ,0x20,0);
                                 }
                                 else if ((armirq&1) && !(armregs[16]&0x80)) /*IRQ*/
@@ -4098,7 +4095,7 @@ exception(SUPERVISOR,0xC,4);
                         inssinceswi++;
                         if (inssinceswi==207229) output=0;
                         #endif
-                        ins++;
+//                        ins++;
 //                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
                         #if 0
                         if (output)
@@ -4107,8 +4104,8 @@ exception(SUPERVISOR,0xC,4);
                                 if (swiout && ins>59) output=2;
 //                                if (times8000==9 && ins==6600000) output=2;
 //                                if (ins==88990000) output=2;
-                        }
-                        if (output==2)
+                        }*/
+                        if (output)
                         {
                                        rpclog(":%08X %08X %08X %08X %08X %08X %08X %08X %08X  %08X %08X %08X %08X\n",PC,armregs[0],armregs[1],armregs[2],armregs[3],armregs[4],armregs[5],armregs[6],armregs[7],oldpc,oldpc2,oldpc3,spsr[mode&15]);
                                         rpclog(":         %08X %08X %08X %08X %08X %08X %08X %08X  %08X %08X %08X %08X\n",armregs[8],armregs[9],armregs[10],armregs[11],armregs[12],armregs[13],armregs[14],armregs[15],opcode,opcode2,opcode3,armregs[16]);
@@ -4118,7 +4115,7 @@ exception(SUPERVISOR,0xC,4);
                                         if (!timetolive)
                                         {
                                                 output=1;
-//                                                exit(0);
+                                                exit(0);
                                         }
                                 }
 //                                ins++;

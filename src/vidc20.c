@@ -80,18 +80,18 @@ void initvideo()
         if (depth==16 || depth==15)
         {
                 set_color_depth(16);
-                if (set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0))
+                if (set_gfx_mode(GFX_AUTODETECT_WINDOWED,640,480,0,0))
                 {
                         set_color_depth(15);
                         depth=15;
-                        set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
+                        set_gfx_mode(GFX_AUTODETECT_WINDOWED,640,480,0,0);
                 }
                 drawcode=16;
         }
         else if (depth==32)
         {
                 set_color_depth(depth);
-                set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
+                set_gfx_mode(GFX_AUTODETECT_WINDOWED,640,480,0,0);
                 drawcode=32;
         }
         else

@@ -323,7 +323,7 @@ void write82c711(uint32_t addr, uint32_t val)
         if ((addr2>=0x3F0) && (addr2<=0x3F7)) writefdc(addr,val);
         if ((addr2==0x27A) && ((val&0x10) || ((printstat^val)&1 && !(val&1))))
         {
-                rpclog("Printer interrupt %02X\n",iomd.maska);
+//                rpclog("Printer interrupt %02X\n",iomd.maska);
                 iomd.stata|=1;
                 updateirqs();
         }
@@ -404,7 +404,7 @@ uint8_t read82c711(uint32_t addr)
         FILE *dumpf;
         int c;
         addr2=(addr>>2)&0x3FF;
-        if (addr2>=0x278 && addr2<=0x27A)
+/*        if (addr2>=0x278 && addr2<=0x27A)
            rpclog("Read 82c711 %08X %03X %08X\n",addr,addr2,PC);
         if (addr2==0x279 && lastaddr2==0x279)
         {
@@ -426,7 +426,7 @@ uint8_t read82c711(uint32_t addr)
                 }
                 fclose(dumpf);
                 exit(-1);
-        }
+        }*/
         lastaddr2=addr2;
         if (addr2==0x279) return 0x90;
         if ((addr2>=0x1F0 && addr2<=0x1F7) || addr2==0x3F6)
@@ -597,6 +597,7 @@ void callbackfdc(void)
                 }
                 break;
                 case 0x46: /*Read data - MFM*/
+//                printf("Read data callback %i\n",fdc.commandpos);
                 if (fdc.commandpos>=1024)
                 {
 //                        printf("sending result %i\n",fdc.commandpos-1024);
@@ -682,7 +683,7 @@ void callbackfdc(void)
 
 uint8_t readfdcdma(uint32_t addr)
 {
-//        printf("Read FDC DMA\n");
+//        printf("Read FDC DMA %08X\n",addr);
         iomd.statf&=~1;
         updateirqs();
         fdccallback=20;
