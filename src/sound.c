@@ -1,4 +1,4 @@
-/*RPCemu v0.5 by Tom Walker
+/*RPCemu v0.6 by Tom Walker
   Sound emulation
   Stripped out of iomd.c, so lots of mess here*/
 #include <allegro.h>
@@ -67,12 +67,19 @@ void continuesound()
         voice_set_volume(as->voice,255);
 }
 
+int curbigsoundbuffer=0;
+
 void updatesoundirq()
 {
         uint32_t page,start,end,temp;
         int offset=(iomd.sndstat&1)<<1;
         int len;
         int c;
+        if (soundbufferfull && bigsoundbufferselect==curbigsoundbuffer)
+        {
+                soundcount+=5000;
+                return;
+        }
         page=soundaddr[offset]&0xFFFFF000;
         start=soundaddr[offset]&0xFF0;
         end=(soundaddr[offset+1]&0xFF0)+16;
@@ -99,7 +106,7 @@ void updatesoundirq()
         }
 //        fwrite(bigsoundbuffer,len<<2,1,sndfile);
 }
-int curbigsoundbuffer=0;
+
 FILE *sndfile;
 void updatesoundbuffer()
 {
@@ -122,7 +129,7 @@ void updatesoundbuffer()
         for (c=0;c<(BUFFERLEN<<1);c++)
             p[c]=bigsoundbuffer[curbigsoundbuffer][c]^0x8000;
         free_audio_stream_buffer(as);
-        rpclog("Writing buffer %i\n",curbigsoundbuffer);
+//        rpclog("Writing buffer %i\n",curbigsoundbuffer);
         curbigsoundbuffer++;
         curbigsoundbuffer&=7;
 //        fwrite(bigsoundbuffer[bigsoundbufferselect^1],BUFFERLEN<<2,1,sndfile);
