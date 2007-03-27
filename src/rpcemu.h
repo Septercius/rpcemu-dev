@@ -45,7 +45,7 @@
 #define mousehack (mousehackena&&mousehackon)
 
 int mousehackon;
-#define PREFETCH
+//#define PREFETCH
 
 /*ARM*/
 extern uint32_t *usrregs[16],userregs[17],superregs[17],fiqregs[17],irqregs[17],abortregs[17],undefregs[17],systemregs[17];
@@ -62,7 +62,7 @@ extern uint32_t ins,output;
 extern int r15mask;
 extern uint32_t mode;
 extern int irq;
-
+unsigned char flaglookup[16][16];
 void resetarm(void);
 void execarm(int cycles);
 void dumpregs(void);
