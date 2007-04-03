@@ -1,4 +1,4 @@
-/*RPCemu v0.5 by Tom Walker
+/*RPCemu v0.6 by Tom Walker
   IDE emulation*/
 #include <stdio.h>
 #include "rpcemu.h"
@@ -229,6 +229,7 @@ void writeide(uint16_t addr, uint8_t val)
                         return;
                 }
                 error("Bad IDE command %02X\n",val);
+                dumpregs();
                 exit(-1);
                 return;
                 case 0x3F6:

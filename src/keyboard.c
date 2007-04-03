@@ -1,4 +1,4 @@
-/*RPCemu v0.5 by Tom Walker
+/*RPCemu v0.6 by Tom Walker
   PS/2 keyboard and mouse emulation*/
 
 /*ARM command 0xFF - keyboard enters reset mode

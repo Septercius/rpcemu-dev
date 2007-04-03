@@ -78,7 +78,7 @@ uint32_t oldpc,oldpc2,oldpc3;
 /* mem.c */
 uint32_t readmemfl(uint32_t addr);
 uint32_t readmemfb(uint32_t addr);
-void writememb(uint32_t addr, uint8_t val);
+void writememfb(uint32_t addr, uint8_t val);
 void writememfl(uint32_t addr, uint32_t val);
 uint32_t readmemfb(uint32_t addr);
 void clearmemcache();
@@ -89,15 +89,20 @@ extern uint32_t raddrl[256];
 extern uint32_t *raddrl2[256];
 //#define readmeml(a) readmemfl(a)
 
-#define readmeml(a) ((((a)&0xFFFFF000)==raddrl[((a)>>12)&0xFF])?raddrl2[((a)>>12)&0xFF][(a)>>2]:readmemfl(a))
+#define readmeml(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?raddrl2[((a)>>12)&0xFF][(a)>>2]:readmemfl(a))
 //#define readmeml(a) ((((a)&0xFFFFF000)==raddrl)?raddrl2[((a)&0xFFC)>>2]:readmemfl(a))
 
-#define readmemb(a) ((((a)&0xFFFFF000)==raddrl[((a)>>12)&0xFF])?((unsigned char *)raddrl2[((a)>>12)&0xFF])[(a)]:readmemfb(a))
+#define readmemb(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?((unsigned char *)raddrl2[((a)>>12)&0xFF])[(a)]:readmemfb(a))
 
 extern uint32_t waddrl;
 extern uint32_t *waddrl2;
-//#define writememl(a,v) writememfl(a,v)
-#define writememl(a,v) if (((a)&0xFFFFF000)==waddrl) { waddrl2[((a)&0xFFC)>>2]=v; } else { writememfl(a,v); }
+extern uint32_t waddrbl;
+extern uint32_t *waddrbl2;
+uint8_t pagedirty[0x1000];
+//#define writememb(a,v) writememfb(a,v)
+#define HASH(l) (((l)>>3)&0xFFF)
+#define writememl(a,v) if (((a)>>12)==waddrl) { waddrl2[((a)&0xFFC)>>2]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfl(a,v); }
+#define writememb(a,v) if (((a)>>12)==waddrbl) { ((unsigned char *)waddrbl2)[(a)&0xFFF]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfb(a,v); }
 
 extern uint32_t *ram,*ram2,*rom,*vram;
 extern uint8_t *ramb,*romb,*vramb;
@@ -170,7 +175,7 @@ void callbackide(void);
 void resetide(void);
 
 /* cp15.c */
-void writecp15(uint32_t addr, uint32_t val);
+void writecp15(uint32_t addr, uint32_t val, uint32_t opcode);
 uint32_t readcp15(uint32_t addr);
 void resetcp15(void);
 uint32_t *getpccache(uint32_t addr);
@@ -275,4 +280,6 @@ void execrpcemu();
 void endrpcemu();
 
 int quited;
+
+int icache;
 #endif

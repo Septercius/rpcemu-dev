@@ -1,13 +1,16 @@
-/*RPCemu v0.5 by Tom Walker
+/*RPCemu v0.6 by Tom Walker
   System coprocessor + MMU emulation*/
 #include "rpcemu.h"
 
+int blockend;
 int indumpregs;
 //unsigned long oldpc,oldpc2,oldpc3;
 int timetolive;
 
+#define TLBCACHESIZE 256
+
 uint32_t ins;
-uint32_t tlbcache[16384],tlbcache2[64];
+uint32_t tlbcache[16384],tlbcache2[TLBCACHESIZE];
 int tlbcachepos;
 int tlbs,flushes;
 uint32_t pccache,readcache,writecache;
@@ -24,7 +27,7 @@ void resetcp15(void)
         prog32=1;
         mmu=0;
         memset(tlbcache,0xFF,16384*4);
-        for (c=0;c<64;c++)
+        for (c=0;c<TLBCACHESIZE;c++)
             tlbcache2[c]=0xFFFFFFFF;
         tlbcachepos=0;
         for (c=0;c<256;c++)
@@ -37,30 +40,37 @@ uint32_t lastcache;
 static uint32_t *tlbram;
 uint32_t tlbrammask;
 
-void writecp15(uint32_t addr, uint32_t val)
+#define CRm (opcode&0xF)
+#define OPC2 ((opcode>>5)&7)
+void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 {
         int c;
+//        rpclog("Write CP15 %08X %08X %i %i\n",addr,val,OPC2,CRm);
         switch (addr&15)
         {
                 case 1: /*Control*/
                 cp15.ctrl=val;
-                mmu=val&1;
-                if (!mmu)
+                if (!icache && val&0x1000) resetcodeblocks();
+                icache=val&0x1000;
+                if (mmu!=(val&1))
                 {
                         for (c=0;c<256;c++)
                             raddrl[c]=0xFFFFFFFF;
                         waddrl=0xFFFFFFFF;
+                        resetcodeblocks();
                 }
+                mmu=val&1;
                 prog32=val&0x10;
                 if (!prog32 && (mode&16))
                 {
                         updatemode(mode&15);
                 }
-                printf("CP15 control write %08X %08X\n",val,PC);
+//                printf("CP15 control write %08X %08X\n",val,PC);
                 return; /*We can probably ignore all other bits*/
                 case 2: /*TLB base*/
                 cp15.tlbbase=val&~0x3FFF;
                 memset(raddrl,0xFF,1024);
+//                resetcodeblocks();
 //                for (c=0;c<256;c++)
 //                    raddrl[c]=0xFFFFFFFF;
                 waddrl=0xFFFFFFFF;
@@ -86,17 +96,21 @@ void writecp15(uint32_t addr, uint32_t val)
 //                printf("CP15 DACR now %08X\n",cp15.dacr);
                 return;
                 case 8: /*Flush TLB (SA110)*/
+                if ((CRm&1) && !(OPC2)) resetcodeblocks();
 //                if (model==3) rpclog("TLB purge %08X %01X %i\n",val,opcode&0xF,(opcode>>5)&7);
                 case 6: /*Purge TLB*/
                 case 5: /*Flush TLB*/
+//                else if (!icache) resetcodeblocks();
+//                resetcodeblocks();
 //                rpclog("TLB flush %08X %08X %07X %i %i %08X\n",addr,val,PC,ins,translations,lastcache);
                 clearmemcache();
                 pccache=readcache=writecache=0xFFFFFFFF;
+                blockend=1;
                 memset(raddrl,0xFF,1024);
 //                for (c=0;c<256;c++)
 //                    raddrl[c]=0xFFFFFFFF;
                 waddrl=0xFFFFFFFF;
-                for (c=0;c<64;c++)
+                for (c=0;c<TLBCACHESIZE;c++)
                 {
                         if (tlbcache2[c]!=0xFFFFFFFF)
                            tlbcache[tlbcache2[c]]=0xFFFFFFFF;
@@ -119,8 +133,10 @@ void writecp15(uint32_t addr, uint32_t val)
 //                    tlbcache[c]=0xFFFFFFFF;*/
                 return;
                 case 7: /*Invalidate cache*/
+                if ((CRm&1) && !(OPC2)) resetcodeblocks();
 //                rpclog("Cache invalidate %08X\n",PC);
                 pccache=readcache=writecache=0xFFFFFFFF;
+                blockend=1;
                 memset(raddrl,0xFF,1024);
 //                for (c=0;c<256;c++)
 //                    raddrl[c]=0xFFFFFFFF;
@@ -296,7 +312,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         tlbcache[oa>>12]=sld&0xFFFFF000;
                         lastcache=oa>>12;
 //                        rpclog("Cached to %08X %08X %08X %i  ",oa>>12,tlbcache[oa>>12],tlbcache2[tlbcachepos],tlbcachepos);
-                        tlbcachepos=(tlbcachepos+1)&63;
+                        tlbcachepos=(tlbcachepos+1)&(TLBCACHESIZE-1);
                 }
 //                rpclog("%08X %08X %08X %08X\n",addr,sld,oa,tlbcache[oa>>12]);
                 return addr;
@@ -315,7 +331,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         tlbcache2[tlbcachepos]=oa>>12;
                         tlbcache[oa>>12]=addr&0xFFFFF000;//sld&0xFFFFF000;
                         lastcache=oa>>12;
-                        tlbcachepos=(tlbcachepos+1)&63;
+                        tlbcachepos=(tlbcachepos+1)&(TLBCACHESIZE-1);
 //                        rpclog("Cached to %08X %08X %08X %i  ",oa>>12,tlbcache[oa>>12],tlbcache2[tlbcachepos],tlbcachepos);
 /*                        tlbcache[oa>>12]=addr&0xFFFFF000;
                         lastcache=oa>>12;*/

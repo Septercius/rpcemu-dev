@@ -1,4 +1,4 @@
-/*RPCemu v0.5 by Tom Walker
+/*RPCemu v0.6 by Tom Walker
   FPA emulation
   Not enabled by default due to bugs*/
 

@@ -4,6 +4,7 @@
   the moment.
   Since I'm the only maintainer of this file, it's a complete mess.*/
 
+//int ins;
 int mcalls=0;
 #include <stdio.h>
 #include <allegro.h>
@@ -49,13 +50,14 @@ FILE *arclog;
 void rpclog(const char *format, ...)
 {
    char buf[256];
-return;
+//return;
    if (!arclog) arclog=fopen("rlog.txt","wt");
    va_list ap;
    va_start(ap, format);
    vsprintf(buf, format, ap);
    va_end(ap);
    fputs(buf,arclog);
+//   fflush(arclog);
 }
 
 int drawscre=0,flyback;
@@ -94,6 +96,7 @@ int infocus;
 void updatewindowsize(uint32_t x, uint32_t y)
 {
         RECT r;
+//        rpclog("Updatewindowsize %i %i %i\n",x,y,ins);
         GetWindowRect(ghwnd,&r);
         MoveWindow(ghwnd,r.left,r.top,
                      x+(GetSystemMetrics(SM_CXFIXEDFRAME)*2)+2,
@@ -202,7 +205,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         ghwnd = CreateWindowEx (
            0,                   /* Extended possibilites for variation */
            szClassName,         /* Classname */
-           "RPCemu v0.51",       /* Title Text */
+           "RPCemu v0.6",       /* Title Text */
            WS_OVERLAPPEDWINDOW, /* default window */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
@@ -255,7 +258,7 @@ infocus=1;
                 }
                 if (updatemips)
                 {
-                        sprintf(s,"RPCemu v0.51 - %f MIPS - %s",mips,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
+                        sprintf(s,"RPCemu v0.6 - %f MIPS %f %i - %s",mips,tlbsec,ins,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
                         SetWindowText(ghwnd, s);
                         updatemips=0;
                 }
@@ -293,7 +296,7 @@ infocus=1;
               sleep(1);
         #endif
         timeEndPeriod(1);
-//        dumpregs();
+        dumpregs();
         endrpcemu();
 //        fclose(arclog);
         

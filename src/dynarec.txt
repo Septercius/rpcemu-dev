@@ -12,6 +12,7 @@ This hasn't been tested on linux at all.
 This hasn't been tested on that many programs. The ones that have been tested are :
 
 RISC OS 3.7
+RISC OS 4.39 (same problems as with interpreter on SA110)
 !Quake
 !FQuake
 !Freedoom
@@ -24,18 +25,24 @@ MAME
 !MetaMorph
 !Jan3D
 !Icon
-!Damn - The only program that failed to work (does this work on a real StrongARM?)
+!AWViewer
+!SICK
+!Damn - The only program that failed to work that did work on the interpreter
+        (does this work on a real StrongARM?)
 
 You must be in SA110 emulation for this to work. I haven't tested with ARM610, ARM710 or
 ARM7500, but I suspect these will crash fairly quickly, due to the difference in CP15 cache
 handling.
 
-No provision has been made to disable the dynarec and drop back to an interpreter. A simple
-way of doing this is to monitor the cache enable bit in CP15 and return 0 for isblockvalid()
-if this is disabled.
+Compatibility is mostly the same as a real StrongARM RiscPC - ie the stuff that doesn't work
+there won't work here. This includes old versions of apps (eg Ovation, SparkFS), old versions
+of utilities (eg ROS 3.6 !Configure, as included in the supplied RPCemu disk images) and old
+games (ie any unpatched).
 
-The instruction cache currently uses a whopping 64 megs. This can most likely be reduced,
-but you would need to pay attention to the hashing function.
+In order to disable the dynarec disable the cache (ie *cache 0). This returns compatibility (mostly) to normal, and to a speed only a little slower than previous versions of RPCemu.
+
+The instruction cache currently uses 19 megs. This can most likely be reduced, but you would 
+need to pay attention to the hashing function.
 
 
 This isn't a true dynarec at the moment, it's what would be called a threaded interpreter. It
@@ -44,47 +51,55 @@ handler functions for every opcode. This eliminates instruction fetch and (in ma
 condition checking. A full dynarec shouldn't be a massive jump from here.
 
 The code blocks are flushed when the StrongARM Icache is flushed. This means that, as on a
-real StrongARM, self modifying code won't really work.
+real StrongARM, self modifying code won't really work. I did create a version where self
+modifying code did work, but the speed was eratic - some programs performed really badly.
+Hence the current version doesn't have this in.
 
 
-The performance increase on my main machine (Athlon X2 4200+) ranges from about 20% (!SICK,
+The performance increase on my main machine (Athlon X2 4200+) ranges from about 40% (!SICK,
 RISC OS in general) to 100% (!Fishtank2). 
 
 Benchmarks noted :
 
-Dhrystone - 107k (was 80k with interpreter)
-!FQuake   - 7.4 fps average (16fps on real SA)
+Dhrystone - 122k on Athlon XP 4200+, 133k on Core 2 Duo 1.66ghz
+!FQuake   - 8 fps average (16fps on real SA)
 The highest instruction rate I've seen so far is on Fishtank2, which runs at around 65-70 
-MIPS.
+MIPS. I've also seen 82 MIPS, but I can't remember on what.
 
 
 Ideas for optimisations/design flaws:
 
-When the Icache is flushed, all blocks are flushed. In theory it shouldn't have to flush the
-blocks in ROM. It should be fairly easy to hardcode this for RISC OS (keep everything mapped
-between 3800000 and 3FFFFFF) but this would mess up other operating systems (eg ARMLinux,
-NetBSD - not that these actually run at the moment).
+When the Icache is flushed, all blocks are flushed except those between 3800000 and 3FFFFFF
+(ie those in ROM). This probably breaks any operating system other than RISC OS, but since no
+other operating systems work I don't consider this much of a problem at the minute.
 
 Blocks always end when the PC could be modified (depending on condition codes). In theory, if
 a jump is not taken, then it should be possible to continue the block and put a check in the
 generated code for when the jump _is_ taken.
+There is one exception in the current recompiler - when a branch occurs but is _not_ taken
+when the block is being compiled, the recompiler carries on, and puts in code to jump out if
+the branch is taken.
 
 The recompiler doesn't handle small loops very well. It should be possible for backwards 
 jumps into locations in the same block to simply jump rather than end the block, and enter it
 again. There would need to be some kind of limit though, to prevent hardware polling loops to
-circle forever.
+circle forever. Maybe get the recompiler to unroll the loop a bit?
 
 R15 is updated after each instruction. It should be possible to only update it at the end of
-a block, or when it is read.
+a block, or when it is read. There is some beginning code for this, but my implementation
+crashed when it came across FPA instructions.
 
-Abort checking is done after every instruction. It should be done only after instructions 
-that access memory, eg LDR/STR/LDM/STM/SWP. 
+Abort checking is done after instructions that access memory. In theory, it should be possible
+to remove all checking until the end of a block - RISC OS can't recover from data aborts anyway, so it wouldn't really affect anything.
 
 It might be possible to support self modifying code, by keeping a 'page dirty' bit, and
 checking it on relevant blocks. If the bit is set, flush every block on the current page. Not
 sure what effect this would have on performance, or if there would even be much point - the
 StrongARM came out 11 years ago, and no program in that time would/should be using self
 modifying code without flushing the cache.
+I have now tried this, and the performance is variable - games and demos are mostly okay,
+but the desktop plummets from 67 MIPS to 45, and Dhrystone goes from 48ish MIPS to 4 MIPS.
+Hence it's not implemented!
 
 Obviously this should become a proper dynarec at some point - eg generate actual code for
 each instruction.

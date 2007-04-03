@@ -1,5 +1,5 @@
-/*RPCemu v0.5 by Tom Walker
-  'Flexible' ROM loader*/
+/*RPCemu v0.6 by Tom Walker
+  ROM loader*/
 #include <allegro.h>
 #include <stdio.h>
 #include "rpcemu.h"

@@ -1,4 +1,4 @@
-/*RPCemu v0.5 by Tom Walker
+/*RPCemu v0.6 by Tom Walker
   I2C + CMOS RAM emulation*/
 #include <allegro.h>
 #ifndef __linux__

@@ -474,10 +474,10 @@ memmode=1;
                 }
         }
         fclose(f);*/
-/*        f=fopen("ram.dmp","wb");
-        for (c=0x8000;c<0x60000;c++)
+        f=fopen("ram.dmp","wb");
+        for (c=0x8000;c<0x70000;c++)
             putc(readmemb(c),f);
-        fclose(f);*/
+        fclose(f);
 
 /*        f=fopen("ram30.dmp","wb");
         for (c=0x2228000;c<0x2229000;c+=4)
@@ -590,7 +590,7 @@ int loadrom()
 #define checkneg(v) (v&0x80000000)
 #define checkpos(v) !(v&0x80000000)
 
-/*static inline */void setadd(uint32_t op1, uint32_t op2, uint32_t res)
+static inline void setadd(uint32_t op1, uint32_t op2, uint32_t res)
 {
 /*        armregs[cpsr]&=0xFFFFFFF;
         if (!res)                           armregs[cpsr]|=ZFLAG;
@@ -620,7 +620,7 @@ static inline void setsub(uint32_t op1, uint32_t op2, uint32_t res)
         *pcpsr=((*pcpsr)&0xFFFFFFF)|(temp);
 }
 
-/*static inline */void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
+static inline void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
 {
         armregs[cpsr]&=0xFFFFFFF;
         if (!res)                           armregs[cpsr]|=ZFLAG;
@@ -633,7 +633,7 @@ static inline void setsub(uint32_t op1, uint32_t op2, uint32_t res)
             armregs[cpsr]|=VFLAG;
 }
 
-/*static inline */void setadc(uint32_t op1, uint32_t op2, uint32_t res)
+static inline void setadc(uint32_t op1, uint32_t op2, uint32_t res)
 {
         armregs[cpsr]&=0xFFFFFFF;
         if ((checkneg(op1) && checkneg(op2)) ||
@@ -972,9 +972,10 @@ void exception(int mmode, uint32_t address, int diff)
 
 #define INARMC
 #include "ArmDynarecOps.c"
-void opSWI()
+void opSWI(unsigned long opcode)
 {
         templ=opcode&0xDFFFF;
+//        rpclog("SWI %08X at %07X\n",opcode,PC);
         /*if (mousehack && templ==7 && armregs[0]==0x15)
         {
                 if (readmemb(armregs[1])==1)
@@ -1028,7 +1029,7 @@ void badopcode()
         exit(-1);
 }
 
-void (*opcodes[256])()=
+void (*opcodes[256])(unsigned long opcode)=
 {
 	opANDreg, opANDregS,opEORreg, opEORregS,opSUBreg,opSUBregS,opRSBreg,opRSBregS,   //00
 	opADDreg, opADDregS,opADCreg, opADCregS,opSBCreg,opSBCregS,opRSCreg,opRSCregS,   //08
@@ -1097,7 +1098,7 @@ void execarm(int cycs)
 //                for (linecyc=0;linecyc<200;linecyc++)
                 while (linecyc<200)
                 {
-//                        if (output) rpclog("New block - %08X %i %08X %08X\n",PC,ins,iomd.t0c,iomd.t1c);
+//                        /*if (output) */rpclog("New block - %08X %i %08X %08X %08X\n",PC,ins,iomd.t0c,iomd.t1c,armregs[6]);
 //                        if (PC==0x38F797C) rpclog("Hit 38F797C at %i\n",ins);
 //                        ins++;
                         if (!isblockvalid(PC)) /*Interpret block*/
@@ -1120,7 +1121,7 @@ void execarm(int cycs)
                                                 if ((opcode&0x0E108000)==0x08108000) blockend=1; /*End if R15 reloaded from LDM*/
                                                 if ((opcode&0x0C100000)==0x04100000 && (RD==15)) blockend=1; /*End if R15 reloaded from LDR*/
                                         if (flaglookup[opcode>>28][(*pcpsr)>>28])// && !(armirq&0x80))
-                                           opcodes[(opcode>>20)&0xFF]();
+                                           opcodes[(opcode>>20)&0xFF](opcode);
 //                                                if ((opcode&0x0E000000)==0x0A000000) blockend=1; /*Always end block on branches*/
 //                                                if ((opcode&0x0C000000)==0x0C000000) blockend=1; /*And SWIs and copro stuff*/
                                         armregs[15]+=4;
@@ -1135,23 +1136,38 @@ void execarm(int cycs)
                         else
                         {
                                 hash=HASH(PC);
-                                if (codeblockpc[0][hash]==PC)
+/*                                if (pagedirty[PC>>9])
                                 {
-                                        gen_func=(void *)(&codeblock[0][hash][1]);
+                                        pagedirty[PC>>9]=0;
+                                        cacheclearpage(PC>>9);
+                                }
+                                else */if (codeblockpc[hash][0]==PC)
+                                {
+//                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Calling block 0 %07X\n",PC); }
+                                        gen_func=(void *)(&codeblock[0][hash][4]);
                                         gen_func();
                                         inscount+=codeinscount[0][hash];
                                         rinscount+=codeinscount[0][hash];
                                 }
-                                else if (codeblockpc[1][hash]==PC)
+                                else if (codeblockpc[hash][1]==PC)
                                 {
-                                        gen_func=(void *)(&codeblock[1][hash][1]);
+//                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Calling block 1 %07X\n",PC); }
+                                        gen_func=(void *)(&codeblock[1][hash][4]);
                                         gen_func();
                                         inscount+=codeinscount[1][hash];
                                         rinscount+=codeinscount[1][hash];
                                 }
+                                else if (codeblockpc[hash][2]==PC)
+                                {
+//                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Calling block 2 %07X\n",PC); }
+                                        gen_func=(void *)(&codeblock[2][hash][4]);
+                                        gen_func();
+                                        inscount+=codeinscount[2][hash];
+                                        rinscount+=codeinscount[2][hash];
+                                }
                                 else
                                 {
-                                        ins++;
+//                                        ins++;
 //                                        oldpc=PC;
 //if (ins==9683151) rpclog("Is new block\n");
 //                                        if (ins==6020942) rpclog("Is new block\n");
@@ -1165,37 +1181,44 @@ void execarm(int cycs)
                                         }
                                         initcodeblock(PC);
                                         c=0;
+//                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Rebuilding block %07X\n",PC); output=1; }
                                         while (!blockend && !(armirq&0xC0))
                                         {
 //                                                if (ins==6020942) rpclog("%08X %i\n",PC,blockend);
                                                 opcode=pccache2[PC>>2];
-                                                generateflagtestandbranch(opcode,pcpsr,flaglookup);
-                                                generatemove(&opcode,opcode);
-                                                generatecall((uint32_t)opcodes[(opcode>>20)&0xFF]);
-                                                generatepcinc();
-                                                if (((opcode+0x6000000)&0xF000000)>0xA000000) generateirqtest();
-                                                if ((opcode&0x0E000000)==0x0A000000) blockend=1; /*Always end block on branches*/
-                                                if ((opcode&0x0C000000)==0x0C000000) blockend=1; /*And SWIs and copro stuff*/
-                                                if (!(opcode&0xC000000) && (RD==15)) blockend=1; /*End if R15 can be modified*/
-                                                if ((opcode&0x0E108000)==0x08108000) blockend=1; /*End if R15 reloaded from LDM*/
-                                                if ((opcode&0x0C100000)==0x04100000 && (RD==15)) blockend=1; /*End if R15 reloaded from LDR*/
-                                                if (flaglookup[opcode>>28][(*pcpsr)>>28])// && !(armirq&0x80))
-                                                   opcodes[(opcode>>20)&0xFF]();
+                                                if ((opcode>>28)==0xF) /*NV*/
+                                                {
+                                                        generatepcinc();
+                                                }
+                                                else
+                                                {
+//                                                        if ((opcode&0xF000000) <0x4000000 && ((RN==15) || (RM==15) || (RD==15) || (opcode&0x100000))) generateupdatepc();
+//                                                        if ((opcode&0xF000000) >=0x4000000) generateupdatepc();
+//                                                        if ((opcode&0xF000000)>=0xA000000) generateupdatepc();
+//                                                        if (((opcode+0x6000000)&0xF000000)>=0xA000000) generateupdatepc();
+                                                        generateupdatepc();
+                                                        generatepcinc();
+                                                        if ((opcode>>28)!=0xE) generateflagtestandbranch(opcode,pcpsr,flaglookup);
+                                                        generatecall((uint32_t)opcodes[(opcode>>20)&0xFF],opcode,pcpsr);
+                                                        if (((opcode+0x6000000)&0xF000000)>0xA000000) generateirqtest();
+//                                                        if ((opcode&0x0E000000)==0x0A000000) blockend=1; /*Always end block on branches*/
+                                                        if ((opcode&0x0C000000)==0x0C000000) blockend=1; /*And SWIs and copro stuff*/
+                                                        if (!(opcode&0xC000000) && (RD==15)) blockend=1; /*End if R15 can be modified*/
+                                                        if ((opcode&0x0E108000)==0x08108000) blockend=1; /*End if R15 reloaded from LDM*/
+                                                        if ((opcode&0x0C100000)==0x04100000 && (RD==15)) blockend=1; /*End if R15 reloaded from LDR*/
+                                                        if (flaglookup[opcode>>28][(*pcpsr)>>28])// && !(armirq&0x80))
+                                                           opcodes[(opcode>>20)&0xFF](opcode);
+                                                }
                                                 armregs[15]+=4;
                                                 if (!((PC)&0xFFC)) blockend=1;
                                                 inscount++;
                                                 rinscount++;
                                                 c++;
                                         }
+//                                        if (output) rpclog("Block ended at %07X %i\n",PC,c);
+                                        output=0;
                                         endblock(c);
                                 }
-/*                                else
-                                {
-//                                        if (ins==9683151) rpclog("Is old block\n");
-                                        inscount+=c;
-                                        rinscount+=c;
-//                                        linecyc+=10;
-                                }*/
                         }
                         linecyc+=10;
                         if (/*databort|*/armirq)//|prefabort)
@@ -1303,16 +1326,21 @@ void execarm(int cycs)
                         armirq=irq;
 //                        if (ins==3242) printf("%08X %08X\n",iomd.t0c,iomd.t1c);
                 }
-/*                if (ins>=5000000) output=1;
-                if (ins>=10000000)
+//                if (ins>=30000000) output=1;
+/*                if (ins>=50000)
+                {
+                        dumpregs();
+                        exit(-1);
+                }*/
+/*                if (ins>=30078620)
                 {
                         dumpregs();
                         exit(-1);
                 }*/
                 linecyc-=200;
-//                iomd.t0c--;
-//                iomd.t1c--;
-//                if ((iomd.t0c<0) || (iomd.t1c<0)) updateiomdtimers();
+/*                iomd.t0c--;
+                iomd.t1c--;
+                if ((iomd.t0c<0) || (iomd.t1c<0)) updateiomdtimers();*/
                 if (kcallback)
                 {
                         kcallback--;
@@ -1375,7 +1403,7 @@ void execarm(int cycs)
 //                        rpclog("IRQ left! %i %i\n",delaygenirqleft);
                         if (!delaygenirq)
                         {
-                                delaygenirq=100;
+                                delaygenirq=10;
                         }
                         delaygenirq--;
                         if (!delaygenirq)

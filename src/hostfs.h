@@ -24,6 +24,6 @@ void hostfs(ARMul_State *state);
 #define ARMul_LoadWordS(state, address) readmeml(address)
 #define ARMul_LoadByte(state, address) readmemb(address)
 #define ARMul_StoreWordS(state, address, data) writememl(address, data)
-#define ARMul_StoreByte(state, address, data) writememb(address, data)
+#define ARMul_StoreByte(state, address, data) writememfb(address, data)
 
 #endif

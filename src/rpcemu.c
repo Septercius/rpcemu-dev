@@ -1,4 +1,4 @@
-/*RPCemu v0.5 by Tom Walker
+/*RPCemu v0.6 by Tom Walker
   Main loop
   Should be platform independent*/
 
@@ -43,6 +43,7 @@ int startrpcemu()
         initsound();
         loadconfig();
         reallocmem(rammask+1);
+        initcodeblocks();
         return 0;
 }
 
@@ -57,7 +58,7 @@ void execrpcemu()
                 iomdvsync();
                 pollmouse();
                 pollkeyboard();
-                doosmouse();
+//                doosmouse();
 //                cmostick();
         }
 }

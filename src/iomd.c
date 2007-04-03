@@ -1,4 +1,4 @@
-/*RPCemu v0.5 by Tom Walker
+/*RPCemu v0.6 by Tom Walker
   IOMD emulation*/
 
 #include <allegro.h>
@@ -273,8 +273,8 @@ uint32_t readiomd(uint32_t addr)
                 if (model==0) return 0x5B; /*ARM7500*/
                 return 0xD4;               /*IOMD*/
                 case 0x9C: return 0; /*Chip version*/
-                case 0xA0: rpclog("Read mousex %i\n",iomd.mousex); return iomd.mousex;
-                case 0xA4: rpclog("Read mousey %i\n",-iomd.mousey); return -iomd.mousey;
+                case 0xA0: /*rpclog("Read mousex %i\n",iomd.mousex);*/ return iomd.mousex;
+                case 0xA4: /*rpclog("Read mousey %i\n",-iomd.mousey);*/ return -iomd.mousey;
                 case 0xA8: return readmousedata(); /*Mouse data*/
                 case 0xAC: return getmousestat(); /*Mouse control*/
                 case 0x180: case 0x184: case 0x188: case 0x18C: return 0;

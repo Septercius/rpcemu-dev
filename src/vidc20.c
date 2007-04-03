@@ -1,4 +1,4 @@
-/*RPCemu v0.5 by Tom Walker
+/*RPCemu v0.6 by Tom Walker
   VIDC20 emulation*/
 #include <allegro.h>
 #include "rpcemu.h"
@@ -8,7 +8,7 @@ int readflash;
 int palchange,curchange;
 int blits=0;
 float mips;
-BITMAP *b;
+BITMAP *b,*bs,*bs2;
 int deskdepth;
 int oldsx,oldsy;
 RGB cursor[3];
@@ -33,38 +33,38 @@ void blitterthread()
                 case 0: //case 1: case 2: case 3:
   //              case 3:
         ys=yh-yl;
-                if (fullscreen) blit(b,screen,0,yl,(SCREEN_W-xs)>>1,yl+((SCREEN_H-oldsy)>>1),xs,ys);
+                if (fullscreen) blit(b,bs2,0,yl,(SCREEN_W-xs)>>1,yl+((SCREEN_H-oldsy)>>1),xs,ys);
                 else            blit(b,screen,0,yl,0,yl,xs,ys);
                 break;
                 case 1:
         ys=yh-yl;
-                if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
+                if (fullscreen) stretch_blit(b,bs2, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
                 else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl,                      xs<<1,ys);
                 break;
                 case 2:
                 if (stretchmode)
                 {
-                        if (fullscreen) stretch_blit(b,screen,0,0,xs,ys,0,0,xs,ys<<1);
+                        if (fullscreen) stretch_blit(b,bs2,0,0,xs,ys,0,0,xs,ys<<1);
                         else            stretch_blit(b,screen,0,0,xs,ys,0,0,xs,ys<<1);
                 }
                 else
                 {
                         ys=yh-yl;
-                        if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-xs)>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs,ys<<1);
-                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,               yl<<1,                        xs,ys<<1);
+                        if (fullscreen) stretch_blit(b,bs2, 0,yl,xs,ys, (SCREEN_W-xs)>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs,(ys<<1)-1);
+                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,               yl<<1,                        xs,(ys<<1)-1);
                 }
                 break;
                 case 3:
                 if (stretchmode)
                 {
-                        if (fullscreen) stretch_blit(b,screen,0,0,xs,ys,0,0,xs<<1,ys<<1);
+                        if (fullscreen) stretch_blit(b,bs2,0,0,xs,ys,0,0,xs<<1,ys<<1);
                         else            stretch_blit(b,screen,0,0,xs,ys,0,0,xs<<1,ys<<1);
                 }
                 else
                 {
                         ys=yh-yl;
-                        if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs<<1,ys<<1);
-                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl<<1,                        xs<<1,ys<<1);
+                        if (fullscreen) stretch_blit(b,bs2, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
+                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl<<1,                        xs<<1,(ys<<1)-1);
                 }
                 break;
         }
@@ -80,18 +80,18 @@ void initvideo()
         if (depth==16 || depth==15)
         {
                 set_color_depth(16);
-                if (set_gfx_mode(GFX_AUTODETECT_WINDOWED,640,480,0,0))
+                if (set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0))
                 {
                         set_color_depth(15);
                         depth=15;
-                        set_gfx_mode(GFX_AUTODETECT_WINDOWED,640,480,0,0);
+                        set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
                 }
                 drawcode=16;
         }
         else if (depth==32)
         {
                 set_color_depth(depth);
-                set_gfx_mode(GFX_AUTODETECT_WINDOWED,640,480,0,0);
+                set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
                 drawcode=32;
         }
         else
@@ -103,7 +103,8 @@ void initvideo()
 //        if (depth!=15) set_color_depth(16);
 //        else           set_color_depth(15);
 #ifdef HARDWAREBLIT
-        b=create_system_bitmap(1024,768);
+bs=create_video_bitmap(1024,768);
+        b=create_video_bitmap(1024,768);
         if (!b) /*Video bitmaps unavailable for some reason*/
 #endif
            b=create_bitmap(1024,768);
@@ -144,6 +145,7 @@ int fullresolutions[][2]=
         {640,480},
         {800,600},
         {1024,768},
+        {1280,800},
         {1280,1024},
         {-1,-1}
 };
@@ -154,14 +156,23 @@ void resizedisplay(int x, int y)
         int c;
         if (x<16) x=16;
         if (y<16) y=16;
-        if (x>1024) x=1024;
-        if (y>768) y=768;
+        if (fullscreen)
+        {
+                if (x>1280) x=1280;
+                if (y>1024) y=1024;
+        }
+        else
+        {
+                if (x>1024) x=1024;
+                if (y>768) y=768;
+        }
         oldsx=x;
         oldsy=y;
         while (inblit || blitready) sleep(1);
         if (fullscreen)
         {
                 destroy_bitmap(b);
+                destroy_bitmap(bs);
                 c=0;
                 while (fullresolutions[c][0]!=-1)
                 {
@@ -171,7 +182,12 @@ void resizedisplay(int x, int y)
                 }
                 if (fullresolutions[c][0]==-1) c--;
                 set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,fullresolutions[c][0],fullresolutions[c][1],0,0);
-                b=create_system_bitmap(x+16,y+16);
+                bs=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
+                bs2=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
+                clear(bs);
+                clear(bs2);
+                show_video_bitmap(bs2);
+                b=create_video_bitmap(x+16,y+16);
                 if (!b) /*Video bitmaps unavailable for some reason*/
                    b=create_bitmap(x+16,y+16);
                 lastfullscreen=1;
@@ -179,9 +195,11 @@ void resizedisplay(int x, int y)
         else
         {
                 if (lastfullscreen) destroy_bitmap(b);
+                if (lastfullscreen) destroy_bitmap(bs);
                 if (lastfullscreen) set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
                 updatewindowsize(x,y);
-                if (lastfullscreen) b=create_system_bitmap(1024,768);
+                if (lastfullscreen) bs=create_video_bitmap(1024,768);
+                if (lastfullscreen) b=create_video_bitmap(1024,768);
                 if (!b && lastfullscreen) /*Video bitmaps unavailable for some reason*/
                    b=create_bitmap(1024,768);
                 lastfullscreen=0;
@@ -273,8 +291,16 @@ void drawscr()
                 doublesize|=2;
         }
         #endif
-        if (ys>768) ys=768;
-        if (xs>1024) xs=1024;
+        if (fullscreen)
+        {
+                if (ys>1024) ys=1024;
+                if (xs>1280) xs=1280;
+        }
+        else
+        {
+                if (ys>768) ys=768;
+                if (xs>1024) xs=1024;
+        }
         if (ys!=oldsy || xs!=oldsx) resizedisplay(xs,ys);
         if (!(iomd.vidcr&0x20) || vdsr>vder)
         {
@@ -338,7 +364,7 @@ void drawscr()
                 for (c=0;c<(ny<<3);c++)
                     calccrc(ramp[addr++]);
                 /*If cursor data matches then no point redrawing screen - return*/
-                if (crc==curcrc && (blits&7) && skipblits)
+                if (crc==curcrc && skipblits)
                    return;
                 curcrc=crc;
         }

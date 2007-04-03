@@ -5,7 +5,7 @@
 #include "rpcemu.h"
 
 AUDIOSTREAM *as;
-#define BUFFERLEN 5000
+#define BUFFERLEN (4410>>1)
 //#define BUFFERLEN 11025
 
 void initsound()
@@ -97,7 +97,7 @@ void updatesoundirq()
                 bigsoundbuffer[bigsoundbufferselect][bigsoundpos++]=(temp>>16);//&0x8000;
                 if (bigsoundpos>=(BUFFERLEN<<1))
                 {
-                        rpclog("Just finished buffer %i\n",bigsoundbufferselect);
+//                        rpclog("Just finished buffer %i\n",bigsoundbufferselect);
                         bigsoundbufferselect++;
                         bigsoundbufferselect&=7;
                         bigsoundpos=0;
