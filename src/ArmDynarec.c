@@ -1,3 +1,5 @@
+unsigned long readmeml(unsigned long a);
+//void writememl(unsigned long a, unsigned long v);
 /*RPCemu v0.6 by Tom Walker
   ARM6/7 & SA110 emulation
   Dynamic recompiling version!*/
@@ -52,6 +54,18 @@ int inscounts[256];
 
 #include "rpcemu.h"
 #include "hostfs.h"
+
+/*unsigned long readmeml(unsigned long a)
+{
+        if (mmu) rpclog("readmeml slow %08X %07X\n",a,PC);
+        if (vraddrl[(a)>>12]&1)
+           return readmemfl(a);
+        else
+        {
+                rpclog("Readmeml %08X %08X\n",a,PC);
+                return *(unsigned long *)((a)+(vraddrl[(a)>>12]&~3));
+        }
+}*/
 
 int r15diff;
 int flyback;
@@ -794,6 +808,7 @@ static inline unsigned shift4(unsigned opcode)
         unsigned shiftmode=opcode&0x60;
         unsigned shiftamount=(opcode&0x10)?(armregs[(opcode>>8)&15]&0xFF):((opcode>>7)&31);
         uint32_t rm=armregs[RM];
+//        if (((opcode>>8)&15)==15 && (opcode&0x10)) rpclog("Shift by R15!!\n");
         if ((shiftamount-1)>=31)
         {
                 return shift5(opcode,shiftmode,shiftamount,rm);
@@ -974,7 +989,9 @@ void exception(int mmode, uint32_t address, int diff)
 #include "ArmDynarecOps.c"
 void opSWI(unsigned long opcode)
 {
+	inscount++; rinscount++;
         templ=opcode&0xDFFFF;
+//        if ((templ&~0x1F)==0x404C0) rpclog("MIDI SWI %05X at %07X\n",templ,PC);
 //        rpclog("SWI %08X at %07X\n",opcode,PC);
         /*if (mousehack && templ==7 && armregs[0]==0x15)
         {
@@ -1023,12 +1040,36 @@ void opSWI(unsigned long opcode)
         }
 }
 
+/*void writememl(unsigned long a, unsigned long v)
+{
+        if (vraddrl[(a)>>12]&3)
+           writememfl(a,v);
+        else
+        {
+                *(unsigned long *)((a)+vraddrl[(a)>>12])=v;
+        }
+}*/
+
 void badopcode()
 {
         bad_opcode(opcode);
         exit(-1);
 }
 
+unsigned char validforskip[64]=
+{
+        1,        1,        1,        1,        1,       1,        1,       1,
+        1,        1,        1,        1,        1,       1,        1,       1,
+        0,        0,        0,        0,        0,       0,        0,       0,
+        1,        1,        0,        0,        1,       1,        1,       1,
+        
+        0,        0,        1,        0,        1,       0,        1,       0,
+        1,        0,        1,        0,        1,       0,        1,       0,
+        0,        0,        0,        0,        0,       0,        0,       0,
+        1,        0,        1,        0,        1,       0,        1,       0
+};
+
+int codeblockpos;
 void (*opcodes[256])(unsigned long opcode)=
 {
 	opANDreg, opANDregS,opEORreg, opEORregS,opSUBreg,opSUBregS,opRSBreg,opRSBregS,   //00
@@ -1098,11 +1139,14 @@ void execarm(int cycs)
 //                for (linecyc=0;linecyc<200;linecyc++)
                 while (linecyc<200)
                 {
+/*                        if (armregs[15]==0x838282F7) *///output=1;
+//                        if (PC==0x38203BC) rpclog("Hit 38203BC\n");
 //                        /*if (output) */rpclog("New block - %08X %i %08X %08X %08X\n",PC,ins,iomd.t0c,iomd.t1c,armregs[6]);
 //                        if (PC==0x38F797C) rpclog("Hit 38F797C at %i\n",ins);
 //                        ins++;
                         if (!isblockvalid(PC)) /*Interpret block*/
                         {
+//                                if (output) rpclog("Interpreting block %07X\n",PC);
                                 blockend=0;
                                 if ((PC>>12)!=pccache)
                                 {
@@ -1115,6 +1159,12 @@ void execarm(int cycs)
                                 while (!blockend && !(armirq&0xC0))
                                 {
                                         opcode=pccache2[PC>>2];
+  /*                                      if (output) rpclog("%07X : %08X %08X  %08X %08X %08X  %08X\n",PC,armregs[0],armregs[1],armregs[13],armregs[14],armregs[15],opcode);
+                                        if (timetolive)
+                                        {
+                                                timetolive--;
+                                                if (!timetolive) output=0;
+                                        }*/
                                                 if ((opcode&0x0E000000)==0x0A000000) blockend=1; /*Always end block on branches*/
                                                 if ((opcode&0x0C000000)==0x0C000000) blockend=1; /*And SWIs and copro stuff*/
                                                 if (!(opcode&0xC000000) && (RD==15)) blockend=1; /*End if R15 can be modified*/
@@ -1143,34 +1193,44 @@ void execarm(int cycs)
                                 }
                                 else */if (codeblockpc[hash][0]==PC)
                                 {
+//                                        if (output) rpclog("Calling block 0 %07X %08X %08X %08X\n",PC,&codeblock[0][hash][4],armregs[0],armregs[3]);
 //                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Calling block 0 %07X\n",PC); }
                                         gen_func=(void *)(&codeblock[0][hash][4]);
                                         gen_func();
-                                        inscount+=codeinscount[0][hash];
+//                                        inscount+=codeinscount[0][hash];
                                         rinscount+=codeinscount[0][hash];
+                                        if (armirq&0x40) armregs[15]+=4;
                                 }
                                 else if (codeblockpc[hash][1]==PC)
                                 {
+//                                        if (output) rpclog("Calling block 1 %07X %08X %08X %08X\n",PC,&codeblock[1][hash][4],armregs[0],armregs[3]);
 //                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Calling block 1 %07X\n",PC); }
+/*                                        if (PC==0x38282EC)
+                                        {
+                                                rpclog("We're there!\n");
+                                        }*/
                                         gen_func=(void *)(&codeblock[1][hash][4]);
                                         gen_func();
-                                        inscount+=codeinscount[1][hash];
+//                                        inscount+=codeinscount[1][hash];
                                         rinscount+=codeinscount[1][hash];
+                                        if (armirq&0x40) armregs[15]+=4;
                                 }
                                 else if (codeblockpc[hash][2]==PC)
                                 {
+//                                        if (output) rpclog("Calling block 2 %07X %08X %08X %08X\n",PC,&codeblock[2][hash][4],armregs[0],armregs[3]);
 //                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Calling block 2 %07X\n",PC); }
                                         gen_func=(void *)(&codeblock[2][hash][4]);
                                         gen_func();
-                                        inscount+=codeinscount[2][hash];
+//                                        inscount+=codeinscount[2][hash];
                                         rinscount+=codeinscount[2][hash];
+                                        if (armirq&0x40) armregs[15]+=4;
                                 }
                                 else
                                 {
 //                                        ins++;
-//                                        oldpc=PC;
+                                        oldpc=PC;
 //if (ins==9683151) rpclog("Is new block\n");
-//                                        if (ins==6020942) rpclog("Is new block\n");
+//                                        if (output)  rpclog("Is new block %07X %08X %08X %08X\n",PC,armregs[8],armregs[0],armregs[3]);
                                         blockend=0;
                                         if ((PC>>12)!=pccache)
                                         {
@@ -1179,8 +1239,9 @@ void execarm(int cycs)
                                                 if ((uint32_t)pccache2==0xFFFFFFFF) { opcode=pccache=(uint32_t)pccache2; armirq|=0x80; }
                                                 else                      opcode=pccache2[PC>>2];
                                         }
-                                        initcodeblock(PC);
+                                        if (!(armirq&0x80)) initcodeblock(PC);
                                         c=0;
+//                                        if (oldpc==0x38282E4) output=1;
 //                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Rebuilding block %07X\n",PC); output=1; }
                                         while (!blockend && !(armirq&0xC0))
                                         {
@@ -1192,15 +1253,24 @@ void execarm(int cycs)
                                                 }
                                                 else
                                                 {
-//                                                        if ((opcode&0xF000000) <0x4000000 && ((RN==15) || (RM==15) || (RD==15) || (opcode&0x100000))) generateupdatepc();
-//                                                        if ((opcode&0xF000000) >=0x4000000) generateupdatepc();
-//                                                        if ((opcode&0xF000000)>=0xA000000) generateupdatepc();
-//                                                        if (((opcode+0x6000000)&0xF000000)>=0xA000000) generateupdatepc();
+                                                        #ifdef ABORTCHECKING
                                                         generateupdatepc();
+                                                        #else
+                                                        if ((opcode&0xE000000)==0x0000000/* && (RN==15 || RD==15 || RM==15 || !validforskip[(opcode>>20)&63])*/) generateupdatepc();
+                                                        if ((opcode&0xE000000)==0x2000000/* && (RN==15 || RD==15 ||           !validforskip[(opcode>>20)&63])*/) generateupdatepc();
+                                                        if ((opcode&0xC000000)==0x4000000 && (RN==15 || RD==15 || RM==15)) generateupdatepc();
+                                                        if ((opcode&0xE000000)==0x8000000 && ((opcode&0x8000) || (RN==15))) generateupdatepc();
+                                                        if ((opcode&0xF000000)>=0xA000000) generateupdatepc();
+                                                        #endif
+//                                                        if (((opcode+0x6000000)&0xF000000)>=0xA000000) generateupdatepc();
+//                                                        generateupdatepc();
                                                         generatepcinc();
-                                                        if ((opcode>>28)!=0xE) generateflagtestandbranch(opcode,pcpsr,flaglookup);
+                                                        if ((opcode&0xE000000)==0xA000000) generateupdateinscount();
+                                                        if ((opcode>>28)!=0xE) generateflagtestandbranch(opcode,pcpsr);//,flaglookup);
                                                         generatecall((uint32_t)opcodes[(opcode>>20)&0xFF],opcode,pcpsr);
-                                                        if (((opcode+0x6000000)&0xF000000)>0xA000000) generateirqtest();
+                                                        #ifdef ABORTCHECKING
+                                                        if (((opcode+0x6000000)&0xF000000)>=0xA000000) generateirqtest();
+                                                        #endif
 //                                                        if ((opcode&0x0E000000)==0x0A000000) blockend=1; /*Always end block on branches*/
                                                         if ((opcode&0x0C000000)==0x0C000000) blockend=1; /*And SWIs and copro stuff*/
                                                         if (!(opcode&0xC000000) && (RD==15)) blockend=1; /*End if R15 can be modified*/
@@ -1211,14 +1281,25 @@ void execarm(int cycs)
                                                 }
                                                 armregs[15]+=4;
                                                 if (!((PC)&0xFFC)) blockend=1;
-                                                inscount++;
+//                                                inscount++;
                                                 rinscount++;
                                                 c++;
                                         }
 //                                        if (output) rpclog("Block ended at %07X %i\n",PC,c);
-                                        output=0;
-                                        endblock(c);
+//                                        output=0;
+                                        if (!(armirq&0x80)) endblock(c);
+/*                                        if (oldpc==0x38282E4)
+                                        {
+                                                dumplastblock();
+                                                rpclog("%i instructions %i\n",c,codeblockpos);
+                                        }*/
                                 }
+                        }
+                        if (timetolive)
+                        {
+                                timetolive--;
+                                if (!timetolive)
+                                   output=0;
                         }
                         linecyc+=10;
                         if (/*databort|*/armirq)//|prefabort)
@@ -1251,13 +1332,19 @@ void execarm(int cycs)
                                 }
                                 else if (armirq&0x40)//databort==1)     /*Data abort*/
                                 {
-//                                        rpclog("Data abort %07X\n",PC);
+//                                        rpclog("Data abort %07X %08X %08X ",PC,armregs[15],opcode);
+//                                        getcp15fsr();
+//                                        output=1;
+//                                        timetolive=500;
+//                                        icache=0;
 //                                        dumpregs();
 //                                        exit(-1);
                                         armirq&=~0xC0;
-                                        armregs[15]-=4;
+                                        armregs[15]-=8;
                                         exception(ABORT,0x14,-4);
                                         armregs[15]+=4;
+//                                        rpclog("%08X ",armregs[14]);
+  //                                      getcp15fsr();
                                 }
                                 else if (databort==2) /*Address Exception*/
                                 {

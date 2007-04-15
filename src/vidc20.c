@@ -121,7 +121,7 @@ struct
         uint32_t r,g,b;
 } pal[256];
 PALETTE pal2;
-
+uint16_t pal16lookup[65536];
 uint32_t hdsr,hcsr,hder;
 uint32_t vdsr,vcsr,vcer,vder;
 int bit8;
@@ -334,7 +334,7 @@ void drawscr()
         if (palchange)
         {
                 memset(dirtybuffer,1,512);
-                palchange=0;
+//                palchange=0;
         }
         x=y=c=0;
         firstblock=lastblock=-1;
@@ -668,6 +668,13 @@ void drawscr()
                         }
                         xs<<=1;
                 #endif
+                        if (palchange)
+                        {
+                                for (y=0;y<65536;y++)
+                                {
+                                        pal16lookup[y]=pal[y&0xFF].r|pal[(y>>4)&0xFF].g|pal[y>>8].b;
+                                }
+                        }
                 xs>>=1;
                         for (y=0;y<ys;y++)
                         {
@@ -688,7 +695,11 @@ void drawscr()
                                         if (drawit)
                                         {
                                                 addr>>=1;
-                                                temp16=ramw[addr];
+                                                vidp[x]=pal16lookup[ramw[addr]]|(pal16lookup[ramw[addr+1]]<<16);
+                                                vidp[x+1]=pal16lookup[ramw[addr+2]]|(pal16lookup[ramw[addr+3]]<<16);
+                                                vidp[x+2]=pal16lookup[ramw[addr+4]]|(pal16lookup[ramw[addr+5]]<<16);
+                                                vidp[x+3]=pal16lookup[ramw[addr+6]]|(pal16lookup[ramw[addr+7]]<<16);
+/*                                                temp16=ramw[addr];
                                                 temp=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
                                                 temp16=ramw[addr+1];
                                                 vidp[x]=((pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16)|temp;
@@ -703,7 +714,7 @@ void drawscr()
                                                 temp16=ramw[addr+6];
                                                 temp=pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b;
                                                 temp16=ramw[addr+7];
-                                                vidp[x+3]=((pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16)|temp;
+                                                vidp[x+3]=((pal[temp16&0xFF].r|pal[(temp16>>4)&0xFF].g|pal[temp16>>8].b)<<16)|temp;*/
                                                 addr<<=1;
                                                 addr+=16;
                                         }
@@ -1062,6 +1073,7 @@ void drawscr()
                         exit(-1);
                 }
         }
+        palchange=0;
                 if (soundbufferfull)
                 {
                         updatesoundbuffer();
@@ -1117,6 +1129,17 @@ void drawscr()
                 if (yh<(ny+cy)) yh=ny+cy;
         }
         bmp_unwrite_line(b); 
+        for (c=0;c<1024;c++)
+        {
+//                rpclog("%03i %08X %08X %08X\n",c,vraddrphys[c],(vraddrphys[c]&0x1F000000),vraddrls[c]<<12);
+                if ((vraddrphys[c]&0x1F000000)==0x02000000)
+                {
+//                        rpclog("Invalidated %08X\n",vraddrls[c]);
+                        vraddrl[vraddrls[c]]=0xFFFFFFFF;
+                        vraddrphys[c]=vraddrls[c]=0xFFFFFFFF;
+                }
+        }
+        
 /*        if (readflash)
         {
                 rectfill(screen,xs-40,4,xs-8,11,readflash);

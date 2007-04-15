@@ -41,8 +41,12 @@
 #else
 #define mousehackena 0
 #endif
-
 #define mousehack (mousehackena&&mousehackon)
+
+/*This enables abort checking after every LDR/STR/LDM/STM instruction in the
+  recompiler. Disabling this makes the recompiler check after every block
+  instead - this doesn't appear to break RISC OS, but you never know...*/
+#define ABORTCHECKING
 
 int mousehackon;
 //#define PREFETCH
@@ -87,29 +91,38 @@ void reallocmem(int ramsize);
 
 extern uint32_t raddrl[256];
 extern uint32_t *raddrl2[256];
+
+extern uint32_t *vraddrl;
+extern uint32_t vraddrls[1024],vraddrphys[1024];
+extern int vraddrlpos;
 //#define readmeml(a) readmemfl(a)
 
-#define readmeml(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?raddrl2[((a)>>12)&0xFF][(a)>>2]:readmemfl(a))
+#define readmeml(a) ((vraddrl[(a)>>12]&1)?readmemfl(a):*(unsigned long *)((a)+(vraddrl[(a)>>12])))
+#define readmemb(a) ((vraddrl[(a)>>12]&1)?readmemfb(a):*(unsigned char *)((a)+(vraddrl[(a)>>12])))
+
+//#define readmeml(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?raddrl2[((a)>>12)&0xFF][(a)>>2]:readmemfl(a))
 //#define readmeml(a) ((((a)&0xFFFFF000)==raddrl)?raddrl2[((a)&0xFFC)>>2]:readmemfl(a))
 
-#define readmemb(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?((unsigned char *)raddrl2[((a)>>12)&0xFF])[(a)]:readmemfb(a))
+//#define readmemb(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?((unsigned char *)raddrl2[((a)>>12)&0xFF])[(a)]:readmemfb(a))
 
 extern uint32_t waddrl;
 extern uint32_t *waddrl2;
 extern uint32_t waddrbl;
 extern uint32_t *waddrbl2;
-uint8_t pagedirty[0x1000];
+//uint8_t pagedirty[0x1000];
 //#define writememb(a,v) writememfb(a,v)
 #define HASH(l) (((l)>>3)&0xFFF)
-#define writememl(a,v) if (((a)>>12)==waddrl) { waddrl2[((a)&0xFFC)>>2]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfl(a,v); }
-#define writememb(a,v) if (((a)>>12)==waddrbl) { ((unsigned char *)waddrbl2)[(a)&0xFFF]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfb(a,v); }
+#define writememl(a,v) if (vraddrl[(a)>>12]&3) writememfl(a,v); else { *(unsigned long *)((a)+vraddrl[(a)>>12])=v; }
+#define writememb(a,v) if (vraddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)((a)+vraddrl[(a)>>12])=v; }
+//#define writememl(a,v) if (((a)>>12)==waddrl) { waddrl2[((a)&0xFFC)>>2]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfl(a,v); }
+//#define writememb(a,v) if (((a)>>12)==waddrbl) { ((unsigned char *)waddrbl2)[(a)&0xFFF]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfb(a,v); }
 
 extern uint32_t *ram,*ram2,*rom,*vram;
 extern uint8_t *ramb,*romb,*vramb;
 extern uint8_t dirtybuffer[512];
 
-uint32_t tlbcache[16384];
-#define translateaddress(addr,rw,prefetch) ((!((addr)&0xFC000000) && !(tlbcache[((addr)>>12)&0x3FFF]&0xFFF))?(tlbcache[(addr)>>12]|((addr)&0xFFF)):translateaddress2(addr,rw,prefetch))
+uint32_t tlbcache[0x100000];
+#define translateaddress(addr,rw,prefetch) ((/*!((addr)&0xFC000000) && */!(tlbcache[((addr)>>12)/*&0x3FFF*/]&0xFFF))?(tlbcache[(addr)>>12]|((addr)&0xFFF)):translateaddress2(addr,rw,prefetch))
 
 extern int mmu,memmode;
 
@@ -282,4 +295,5 @@ void endrpcemu();
 int quited;
 
 int icache;
+
 #endif

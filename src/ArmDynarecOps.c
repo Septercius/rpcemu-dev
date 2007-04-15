@@ -21,6 +21,7 @@ void opANDreg(unsigned long opcode)
 			armregs[RD]=GETADDR(RN)&templ;
 		}
 	}
+	//inscount++; //r//inscount++;
 }
 
 void opANDregS(unsigned long opcode)
@@ -47,6 +48,7 @@ void opANDregS(unsigned long opcode)
 			setzn(armregs[RD]);
 		}
 	}
+	//inscount++; //r//inscount++;
 }
 
 void opEORreg(unsigned long opcode)
@@ -70,6 +72,7 @@ void opEORreg(unsigned long opcode)
 			armregs[RD]=GETADDR(RN)^templ;
 		}
         }
+	//inscount++; //r//inscount++;
 }
 
 void opEORregS(unsigned long opcode)
@@ -96,6 +99,7 @@ void opEORregS(unsigned long opcode)
                         setzn(armregs[RD]);
                 }
         }
+	//inscount++; //r//inscount++;
 }
 
 void opSUBreg(unsigned long opcode)
@@ -112,6 +116,7 @@ void opSUBreg(unsigned long opcode)
                 templ=shift2(opcode);
                 armregs[RD]=GETADDR(RN)-templ;
         }
+	//inscount++; //r//inscount++;
 }
 
 void opSUBregS(unsigned long opcode)
@@ -128,6 +133,7 @@ void opSUBregS(unsigned long opcode)
                 setsub(GETADDR(RN),templ,GETADDR(RN)-templ);
                 armregs[RD]=GETADDR(RN)-templ;
         }
+        //inscount++; //r//inscount++;
 }
 
 void opRSBreg(unsigned long opcode)
@@ -143,6 +149,7 @@ void opRSBreg(unsigned long opcode)
                 templ=shift2(opcode);
                 armregs[RD]=templ-GETADDR(RN);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opRSBregS(unsigned long opcode)
@@ -159,6 +166,7 @@ void opRSBregS(unsigned long opcode)
                 setsub(templ,GETADDR(RN),templ-GETADDR(RN));
                 armregs[RD]=templ-GETADDR(RN);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opADDreg(unsigned long opcode)
@@ -187,6 +195,7 @@ void opADDreg(unsigned long opcode)
 #ifdef STRONGARM
         }
 #endif
+	//inscount++; //r//inscount++;
 }
 
 void opADDregS(unsigned long opcode)
@@ -223,6 +232,7 @@ void opADDregS(unsigned long opcode)
 #ifdef STRONGARM
         }
 #endif
+	//inscount++; //r//inscount++;
 }
 
 void opADCreg(unsigned long opcode)
@@ -252,6 +262,7 @@ void opADCreg(unsigned long opcode)
 #ifdef STRONGARM
         }
 #endif
+	//inscount++; //r//inscount++;
 }
 
 void opADCregS(unsigned long opcode)
@@ -282,6 +293,7 @@ void opADCregS(unsigned long opcode)
 #ifdef STRONGARM
         }
 #endif
+	//inscount++; //r//inscount++;
 }
 
 void opSBCreg(unsigned long opcode)
@@ -314,6 +326,7 @@ void opSBCreg(unsigned long opcode)
 #ifdef STRONGARM
         }
 #endif
+	//inscount++; //r//inscount++;
 }
 
 void opSBCregS(unsigned long opcode)
@@ -343,6 +356,7 @@ void opSBCregS(unsigned long opcode)
 #ifdef STRONGARM
         }
 #endif
+	//inscount++; //r//inscount++;
 }
 
 void opRSCreg(unsigned long opcode)
@@ -381,6 +395,7 @@ void opRSCreg(unsigned long opcode)
 #ifdef STRONGARM
         }
 #endif
+	//inscount++; //r//inscount++;
 }
 
 void opRSCregS(unsigned long opcode)
@@ -410,6 +425,7 @@ void opRSCregS(unsigned long opcode)
 #ifdef STRONGARM
         }
 #endif
+	//inscount++; //r//inscount++;
 }
 
 void opSWPword(unsigned long opcode)
@@ -417,7 +433,7 @@ void opSWPword(unsigned long opcode)
         if ((opcode&0xF0)==0x90)
         {
                 uint32_t addr;
-                addr=armregs[RN];
+                addr=armregs[RN]&~3;
                 templ=GETREG(RM);
                 LOADREG(RD,readmeml(addr));
                 writememl(addr,templ);
@@ -435,6 +451,7 @@ void opSWPword(unsigned long opcode)
         {
                 undefined();
         }
+	//inscount++; //r//inscount++;
 }
 
 void opTSTreg(unsigned long opcode)
@@ -448,6 +465,7 @@ void opTSTreg(unsigned long opcode)
         }
         else
            setzn(GETADDR(RN)&shift(opcode));
+	//inscount++; //r//inscount++;
 }
 
 void opSWPbyte(unsigned long opcode)
@@ -480,6 +498,7 @@ void opSWPbyte(unsigned long opcode)
         {
 		bad_opcode(opcode);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opTEQreg(unsigned long opcode)
@@ -495,6 +514,7 @@ void opTEQreg(unsigned long opcode)
         {
                 setzn(GETADDR(RN)^shift(opcode));
         }
+	//inscount++; //r//inscount++;
 }
 
 void opMRSs(unsigned long opcode)
@@ -507,6 +527,7 @@ void opMRSs(unsigned long opcode)
         {
 		bad_opcode(opcode);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opCMPreg(unsigned long opcode)
@@ -523,6 +544,7 @@ void opCMPreg(unsigned long opcode)
                 templ=shift2(opcode);
                 setsub(GETADDR(RN),templ,GETADDR(RN)-templ);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opMSRs(unsigned long opcode)
@@ -537,6 +559,7 @@ void opMSRs(unsigned long opcode)
         {
 		bad_opcode(opcode);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opCMNreg(unsigned long opcode)
@@ -550,6 +573,7 @@ void opCMNreg(unsigned long opcode)
         }
         else
            setadd(GETADDR(RN),shift2(opcode),GETADDR(RN)+shift2(opcode));
+	//inscount++; //r//inscount++;
 }
 
 void opORRreg(unsigned long opcode)
@@ -565,6 +589,7 @@ void opORRreg(unsigned long opcode)
                 templ=shift2(opcode);
                 armregs[RD]=GETADDR(RN)|templ;
         }
+	//inscount++; //r//inscount++;
 }
 
 void opORRregS(unsigned long opcode)
@@ -582,6 +607,7 @@ void opORRregS(unsigned long opcode)
                 armregs[RD]=GETADDR(RN)|templ;
                 setzn(armregs[RD]);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opMOVreg(unsigned long opcode)
@@ -593,6 +619,7 @@ void opMOVreg(unsigned long opcode)
         }
         else
            armregs[RD]=shift2(opcode);
+	//inscount++; //r//inscount++;
 }
 void opMOVregS(unsigned long opcode)
 {
@@ -609,6 +636,7 @@ void opMOVregS(unsigned long opcode)
                 armregs[RD]=shift(opcode);
                 setzn(armregs[RD]);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opBICreg(unsigned long opcode)
@@ -624,6 +652,7 @@ void opBICreg(unsigned long opcode)
                 templ=shift2(opcode);
                 armregs[RD]=GETADDR(RN)&~templ;
         }
+	//inscount++; //r//inscount++;
 }
 
 void opBICregS(unsigned long opcode)
@@ -641,6 +670,7 @@ void opBICregS(unsigned long opcode)
                 armregs[RD]=GETADDR(RN)&~templ;
                 setzn(armregs[RD]);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opMVNreg(unsigned long opcode)
@@ -652,6 +682,7 @@ void opMVNreg(unsigned long opcode)
         }
         else
            armregs[RD]=~shift2(opcode);
+	//inscount++; //r//inscount++;
 }
 
 void opMVNregS(unsigned long opcode)
@@ -666,6 +697,7 @@ void opMVNregS(unsigned long opcode)
                 armregs[RD]=~shift(opcode);
                 setzn(armregs[RD]);
         }
+	//inscount++; //r//inscount++;
 }
 
 
@@ -682,6 +714,7 @@ void opANDimm(unsigned long opcode)
                 templ=rotate2(opcode);
                 armregs[RD]=GETADDR(RN)&templ;
         }
+	//inscount++; //r//inscount++;
 }
 
 void opANDimmS(unsigned long opcode)
@@ -699,6 +732,7 @@ void opANDimmS(unsigned long opcode)
                 armregs[RD]=GETADDR(RN)&templ;
                 setzn(armregs[RD]);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opEORimm(unsigned long opcode)
@@ -714,6 +748,7 @@ void opEORimm(unsigned long opcode)
                 templ=rotate2(opcode);
                 armregs[RD]=GETADDR(RN)^templ;
         }
+	//inscount++; //r//inscount++;
 }
 
 void opEORimmS(unsigned long opcode)
@@ -731,6 +766,7 @@ void opEORimmS(unsigned long opcode)
                 armregs[RD]=GETADDR(RN)^templ;
                 setzn(armregs[RD]);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opSUBimm(unsigned long opcode)
@@ -746,6 +782,7 @@ void opSUBimm(unsigned long opcode)
                 templ=rotate2(opcode);
                 armregs[RD]=GETADDR(RN)-templ;
         }
+	//inscount++; //r//inscount++;
 }
 
 void opSUBimmS(unsigned long opcode)
@@ -765,6 +802,7 @@ void opSUBimmS(unsigned long opcode)
                 armregs[RD]=templ2-templ;
                 setsub(templ2,templ,templ2-templ);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opRSBimm(unsigned long opcode)
@@ -780,6 +818,7 @@ void opRSBimm(unsigned long opcode)
                 templ=rotate2(opcode);
                 armregs[RD]=templ-GETADDR(RN);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opRSBimmS(unsigned long opcode)
@@ -796,6 +835,7 @@ void opRSBimmS(unsigned long opcode)
                 setsub(templ,GETADDR(RN),templ-GETADDR(RN));
                 armregs[RD]=templ-GETADDR(RN);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opADDimm(unsigned long opcode)
@@ -811,6 +851,7 @@ void opADDimm(unsigned long opcode)
                 templ=rotate2(opcode);
                 armregs[RD]=GETADDR(RN)+templ;
         }
+	//inscount++; //r//inscount++;
 }
 void opADDimmS(unsigned long opcode)
 {
@@ -827,6 +868,7 @@ void opADDimmS(unsigned long opcode)
                 setadd(GETADDR(RN),templ,GETADDR(RN)+templ);
                 armregs[RD]=GETADDR(RN)+templ;
         }
+	//inscount++; //r//inscount++;
 }
 
 void opADCimm(unsigned long opcode)
@@ -844,6 +886,7 @@ void opADCimm(unsigned long opcode)
                 templ=rotate2(opcode);
                 armregs[RD]=GETADDR(RN)+templ+templ2;
         }
+	//inscount++; //r//inscount++;
 }
 void opADCimmS(unsigned long opcode)
 {
@@ -861,6 +904,7 @@ void opADCimmS(unsigned long opcode)
                 setadc(GETADDR(RN),templ,GETADDR(RN)+templ+templ2);
                 armregs[RD]=GETADDR(RN)+templ+templ2;
         }
+	//inscount++; //r//inscount++;
 }
 
 void opSBCimm(unsigned long opcode)
@@ -877,6 +921,7 @@ void opSBCimm(unsigned long opcode)
                 templ=rotate2(opcode);
                 armregs[RD]=GETADDR(RN)-(templ+templ2);
         }
+	//inscount++; //r//inscount++;
 }
 void opSBCimmS(unsigned long opcode)
 {
@@ -893,6 +938,7 @@ void opSBCimmS(unsigned long opcode)
                 setsbc(GETADDR(RN),templ,GETADDR(RN)-(templ+templ2));
                 armregs[RD]=GETADDR(RN)-(templ+templ2);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opRSCimm(unsigned long opcode)
@@ -909,6 +955,7 @@ void opRSCimm(unsigned long opcode)
                 templ=rotate2(opcode);
                 armregs[RD]=templ-(GETADDR(RN)+templ2);
         }
+	//inscount++; //r//inscount++;
 }
 void opRSCimmS(unsigned long opcode)
 {
@@ -925,6 +972,7 @@ void opRSCimmS(unsigned long opcode)
                 setsbc(templ,GETADDR(RN),templ-(GETADDR(RN)+templ2));
                 armregs[RD]=templ-(GETADDR(RN)+templ2);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opTSTimm(unsigned long opcode)
@@ -940,6 +988,7 @@ void opTSTimm(unsigned long opcode)
         {
                 setzn(GETADDR(RN)&rotate(opcode));
         }
+	//inscount++; //r//inscount++;
 }
 
 void opMRSc(unsigned long opcode)
@@ -975,6 +1024,7 @@ void opMRSc(unsigned long opcode)
 
 						updatemode(armregs[16] & 0x1F);
 					}
+	//inscount++; //r//inscount++;
 }
 
 void opTEQimm(unsigned long opcode)
@@ -998,6 +1048,7 @@ void opTEQimm(unsigned long opcode)
         {
                 setzn(GETADDR(RN)^rotate(opcode));
         }
+	//inscount++; //r//inscount++;
 }
 
 void opCMPimm(unsigned long opcode)
@@ -1015,6 +1066,7 @@ void opCMPimm(unsigned long opcode)
                 templ2=GETADDR(RN);
                 setsub(templ2,templ,templ2-templ);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opCMNimm(unsigned long opcode)
@@ -1028,6 +1080,7 @@ void opCMNimm(unsigned long opcode)
         }
         else
            setadd(GETADDR(RN),rotate2(opcode),GETADDR(RN)+rotate2(opcode));
+	//inscount++; //r//inscount++;
 }
 
 void opORRimm(unsigned long opcode)
@@ -1043,6 +1096,7 @@ void opORRimm(unsigned long opcode)
                 templ=rotate2(opcode);
                 armregs[RD]=GETADDR(RN)|templ;
         }
+	//inscount++; //r//inscount++;
 }
 void opORRimmS(unsigned long opcode)
 {
@@ -1060,6 +1114,7 @@ void opORRimmS(unsigned long opcode)
                 armregs[RD]=GETADDR(RN)|templ;
                 setzn(armregs[RD]);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opMOVimm(unsigned long opcode)
@@ -1071,6 +1126,7 @@ void opMOVimm(unsigned long opcode)
         }
         else
            armregs[RD]=rotate2(opcode);
+	//inscount++; //r//inscount++;
 }
 void opMOVimmS(unsigned long opcode)
 {
@@ -1085,6 +1141,7 @@ void opMOVimmS(unsigned long opcode)
                 armregs[RD]=rotate(opcode);
                 setzn(armregs[RD]);
         }
+	//inscount++; //r//inscount++;
 }
 
 void opBICimm(unsigned long opcode)
@@ -1100,6 +1157,7 @@ void opBICimm(unsigned long opcode)
                 templ=rotate2(opcode);
                 armregs[RD]=GETADDR(RN)&~templ;
         }
+	//inscount++; //r//inscount++;
 }
 void opBICimmS(unsigned long opcode)
 {
@@ -1116,6 +1174,7 @@ void opBICimmS(unsigned long opcode)
                 armregs[RD]=GETADDR(RN)&~templ;
                 setzn(armregs[RD]);
         }
+	//inscount++; //r//inscount++;
 }
  
 void opMVNimm(unsigned long opcode)
@@ -1127,6 +1186,7 @@ void opMVNimm(unsigned long opcode)
         }
         else
            armregs[RD]=~rotate2(opcode);
+	//inscount++; //r//inscount++;
 }
 void opMVNimmS(unsigned long opcode)
 {
@@ -1140,33 +1200,38 @@ void opMVNimmS(unsigned long opcode)
                 armregs[RD]=~rotate(opcode);
                 setzn(armregs[RD]);
         }
+	//inscount++; //r//inscount++;
 }
 
 uint32_t addr,addr2;
 
-void opSTRT(unsigned long opcode)
+int opSTRT(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
         addr=GETADDR(RN);
         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
         else                  addr2=opcode&0xFFF;
         if (!(opcode&0x800000))  addr2=-addr2;
         if (opcode&0x1000000)
            addr+=addr2;
+        addr&=~3;
         templ=memmode;
         memmode=0;
         writememl(addr,armregs[RD]);
         memmode=templ;
-        if (armirq&0x40) return;
+        if (armirq&0x40) return 1;
         if (!(opcode&0x1000000))
         {
                 addr+=addr2;
                 armregs[RN]=addr;
         }
         else if (opcode&0x200000) armregs[RN]=addr;
+        return 0;
 }
 
-void opLDRT(unsigned long opcode)
+int opLDRT(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
         addr=GETADDR(RN);
         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
         else                  addr2=opcode&0xFFF;
@@ -1175,9 +1240,9 @@ void opLDRT(unsigned long opcode)
            addr+=addr2;
         templ=memmode;
         memmode=0;
-        templ2=readmeml(addr);
+        templ2=readmeml(addr&~3);
         memmode=templ;
-        if (armirq&0x40) return;
+        if (armirq&0x40) return 1;
         if (addr&3) templ2=ldrresult(templ2,addr);
         if (!(opcode&0x1000000))
         {
@@ -1186,10 +1251,12 @@ void opLDRT(unsigned long opcode)
         }
         else if (opcode&0x200000) armregs[RN]=addr;
         LOADREG(RD,templ2);
+        return 0;
 }
 
-void opSTRBT(unsigned long opcode)
+int opSTRBT(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
         addr=GETADDR(RN);
         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
         else                  addr2=opcode&0xFFF;
@@ -1200,17 +1267,19 @@ void opSTRBT(unsigned long opcode)
         memmode=0;
         writememb(addr,armregs[RD]);
         memmode=templ;
-        if (armirq&0x40) return;
+        if (armirq&0x40) return 1;
         if (!(opcode&0x1000000))
         {
                 addr+=addr2;
                 armregs[RN]=addr;
         }
         else if (opcode&0x200000) armregs[RN]=addr;
+        return 0;
 }
 
-void opLDRBT(unsigned long opcode)
+int opLDRBT(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
         addr=GETADDR(RN);
         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
         else                  addr2=opcode&0xFFF;
@@ -1221,7 +1290,7 @@ void opLDRBT(unsigned long opcode)
         memmode=0;
         templ2=readmemb(addr);
         memmode=templ;
-        if (armirq&0x40) return;
+        if (armirq&0x40) return 1;
         if (!(opcode&0x1000000))
         {
                 addr+=addr2;
@@ -1229,43 +1298,57 @@ void opLDRBT(unsigned long opcode)
         }
         else if (opcode&0x200000) armregs[RN]=addr;
         LOADREG(RD,templ2);
+        return 0;
 }
 
-void opSTRB4C(unsigned long opcode)
+int opSTRB4C(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
 	writememb(armregs[RN],armregs[RD]);
-	if (armirq&0x40) return;
+	if (armirq&0x40)
+        {
+                rpclog("Data abort! %07X\n",PC);
+                return 1;
+        }
         armregs[RN]+=(opcode&0xFFF);
+        return 0;
 }
 
-void opLDR59(unsigned long opcode)
+int opLDR59(unsigned long opcode)
 {
-        addr=GETADDR(RN)+(opcode&0xFFF);
-        templ=readmeml(addr);
+	//inscount++; //r//inscount++;
+        addr=(GETADDR(RN)+(opcode&0xFFF));
+        templ=readmeml(addr&~3);
         if (addr&3) templ=ldrresult(templ,addr);
-        if (armirq&0x40) return;
+        if (armirq&0x40) return 1;
         LOADREG(RD,templ);
+        return 0;
 }
 
-void opLDR79(unsigned long opcode)
+int opLDR79(unsigned long opcode)
 {
-        addr=GETADDR(RN)+shift_ldrstr(opcode);
-        templ=readmeml(addr);
+	//inscount++; //r//inscount++;
+        addr=(GETADDR(RN)+shift_ldrstr(opcode));
+        templ=readmeml(addr&~3);
         if (addr&3) templ=ldrresult(templ,addr);
-        if (armirq&0x40) return;
+        if (armirq&0x40) return 1;
         LOADREG(RD,templ);
+        return 0;
 }
 
-void opLDRB7D(unsigned long opcode)
+int opLDRB7D(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
         addr=GETADDR(RN)+shift_ldrstr(opcode);
         templ=readmemb(addr);
-        if (armirq&0x40) return;
+        if (armirq&0x40) return 1;
         armregs[RD]=templ;
+        return 0;
 }
 
-void opSTR(unsigned long opcode)
+int opSTR(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
 //        if (ins==6020942) rpclog("STR %08X %i\n",PC,blockend);
         if ((opcode&0x2000010)==0x2000010)
         {
@@ -1278,20 +1361,23 @@ void opSTR(unsigned long opcode)
         if (!(opcode&0x800000))  addr2=-addr2;
         if (opcode&0x1000000)
            addr+=addr2;
+        addr&=~3;
         if (RD==15) { writememl(addr,armregs[RD]+r15diff); }
         else        { writememl(addr,armregs[RD]); }
-        if (armirq&0x40) return;
+        if (armirq&0x40) return 1;
         if (!(opcode&0x1000000))
         {
                 addr+=addr2;
                 armregs[RN]=addr;
         }
         else if (opcode&0x200000) armregs[RN]=addr;
+        return 0;
 //        if (ins==6020942) rpclog("STR complete %i\n",blockend);
 }
 
-void opLDR(unsigned long opcode)
+int opLDR(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
         if ((opcode&0x2000010)==0x2000010)
         {
                 undefined();
@@ -1303,9 +1389,9 @@ void opLDR(unsigned long opcode)
         if (!(opcode&0x800000))  addr2=-addr2;
         if (opcode&0x1000000)
            addr+=addr2;
-        templ=readmeml(addr);
+        templ=readmeml(addr&~3);
         if (addr&3) templ=ldrresult(templ,addr);
-        if (armirq&0x40) return;
+        if (armirq&0x40) return 1;
         if (!(opcode&0x1000000))
         {
                 addr+=addr2;
@@ -1313,17 +1399,19 @@ void opLDR(unsigned long opcode)
         }
         else if (opcode&0x200000) armregs[RN]=addr;
         LOADREG(RD,templ);
+        return 0;
 }
 
-void opLDRB(unsigned long opcode)
+int opLDRB(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
         addr=GETADDR(RN);
         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
         else                  addr2=opcode&0xFFF;
         if (!(opcode&0x800000))  addr2=-addr2;
         if (opcode&0x1000000)    addr+=addr2;
         templ=readmemb(addr);
-        if (armirq&0x40) return;
+        if (armirq&0x40) return 1;
         if (!(opcode&0x1000000))
         {
                 addr+=addr2;
@@ -1331,10 +1419,12 @@ void opLDRB(unsigned long opcode)
         }
         else if (opcode&0x200000) armregs[RN]=addr;
         armregs[RD]=templ;
+        return 0;
 }
 
-void opSTRB(unsigned long opcode)
+int opSTRB(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
         addr=GETADDR(RN);
         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
         else                  addr2=opcode&0xFFF;
@@ -1342,13 +1432,14 @@ void opSTRB(unsigned long opcode)
         if (opcode&0x1000000)
            addr+=addr2;
         writememb(addr,armregs[RD]);
-        if (armirq&0x40) return;
+        if (armirq&0x40) return 1;
         if (!(opcode&0x1000000))
         {
                 addr+=addr2;
                 armregs[RN]=addr;
         }
         else if (opcode&0x200000) armregs[RN]=addr;
+        return 0;
 }
 
 
@@ -1481,77 +1572,110 @@ void opSTRB(unsigned long opcode)
 uint16_t mask;
 int c;
 
-void opSTMD(unsigned long opcode)
+int opSTMD(unsigned long opcode)
 {
-        addr=armregs[RN]-countbits(opcode&0xFFFF);
+        uint32_t temp=armregs[RN];
+	//inscount++; //r//inscount++;
+        addr=(armregs[RN]-countbits(opcode&0xFFFF))&~3;
         if (!(opcode&0x1000000)) addr+=4;
         STMfirst();
         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
         STMall()
+        if (armirq&0x40) armregs[RN]=temp;
+        return (armirq&0x40);
 }
 
-void opSTMI(unsigned long opcode)
+int opSTMI(unsigned long opcode)
 {
-        addr=armregs[RN];
+        uint32_t temp=armregs[RN];
+	//inscount++; //r//inscount++;
+        addr=armregs[RN]&~3;
         if (opcode&0x1000000) addr+=4;
         STMfirst();
         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
         STMall();
+        if (armirq&0x40) armregs[RN]=temp;
+        return (armirq&0x40);
 }
 
-void opSTMDS(unsigned long opcode)
+int opSTMDS(unsigned long opcode)
 {
-        addr=armregs[RN]-countbits(opcode&0xFFFF);
+        uint32_t temp=armregs[RN];
+	//inscount++; //r//inscount++;
+        addr=(armregs[RN]-countbits(opcode&0xFFFF))&~3;
         if (!(opcode&0x1000000)) addr+=4;
         STMfirstS();
         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
         STMallS()
+        if (armirq&0x40) armregs[RN]=temp;
+        return (armirq&0x40);
 }
 
-void opSTMIS(unsigned long opcode)
+int opSTMIS(unsigned long opcode)
 {
-        addr=armregs[RN];
+        uint32_t temp=armregs[RN];
+	//inscount++; //r//inscount++;
+        addr=armregs[RN]&~3;
         if (opcode&0x1000000) addr+=4;
         STMfirstS();
         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
         STMallS();
+        if (armirq&0x40) armregs[RN]=temp;
+        return (armirq&0x40);
 }
 
-void opLDMD(unsigned long opcode)
+int opLDMD(unsigned long opcode)
 {
-        addr=armregs[RN]-countbits(opcode&0xFFFF);
+        uint32_t temp=armregs[RN];
+	//inscount++; //r//inscount++;
+        addr=(armregs[RN]-countbits(opcode&0xFFFF))&~3;
         if (!(opcode&0x1000000)) addr+=4;
         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
         LDMall();
+        if (armirq&0x40) armregs[RN]=temp;
+        return (armirq&0x40);
 }
 
-void opLDMI(unsigned long opcode)
+int opLDMI(unsigned long opcode)
 {
-        addr=armregs[RN];
+        uint32_t temp=armregs[RN];
+	//inscount++; //r//inscount++;
+        addr=armregs[RN]&~3;
         if (opcode&0x1000000) addr+=4;
         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
         LDMall();
+        if (armirq&0x40) armregs[RN]=temp;
+        return (armirq&0x40);
 }
 
-void opLDMDS(unsigned long opcode)
+int opLDMDS(unsigned long opcode)
 {
-        addr=armregs[RN]-countbits(opcode&0xFFFF);
+        uint32_t temp=armregs[RN];
+	//inscount++; //r//inscount++;
+        addr=(armregs[RN]-countbits(opcode&0xFFFF))&~3;
         if (!(opcode&0x1000000)) addr+=4;
         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
         LDMallS();
+        if (armirq&0x40) armregs[RN]=temp;
+        return (armirq&0x40);
 }
 
-void opLDMIS(unsigned long opcode)
+int opLDMIS(unsigned long opcode)
 {
-        addr=armregs[RN];
+        uint32_t temp=armregs[RN];
+	//inscount++; //r//inscount++;
+        addr=armregs[RN]&~3;
         if (opcode&0x1000000) addr+=4;
         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
         LDMallS();
+        if (armirq&0x40) armregs[RN]=temp;
+        return (armirq&0x40);
 }
 
 
 void opB(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
         templ=(opcode&0xFFFFFF)<<2;
         if (templ&0x2000000) templ|=0xFC000000;
         armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
@@ -1580,6 +1704,7 @@ void opB(unsigned long opcode)
 
 void opBL(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
         templ=(opcode&0xFFFFFF)<<2;
         if (templ&0x2000000) templ|=0xFC000000;
         armregs[14]=armregs[15]-4;
@@ -1590,6 +1715,7 @@ void opBL(unsigned long opcode)
 
 void opMCR(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
 #ifdef FPA
         if (MULRS==1)
         {
@@ -1609,6 +1735,7 @@ void opMCR(unsigned long opcode)
 
 void opMRC(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
 #ifdef FPA
         if (MULRS==1)
         {
@@ -1629,6 +1756,7 @@ void opMRC(unsigned long opcode)
 
 void opcopro(unsigned long opcode)
 {
+	//inscount++; //r//inscount++;
 #ifdef FPA
         if ((opcode&0xF00)==0x100 || (opcode&0xF00)==0x200)
            fpaopcode(opcode);

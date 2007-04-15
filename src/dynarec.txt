@@ -9,10 +9,11 @@ ports probably will be.
 
 This hasn't been tested on linux at all.
 
-This hasn't been tested on that many programs. The ones that have been tested are :
+This hasn't been tested on that many programs. The ones that have been tested (and work) are :
 
 RISC OS 3.7
-RISC OS 4.39 (same problems as with interpreter on SA110)
+RISC OS 4.02 (don't enable lazy task swapping if cache is on)
+RISC OS 4.39 (don't enable lazy task swapping if cache is on)
 !Quake
 !FQuake
 !Freedoom
@@ -27,8 +28,6 @@ MAME
 !Icon
 !AWViewer
 !SICK
-!Damn - The only program that failed to work that did work on the interpreter
-        (does this work on a real StrongARM?)
 
 You must be in SA110 emulation for this to work. I haven't tested with ARM610, ARM710 or
 ARM7500, but I suspect these will crash fairly quickly, due to the difference in CP15 cache
@@ -56,13 +55,14 @@ modifying code did work, but the speed was eratic - some programs performed real
 Hence the current version doesn't have this in.
 
 
-The performance increase on my main machine (Athlon X2 4200+) ranges from about 40% (!SICK,
+The performance increase on my main machine (Athlon X2 4200+) ranges from about 50% (!SICK,
 RISC OS in general) to 100% (!Fishtank2). 
 
 Benchmarks noted :
 
-Dhrystone - 122k on Athlon XP 4200+, 133k on Core 2 Duo 1.66ghz
-!FQuake   - 8 fps average (16fps on real SA)
+Dhrystone - 140k on Athlon XP 4200+, 133k on Core 2 Duo 1.66ghz
+Riscosmark CPU test - 68% of StrongARM speed
+!FQuake   - 9 fps average (16fps on real SA)
 The highest instruction rate I've seen so far is on Fishtank2, which runs at around 65-70 
 MIPS. I've also seen 82 MIPS, but I can't remember on what.
 
@@ -84,13 +84,16 @@ The recompiler doesn't handle small loops very well. It should be possible for b
 jumps into locations in the same block to simply jump rather than end the block, and enter it
 again. There would need to be some kind of limit though, to prevent hardware polling loops to
 circle forever. Maybe get the recompiler to unroll the loop a bit?
+An alternative idea is to add some code to the end of a block, that checks if the next block
+has already been compiled, and jumps straight to it instead of returning to execx86().
 
-R15 is updated after each instruction. It should be possible to only update it at the end of
-a block, or when it is read. There is some beginning code for this, but my implementation
-crashed when it came across FPA instructions.
+R15 is updated after each instruction except for LDR/STR/LDM/STM instructions where R15 is not
+involved. It should be possible to implement lazy updating for data processing instructions,
+but every time I've tried I get perculiar errors - presumably an obscure bug somewhere.
 
-Abort checking is done after instructions that access memory. In theory, it should be possible
-to remove all checking until the end of a block - RISC OS can't recover from data aborts anyway, so it wouldn't really affect anything.
+Abort checking can be done either at the end of every LDR/STR/LDM/STM instruction, or at the
+end of each block (depending on the status of ABORTCHECKING - see rpcemu.h). RISC OS 3.7 works
+okay with ABORTCHECKING commented out, but RISC OS 4.02 and 4.39 need it set.
 
 It might be possible to support self modifying code, by keeping a 'page dirty' bit, and
 checking it on relevant blocks. If the bit is set, flush every block on the current page. Not

@@ -21,6 +21,7 @@ void generateupdatepc();
 //#define HASH(l) ((l>>3)&0x3FFF)
 int blockend;
 int blocknum,blockcount;
+int tempinscount;
 
 int codeblockpos;
 
@@ -91,6 +92,7 @@ void cacheclearpage(unsigned long a)
 
 void initcodeblock(unsigned long l)
 {
+        tempinscount=0;
 //        rpclog("Initcodeblock %08X\n",l);
 /*        blockpoint++;
         blockpoint&=63;
@@ -117,6 +119,7 @@ void initcodeblock(unsigned long l)
 uint32_t opcode;
 void generatecall(unsigned long addr, unsigned long opcode,unsigned long *pcpsr)
 {
+        tempinscount++;
         addbyte(0xC7); /*MOVL $opcode,(%esp)*/
         addbyte(0x04);
         addbyte(0x24);
@@ -144,7 +147,7 @@ void generatecall(unsigned long addr, unsigned long opcode,unsigned long *pcpsr)
 void generateupdatepc()
 {
         if (pcinc)
-        {
+      {
                 addbyte(0x83); /*ADD $4,armregs[15]*/
                 addbyte(0x05);
                 addlong(&armregs[15]);
@@ -152,6 +155,18 @@ void generateupdatepc()
                 pcinc=0;
         }
 }
+void generateupdateinscount()
+{
+        if (tempinscount)
+        {
+                addbyte(0x83); /*ADD tempinscount,inscount*/
+                addbyte(0x05);
+                addlong(&inscount);
+                addbyte(tempinscount);
+                tempinscount=0;
+        }
+}
+
 void generatepcinc()
 {
         pcinc+=4;
@@ -162,12 +177,21 @@ void generatepcinc()
 void endblock(int c)
 {
         generateupdatepc();
+        generateupdateinscount();
         addbyte(0x83); /*ADDL $8,%esp*/
         addbyte(0xC4);
         addbyte(0x08);
         addbyte(0xC3); /*RET*/
         codeinscount[blockcount][blocknum]=c;
 }
+
+void dumplastblock()
+{
+        FILE *f=fopen("block.dmp","wb");
+        fwrite(codeblock[blockcount][blocknum],1600,1,f);
+        fclose(f);
+}
+
 int codecallblock(unsigned long l)
 {
         int hash=HASH(l);
@@ -210,27 +234,89 @@ void generateflagtestandbranch(unsigned long opcode, unsigned long *pcpsr)
         asm("cmpb $0x11,flaglookup(%eax);");
         asm("je   5;");*/
         if ((opcode>>28)==0xE) return; /*No need if 'always' condition code*/
-        addbyte(0xA1);                 /*MOVL (pcpsr),%eax*/
-        addlong((unsigned long)pcpsr);
-        addbyte(0xC1);                 /*SHRL $28,%eax*/
-        addbyte(0xE8);
-        addbyte(0x1C);
-        addbyte(0x80);                 /*CMPB $0,flaglookup(%eax)*/
-        addbyte(0xB8);
-        addlong((unsigned long)(&flaglookup[opcode>>28][0]));
-        addbyte(0);
-        addbyte(0x74);                 /*JE +5*/
+        switch (opcode>>28)
+        {
+                case 0: /*EQ*/
+                case 1: /*NE*/
+                addbyte(0xF6); /*TESTB (pcpsr>>24),$0x40*/
+                addbyte(0x05);
+                addlong(((unsigned long)pcpsr)+3);
+                addbyte(0x40);
+                if ((opcode>>28)&1) addbyte(0x75);                 /*JNE +5*/
+                else                addbyte(0x74);                 /*JE +5*/
+                break;
+                case 2: /*CS*/
+                case 3: /*CC*/
+                addbyte(0xF6); /*TESTB (pcpsr>>24),$0x20*/
+                addbyte(0x05);
+                addlong(((unsigned long)pcpsr)+3);
+                addbyte(0x20);
+                if ((opcode>>28)&1) addbyte(0x75);                 /*JNE +5*/
+                else                addbyte(0x74);                 /*JE +5*/
+                break;
+                case 4: /*MI*/
+                case 5: /*PL*/
+                addbyte(0xF6); /*TESTB (pcpsr>>24),$0x80*/
+                addbyte(0x05);
+                addlong(((unsigned long)pcpsr)+3);
+                addbyte(0x80);
+                if ((opcode>>28)&1) addbyte(0x75);                 /*JNE +5*/
+                else                addbyte(0x74);                 /*JE +5*/
+                break;
+                case 6: /*VS*/
+                case 7: /*VC*/
+                addbyte(0xF6); /*TESTB (pcpsr>>24),$0x10*/
+                addbyte(0x05);
+                addlong(((unsigned long)pcpsr)+3);
+                addbyte(0x10);
+                if ((opcode>>28)&1) addbyte(0x75);                 /*JNE +5*/
+                else                addbyte(0x74);                 /*JE +5*/
+                break;
+                default:
+                addbyte(0xA1);                 /*MOVL (pcpsr),%eax*/
+                addlong((unsigned long)pcpsr);
+                addbyte(0xC1);                 /*SHRL $28,%eax*/
+                addbyte(0xE8);
+                addbyte(0x1C);
+                addbyte(0x80);                 /*CMPB $0,flaglookup(%eax)*/
+                addbyte(0xB8);
+                addlong((unsigned long)(&flaglookup[opcode>>28][0]));
+                addbyte(0);
+                addbyte(0x74);                 /*JE +5*/
+                break;
+        }
+//        if (output) rpclog("PC %07X - %08X  %i\n",PC,opcode,(((opcode+0x6000000)&0xF000000)>0xA000000));
         if (!flaglookup[opcode>>28][(*pcpsr)>>28] && (opcode&0xE000000)==0xA000000) addbyte(5+7+5+((pcinc)?7:0));
+#ifdef ABORTCHECKING
+        else if (((opcode+0x6000000)&0xF000000)>=0xA000000)
+        {
+                if (((uint32_t)(&codeblock[blockcount][blocknum][codeblockpos+19])-(uint32_t)(&codeblock[blockcount][blocknum][0]))<120) addbyte(5+7+2+2);
+                else                                                                                                                    addbyte(5+7+2+6);
+        }
+#endif
         else                                                                        addbyte(5+7);
 }
 void generateirqtest()
 {
+//        asm("testl %eax,%eax");
 //        asm("testb $0xC0,0x12345678");
-        addbyte(0xF6); /*TESTB $0x40,armirq*/
-        addbyte(0x05);
-        addlong(&armirq);
-        addbyte(0x40);
-        addbyte(0x0F); /*JNE 0*/
-        addbyte(0x85);
-        addlong(&codeblock[blockcount][blocknum][0]-(uint32_t)(&codeblock[blockcount][blocknum][codeblockpos+4]));
+//        addbyte(0xF6); /*TESTB $0x40,armirq*/
+//        addbyte(0x05);
+//        addlong(&armirq);
+//        addbyte(0x40);
+        addbyte(0x85); /*TESTL %eax,%eax*/
+        addbyte(0xC0);
+//        #if 0
+        if (((uint32_t)(&codeblock[blockcount][blocknum][codeblockpos+4])-(uint32_t)(&codeblock[blockcount][blocknum][0]))<120)
+        {
+                addbyte(0x75); /*JNE 0*/
+                addbyte(&codeblock[blockcount][blocknum][0]-(uint32_t)(&codeblock[blockcount][blocknum][codeblockpos+1]));
+        }
+        else
+        {
+//                #endif
+                addbyte(0x0F); /*JNE 0*/
+                addbyte(0x85);
+                addlong(&codeblock[blockcount][blocknum][0]-(uint32_t)(&codeblock[blockcount][blocknum][codeblockpos+4]));
+        }
 }

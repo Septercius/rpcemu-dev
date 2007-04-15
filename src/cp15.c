@@ -10,7 +10,9 @@ int timetolive;
 #define TLBCACHESIZE 256
 
 uint32_t ins;
-uint32_t tlbcache[16384],tlbcache2[TLBCACHESIZE];
+uint32_t tlbcache[0x100000],tlbcache2[TLBCACHESIZE];
+uint32_t *vraddrl;
+uint32_t vraddrls[1024],vraddrphys[1024];
 int tlbcachepos;
 int tlbs,flushes;
 uint32_t pccache,readcache,writecache;
@@ -21,18 +23,26 @@ struct cp15
         uint32_t far,fsr,ctrl;
 } cp15;
 
+void getcp15fsr()
+{
+        rpclog("%08X %08X\n",cp15.far,cp15.fsr);
+}
+
 void resetcp15(void)
 {
         int c;
         prog32=1;
         mmu=0;
-        memset(tlbcache,0xFF,16384*4);
+        memset(tlbcache,0xFF,0x100000*4);
         for (c=0;c<TLBCACHESIZE;c++)
             tlbcache2[c]=0xFFFFFFFF;
         tlbcachepos=0;
         for (c=0;c<256;c++)
             raddrl[c]=0xFFFFFFFF;
         waddrl=0xFFFFFFFF;
+        if (!vraddrl) vraddrl=malloc(0x100000*sizeof(uint32_t));
+        memset(vraddrl,0xFF,0x100000*sizeof(uint32_t));
+        memset(vraddrls,0xFF,1024*sizeof(uint32_t));
 }
 
 int translations=0;
@@ -45,7 +55,7 @@ uint32_t tlbrammask;
 void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 {
         int c;
-//        rpclog("Write CP15 %08X %08X %i %i\n",addr,val,OPC2,CRm);
+//        rpclog("Write CP15 %08X %08X %i %i %07X\n",addr,val,OPC2,CRm,PC);
         switch (addr&15)
         {
                 case 1: /*Control*/
@@ -58,6 +68,15 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                             raddrl[c]=0xFFFFFFFF;
                         waddrl=0xFFFFFFFF;
                         resetcodeblocks();
+                        for (c=0;c<1024;c++)
+                        {
+                                if (vraddrls[c]!=0xFFFFFFFF)
+                                {
+                                        vraddrl[vraddrls[c]]=0xFFFFFFFF;
+                                        vraddrls[c]=0xFFFFFFFF;
+                                        vraddrphys[c]=0xFFFFFFFF;
+                                }
+                        }
                 }
                 mmu=val&1;
                 prog32=val&0x10;
@@ -69,11 +88,20 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 return; /*We can probably ignore all other bits*/
                 case 2: /*TLB base*/
                 cp15.tlbbase=val&~0x3FFF;
-                memset(raddrl,0xFF,1024);
+                for (c=0;c<1024;c++)
+                {
+                        if (vraddrls[c]!=0xFFFFFFFF)
+                        {
+                                vraddrl[vraddrls[c]]=0xFFFFFFFF;
+                                vraddrls[c]=0xFFFFFFFF;
+                                vraddrphys[c]=0xFFFFFFFF;
+                        }
+                }
+//                memset(raddrl,0xFF,1024);
 //                resetcodeblocks();
 //                for (c=0;c<256;c++)
 //                    raddrl[c]=0xFFFFFFFF;
-                waddrl=0xFFFFFFFF;
+//                waddrl=0xFFFFFFFF;
                 switch (cp15.tlbbase&0x1F000000)
                 {
                         case 0x02000000: /*VRAM - yes RiscOS 3.7 does put the TLB in VRAM at one point*/
@@ -113,9 +141,21 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 for (c=0;c<TLBCACHESIZE;c++)
                 {
                         if (tlbcache2[c]!=0xFFFFFFFF)
-                           tlbcache[tlbcache2[c]]=0xFFFFFFFF;
+                        {
+                                tlbcache[tlbcache2[c]]=0xFFFFFFFF;
+//                                vraddrl[tlbcache2[c]]=0xFFFFFFFF;
+                        }
                 }
-                memset(tlbcache2,0xFF,256);
+                for (c=0;c<1024;c++)
+                {
+                        if (vraddrls[c]!=0xFFFFFFFF)
+                        {
+                                vraddrl[vraddrls[c]]=0xFFFFFFFF;
+                                vraddrls[c]=0xFFFFFFFF;
+                                vraddrphys[c]=0xFFFFFFFF;
+                        }
+                }
+                memset(tlbcache2,0xFF,TLBCACHESIZE*4);
 //                for (c=0;c<64;c++)
 //                    tlbcache2[c]=0xFFFFFFFF;
                 flushes++;
@@ -133,6 +173,15 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 //                    tlbcache[c]=0xFFFFFFFF;*/
                 return;
                 case 7: /*Invalidate cache*/
+/*                for (c=0;c<1024;c++)
+                {
+                        if (vraddrls[c]!=0xFFFFFFFF)
+                        {
+                                vraddrl[vraddrls[c]]=0xFFFFFFFF;
+                                vraddrls[c]=0xFFFFFFFF;
+                                vraddrphys[c]=0xFFFFFFFF;
+                        }
+                }*/
                 if ((CRm&1) && !(OPC2)) resetcodeblocks();
 //                rpclog("Cache invalidate %08X\n",PC);
                 pccache=readcache=writecache=0xFFFFFFFF;
@@ -158,7 +207,7 @@ uint32_t readcp15(uint32_t addr)
                         case 0: return 0x41007100; /*ARM7500*/
                         case 1: return 0x41560610; /*ARM610*/
                         case 2: return 0x41567100; /*ARM710*/
-                        case 3: /*if (PC>0x10000000) output=1; */return 0x4401A100; /*SA110*/
+                        case 3: /*if (PC>0x10000000) output=1; */return 0x4401A102; /*SA110*/
 //                      case 3: return 0x4456A100; /*StrongARM*/
                 }
                 break;
@@ -193,7 +242,7 @@ uint32_t readcp15(uint32_t addr)
                                 cp15.far=addr;       \
                                 cp15.fsr=fsr;        \
                         } \
-                        if (0) printf("PERMISSIONS FAULT! %08X %07X %08X %08X %08X %08X %i %03X %08X %08X %08X %08X\n",addr,PC,opcode,oldpc,oldpc2,oldpc3,p,cp15.ctrl&0x300,fld,sld,armregs[16],cp15.dacr);  \
+                        if (0) rpclog("PERMISSIONS FAULT! %08X %07X %08X %08X %08X %08X %i %03X %08X %08X %08X %08X\n",addr,PC,opcode,oldpc,oldpc2,oldpc3,p,cp15.ctrl&0x300,fld,sld,armregs[16],cp15.dacr);  \
                         return 0xFFFFFFFF
 
 int checkpermissions(int p, int fsr, int rw, uint32_t addr, uint32_t fld, uint32_t sld, int prefetch)
@@ -234,7 +283,8 @@ int checkdomain(uint32_t addr, int domain, int type, int prefetch)
         if (!(temp&3))
         {
                 armirq|=0x40;
-//                printf("Domain fault! %08X %i %i %i %08X\n",addr,domain,type,prefetch,temp);
+//                rpclog("Domain fault! %08X %i %i %i %08X\n",addr,domain,type,prefetch,temp);
+//                if (addr==0x4F01180) { output=1; timetolive=500; }
                 if (prefetch) return 0;
                 cp15.far=addr;
                 cp15.fsr=(type==1)?11:9;
@@ -250,12 +300,12 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         uint32_t sldaddr,sld; //,taddr;
         uint32_t oa=addr;
         int temp,temp2,temp3;
-//        rpclog("Translate %08X ",addr);
 /*        if (!(addr&0xFC000000) && !(tlbcache[(addr>>12)&0x3FFF]&0xFFF))
         {
 //                rpclog("Cached %08X\n",tlbcache[addr>>12]);
                 return tlbcache[addr>>12]|(addr&0xFFF);
         }*/
+//        rpclog("Translate %08X\n",addr);
         translations++;
 //        rpclog("Uncached ");
         tlbs++;
@@ -263,6 +313,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         rw = rw;
         fld=tlbram[(vaddr>>2)&tlbrammask];
         if (fld&3) temp3=checkdomain(addr,(fld>>5)&15,fld&3,prefetch);
+//        rpclog("%08X %08X %08X\n",fld,temp3,vraddrl[0x4F000C0>>12]);
         switch (fld&3)
         {
                 case 0: /*Fault*/
@@ -270,6 +321,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 if (prefetch) return 0;
                 cp15.far=addr;
                 cp15.fsr=5;
+//                rpclog("Fault!\n");
 //                printf("Fault! %08X %07X %i\n",addr,PC,rw);
 //                exit(-1);
                 return 0;
@@ -288,7 +340,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         if (prefetch) return 0;
                         cp15.far=addr;
                         cp15.fsr=7|((fld>>1)&0xF0);
-//                        printf("Unmapped! %08X %07X %i\n",addr,PC,ins);
+//                        rpclog("Unmapped! %08X %07X %i\n",addr,PC,ins);
 //                        output=1;
 //                        timetolive=100;
 //                        dumpregs();
@@ -304,8 +356,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                            return 0xFFFFFFFF;
                 }
                 addr=(sld&0xFFFFF000)|(addr&0xFFF);
-                if (!(oa&0xFC000000))
-                {
+//                if (!(oa&0xFC000000))
+//                {
                         if (tlbcache2[tlbcachepos]!=0xFFFFFFFF)
                            tlbcache[tlbcache2[tlbcachepos]]=0xFFFFFFFF;
                         tlbcache2[tlbcachepos]=oa>>12;
@@ -313,7 +365,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         lastcache=oa>>12;
 //                        rpclog("Cached to %08X %08X %08X %i  ",oa>>12,tlbcache[oa>>12],tlbcache2[tlbcachepos],tlbcachepos);
                         tlbcachepos=(tlbcachepos+1)&(TLBCACHESIZE-1);
-                }
+//                }
 //                rpclog("%08X %08X %08X %08X\n",addr,sld,oa,tlbcache[oa>>12]);
                 return addr;
                 case 2: /*Section*/
@@ -324,8 +376,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                            return 0xFFFFFFFF;
                 }
                 addr=(addr&0xFFFFF)|(fld&0xFFF00000);
-                if (!(oa&0xFC000000))
-                {
+//                if (!(oa&0xFC000000))
+//                {
                         if (tlbcache2[tlbcachepos]!=0xFFFFFFFF)
                            tlbcache[tlbcache2[tlbcachepos]]=0xFFFFFFFF;
                         tlbcache2[tlbcachepos]=oa>>12;
@@ -335,7 +387,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 //                        rpclog("Cached to %08X %08X %08X %i  ",oa>>12,tlbcache[oa>>12],tlbcache2[tlbcachepos],tlbcachepos);
 /*                        tlbcache[oa>>12]=addr&0xFFFFF000;
                         lastcache=oa>>12;*/
-                }
+//                }
 //                rpclog("%08X %08X %08X %08X\n",addr,oa,tlbcache[oa>>12],fld);
                 return addr;
                 default:
@@ -368,6 +420,8 @@ uint32_t *getpccache(uint32_t addr)
                 addr2=translateaddress(addr,0,1);
                 if (armirq&0x40)
                 {
+//                        rpclog("Translate prefetch abort!!! %07X\n",PC);
+//                        output=1;
 //                        if (indumpregs) rpclog("Abort!\n");
                         armirq&=~0x40;
                         armirq|=0x80;
