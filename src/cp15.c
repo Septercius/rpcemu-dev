@@ -9,6 +9,7 @@ int timetolive;
 
 #define TLBCACHESIZE 256
 
+int pcisrom;
 uint32_t ins;
 uint32_t tlbcache[0x100000],tlbcache2[TLBCACHESIZE];
 uint32_t *vraddrl;
@@ -432,9 +433,11 @@ uint32_t *getpccache(uint32_t addr)
 //                if (indumpregs) rpclog("\n");
         }
         else     addr2=addr;
+        pcisrom=0;
         switch (addr2&0x1F000000)
         {
                 case 0x00000000: /*ROM*/
+                pcisrom=1;
                 return &rom[((long)(addr2&0x7FF000)-(long)addr)>>2];
                 case 0x02000000: /*VRAM*/
                 return &vram[((long)(addr2&0x1FF000)-(long)addr)>>2];

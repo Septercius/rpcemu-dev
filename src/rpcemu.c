@@ -49,7 +49,7 @@ int startrpcemu()
 
 void execrpcemu()
 {
-        execarm(40000);
+        execarm(20000);
         if (drawscre>0)
         {
 //                rpclog("Drawscre %i\n",drawscre);
@@ -58,6 +58,7 @@ void execrpcemu()
                 iomdvsync();
                 pollmouse();
                 pollkeyboard();
+//                sleep(0);
 //                doosmouse();
 //                cmostick();
         }

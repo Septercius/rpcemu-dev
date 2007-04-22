@@ -77,7 +77,7 @@ void updatesoundirq()
         int c;
         if (soundbufferfull && bigsoundbufferselect==curbigsoundbuffer)
         {
-                soundcount+=5000;
+                soundcount+=4000;
                 return;
         }
         page=soundaddr[offset]&0xFFFFF000;
@@ -102,27 +102,32 @@ void updatesoundirq()
                         bigsoundbufferselect&=7;
                         bigsoundpos=0;
                         soundbufferfull++;
+                        wakeupsoundthread();
                 }
         }
 //        fwrite(bigsoundbuffer,len<<2,1,sndfile);
 }
 
 FILE *sndfile;
-void updatesoundbuffer()
+int updatesoundbuffer()
 {
         unsigned short *p;
         int c;
         if (!soundenabled)
         {
                 soundbufferfull=0;
-                return;
+                return 1;
         }
 /*        if (!sndfile)
         {
                 sndfile=fopen("sound.pcm","wb");
         }*/
         p=get_audio_stream_buffer(as);
-        if (!p) return;
+        while (!p) 
+        {
+//                sleep(0);
+                p=get_audio_stream_buffer(as);
+        }
         soundbufferfull--;
 //        while (!p)
 //              p=get_audio_stream_buffer(as);
@@ -132,6 +137,7 @@ void updatesoundbuffer()
 //        rpclog("Writing buffer %i\n",curbigsoundbuffer);
         curbigsoundbuffer++;
         curbigsoundbuffer&=7;
+        return 0;
 //        fwrite(bigsoundbuffer[bigsoundbufferselect^1],BUFFERLEN<<2,1,sndfile);
 }
 

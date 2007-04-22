@@ -9,29 +9,29 @@ ports probably will be.
 
 This hasn't been tested on linux at all.
 
-This hasn't been tested on that many programs. The ones that have been tested (and work) are :
+This hasn't been tested on that many programs. The ones that have been tested (and work) include :
 
 RISC OS 3.7
 RISC OS 4.02 (don't enable lazy task swapping if cache is on)
 RISC OS 4.39 (don't enable lazy task swapping if cache is on)
-!Quake
-!FQuake
-!Freedoom
-!OpenTTD
-!FishTank2
+Quake
+FQuake
+Freedoom
+OpenTTD
+FishTank2
 !PCengine
 MAME
-!Freestyle
-!Zero
-!MetaMorph
-!Jan3D
-!Icon
-!AWViewer
+Freestyle
+Zero
+MetaMorph
+Jan3D
+Icon
+AWViewer
 !SICK
+Delirium
 
-You must be in SA110 emulation for this to work. I haven't tested with ARM610, ARM710 or
-ARM7500, but I suspect these will crash fairly quickly, due to the difference in CP15 cache
-handling.
+You must be in SA110 emulation for this to work. ARM610, ARM710 and ARM7500 appear to work, but
+there are many problems.
 
 Compatibility is mostly the same as a real StrongARM RiscPC - ie the stuff that doesn't work
 there won't work here. This includes old versions of apps (eg Ovation, SparkFS), old versions
@@ -40,8 +40,9 @@ games (ie any unpatched).
 
 In order to disable the dynarec disable the cache (ie *cache 0). This returns compatibility (mostly) to normal, and to a speed only a little slower than previous versions of RPCemu.
 
-The instruction cache currently uses 19 megs. This can most likely be reduced, but you would 
-need to pay attention to the hashing function.
+The instruction cache currently uses 1.8 megs. This is much improved over previous versions,
+but could probably be improved further by shrinking the block size (shrinking the number of
+blocks any further has a big impact on speed)
 
 
 This isn't a true dynarec at the moment, it's what would be called a threaded interpreter. It
@@ -55,16 +56,26 @@ modifying code did work, but the speed was eratic - some programs performed real
 Hence the current version doesn't have this in.
 
 
-The performance increase on my main machine (Athlon X2 4200+) ranges from about 50% (!SICK,
+The performance increase on my main machine (Athlon X2 4200+) ranges from about 100% (!SICK,
 RISC OS in general) to 100% (!Fishtank2). 
 
 Benchmarks noted :
 
-Dhrystone - 140k on Athlon XP 4200+, 133k on Core 2 Duo 1.66ghz
+Dhrystone (!SICK) - 
+
+160k on Athlon X2 4200+
+152k on Core 2 Duo 1.66ghz
+125k on Athlon XP 2400+
+2337 on P120 (that's half ARM2 speed)
+
+On Athlon X2 4200+ - 
 Riscosmark CPU test - 68% of StrongARM speed
-!FQuake   - 9 fps average (16fps on real SA)
-The highest instruction rate I've seen so far is on Fishtank2, which runs at around 65-70 
-MIPS. I've also seen 82 MIPS, but I can't remember on what.
+Firebench - 164.33fps
+FQuake   - 9.3 fps average (16fps on real SA)
+ArcQuake timedemo demo2 - 7.6fps (10.something on real SA?)
+
+The highest instruction rate I've seen so far is on Fishtank2, which runs at around 70 
+MIPS. I've also seen 95 MIPS, but I can't remember on what.
 
 
 Ideas for optimisations/design flaws:
@@ -80,16 +91,10 @@ There is one exception in the current recompiler - when a branch occurs but is _
 when the block is being compiled, the recompiler carries on, and puts in code to jump out if
 the branch is taken.
 
-The recompiler doesn't handle small loops very well. It should be possible for backwards 
-jumps into locations in the same block to simply jump rather than end the block, and enter it
-again. There would need to be some kind of limit though, to prevent hardware polling loops to
-circle forever. Maybe get the recompiler to unroll the loop a bit?
-An alternative idea is to add some code to the end of a block, that checks if the next block
-has already been compiled, and jumps straight to it instead of returning to execx86().
-
-R15 is updated after each instruction except for LDR/STR/LDM/STM instructions where R15 is not
-involved. It should be possible to implement lazy updating for data processing instructions,
-but every time I've tried I get perculiar errors - presumably an obscure bug somewhere.
+The recompiler adds code at the end of a block, that checks to see if the next block has
+already been compiled. If it has, it jumps straight to it, instead of returning to execx86()
+(depending on a few conditions). This helps loops a bit, but they could be made more efficient
+by extending B/BL to jump backwards within the same block.
 
 Abort checking can be done either at the end of every LDR/STR/LDM/STM instruction, or at the
 end of each block (depending on the status of ABORTCHECKING - see rpcemu.h). RISC OS 3.7 works

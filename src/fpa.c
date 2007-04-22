@@ -101,14 +101,17 @@ void fpaopcode(uint32_t opcode)
                                 case 0x400000: /*Long*/
                                 *tf2=fparegs[FD];
                                 temp[0]=temp[5]&0x80000000;
-                                temp[0]|=(temp[5]&0x7FF0000)>>16;
+                                temp[0]|=(temp[5]&0x7FFF0000)>>16;
                                 temp[1]=(temp[5]&0xFFFFF)<<11;
                                 temp[1]|=((temp[4]>>21)&0x7FF);
                                 temp[2]=temp[4]<<11;
-                                if (temp[0]&0x7FF) temp[1]|=0x80000000;
+                                if (temp[0]&0x7FFF) temp[1]|=0x80000000;
                                 len=3;
                                 break;
                                 default:
+/*                                armregs[15]+=8;
+                                undefined();
+                                return;*/
                                 error("Bad LDF/STF size %08X %08X\n",opcode&0x408000,opcode);
                                 dumpregs();
                                 exit(-1);
@@ -145,8 +148,8 @@ void fpaopcode(uint32_t opcode)
                                         case 0x400000: /*Long*/
                                         temp[4]=temp[2]>>11;
                                         temp[4]|=(temp[1]<<21);
-                                        temp[5]=temp[1]>>11;
-                                        temp[5]|=((temp[0]&0x7FF)<<16);
+                                        temp[5]=(temp[1]&~0x80000000)>>11;
+                                        temp[5]|=((temp[0]&0x7FFF)<<16);
                                         temp[5]|=(temp[0]&0x80000000);
                                         fparegs[FD]=*tf2;
 //                                        fparegs[FD]=*tf;
@@ -390,11 +393,12 @@ void fpaopcode(uint32_t opcode)
                 else          tempf=fparegs[opcode&7];
 //                rpclog("Data %08X %06X\n",opcode,opcode&0xF08000);
 //                rpclog("F%i F%i F%i\n",FD,FN,opcode&7);
-/*                if ((opcode&0x8000) && ((opcode&0xF08000)>=0x508000) && ((opcode&0xF08000)<0xE08000))
+                if ((opcode&0x8000) && ((opcode&0xF08000)>=0x508000) && ((opcode&0xF08000)<0xE08000))
                 {
+                        armregs[15]+=4;
                         undefined();
                         return;
-                }*/
+                }
                 switch (opcode&0xF08000)
                 {
                         case 0x000000: /*ADF*/

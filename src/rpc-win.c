@@ -21,15 +21,16 @@ int mousecapture=0;
 int tlbs,flushes;
 float mips,mhz,tlbsec,flushsec;
 int updatemips=0;
+int vsyncints;
 void domips()
 {
         mips=(float)inscount/1000000.0f;
-        mhz=(float)cyccount/1000000.0f;
-        tlbsec=(float)tlbs/1000000.0f;
-        flushsec=(float)flushes;
         inscount=0;
+        mhz=(float)cyccount/1000000.0f;
         cyccount=0;
+        tlbsec=(float)tlbs/1000000.0f;
         tlbs=0;
+        flushsec=(float)flushes;
         flushes=0;
         updatemips=1;
 }
@@ -57,7 +58,7 @@ void rpclog(const char *format, ...)
    vsprintf(buf, format, ap);
    va_end(ap);
    fputs(buf,arclog);
-//   fflush(arclog);
+   fflush(arclog);
 }
 
 int drawscre=0,flyback;
@@ -143,16 +144,18 @@ int quited=0;
   started at the moment*/
 /*Plus, it's just all been made obsolete! See sound.c*/
 int quitblitter=0;
-int blitrunning=0;
-
+int blitrunning=0,vidrunning=0,soundrunning=0;
+static HANDLE waitobject,soundobject;
 void _blitthread(PVOID pvoid)
 {
-        timeBeginPeriod(1);
+//        timeBeginPeriod(1);
         blitrunning=1;
         while (!quitblitter)
         {
-                blitterthread();
-                sleep(0);
+                WaitForSingleObject(waitobject,INFINITE);
+                if (!quitblitter)
+                   blitterthread();
+//                sleep(0);
         }
         blitrunning=0;
 }
@@ -166,6 +169,80 @@ void _closeblitthread()
                       sleep(1);
         }
 }
+
+void _soundthread(PVOID pvoid)
+{
+        int c;
+//        timeBeginPeriod(1);
+        soundrunning=1;
+        while (!quitblitter)
+        {
+                WaitForSingleObject(soundobject,INFINITE);
+                if (!quitblitter)
+                {
+                        c=1;
+                        while (c)
+                        {
+                                c=updatesoundbuffer();
+                        }
+                }
+//                sleep(0);
+        }
+        soundrunning=0;
+}
+
+void _closesoundthread()
+{
+        if (soundrunning)
+        {
+                quitblitter=1;
+                while (soundrunning)
+                      sleep(1);
+        }
+}
+
+void wakeupblitterthread()
+{
+        SetEvent(waitobject);
+}
+void wakeupsoundthread()
+{
+        SetEvent(soundobject);
+}
+
+void _vidthread(PVOID pvoid)
+{
+        timeBeginPeriod(1);
+        vidrunning=1;
+        while (!quitblitter)
+        {
+                if (drawscre>0)
+                {
+//                rpclog("Drawscre %i\n",drawscre);
+                        drawscre--;
+                        drawscr();
+                        iomdvsync();
+                        pollmouse();
+                        pollkeyboard();
+//                doosmouse();
+//                cmostick();
+                }
+                sleep(0);
+        }
+        vidrunning=0;
+}
+
+void _closevidthread()
+{
+        if (vidrunning)
+        {
+                quitblitter=1;
+                while (vidrunning)
+                      sleep(1);
+        }
+}
+
+
 HINSTANCE hinstance;
 /*You can start paying attention again now*/
 int WINAPI WinMain (HINSTANCE hThisInstance,
@@ -177,6 +254,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         MSG messages;            /* Here messages to the application are saved */
         WNDCLASSEX wincl;        /* Data structure for the windowclass */
         char s[128];
+        HANDLE bltthread;
+        HANDLE soundthread;
 
         hinstance=hThisInstance;
         /* The Window structure */
@@ -233,7 +312,7 @@ infocus=0;
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate,BPS_TO_TIMER(refresh));
-        timeBeginPeriod(1);
+//        timeBeginPeriod(1);
         if (soundenabled)
         {
                 initsound();
@@ -245,10 +324,18 @@ infocus=0;
                 install_int_ex(sndupdate,BPS_TO_TIMER(10));
         }
         #ifdef BLITTER_THREAD
-        _beginthread(_blitthread,0,NULL);
+        waitobject=CreateEvent(NULL, FALSE, FALSE, NULL);
+        bltthread=(HANDLE)_beginthread(_blitthread,0,NULL);
         atexit(_closeblitthread);
+        SetThreadPriority(bltthread,THREAD_PRIORITY_TIME_CRITICAL);
+//        _beginthread(_vidthread,0,NULL);
+//        atexit(_closevidthread);
         #endif
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+                soundobject=CreateEvent(NULL, FALSE, FALSE, NULL);
+                soundthread=(HANDLE)_beginthread(_soundthread,0,NULL);
+                atexit(_closesoundthread);
+                SetThreadPriority(bltthread,THREAD_PRIORITY_TIME_CRITICAL-1);
+//        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 infocus=1;
         while (!quited)
         {
@@ -258,7 +345,7 @@ infocus=1;
                 }
                 if (updatemips)
                 {
-                        sprintf(s,"RPCemu v0.6 - %f MIPS %f %i - %s",mips,tlbsec,ins,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
+                        sprintf(s,"RPCemu v0.6 - %f MIPS %f %i %f %i - %s",mips,tlbsec,ins,flushsec,vsyncints,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
                         SetWindowText(ghwnd, s);
                         updatemips=0;
                 }
@@ -292,10 +379,19 @@ infocus=1;
         }
         #ifdef BLITTER_THREAD
         quitblitter=1;
+        wakeupblitterthread();
         while (blitrunning)
               sleep(1);
+        if (soundenabled)
+        {
+                wakeupsoundthread();
+                while (soundrunning)
+                      sleep(1);
+        }
+//        while (vidrunning)
+//              sleep(1);
         #endif
-        timeEndPeriod(1);
+//        timeEndPeriod(1);
         dumpregs();
         endrpcemu();
 //        fclose(arclog);

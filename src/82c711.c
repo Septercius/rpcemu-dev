@@ -156,10 +156,10 @@ void writefdc(uint32_t addr, uint32_t val)
                                 switch (fdc.command)
                                 {
                                         case 3: /*Specify*/
-                                        fdccallback=50;
+                                        fdccallback=100;
                                         break;
                                         case 4: /*Sense drive status*/
-                                        fdccallback=50;
+                                        fdccallback=100;
                                         break;
                                         case 7: /*Recalibrate*/
 //                                        printf("Recalibrate starting\n");
@@ -168,7 +168,7 @@ void writefdc(uint32_t addr, uint32_t val)
                                         fdc.status|=1;
                                         break;
                                         case 0x13: /*Configure*/
-                                        fdccallback=50;
+                                        fdccallback=100;
                                         break;
                                         case 0x45: /*Write data - MFM*/
                                         fdc.commandpos=0;
@@ -242,7 +242,7 @@ void writefdc(uint32_t addr, uint32_t val)
                         break;
 
                         case 8: /*Sense interrupt status*/
-                        fdccallback=50;
+                        fdccallback=100;
                         fdc.status=0x10;
                         break;
 
@@ -365,7 +365,7 @@ uint8_t readfdc(uint32_t addr)
                 }*/
                 fdc.status&=0x7F;
                 if (!fdc.incommand) fdc.status=0x80;
-                else                fdccallback=25;
+                else                fdccallback=100;
 //                printf("Read FDC data %02X\n",fdc.data);
                 return fdc.data;
 //                case 0x3F7: return 0x80;
@@ -500,7 +500,7 @@ void callbackfdc(void)
                 {
 //                        printf("Send ST0\n");
                         fdcsend(fdc.st0);
-                        fdccallback=50;
+                        fdccallback=100;
                 }
                 else
                 {
@@ -686,7 +686,7 @@ uint8_t readfdcdma(uint32_t addr)
 //        printf("Read FDC DMA %08X\n",addr);
         iomd.statf&=~1;
         updateirqs();
-        fdccallback=20;
+        fdccallback=100;
         if (!fdc.commandpos) fdccallback=2000;
         if (addr==0x302A000)
         {
@@ -704,7 +704,7 @@ void writefdcdma(uint32_t addr, uint8_t val)
 {
         iomd.statf&=~1;
         updateirqs();
-        fdccallback=100;
+        fdccallback=200;
         if (!fdc.commandpos) fdccallback=2000;
         if (addr==0x302A000)
         {

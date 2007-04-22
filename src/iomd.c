@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include "rpcemu.h"
 
+//#define OLDTIMER
+
 int curchange;
 
 int sndon=0;
@@ -13,12 +15,17 @@ static int flyback=0;
 void updateirqs(void)
 {
         if ((iomd.stata&iomd.maska) || (iomd.statb&iomd.maskb) || (iomd.statd&iomd.maskd) || (iomd.state&iomd.maske))
-           irq|=1;
+           armirq|=1;
         else
-           irq&=~1;
-        if (iomd.statf&iomd.maskf) irq|=2;
-        else                       irq&=~2;
-        if (!(irq&3)) armirq&=~3;
+           armirq&=~1;
+        if (iomd.statf&iomd.maskf) armirq|=2;
+        else                       armirq&=~2;
+//        if (!(irq&3)) armirq&=~3;
+}
+
+void clockcmosproc()
+{
+        cmostick();
 }
 
 int clockcmos=0;
@@ -27,7 +34,7 @@ void gentimerirq()
         int diff;
         if (!infocus) return;
         diff=rinscount-lastinscount;
-        if (diff<10000)
+        if (diff<5000)
         {
                 delaygenirqleft++;
 //                rpclog("Haven't moved! %i\n",inscount);
@@ -36,17 +43,20 @@ void gentimerirq()
 //           rpclog("Haven't moved!\n");
         lastinscount=rinscount;
         clockcmos++;
-        if ((clockcmos&3)==0)
-           cmostick();
+        if (clockcmos==5)
+        {
+                cmostick();
+                clockcmos=0;
+        }
 //        rpclog("IRQ %i\n",inscount);
-        iomd.t0c-=5000;//10000;
+        iomd.t0c-=4000;//10000;
         while (iomd.t0c<0 && iomd.t0l)
         {
                 iomd.t0c+=iomd.t0l;
                 iomd.stata|=0x20;
                 updateirqs();
         }
-        iomd.t1c-=5000;//10000;
+        iomd.t1c-=4000;//10000;
         while (iomd.t1c<0 && iomd.t1l)
         {
                 iomd.t1c+=iomd.t1l;
@@ -55,7 +65,7 @@ void gentimerirq()
         }
         if (soundinited && sndon)
         {
-                soundcount-=5000;//10000;
+                soundcount-=4000;//10000;
                 if (soundcount<0)
                 {
                         updatesoundirq();
@@ -74,10 +84,12 @@ void timerairq(void)
 void settimera(int latch)
 {
         latch++;
-/*        if ((latch/2000)==0)
+        #ifdef OLDTIMER
+        if ((latch/2000)==0)
            install_int_ex(timerairq,latch/2);
         else
-           install_int_ex(timerairq,MSEC_TO_TIMER(latch/2000));*/
+           install_int_ex(timerairq,MSEC_TO_TIMER(latch/2000));
+        #endif
 }
 
 void timerbirq(void)
@@ -89,14 +101,16 @@ void timerbirq(void)
 void settimerb(int latch)
 {
         latch++;
-/*        if ((latch/2000)==0)
+        #ifdef OLDTIMER
+        if ((latch/2000)==0)
            install_int_ex(timerbirq,latch/2);
         else
-           install_int_ex(timerbirq,MSEC_TO_TIMER(latch/2000));*/
+           install_int_ex(timerbirq,MSEC_TO_TIMER(latch/2000));
+        #endif
 }
 
 int nextbuf;
-
+int readinc=0;
 void writeiomd(uint32_t addr, uint32_t val)
 {
         switch (addr&0x1FC)
@@ -139,11 +153,11 @@ void writeiomd(uint32_t addr, uint32_t val)
                 case 0x40: iomd.t0l=(iomd.t0l&0xFF00)|(val&0xFF); break;
                 case 0x44: iomd.t0l=(iomd.t0l&0xFF)|((val&0xFF)<<8); break;
                 case 0x48: iomd.t0c=iomd.t0l-1; settimera(iomd.t0l); break;
-                case 0x4C: iomd.t0r=iomd.t0c--; if (iomd.t0c<0) iomd.t0c+=iomd.t0l; break;
+                case 0x4C: readinc^=1; iomd.t0r=iomd.t0c; if (readinc) { iomd.t0c--; if (iomd.t0c<0) iomd.t0c+=iomd.t0l; } break;
                 case 0x50: iomd.t1l=(iomd.t1l&0xFF00)|(val&0xFF); break;
                 case 0x54: iomd.t1l=(iomd.t1l&0xFF)|((val&0xFF)<<8); break;
                 case 0x58: iomd.t1c=iomd.t1l-1; settimerb(iomd.t1l); break;
-                case 0x5C: iomd.t1r=iomd.t1c--; if (iomd.t1c<0) iomd.t1c+=iomd.t1l; break;
+                case 0x5C: readinc^=1; iomd.t1r=iomd.t1c; if (readinc) { iomd.t1c--; if (iomd.t1c<0) iomd.t1c+=iomd.t1l; } break;
                 case 0x68: /*Int C mask*/
                 iomd.maskc=val;
                 return;
@@ -326,7 +340,11 @@ void resetiomd(void)
         delaygenirqleft=0;
         soundcount=100000;
         iomd.t0c=iomd.t1c=iomd.t0l=iomd.t1l=0xFFFF;
-        install_int_ex(gentimerirq,BPS_TO_TIMER(400));
+        #ifndef OLDTIMER
+        install_int_ex(gentimerirq,BPS_TO_TIMER(500));
+        #else
+        install_int_ex(clockcmosproc,BPS_TO_TIMER(100));
+        #endif
 }
 
 void endiomd()

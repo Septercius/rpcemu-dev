@@ -389,7 +389,7 @@ uint32_t readmemfb(uint32_t addr)
         exit(-1);*/
 }
 
-#define HASH(l) (((l)>>3)&0xFFF)
+#define HASH(l) (((l)>>2)&0x7FFF)
 #ifdef LARGETLB
 void writememfl(uint32_t addrt, uint32_t val)
 #else

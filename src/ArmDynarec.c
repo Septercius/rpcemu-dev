@@ -1118,11 +1118,11 @@ void testit()
         asm("addl $4,0x12345678;");
 }
 
+int linecyc=0;
 #include "codegen_x86.h"
 //int output=0;
 void execarm(int cycs)
 {
-        int linecyc=0;
         int target;
         int c;
         int hash;
@@ -1131,13 +1131,14 @@ void execarm(int cycs)
         unsigned char temp;
 //        int RD;
         cycles+=cycs;
+        linecyc=100;
         while (cycles>0)
         {
 //                cyccount+=200;
 //                linecyc=200;
 //                while (linecyc>0)
 //                for (linecyc=0;linecyc<200;linecyc++)
-                while (linecyc<200)
+                while (linecyc>=0)
                 {
 /*                        if (armregs[15]==0x838282F7) *///output=1;
 //                        if (PC==0x38203BC) rpclog("Hit 38203BC\n");
@@ -1181,6 +1182,7 @@ void execarm(int cycs)
                                         rinscount++;
 //                                        linecyc++;
                                 }
+                        linecyc--;
 //                                linecyc+=
                         }
                         else
@@ -1191,38 +1193,16 @@ void execarm(int cycs)
                                         pagedirty[PC>>9]=0;
                                         cacheclearpage(PC>>9);
                                 }
-                                else */if (codeblockpc[hash][0]==PC)
+                                else */if (codeblockpc[hash]==PC)
                                 {
 //                                        if (output) rpclog("Calling block 0 %07X %08X %08X %08X\n",PC,&codeblock[0][hash][4],armregs[0],armregs[3]);
 //                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Calling block 0 %07X\n",PC); }
-                                        gen_func=(void *)(&codeblock[0][hash][4]);
+                                        templ=codeblocknum[hash];
+                                        gen_func=(void *)(&rcodeblock[templ][4]);
+//                                        gen_func=(void *)(&codeblock[blocks[templ]>>24][blocks[templ]&0xFFF][4]);
                                         gen_func();
 //                                        inscount+=codeinscount[0][hash];
-                                        rinscount+=codeinscount[0][hash];
-                                        if (armirq&0x40) armregs[15]+=4;
-                                }
-                                else if (codeblockpc[hash][1]==PC)
-                                {
-//                                        if (output) rpclog("Calling block 1 %07X %08X %08X %08X\n",PC,&codeblock[1][hash][4],armregs[0],armregs[3]);
-//                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Calling block 1 %07X\n",PC); }
-/*                                        if (PC==0x38282EC)
-                                        {
-                                                rpclog("We're there!\n");
-                                        }*/
-                                        gen_func=(void *)(&codeblock[1][hash][4]);
-                                        gen_func();
-//                                        inscount+=codeinscount[1][hash];
-                                        rinscount+=codeinscount[1][hash];
-                                        if (armirq&0x40) armregs[15]+=4;
-                                }
-                                else if (codeblockpc[hash][2]==PC)
-                                {
-//                                        if (output) rpclog("Calling block 2 %07X %08X %08X %08X\n",PC,&codeblock[2][hash][4],armregs[0],armregs[3]);
-//                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Calling block 2 %07X\n",PC); }
-                                        gen_func=(void *)(&codeblock[2][hash][4]);
-                                        gen_func();
-//                                        inscount+=codeinscount[2][hash];
-                                        rinscount+=codeinscount[2][hash];
+//                                        rinscount+=codeinscount[hash];
                                         if (armirq&0x40) armregs[15]+=4;
                                 }
                                 else
@@ -1294,6 +1274,7 @@ void execarm(int cycs)
                                                 rpclog("%i instructions %i\n",c,codeblockpos);
                                         }*/
                                 }
+                        linecyc--;
                         }
                         if (timetolive)
                         {
@@ -1301,8 +1282,8 @@ void execarm(int cycs)
                                 if (!timetolive)
                                    output=0;
                         }
-                        linecyc+=10;
-                        if (/*databort|*/armirq)//|prefabort)
+//                        linecyc+=10;
+                        if (/*databort|*/armirq&0xC3)//|prefabort)
                         {
 /*                                if (mode&16)
                                 {
@@ -1346,21 +1327,6 @@ void execarm(int cycs)
 //                                        rpclog("%08X ",armregs[14]);
   //                                      getcp15fsr();
                                 }
-                                else if (databort==2) /*Address Exception*/
-                                {
-                                error("Exception %i %i %i\n",databort,armirq,prefabort);
-                                dumpregs();
-                                exit(-1);
-                                        templ=armregs[15];
-                                        armregs[15]|=3;
-                                        updatemode(SUPERVISOR);
-                                        armregs[14]=templ;
-                                        armregs[15]&=0xFC000003;
-                                        armregs[15]|=0x08000018;
-                                        refillpipeline();
-                                        databort=0;
-                                }
-//                                #endif
                                 }
                                 else if ((armirq&2) && !(armregs[16]&0x40)) /*FIQ*/
                                 {
@@ -1410,7 +1376,7 @@ void execarm(int cycs)
                                         armregs[15]+=4;
                                 }
                         }
-                        armirq=irq;
+//                        armirq=(armirq&0xCC)|((armirq>>2)&3);
 //                        if (ins==3242) printf("%08X %08X\n",iomd.t0c,iomd.t1c);
                 }
 //                if (ins>=30000000) output=1;
@@ -1424,7 +1390,7 @@ void execarm(int cycs)
                         dumpregs();
                         exit(-1);
                 }*/
-                linecyc-=200;
+                linecyc+=100;
 /*                iomd.t0c--;
                 iomd.t1c--;
                 if ((iomd.t0c<0) || (iomd.t1c<0)) updateiomdtimers();*/
@@ -1448,7 +1414,7 @@ void execarm(int cycs)
                 }
                 if (fdccallback)
                 {
-                        fdccallback-=10;
+                        fdccallback-=50;
                         if (fdccallback<=0)
                         {
                                 fdccallback=0;
@@ -1481,16 +1447,16 @@ void execarm(int cycs)
                 }
 //                printf("T0 now %04X\n",iomd.t0c);
 //                cyc=(oldcyc-cycles);
-                if (soundbufferfull)
+/*                if (soundbufferfull)
                 {
                         updatesoundbuffer();
-                }
+                }*/
                 if (delaygenirqleft)
                 {
 //                        rpclog("IRQ left! %i %i\n",delaygenirqleft);
                         if (!delaygenirq)
                         {
-                                delaygenirq=10;
+                                delaygenirq=2;
                         }
                         delaygenirq--;
                         if (!delaygenirq)
@@ -1500,6 +1466,6 @@ void execarm(int cycs)
                                 gentimerirq();
                         }
                 }
-                cycles-=200;
+                cycles-=1000;
         }
 }

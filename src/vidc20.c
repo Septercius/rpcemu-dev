@@ -19,6 +19,7 @@ uint32_t vpal[260];
 int thread_yh,thread_yl,thread_xs,thread_ys,thread_doublesize;
 int blitready=0;
 int inblit=0;
+int skipnextblit=0;
 void blitterthread()
 {
         int xs=thread_xs;
@@ -26,7 +27,16 @@ void blitterthread()
         int yh=thread_yh;
         int yl=thread_yl;
 //        rpclog("Blitter thread - blitready %i\n",blitready);
-        if (!blitready) return;
+        if (skipnextblit)
+        {
+                skipnextblit--;
+                blitready=0;
+                return;
+        }
+        if (!blitready)
+        {
+                return;
+        }
         inblit=1;
         switch (thread_doublesize)
         {
@@ -70,6 +80,7 @@ void blitterthread()
         }
         inblit=0;
         blitready=0;
+//        sleep(1);
 }
      
 void initvideo()
@@ -263,10 +274,10 @@ void drawscr()
         #ifdef BLITTER_THREAD
         while (blitready)
         {
-                if (soundbufferfull)
+/*                if (soundbufferfull)
                 {
                         updatesoundbuffer();
-                }
+                }*/
                 sleep(0);
 //                blits++;
 //                return;
@@ -365,7 +376,13 @@ void drawscr()
                     calccrc(ramp[addr++]);
                 /*If cursor data matches then no point redrawing screen - return*/
                 if (crc==curcrc && skipblits)
-                   return;
+                {
+                        skipnextblit++;
+                #ifdef BLITTER_THREAD
+                        wakeupblitterthread();
+                #endif
+                        return;
+                }
                 curcrc=crc;
         }
 //        blits++;
@@ -1074,10 +1091,10 @@ void drawscr()
                 }
         }
         palchange=0;
-                if (soundbufferfull)
+/*                if (soundbufferfull)
                 {
                         updatesoundbuffer();
-                }
+                }*/
         if (ny>1)
         {
                 if (cinit&0x4000000) ramp=(unsigned char *)ram2;
@@ -1128,6 +1145,63 @@ void drawscr()
                 if (cy<0) yl=0;
                 if (yh<(ny+cy)) yh=ny+cy;
         }
+        ony=ny;
+        ocy=cy;
+
+/*
+cx=mouse_x;
+cy=mouse_y;
+        if (ny>1)
+        {
+                if (cinit&0x4000000) ramp=(unsigned char *)ram2;
+                else                 ramp=(unsigned char *)ram;
+                addr=cinit&rammask;
+//                printf("Mouse now at %i,%i\n",cx,cy);
+                switch (drawcode)
+                {
+                        case 16:
+                        for (y=0;y<ny;y++)
+                        {
+                                if ((y+cy)>=ys) break;
+                                if ((y+cy)>=0)
+                                {
+                                        vidp16=(unsigned short *)bmp_write_line(b,y+cy);
+                                        for (x=0;x<32;x+=4)
+                                        {
+                                                if ((x+cx)>=0   && ramp[addr]&3)      vidp16[x+cx]=vpal[(ramp[addr]&3)|0x100];
+                                                if ((x+cx+1)>=0 && (ramp[addr]>>2)&3) vidp16[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
+                                                if ((x+cx+2)>=0 && (ramp[addr]>>4)&3) vidp16[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
+                                                if ((x+cx+3)>=0 && (ramp[addr]>>6)&3) vidp16[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
+                                                addr++;
+                                        }
+                                }
+                        }
+                        break;
+                        case 32:
+                        for (y=0;y<ny;y++)
+                        {
+                                if ((y+cy)>=ys) break;
+                                if ((y+cy)>=0)
+                                {
+                                        vidp=(uint32_t *)bmp_write_line(b,y+cy);
+                                        for (x=0;x<32;x+=4)
+                                        {
+                                                if ((x+cx)>=0   && ramp[addr]&3)      vidp[x+cx]=vpal[(ramp[addr]&3)|0x100];
+                                                if ((x+cx+1)>=0 && (ramp[addr]>>2)&3) vidp[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
+                                                if ((x+cx+2)>=0 && (ramp[addr]>>4)&3) vidp[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
+                                                if ((x+cx+3)>=0 && (ramp[addr]>>6)&3) vidp[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
+                                                addr++;
+                                        }
+                                }
+                        }
+                        break;
+                }
+                if (yl>cy) yl=cy;
+                if (yl==-1) yl=cy;
+                if (cy<0) yl=0;
+                if (yh<(ny+cy)) yh=ny+cy;
+        }*/
+
         bmp_unwrite_line(b); 
         for (c=0;c<1024;c++)
         {
@@ -1152,16 +1226,14 @@ void drawscr()
         if (yl==-1 && yh==-1) return;
         if (yl==-1) yl=0;
 //        printf("Cursor %i %i %i\n",cx,cy,ny);
-        ony=ny;
-        ocy=cy;
 //        rpclog("%i %02X\n",drawcode,bit8);        
 //        sleep(2);
 //        rpclog("Blitting from 0,%i size %i,%i\n",yl,xs,ys);
 //        blits++;
-                if (soundbufferfull)
+/*                if (soundbufferfull)
                 {
                         updatesoundbuffer();
-                }
+                }*/
         #ifdef BLITTER_THREAD
                 blitready=1;
                 thread_xs=xs;
@@ -1169,6 +1241,7 @@ void drawscr()
                 thread_yl=yl;
                 thread_yh=yh;
                 thread_doublesize=doublesize;
+                wakeupblitterthread();
                 return;
         #endif
 //        rpclog("Blit %i %i %i %i\n",xs,yl,yh,yh-yl);

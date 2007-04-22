@@ -205,7 +205,7 @@ void writems(unsigned char v)
                         case 0xE8:
                         case 0xF3:
                         mspacketpos=1;
-                        mcallback=200;
+                        mcallback=20;
                         return;
                 }
         }
@@ -216,50 +216,51 @@ void writems(unsigned char v)
                 {
                         case 0xFF:
                         msreset=2;
-                        mcallback=200;
+                        mcallback=20;
                         mousepoll=0;
                         break;
                         case 0xFE:
                         msreset=0;
-                        mcallback=1500;
+                        mcallback=150;
                         mspacketpos=0;
                         break;
                         case 0xF4:
-                        mcallback=200;
+                        mcallback=20;
                         msreset=0;
                         break;
                         case 0xF3:
                         msincommand=0xF3;
                         msreset=0;
-                        mcallback=200;
+                        mcallback=20;
                         mspacketpos=0;
                         break;
                         case 0xF2:
                         msincommand=1;
                         msreset=0;
-                        mcallback=200;
+                        mcallback=20;
                         mspacketpos=0;
                         break;
                         case 0xE8:
                         msincommand=0xE8;
                         msreset=0;
-                        mcallback=200;
+                        mcallback=20;
                         mspacketpos=0;
                         break;
                         case 0xE7:
                         msincommand=0xE7;
                         msreset=0;
-                        mcallback=200;
+                        mcallback=20;
                         mspacketpos=0;
                         break;
                         case 0xE6:
                         msincommand=0xE6;
                         msreset=0;
-                        mcallback=200;
+                        mcallback=20;
                         mspacketpos=0;
                         break;
                         default:
                         error("Bad mouse command %02X\n",v);
+                        dumpregs();
                         exit(-1);
                 }
         }
@@ -277,7 +278,7 @@ unsigned char readmousedata(void)
         msstat&=~0x20;
         iomd.statd&=~0x1;
         updateirqs();
-        if (mspacketpos<3 && mscommand==0xFE) mcallback=300;
+        if (mspacketpos<3 && mscommand==0xFE) mcallback=20;
 //        printf("Read mouse data %02X\n",iomd.msdat);
 //        timetolive=500;
         iomd.msdat=0;
@@ -311,17 +312,17 @@ void mscallback(void)
                 updateirqs();
                 msreset=3;
                 msstat|=0x80;
-                mcallback=200;
+                mcallback=20;
         }
         else if (msreset==2)
         {
                 msreset=3;
                 mousesend(0xFA);
-                mcallback=400;
+                mcallback=40;
         }
         else if (msreset==3)
         {
-                mcallback=200;
+                mcallback=20;
                 mousesend(0xAA);
                 msreset=4;
         }
@@ -343,7 +344,7 @@ void mscallback(void)
                 if (msincommand==1)
                 {
                         msincommand=2;
-                        mcallback=200;
+                        mcallback=20;
                         mousesend(0xFA);
                 }
                 else
@@ -388,7 +389,7 @@ void pollmouse()
                 return;
         }
         if (key[KEY_MENU]) mouseb|=4;
-        poll_mouse();
+//        poll_mouse();
         get_mouse_mickeys(&x,&y);
         iomd.mousex+=x;
         iomd.mousey+=y;
@@ -410,7 +411,7 @@ void pollmouse()
         if (y&0x100) mspacket[0]|=0x20;
         mspacket[1]=x&255;
         mspacket[2]=y&255;
-        mcallback=400;
+        mcallback=20;
         mscommand=0xFE;
         mspacketpos=0;
 }

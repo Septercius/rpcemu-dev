@@ -111,7 +111,7 @@ extern uint32_t waddrbl;
 extern uint32_t *waddrbl2;
 //uint8_t pagedirty[0x1000];
 //#define writememb(a,v) writememfb(a,v)
-#define HASH(l) (((l)>>3)&0xFFF)
+#define HASH(l) (((l)>>2)&0x7FFF)
 #define writememl(a,v) if (vraddrl[(a)>>12]&3) writememfl(a,v); else { *(unsigned long *)((a)+vraddrl[(a)>>12])=v; }
 #define writememb(a,v) if (vraddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)((a)+vraddrl[(a)>>12])=v; }
 //#define writememl(a,v) if (((a)>>12)==waddrl) { waddrl2[((a)&0xFFC)>>2]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfl(a,v); }
@@ -125,6 +125,8 @@ uint32_t tlbcache[0x100000];
 #define translateaddress(addr,rw,prefetch) ((/*!((addr)&0xFC000000) && */!(tlbcache[((addr)>>12)/*&0x3FFF*/]&0xFFF))?(tlbcache[(addr)>>12]|((addr)&0xFFF)):translateaddress2(addr,rw,prefetch))
 
 extern int mmu,memmode;
+
+extern int pcisrom;
 
 /*IOMD*/
 struct iomd
@@ -269,7 +271,7 @@ void changesamplefreq();
 int soundenabled;
 int soundbufferfull;
 void updatesoundirq();
-void updatesoundbuffer();
+int updatesoundbuffer();
 int getbufferlen();
 uint32_t soundaddr[4];
 int samplefreq;

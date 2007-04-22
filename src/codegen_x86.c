@@ -18,35 +18,37 @@ void generateupdatepc();
 #include <stdint.h>
 #include "codegen_x86.h"
 
+//#define BLOCKS 4096
 //#define HASH(l) ((l>>3)&0x3FFF)
 int blockend;
-int blocknum,blockcount;
+int blocknum;//,blockcount;
 int tempinscount;
 
 int codeblockpos;
 
-#define addbyte(a)         codeblock[blockcount][blocknum][codeblockpos++]=a
-#define addlong(a)         *((unsigned long *)&codeblock[blockcount][blocknum][codeblockpos])=a; \
+#define addbyte(a)         rcodeblock[blockpoint2][codeblockpos++]=a
+#define addlong(a)         *((unsigned long *)&rcodeblock[blockpoint2][codeblockpos])=a; \
                            codeblockpos+=4
 
-int blockpoint=0;
-int blocks[64];
+int blockpoint=0,blockpoint2;
+uint32_t blocks[BLOCKS];
 int pcinc=0;
 void initcodeblocks()
 {
         int c;
         /*Clear all blocks*/
-        memset(codeblockpc,0xFF,3*4*0x1000);
-        memset(codeblockcount,0,3*0x1000);
+        memset(codeblockpc,0xFF,4*0x1000);
+//        memset(codeblockcount,0,0x1000);
         blockpoint=0;
-        for (c=0;c<64;c++) blocks[c]=0xFFFFFFFF;
+        for (c=0;c<BLOCKS;c++) blocks[c]=0xFFFFFFFF;
+        for (c=0;c<BLOCKS;c++) codeblockaddr[c]=&rcodeblock[c][4];
 }
 
 void resetcodeblocks()
 {
         int c;
         /*Clear all blocks _except_ those pointing between 0x3800000 and 0x3FFFFFF (ROM)*/
-        for (c=0;c<0x1000;c++)
+/*        for (c=0;c<0x1000;c++)
         {
                 if ((codeblockpc[c][2]&0xFF800000)!=0x3800000)
                    codeblockpc[c][2]=0xFFFFFFFF;
@@ -60,9 +62,21 @@ void resetcodeblocks()
                         codeblockpc[c][0]=0xFFFFFFFF;
                         codeblockcount[c]=0;
                 }
-        }
+        }*/
         blockpoint=0;
-        for (c=0;c<64;c++) blocks[c]=0xFFFFFFFF;
+        for (c=0;c<BLOCKS;c++)
+        {
+                if (blocks[c]!=0xFFFFFFFF)
+                {
+//                        if (codeblockisrom[blocks[c]&0x7FFF])
+                        if ((codeblockpc[blocks[c]&0x7FFF]&0xFF800000)!=0x3800000)
+                        {
+                                codeblockpc[blocks[c]&0x7FFF]=0xFFFFFFFF;
+                                codeblocknum[blocks[c]&0x7FFF]=0xFFFFFFFF;
+                                blocks[c]=0xFFFFFFFF;
+                        }
+                }
+        }
 }
 
 //#if 0
@@ -73,9 +87,7 @@ void cacheclearpage(unsigned long a)
 //        a>>=10;
         for (c=0;c<0x1000;c++)
         {
-                if ((codeblockpc[c][0]>>9)==a) codeblockpc[c][0]=0xFFFFFFFF;
-                if ((codeblockpc[c][1]>>9)==a) codeblockpc[c][1]=0xFFFFFFFF;
-                if ((codeblockpc[c][2]>>9)==a) codeblockpc[c][2]=0xFFFFFFFF;
+                if ((codeblockpc[c]>>9)==a) codeblockpc[c]=0xFFFFFFFF;
         }
 /*        codeblockpc[hash][0]=0xFFFFFFFF;
         codeblockpc[hash][1]=0xFFFFFFFF;
@@ -94,20 +106,24 @@ void initcodeblock(unsigned long l)
 {
         tempinscount=0;
 //        rpclog("Initcodeblock %08X\n",l);
-/*        blockpoint++;
-        blockpoint&=63;
+        blockpoint++;
+        blockpoint&=(BLOCKS-1);
         if (blocks[blockpoint]!=0xFFFFFFFF)
         {
-                rpclog("Chucking out block %08X %i %03X\n",blocks[blockpoint],blocks[blockpoint]>>24,blocks[blockpoint]&0xFFF);
-                codeblockpc[blocks[blockpoint]&0xFFF][blocks[blockpoint]>>24]=0xFFFFFFFF;
-        }*/
+//                rpclog("Chucking out block %08X %i %03X\n",blocks[blockpoint],blocks[blockpoint]>>24,blocks[blockpoint]&0xFFF);
+                codeblockpc[blocks[blockpoint]&0x7FFF]=0xFFFFFFFF;
+                codeblocknum[blocks[blockpoint]&0x7FFF]=0xFFFFFFFF;
+        }
         blocknum=HASH(l);
-        blockcount=codeblockcount[blocknum];
-        codeblockcount[blocknum]++;
-        if (codeblockcount[blocknum]==3) codeblockcount[blocknum]=0;
+//        blockcount=0;//codeblockcount[blocknum];
+//        codeblockcount[blocknum]++;
+//        if (codeblockcount[blocknum]==3) codeblockcount[blocknum]=0;
         codeblockpos=0;
-        codeblockpc[blocknum][blockcount]=l;
-//        blocks[blockpoint]=(blockcount<<24)|blocknum;
+        codeblockpc[blocknum]=l;
+        codeblockisrom[blocknum]=pcisrom;
+        codeblocknum[blocknum]=blockpoint;
+        blocks[blockpoint]=blocknum;
+        blockpoint2=blockpoint;
         addbyte(0x83); /*ADDL $8,%esp*/
         addbyte(0xC4);
         addbyte(0x08);
@@ -125,7 +141,7 @@ void generatecall(unsigned long addr, unsigned long opcode,unsigned long *pcpsr)
         addbyte(0x24);
         addlong(opcode);
         addbyte(0xE8); /*CALL*/
-        addlong(addr-(uint32_t)(&codeblock[blockcount][blocknum][codeblockpos+4]));
+        addlong(addr-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4]));
 //#if 0
         if (!flaglookup[opcode>>28][(*pcpsr)>>28] && (opcode&0xE000000)==0xA000000)
         {
@@ -140,7 +156,7 @@ void generatecall(unsigned long addr, unsigned long opcode,unsigned long *pcpsr)
 //                pcinc=0;
         }
                 addbyte(0xE9); /*JMP 0*/
-                addlong(&codeblock[blockcount][blocknum][0]-(uint32_t)(&codeblock[blockcount][blocknum][codeblockpos+4]));
+                addlong(&rcodeblock[blockpoint2][0]-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4]));
         }
 //        #endif
 }
@@ -171,28 +187,89 @@ void generatepcinc()
 {
         pcinc+=4;
         if (pcinc==252) generateupdatepc();
-        if (codeblockpos>=1500) blockend=1;
+        if (codeblockpos>=1600) blockend=1;
 }
 
+int linecyc;
 void endblock(int c)
 {
+//        asm("decl 0x12345678;");
         generateupdatepc();
         generateupdateinscount();
         addbyte(0x83); /*ADDL $8,%esp*/
         addbyte(0xC4);
         addbyte(0x08);
+        
+        if (c<128)
+        {
+                addbyte(0x83); /*ADDL $c,rinscount*/
+                addbyte(0x05);
+                addlong(&rinscount);
+                addbyte(c);
+        }
+        else
+        {
+                addbyte(0x81); /*ADDL $c,rinscount*/
+                addbyte(0x05);
+                addlong(&rinscount);
+                addlong(c);
+        }
+
+        addbyte(0xFF); /*DECL linecyc*/
+        addbyte(0x0D);
+        addlong(&linecyc);
+        
+        addbyte(0x79); /*JNS +1*/
+        addbyte(1);
         addbyte(0xC3); /*RET*/
-        codeinscount[blockcount][blocknum]=c;
+        addbyte(0xF6); /*TESTB $0xFF,armirq*/
+        addbyte(0x05);
+        addlong(&armirq);
+        addbyte(0xFF);
+        addbyte(0x75); /*JNZ*/
+        addbyte(-10);
+
+        addbyte(0xA1); /*MOVL armregs[15],%eax*/
+        addlong(&armregs[15]);
+        addbyte(0x83); /*SUBL $8,%eax*/
+        addbyte(0xE8);
+        addbyte(0x08);
+        addbyte(0x89); /*MOVL %eax,%edx*/
+        addbyte(0xC2);
+        if (r15mask!=0xFFFFFFFF)
+        {
+                addbyte(0x25); /*ANDL $r15mask,%eax*/
+                addlong(r15mask);
+        }
+        addbyte(0x81); /*ANDL $0x1FFFC,%edx*/
+        addbyte(0xE2);
+        addlong(0x1FFFC);
+        addbyte(0x3B); /*CMPL codeblockpc[%edx],%eax*/
+        addbyte(0x82);
+        addlong(codeblockpc);
+        addbyte(0x74); /*JZ +1*/
+        addbyte(1);
+        addbyte(0xC3); /*RET*/
+        addbyte(0x8B); /*MOVL codeblocknum[%edx],%eax*/
+        addbyte(0x82);
+        addlong(codeblocknum);
+        addbyte(0x8B); /*MOVL codeblockaddr[%eax*4],%eax*/
+        addbyte(0x04);
+        addbyte(0x85);
+        addlong(codeblockaddr);
+        addbyte(0xFF); /*JMP *%eax*/
+        addbyte(0xE0);
+        codeinscount[blocknum]=c;
 }
 
 void dumplastblock()
 {
-        FILE *f=fopen("block.dmp","wb");
+/*        FILE *f=fopen("block.dmp","wb");
         fwrite(codeblock[blockcount][blocknum],1600,1,f);
-        fclose(f);
+        fclose(f);*/
 }
 
-int codecallblock(unsigned long l)
+/*int codecallblock(unsigned long l)
 {
         int hash=HASH(l);
         void (*gen_func)(void);
@@ -209,7 +286,7 @@ int codecallblock(unsigned long l)
                 return 1;
         }
         return 0;
-}
+}*/
 void generatemove(unsigned long addr, unsigned long dat)
 {
 //        asm("movl $0x12345678,(%esp)");
@@ -290,7 +367,7 @@ void generateflagtestandbranch(unsigned long opcode, unsigned long *pcpsr)
 #ifdef ABORTCHECKING
         else if (((opcode+0x6000000)&0xF000000)>=0xA000000)
         {
-                if (((uint32_t)(&codeblock[blockcount][blocknum][codeblockpos+19])-(uint32_t)(&codeblock[blockcount][blocknum][0]))<120) addbyte(5+7+2+2);
+                if (((uint32_t)(&rcodeblock[blockpoint2][codeblockpos+19])-(uint32_t)(&rcodeblock[blockpoint2][0]))<120) addbyte(5+7+2+2);
                 else                                                                                                                    addbyte(5+7+2+6);
         }
 #endif
@@ -307,16 +384,16 @@ void generateirqtest()
         addbyte(0x85); /*TESTL %eax,%eax*/
         addbyte(0xC0);
 //        #if 0
-        if (((uint32_t)(&codeblock[blockcount][blocknum][codeblockpos+4])-(uint32_t)(&codeblock[blockcount][blocknum][0]))<120)
+        if (((uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4])-(uint32_t)(&rcodeblock[blockpoint2][0]))<120)
         {
                 addbyte(0x75); /*JNE 0*/
-                addbyte(&codeblock[blockcount][blocknum][0]-(uint32_t)(&codeblock[blockcount][blocknum][codeblockpos+1]));
+                addbyte(&rcodeblock[blockpoint2][0]-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+1]));
         }
         else
         {
 //                #endif
                 addbyte(0x0F); /*JNE 0*/
                 addbyte(0x85);
-                addlong(&codeblock[blockcount][blocknum][0]-(uint32_t)(&codeblock[blockcount][blocknum][codeblockpos+4]));
+                addlong(&rcodeblock[blockpoint2][0]-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4]));
         }
 }
