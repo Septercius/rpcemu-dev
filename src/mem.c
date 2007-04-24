@@ -100,7 +100,7 @@ void resetmem(void)
 
 #define vradd(a,v,f,p) if (vraddrls[vraddrlpos]!=0xFFFFFFFF) vraddrl[vraddrls[vraddrlpos]]=0xFFFFFFFF; \
                        vraddrls[vraddrlpos]=a>>12; \
-                       vraddrl[a>>12]=(uint32_t)(v);/*|(f);*/ \
+                       vraddrl[a>>12]=(unsigned long)(v);/*|(f);*/ \
                        vraddrphys[vraddrlpos]=p; \
                        vraddrlpos=(vraddrlpos+1)&1023;
 
@@ -133,35 +133,34 @@ uint32_t readmemfl(uint32_t addr)
                                 return 0;
                         }
                         readmemcache2=addr&0xFFFFF000;
-//printf("Long read %08X\n",addr);
 //                        rpclog("MMU addr %08X %08X %08X %08X ",addr2,addr,raddrl,readmemcache2&0x7FF000);
                         switch (readmemcache2&0x1F000000)
                         {
                                 case 0x00000000: /*ROM*/
-                                vradd(addr2,&rom[((readmemcache2&0x7FF000)-(addr2&~0xFFF))>>2],2,readmemcache2);
-                                return *(unsigned long *)((vraddrl[addr2>>12]&~3)+(addr2&~3));
+                                vradd(addr2,&rom[((readmemcache2&0x7FF000)-(long)(addr2&~0xFFF))>>2],2,readmemcache2);
+                                return *(uint32_t *)((vraddrl[addr2>>12]&~3)+(addr2&~3));
                                 
                                 case 0x02000000: /*VRAM*/
                                 dirtybuffer[(addr&vrammask)>>12]=2;
-                                vradd(addr2,&vram[((readmemcache2&0x1FF000)-(addr2&~0xFFF))>>2],0,readmemcache2);
+                                vradd(addr2,&vram[((readmemcache2&0x1FF000)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
 //                                vwadd(addr2,&vram[((readmemcache2&0x1FF000)-(addr2&~0xFFF))>>2],readmemcache2);
-                                return *(unsigned long *)(vraddrl[addr2>>12]+(addr2&~3));
+                                return *(uint32_t *)(vraddrl[addr2>>12]+(addr2&~3));
                                 
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 case 0x11000000:
                                 case 0x12000000:
                                 case 0x13000000:
-                                vradd(addr2,&ram[((readmemcache2&rammask)-(addr2&~0xFFF))>>2],0,readmemcache2);
+                                vradd(addr2,&ram[((readmemcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
 //                                vwadd(addr2,&ram[((readmemcache2&rammask)-(addr2&~0xFFF))>>2],readmemcache2);
-                                return *(unsigned long *)(vraddrl[addr2>>12]+(addr2&~3));
+                                return *(uint32_t *)(vraddrl[addr2>>12]+(addr2&~3));
                                 
                                 case 0x14000000: /*SIMM 0 bank 1*/
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                vradd(addr2,&ram2[((readmemcache2&rammask)-(addr2&~0xFFF))>>2],0,readmemcache2);
+                                vradd(addr2,&ram2[((readmemcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
 //                                vwadd(addr2,&ram2[((readmemcache2&rammask)-(addr2&~0xFFF))>>2],readmemcache2);
-                                return *(unsigned long *)(vraddrl[addr2>>12]+(addr2&~3));
+                                return *(uint32_t *)(vraddrl[addr2>>12]+(addr2&~3));
                                 
                                 default:
 //                                rpclog("Other\n");
@@ -171,7 +170,7 @@ uint32_t readmemfl(uint32_t addr)
         }
         else// if (0)
         {
-
+//printf("Long read %08X\n",addr);
 //                raddrl[(addr>>12)&0xFF]=addr&0xFFFFF000;
 //                rpclog("No MMU addr %08X %08X ",addr,raddrl);
                 switch (addr&0x1F000000)
@@ -180,21 +179,22 @@ uint32_t readmemfl(uint32_t addr)
 //                       vradd(addr,&rom[((addr&0x7FF000)-(addr&~0xFFF))>>2],2,addr);
                        break;
                        case 0x02000000: /*VRAM*/
+//			printf("VRAM %08X%08X %08X%08X\n",((unsigned long)vram)>>32,vram,((unsigned long)&vram[((addr&0x1FF000)-(long)(addr&~0xFFF))>>2])>>32,&vram[((addr&0x1FF000)-(long)(addr&~0xFFF))>>2]);
 //                       rpclog("VRAM\n");
-                       vradd(addr,&vram[((addr&0x1FF000)-(addr&~0xFFF))>>2],0,addr);
+                       vradd(addr,&vram[((addr&0x1FF000)-(long)(addr&~0xFFF))>>2],0,addr);
                        break;
                        case 0x10000000: /*SIMM 0 bank 0*/
                        case 0x11000000:
                        case 0x12000000:
                        case 0x13000000:
 //                        vradd(addr2,&ram[((readmemcache2&rammask)-(addr2&~0xFFF))>>2],0,readmemcache2);
-                       vradd(addr,&ram[((addr&rammask&~0xFFF)-(addr&~0xFFF))>>2],0,addr);
+                       vradd(addr,&ram[((addr&rammask&~0xFFF)-(long)(addr&~0xFFF))>>2],0,addr);
                        break;
                        case 0x14000000: /*SIMM 0 bank 1*/
                        case 0x15000000:
                        case 0x16000000:
                        case 0x17000000:
-                       vradd(addr,&ram2[((addr&rammask&~0xFFF)-(addr&~0xFFF))>>2],0,addr);
+                       vradd(addr,&ram2[((addr&rammask&~0xFFF)-(long)(addr&~0xFFF))>>2],0,addr);
                        break;
                        default:
 //                       rpclog("Other\n");
@@ -319,26 +319,26 @@ uint32_t readmemfb(uint32_t addr)
                         switch (readmemcache2&0x1F000000)
                         {
                                 case 0x00000000: /*ROM*/
-                                vradd(addr2,&rom[((readmemcache2&0x7FF000)-(addr2&~0xFFF))>>2],2,readmemcache2);
+                                vradd(addr2,&rom[((readmemcache2&0x7FF000)-(long)(addr2&~0xFFF))>>2],2,readmemcache2);
                                 return *(unsigned char *)((vraddrl[addr2>>12]&~3)+addr2);
 
                                 case 0x02000000: /*VRAM*/
                                 dirtybuffer[(addr&vrammask)>>12]=2;
-                                vradd(addr2,&vram[((readmemcache2&0x1FF000)-(addr2&~0xFFF))>>2],0,readmemcache2);
+                                vradd(addr2,&vram[((readmemcache2&0x1FF000)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
                                 return *(unsigned char *)(vraddrl[addr2>>12]+addr2);
 
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 case 0x11000000:
                                 case 0x12000000:
                                 case 0x13000000:
-                                vradd(addr2,&ram[((readmemcache2&rammask)-(addr2&~0xFFF))>>2],0,readmemcache2);
+                                vradd(addr2,&ram[((readmemcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
                                 return *(unsigned char *)(vraddrl[addr2>>12]+addr2);
 
                                 case 0x14000000: /*SIMM 0 bank 1*/
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                vradd(addr2,&ram2[((readmemcache2&rammask)-(addr2&~0xFFF))>>2],0,readmemcache2);
+                                vradd(addr2,&ram2[((readmemcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
                                 return *(unsigned char *)(vraddrl[addr2>>12]+addr2);
                         }
                 }
@@ -410,6 +410,7 @@ void writememfl(uint32_t addr, uint32_t val)
                 if ((addr>>12)==writememcache) addr=(addr&0xFFF)+writememcache2;
                 else
                 {
+			//printf("Translating %08X\n",addr);
                         writememcache=addr>>12;
                         waddrl=addr>>12;
                         addr=translateaddress(addr,1,0);
@@ -425,7 +426,7 @@ void writememfl(uint32_t addr, uint32_t val)
                         {
                                 case 0x02000000: /*VRAM*/
                                 dirtybuffer[(addr&vrammask)>>12]=2;
-                                vradd(addr2,&vram[((writememcache2&0x1FF000)-(addr2&~0xFFF))>>2],0,writememcache2);
+                                vradd(addr2,&vram[((writememcache2&0x1FF000)-(long)(addr2&~0xFFF))>>2],0,writememcache2);
                                 break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 if ((!vrammask || !model) && (addr&0x1FF00000)==0x10000000)
@@ -433,13 +434,13 @@ void writememfl(uint32_t addr, uint32_t val)
                                 case 0x11000000:
                                 case 0x12000000:
                                 case 0x13000000:
-                                vradd(addr2,&ram[((writememcache2&rammask)-(addr2&~0xFFF))>>2],0,writememcache2);
+                                vradd(addr2,&ram[((writememcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,writememcache2);
                                 break;
                                 case 0x14000000: /*SIMM 0 bank 1*/
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                vradd(addr2,&ram2[((writememcache2&rammask)-(addr2&~0xFFF))>>2],0,writememcache2);
+                                vradd(addr2,&ram2[((writememcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,writememcache2);
                                 break;
                                 default:
                                 waddrl=0xFFFFFFFF;
@@ -607,7 +608,7 @@ void writememfb(uint32_t addr, uint8_t val)
                         {
                                 case 0x02000000: /*VRAM*/
                                 dirtybuffer[(addr&vrammask)>>12]=2;
-                                vradd(addr2,&vram[((writemembcache2&0x1FF000)-(addr2&~0xFFF))>>2],0,writemembcache2);
+                                vradd(addr2,&vram[((writemembcache2&0x1FF000)-(long)(addr2&~0xFFF))>>2],0,writemembcache2);
                                 break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 if ((!vrammask || !model) && (addr&0x1FF00000)==0x10000000)
@@ -615,13 +616,13 @@ void writememfb(uint32_t addr, uint8_t val)
                                 case 0x11000000:
                                 case 0x12000000:
                                 case 0x13000000:
-                                vradd(addr2,&ram[((writemembcache2&rammask)-(addr2&~0xFFF))>>2],0,writemembcache2);
+                                vradd(addr2,&ram[((writemembcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,writemembcache2);
                                 break;
                                 case 0x14000000: /*SIMM 0 bank 1*/
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                vradd(addr2,&ram2[((writemembcache2&rammask)-(addr2&~0xFFF))>>2],0,writemembcache2);
+                                vradd(addr2,&ram2[((writemembcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,writemembcache2);
                                 break;
                                 default:
                                 waddrl=0xFFFFFFFF;

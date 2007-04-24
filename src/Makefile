@@ -2,7 +2,7 @@
 
 //CC = gcc-4.1 -march=athlon-4
 CFLAGS = -Wall -Wextra -O3 #-Werror
-
+//CFLAGS = -O3 -march=i686 -ffast-math -fomit-frame-pointer -falign-loops -falign-jumps -falign-functions -ftracer
 LIBS = `allegro-config --libs` -lm
 
 EXE = ../rpcemu
@@ -15,7 +15,8 @@ OBJS =	82c711.o    \
 	cmos.o      \
 	cp15.o      \
 	fpa.o       \
-	ide.o	    \
+	gui.o	      \
+	ide.o	      \
 	iomd.o      \
 	keyboard.o  \
 	mem.o       \
@@ -31,6 +32,7 @@ SRCS = 	82c711.c    \
 	cmos.c      \
 	cp15.c      \
 	fpa.c       \
+	gui.c       \
 	ide.c       \
 	iomd.c      \
 	keyboard.c  \

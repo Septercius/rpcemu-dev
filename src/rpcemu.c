@@ -59,7 +59,7 @@ void execrpcemu()
                 pollmouse();
                 pollkeyboard();
 //                sleep(0);
-//                doosmouse();
+                doosmouse();
 //                cmostick();
         }
 }

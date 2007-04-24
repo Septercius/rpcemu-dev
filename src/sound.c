@@ -116,7 +116,7 @@ int updatesoundbuffer()
         if (!soundenabled)
         {
                 soundbufferfull=0;
-                return 1;
+                return 0;
         }
 /*        if (!sndfile)
         {

@@ -12,7 +12,7 @@ int timetolive;
 int pcisrom;
 uint32_t ins;
 uint32_t tlbcache[0x100000],tlbcache2[TLBCACHESIZE];
-uint32_t *vraddrl;
+unsigned long *vraddrl;
 uint32_t vraddrls[1024],vraddrphys[1024];
 int tlbcachepos;
 int tlbs,flushes;
@@ -41,8 +41,8 @@ void resetcp15(void)
         for (c=0;c<256;c++)
             raddrl[c]=0xFFFFFFFF;
         waddrl=0xFFFFFFFF;
-        if (!vraddrl) vraddrl=malloc(0x100000*sizeof(uint32_t));
-        memset(vraddrl,0xFF,0x100000*sizeof(uint32_t));
+        if (!vraddrl) vraddrl=malloc(0x100000*sizeof(uint32_t *));
+        memset(vraddrl,0xFF,0x100000*sizeof(uint32_t *));
         memset(vraddrls,0xFF,1024*sizeof(uint32_t));
 }
 
@@ -219,10 +219,10 @@ uint32_t readcp15(uint32_t addr)
                 case 3: /*DACR*/
                 return cp15.dacr;
                 case 5: /*Fault status*/
-                printf("Fault status read %08X\n",cp15.fsr);
+//                printf("Fault status read %08X\n",cp15.fsr);
                 return cp15.fsr;
                 case 6: /*Fault address*/
-                printf("Fault address read %08X\n",cp15.far);
+                //printf("Fault address read %08X\n",cp15.far);
                 return cp15.far;
         }
         error("Bad read CP15 %08X %07X\n",addr,PC);
@@ -301,6 +301,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         uint32_t sldaddr,sld; //,taddr;
         uint32_t oa=addr;
         int temp,temp2,temp3;
+//if (addr&0x80000000) printf("Translating %08X\n",addr);
 /*        if (!(addr&0xFC000000) && !(tlbcache[(addr>>12)&0x3FFF]&0xFFF))
         {
 //                rpclog("Cached %08X\n",tlbcache[addr>>12]);

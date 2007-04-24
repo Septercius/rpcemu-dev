@@ -1,13 +1,14 @@
 Notes on RPCemu dynarec :
 
 The makefile does not include the relevant files as of yet, as this is totally experimental.
-In order to compile, you must remove arm.c, and include ArmDynarec.c and codegen_x86.c.
+In order to compile, you must remove arm.c, and include ArmDynarec.c and 
+codegen_x86.c/codegen_amd64.c (depending on CPU type). 
 ArmDynarecOps.c is included in ArmDynarec.c, and doesn't need to be compiled seperately.
 
-This only works on x86-32 at the moment. An x86-64 port shouldn't be too difficult. Other
-ports probably will be.
+This only works on x86-32 and x86-64 at the moment. Other ports are possible, but haven't been done
+yet (and won't be done by me).
 
-This hasn't been tested on linux at all.
+This _has_ now been tested on linux (both x86-32 and x86-64) and works!
 
 This hasn't been tested on that many programs. The ones that have been tested (and work) include :
 
@@ -57,7 +58,7 @@ Hence the current version doesn't have this in.
 
 
 The performance increase on my main machine (Athlon X2 4200+) ranges from about 100% (!SICK,
-RISC OS in general) to 100% (!Fishtank2). 
+RISC OS in general) to 100% (!Fishtank2) to 100% (ArcQuake). 
 
 Benchmarks noted :
 
@@ -95,6 +96,15 @@ The recompiler adds code at the end of a block, that checks to see if the next b
 already been compiled. If it has, it jumps straight to it, instead of returning to execx86()
 (depending on a few conditions). This helps loops a bit, but they could be made more efficient
 by extending B/BL to jump backwards within the same block.
+None of this is added in the x86-64 version however, as it appears to kill performance. I can't
+figure out _why_ it kills performance, but if it could be made to work properly it would be a
+nice speed increase.
+
+The x86-64 recompiler in general isn't optimal - it's mostly a direct conversion of the x86-32
+code. The one improvement is that the current opcode is passed to the relevant handler through
+a register instead of via the stack. However, too many immediate addresses are used, which could
+potentially prove fatal (as they are only 32-bit). Also, some of the additional registers could
+be hardcoded to frequently used variables.
 
 Abort checking can be done either at the end of every LDR/STR/LDM/STM instruction, or at the
 end of each block (depending on the status of ABORTCHECKING - see rpcemu.h). RISC OS 3.7 works

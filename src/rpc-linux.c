@@ -20,6 +20,10 @@ int updatemips=0;
 static uint32_t mipscount;
 float mipstotal;
 
+void wakeupsoundthread()
+{
+}
+
 static void domips(void)
 {
         mips=(float)inscount/1000000.0f;
@@ -147,7 +151,7 @@ infocus=0;
                    execrpcemu();
                         if (updatemips)
                         {                           
-			  printf("MIPS: %f (AVG: %f)\n", mips, mipstotal / (mipscount - 10));
+			  printf("MIPS: %f (AVG: %f) %i\n", mips, mipstotal / (mipscount - 10),mousehack);
 			        //sprintf(s,"RPCemu v0.3 - %f MIPS - %s",mips,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
 				//                                SetWindowText(ghwnd, s);
                                 updatemips=0;

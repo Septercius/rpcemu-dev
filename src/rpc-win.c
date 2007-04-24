@@ -382,12 +382,12 @@ infocus=1;
         wakeupblitterthread();
         while (blitrunning)
               sleep(1);
-        if (soundenabled)
-        {
+//        if (soundenabled)
+//        {
                 wakeupsoundthread();
                 while (soundrunning)
                       sleep(1);
-        }
+//        }
 //        while (vidrunning)
 //              sleep(1);
         #endif

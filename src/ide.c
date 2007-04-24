@@ -1,6 +1,7 @@
 /*RPCemu v0.6 by Tom Walker
   IDE emulation*/
 #include <stdio.h>
+#include <stdint.h>
 #include "rpcemu.h"
 
 int skip512[2];
@@ -348,7 +349,8 @@ uint16_t readidew(void)
 
 void callbackide(void)
 {
-        int addr,c;
+        int c;
+        int64_t addr;
         if (idereset)
         {
                 ide.atastat=0x40;
@@ -380,7 +382,7 @@ void callbackide(void)
                         error("Read from other cylinder/head");
                         exit(-1);
                 }*/
-                fseek(hdfile[ide.drive],addr,SEEK_SET);
+                fseeko64(hdfile[ide.drive],addr,SEEK_SET);
                 fread(idebuffer,512,1,hdfile[ide.drive]);
                 ide.pos=0;
                 ide.atastat=0x08;
@@ -392,7 +394,7 @@ void callbackide(void)
                 readflash=2;
                 addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+(ide.sector-1)+skip512[ide.drive])*512;
 //                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
-                fseek(hdfile[ide.drive],addr,SEEK_SET);
+                fseeko64(hdfile[ide.drive],addr,SEEK_SET);
                 fwrite(idebuffer,512,1,hdfile[ide.drive]);
                 iomd.statb|=2;
                 updateirqs();
@@ -426,7 +428,7 @@ void callbackide(void)
                 case 0x50: /*Format track*/
                 addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+skip512[ide.drive])*512;
 //                rpclog("Format cyl %i head %i offset %08X secount %I\n",ide.cylinder,ide.head,addr,ide.secount);
-                fseek(hdfile[ide.drive],addr,SEEK_SET);
+                fseeko64(hdfile[ide.drive],addr,SEEK_SET);
                 memset(idebufferb,0,512);
                 for (c=0;c<ide.secount;c++)
                 {

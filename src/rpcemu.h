@@ -92,13 +92,13 @@ void reallocmem(int ramsize);
 extern uint32_t raddrl[256];
 extern uint32_t *raddrl2[256];
 
-extern uint32_t *vraddrl;
+extern unsigned long *vraddrl;
 extern uint32_t vraddrls[1024],vraddrphys[1024];
 extern int vraddrlpos;
 //#define readmeml(a) readmemfl(a)
 
-#define readmeml(a) ((vraddrl[(a)>>12]&1)?readmemfl(a):*(unsigned long *)((a)+(vraddrl[(a)>>12])))
-#define readmemb(a) ((vraddrl[(a)>>12]&1)?readmemfb(a):*(unsigned char *)((a)+(vraddrl[(a)>>12])))
+#define readmeml(a) ((vraddrl[(a)>>12]&1)?readmemfl(a):*(uint32_t *)(/*(int32_t)*/(a)+(vraddrl[(a)>>12])))
+#define readmemb(a) ((vraddrl[(a)>>12]&1)?readmemfb(a):*(unsigned char *)(/*(int32_t)*/(a)+(vraddrl[(a)>>12])))
 
 //#define readmeml(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?raddrl2[((a)>>12)&0xFF][(a)>>2]:readmemfl(a))
 //#define readmeml(a) ((((a)&0xFFFFF000)==raddrl)?raddrl2[((a)&0xFFC)>>2]:readmemfl(a))
@@ -112,8 +112,8 @@ extern uint32_t *waddrbl2;
 //uint8_t pagedirty[0x1000];
 //#define writememb(a,v) writememfb(a,v)
 #define HASH(l) (((l)>>2)&0x7FFF)
-#define writememl(a,v) if (vraddrl[(a)>>12]&3) writememfl(a,v); else { *(unsigned long *)((a)+vraddrl[(a)>>12])=v; }
-#define writememb(a,v) if (vraddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)((a)+vraddrl[(a)>>12])=v; }
+#define writememl(a,v) /*if ((a)&0x80000000) printf("%08X %08X%08X\n",a,vraddrl[(a)>>12]>>32,vraddrl[(a)>>12]);*/ if (vraddrl[(a)>>12]&3) writememfl(a,v); else { *(uint32_t *)(/*(int32_t)*/(a)+vraddrl[(a)>>12])=v; }
+#define writememb(a,v) if (vraddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)(/*(int32_t)*/(a)+vraddrl[(a)>>12])=v; }
 //#define writememl(a,v) if (((a)>>12)==waddrl) { waddrl2[((a)&0xFFC)>>2]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfl(a,v); }
 //#define writememb(a,v) if (((a)>>12)==waddrbl) { ((unsigned char *)waddrbl2)[(a)&0xFFF]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfb(a,v); }
 
