@@ -2,7 +2,7 @@
 #
 
 AC_PREREQ(2.50)
-AC_INIT(rpcemu, 0.4)
+AC_INIT(rpcemu, 0.7)
 AC_CONFIG_SRCDIR(arm.c)
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
