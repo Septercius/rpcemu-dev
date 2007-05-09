@@ -50,7 +50,13 @@ int inscounts[256];
 
 #include "rpcemu.h"
 #include "hostfs.h"
+#include "arm.h"
+#include "cp15.h"
+#include "mem.h"
+#include "iomd.h"
+#include "sound.h"
 
+int blockend;
 int r15diff;
 int flyback;
 //static int r11check=0;
@@ -70,7 +76,7 @@ static void refillpipeline2(void);
 //static FILE *olog;
 static unsigned char flaglookup[16][16];
 static uint32_t rotatelookup[4096];
-int timetolive = 0;
+//int timetolive = 0;
 uint32_t inscount;
 //static unsigned char cmosram[256];
 int armirq=0;
@@ -3503,7 +3509,7 @@ void execarm(int cycs)
                                         }
                                         templ=memmode;
                                         memmode=0;
-                                        templ2=readmeml(addr);
+                                        templ2=readmeml(addr&~3);
                                         memmode=templ;
                                         if (armirq&0x40) break;
                                         if (addr&3) templ2=ldrresult(templ2,addr);
@@ -3581,7 +3587,7 @@ void execarm(int cycs)
                                         break;
 //#if 0
 			             case 0x4C: /*STRB RD,[RN],#*/
-			             writememb(armregs[RN],armregs[RD]);
+                                     writememb(armregs[RN],armregs[RD]);
 		                     if (armirq&0x40) break;
         			     armregs[RN]+=(opcode&0xFFF);
 			             //cycles-=2;
@@ -3589,8 +3595,8 @@ void execarm(int cycs)
 			             break;
 
                 			case 0x59: /*LDR RD,[RN,#]*/
-                			addr=GETADDR(RN)+(opcode&0xFFF);
-                			templ=readmeml(addr);
+                                        addr=GETADDR(RN)+(opcode&0xFFF);
+                                        templ=readmeml(addr&~3);
                         		if (addr&3) templ=ldrresult(templ,addr);
                                		if (armirq&0x40) break;
                 			LOADREG(RD,templ);
@@ -3598,7 +3604,7 @@ void execarm(int cycs)
 
                 			case 0x79: /*LDR RD,[RN,shift]*/
                 			addr=GETADDR(RN)+shift_ldrstr(opcode);
-                        		templ=readmeml(addr);
+                                        templ=readmeml(addr&~3);
                         		if (addr&3) templ=ldrresult(templ,addr);
                         		if (armirq&0x40) break;
                 			LOADREG(RD,templ);
@@ -3606,8 +3612,8 @@ void execarm(int cycs)
 
                 			case 0x7D: /*LDRB RD,[RN,shift]*/
                 			addr=GETADDR(RN)+shift_ldrstr(opcode);
-                			templ=readmemb(addr);
-                        		if (armirq&0x40) break;
+                                        templ=readmemb(addr);
+                                        if (armirq&0x40) break;
                         		armregs[RD]=templ;
                 			break;
 //#endif
@@ -3629,8 +3635,8 @@ void execarm(int cycs)
                                         {
                                                 addr+=addr2;
                                         }
-                                        if (RD==15) { writememl(addr,armregs[RD]+r15diff); }
-                                        else        { writememl(addr,armregs[RD]); }
+                                        if (RD==15) { writememl(addr&~3,armregs[RD]+r15diff); }
+                                        else        { writememl(addr&~3,armregs[RD]); }
                                         if (armirq&0x40)
                                         {
 //                                                rpclog("Data abort\n");
@@ -3665,7 +3671,7 @@ void execarm(int cycs)
                                         {
                                                 addr+=addr2;
                                         }
-                                        templ=readmeml(addr);
+                                        templ=readmeml(addr&~3);
                                         if (addr&3) templ=ldrresult(templ,addr);
                                         if (armirq&0x40) break;
                                         if (!(opcode&0x1000000))
@@ -3882,7 +3888,7 @@ void execarm(int cycs)
                                         case 0x82: /*STMDA !*/
                                         case 0x90: /*STMDB*/
                                         case 0x92: /*STMDB !*/
-                                        addr=armregs[RN]-countbits(opcode&0xFFFF);
+                                        addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
                                         if (!(opcode&0x1000000)) addr+=4;
                                         STMfirst();
                                         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
@@ -3893,7 +3899,7 @@ void execarm(int cycs)
                                         case 0x8A: /*STMIA !*/
                                         case 0x98: /*STMIB*/
                                         case 0x9A: /*STMIB !*/
-                                        addr=armregs[RN];
+                                        addr=armregs[RN]&~3;
                                         if (opcode&0x1000000) addr+=4;
                                         STMfirst();
                                         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
@@ -3904,7 +3910,7 @@ void execarm(int cycs)
                                         case 0x86: /*STMDA ^!*/
                                         case 0x94: /*STMDB ^*/
                                         case 0x96: /*STMDB ^!*/
-                                        addr=armregs[RN]-countbits(opcode&0xFFFF);
+                                        addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
                                         if (!(opcode&0x1000000)) addr+=4;
                                         STMfirstS();
                                         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
@@ -3915,7 +3921,7 @@ void execarm(int cycs)
                                         case 0x8E: /*STMIA ^!*/
                                         case 0x9C: /*STMIB ^*/
                                         case 0x9E: /*STMIB ^!*/
-                                        addr=armregs[RN];
+                                        addr=armregs[RN]&~3;
                                         if (opcode&0x1000000) addr+=4;
                                         STMfirstS();
                                         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
@@ -3927,7 +3933,7 @@ void execarm(int cycs)
                                         case 0x83: /*LDMDA !*/
                                         case 0x91: /*LDMDB*/
                                         case 0x93: /*LDMDB !*/
-                                        addr=armregs[RN]-countbits(opcode&0xFFFF);
+                                        addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
                                         if (!(opcode&0x1000000)) addr+=4;
                                         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
                                         LDMall();
@@ -3937,7 +3943,7 @@ void execarm(int cycs)
                                         case 0x8B: /*LDMIA !*/
                                         case 0x99: /*LDMIB*/
                                         case 0x9B: /*LDMIB !*/
-                                        addr=armregs[RN];
+                                        addr=armregs[RN]&~3;
                                         if (opcode&0x1000000) addr+=4;
                                         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
                                         LDMall();
@@ -3947,7 +3953,7 @@ void execarm(int cycs)
                                         case 0x87: /*LDMDA ^!*/
                                         case 0x95: /*LDMDB ^*/
                                         case 0x97: /*LDMDB ^!*/
-                                        addr=armregs[RN]-countbits(opcode&0xFFFF);
+                                        addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
                                         if (!(opcode&0x1000000)) addr+=4;
                                         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
                                         LDMallS();
@@ -3957,7 +3963,7 @@ void execarm(int cycs)
                                         case 0x8F: /*LDMIA ^!*/
                                         case 0x9D: /*LDMIB ^*/
                                         case 0x9F: /*LDMIB ^!*/
-                                        addr=armregs[RN];
+                                        addr=armregs[RN]&~3;
                                         if (opcode&0x1000000) addr+=4;
                                         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
                                         LDMallS();
@@ -4050,7 +4056,7 @@ void execarm(int cycs)
 #endif
                                         if (MULRS==15 && (opcode&0x10))
                                         {
-                                                writecp15(RN,armregs[RD]);
+                                                writecp15(RN,armregs[RD],opcode);
                                         }
                                         else
                                         {
@@ -4301,7 +4307,7 @@ exception(SUPERVISOR,0xC,4);
                                 }
 //                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
                         }
-                        armirq=irq;
+//                        armirq=irq;
                         armregs[15]+=4;
 /*                        if (armregs[13]==0x1F00000 && armregs[13]!=oldr13)
                         {

@@ -2,14 +2,14 @@
   I2C + CMOS RAM emulation*/
 #include <stdint.h>
 #include <allegro.h>
-#ifndef __linux__
+#if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <winalleg.h>
 #endif
 #include <stdio.h>
 #include <string.h>
 #include "rpcemu.h"
 
-#ifndef __linux__
+#if defined WIN32 || defined _WIN32 || defined _WIN32
 SYSTEMTIME systemtime;
 #endif
 uint32_t output;
@@ -92,9 +92,7 @@ void cmosgettime()
 
 void cmostick()
 {
-#ifdef __linux__
-
-#else
+#if defined WIN32 || defined _WIN32 || defined _WIN32
         int c,d;
         systemtime.wMilliseconds++;
         if (systemtime.wMilliseconds>=100)

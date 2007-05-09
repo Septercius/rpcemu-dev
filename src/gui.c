@@ -229,7 +229,8 @@ void entergui()
         }
         show_mouse(NULL);
         shutdown_dialog(dp);
-        
+
+        clear(screen);
         clear_keybuf();
         resetbuffer();
         

@@ -40,7 +40,9 @@
 #endif
 
 
-
+#ifdef DJGPP
+#define fseeko64(_a, _b, _c) fseek(_a, (long)_b, _c)
+#endif
 
 #define GRAPHICS_TYPE GFX_AUTODETECT_WINDOWED
 
@@ -48,7 +50,9 @@
   If this is disabled then modes lower than 640x480 can look odd, and the system
   is slower. However, this must be commented out on some ports (Linux)*/
 #ifndef __unix
+#ifndef DJGPP
 #define HARDWAREBLIT
+#endif
 #endif
 
 /*This moves the calls to blit() and stretch_blit() to a seperate thread. It
@@ -72,7 +76,7 @@
 #ifdef __unix
 #define mousehackena 1
 #else
-#define mousehackena 1
+#define mousehackena 0
 #endif
 #define mousehack (mousehackena&&mousehackon)
 
@@ -80,6 +84,11 @@
   recompiler. Disabling this makes the recompiler check after every block
   instead - this doesn't appear to break RISC OS, but you never know...*/
 #define ABORTCHECKING
+
+/*This makes RPCemu always run in fullscreen mode. Mostly suitable for DOS*/
+#ifdef DJGPP
+#define FULLSCREENALWAYS
+#endif
 
 extern int mousehackon;
 //#define PREFETCH

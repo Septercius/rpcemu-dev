@@ -92,6 +92,21 @@ void initvideo()
 {
         int depth;
 //        int tempo=0;
+#ifdef FULLSCREENALWAYS
+       depth=16;
+       set_color_depth(16);
+       if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,640,480,0,0))
+       {
+                set_color_depth(15);
+                depth=15;
+                if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,640,480,0,0))
+                {
+                        printf("Failed to set video mode 640x480x16\n");
+                        exit(-1);
+                }
+       }
+       drawcode=16;
+#else
         depth=deskdepth=desktop_color_depth();
         if (depth==16 || depth==15)
         {
@@ -115,6 +130,7 @@ void initvideo()
                 error("Your desktop must be set to either 16-bit or 32-bit colour to run RPCemu");
                 exit(0);
         }
+#endif
 //        set_color_depth(8);
 //        if (depth!=15) set_color_depth(16);
 //        else           set_color_depth(15);
@@ -170,6 +186,10 @@ int lastfullscreen=0;
 void resizedisplay(int x, int y)
 {
         int c;
+//        rpclog("Change mode to %ix%i\n",x,y);
+        #ifdef FULLSCREENALWAYS
+        fullscreen=1;
+        #endif
         if (x<16) x=16;
         if (y<16) y=16;
         if (fullscreen)
@@ -189,7 +209,9 @@ void resizedisplay(int x, int y)
         {
                 destroy_bitmap(b);
                 destroy_bitmap(bs);
+                if (bs2) destroy_bitmap(bs2);
                 c=0;
+                tryagain:
                 while (fullresolutions[c][0]!=-1)
                 {
                         if (fullresolutions[c][0]>=x && fullresolutions[c][1]>=y)
@@ -197,14 +219,31 @@ void resizedisplay(int x, int y)
                         c++;
                 }
                 if (fullresolutions[c][0]==-1) c--;
-                set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,fullresolutions[c][0],fullresolutions[c][1],0,0);
+//                rpclog("Trying %ix%i\n",fullresolutions[c][0],fullresolutions[c][1]);
+                if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,fullresolutions[c][0],fullresolutions[c][1],0,0))
+                {
+                        if (fullresolutions[c+1][0]==-1) /*Reached the end of resolutions, go for something safe*/
+                        {
+//                                rpclog("Failed - falling back on 640x480\n");
+                                set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,640,480,0,0);
+                        }
+                        else
+                        {
+                                c++;
+                                goto tryagain;
+                        }
+                }
+//                rpclog("Mode set\n");
                 bs=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
                 bs2=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
+//                rpclog("%08X %08X\n",bs,bs2);
                 clear(bs);
                 clear(bs2);
-                show_video_bitmap(bs2);
+//                show_video_bitmap(bs2);
+#ifdef HARDWAREBLIT
                 b=create_video_bitmap(x+16,y+16);
                 if (!b) /*Video bitmaps unavailable for some reason*/
+#endif
                    b=create_bitmap(x+16,y+16);
                 lastfullscreen=1;
         }
@@ -215,7 +254,9 @@ void resizedisplay(int x, int y)
                 if (lastfullscreen) set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
                 updatewindowsize(x,y);
                 if (lastfullscreen) bs=create_video_bitmap(1024,768);
+#ifdef HARDWAREBLIT
                 if (lastfullscreen) b=create_video_bitmap(1024,768);
+#endif
                 if (!b && lastfullscreen) /*Video bitmaps unavailable for some reason*/
                    b=create_bitmap(1024,768);
                 lastfullscreen=0;

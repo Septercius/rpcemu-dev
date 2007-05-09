@@ -329,7 +329,7 @@ uint8_t readmb(void)
 {
         unsigned char temp=0;
         if (mouse_b&1) temp|=0x40;
-        if ((mouse_b&4) || key[KEY_MENU]) temp|=0x20;
+        if ((mouse_b&4) || key[KEY_MENU] || key[KEY_ALTGR]) temp|=0x20;
         if (mouse_b&2) temp|=0x10;
         return temp^0x70;
 }
