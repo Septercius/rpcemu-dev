@@ -1,14 +1,19 @@
+#include <stdint.h>
 #include <allegro.h>
 #include "rpcemu.h"
+#include "vidc20.h"
+#include "sound.h"
+#include "iomd.h"
+#include "82c711.h"
 
 DIALOG configuregui[];
-int menuexit()
+int menuexit(void)
 {
         quited=1;
         return D_CLOSE;
 }
 
-int menureset()
+int menureset(void)
 {
         resetrpc();
         return D_CLOSE;
@@ -16,15 +21,15 @@ int menureset()
 
 MENU filemenu[]=
 {
-        {"&Reset",menureset,NULL,NULL,NULL},
-        {"E&xit",menuexit,NULL,NULL,NULL},
-        {NULL,NULL,NULL,NULL,NULL}
+        {"&Reset",menureset,NULL,0,NULL},
+        {"E&xit",menuexit,NULL,0,NULL},
+        {NULL,NULL,NULL,0,NULL}
 };
 
-int menuld0()
+int menuld0(void)
 {
         char fn[260];
-        int ret,c;
+        int ret;//,c;
         int xsize=SCREEN_W-32,ysize=SCREEN_H-64;
         memcpy(fn,discname[0],260);
         ret=file_select_ex("Please choose a disc image",fn,"ADF",260,xsize,ysize);
@@ -37,10 +42,10 @@ int menuld0()
         return D_EXIT;
 }
 
-int menuld1()
+int menuld1(void)
 {
         char fn[260];
-        int ret,c;
+        int ret;//,c;
         int xsize=SCREEN_W-32,ysize=SCREEN_H-64;
         memcpy(fn,discname[1],260);
         ret=file_select_ex("Please choose a disc image",fn,"ADF",260,xsize,ysize);
@@ -55,28 +60,28 @@ int menuld1()
 
 MENU discmenu[]=
 {
-        {"Load drive :&0...",menuld0,NULL,NULL,NULL},
-        {"Load drive :&1...",menuld1,NULL,NULL,NULL},
-        {NULL,NULL,NULL,NULL,NULL}
+        {"Load drive :&0...",menuld0,NULL,0,NULL},
+        {"Load drive :&1...",menuld1,NULL,0,NULL},
+        {NULL,NULL,NULL,0,NULL}
 };
 
 MENU settingsmenu[];
 
-int menualt()
+int menualt(void)
 {
         stretchmode^=1;
         settingsmenu[1].flags=(stretchmode)?D_SELECTED:0;
         return D_CLOSE;
 }
 
-int menublt()
+int menublt(void)
 {
         skipblits^=1;
         settingsmenu[2].flags=(skipblits)?D_SELECTED:0;
         return D_CLOSE;
 }
 
-int menumouse()
+int menumouse(void)
 {
         mousehackon^=1;
         settingsmenu[3].flags=(mousehackon)?D_SELECTED:0;
@@ -84,7 +89,7 @@ int menumouse()
 }
 
 char hzstring[20];
-int menusettings()
+int menusettings(void)
 {
         int c,d;
         int changed=0;
@@ -140,23 +145,25 @@ int hzcallback(void *dp3, int d2)
         configuregui[21].dp=hzstring;
         rectfill(screen,configuregui[21].x,configuregui[21].y,configuregui[21].x+39,configuregui[21].y+7,0xFFFFFFFF);
         object_message(&configuregui[21], MSG_DRAW, 0);
+
+        return 0;
 }
 
 MENU settingsmenu[]=
 {
-        {"&Settings...",menusettings,NULL,NULL,NULL},
-        {"&Alternative blitting code",menualt,NULL,NULL,NULL},
-        {"&Blitting optimisation",menublt,NULL,NULL,NULL},
-        {"&Mouse hack",menumouse,NULL,NULL,NULL},
-        {NULL,NULL,NULL,NULL,NULL}
+        {"&Settings...",menusettings,NULL,0,NULL},
+        {"&Alternative blitting code",menualt,NULL,0,NULL},
+        {"&Blitting optimisation",menublt,NULL,0,NULL},
+        {"&Mouse hack",menumouse,NULL,0,NULL},
+        {NULL,NULL,NULL,0,NULL}
 };
 
 MENU mainmenu[]=
 {
-        {"&File",NULL,filemenu,NULL,NULL},
-        {"&Disc",NULL,discmenu,NULL,NULL},
-        {"&Settings",NULL,settingsmenu,NULL,NULL},
-        {NULL,NULL,NULL,NULL,NULL}
+        {"&File",NULL,filemenu,0,NULL},
+        {"&Disc",NULL,discmenu,0,NULL},
+        {"&Settings",NULL,settingsmenu,0,NULL},
+        {NULL,NULL,NULL,0,NULL}
 };
 
 #define CY 0
@@ -197,15 +204,15 @@ DIALOG configuregui[]=
 
 DIALOG rpcemugui[]=
 {
-        {d_menu_proc,  0,   0,   0,  0, 15,0,0,0,     0,0,mainmenu},
-	{d_yield_proc},
+        {d_menu_proc,  0,   0,   0,  0, 15,0,0,0,     0,0,mainmenu,NULL,NULL},
+	{d_yield_proc,  0,   0,   0,  0, 15,0,0,0,     0,0,NULL,NULL,NULL},
       {0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL}
 };
 
 void entergui()
 {
         DIALOG_PLAYER *dp;
-        int x;
+        int x = 1;
         infocus=0;
         
         if (soundenabled) stopsound();

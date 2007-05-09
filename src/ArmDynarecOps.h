@@ -1353,7 +1353,7 @@ int opSTR(unsigned long opcode)
         if ((opcode&0x2000010)==0x2000010)
         {
                 undefined();
-                return;
+                return 0;
         }
         addr=GETADDR(RN);
         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
@@ -1381,7 +1381,7 @@ int opLDR(unsigned long opcode)
         if ((opcode&0x2000010)==0x2000010)
         {
                 undefined();
-                return;
+                return 0;
         }
         addr=GETADDR(RN);
         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);

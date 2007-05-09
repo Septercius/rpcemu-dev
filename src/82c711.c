@@ -6,11 +6,12 @@
 #include <stdint.h>
 
 #include "rpcemu.h"
+#include "vidc20.h"
+#include "iomd.h"
+#include "ide.h"
+#include "arm.h"
 
 void fdcsend(uint8_t val);
-int readflash=0;
-uint32_t ins;
-int timetolive;
 int configmode=0;
 uint8_t configregs[16];
 int configreg;
@@ -401,8 +402,8 @@ uint32_t lastaddr2;
 uint8_t read82c711(uint32_t addr)
 {
         uint32_t addr2;
-        FILE *dumpf;
-        int c;
+        //FILE *dumpf;
+        //int c;
         addr2=(addr>>2)&0x3FF;
 /*        if (addr2>=0x278 && addr2<=0x27A)
            rpclog("Read 82c711 %08X %03X %08X\n",addr,addr2,PC);

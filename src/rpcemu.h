@@ -9,6 +9,39 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if !defined(_DEBUG) && !defined(NDEBUG)
+#define NDEBUG
+#endif
+
+#if defined WIN32 || defined _WIN32 || defined _WIN32
+	#ifdef _MSC_VER // Microsoft Visual Studio
+                #ifdef _DEBUG
+                    #define INLINING _inline
+                #else
+                    #define INLINING __forceinline
+                #endif
+                #define fseeko64(_a, _b, _c) fseek(_a, (long)_b, _c)
+                __declspec(dllimport) void __stdcall Sleep(unsigned long dwMilliseconds);
+                #define sleep(x) Sleep(x)
+	#else
+        	#ifdef __GNUC__
+        		#define INLINING static inline
+        	#else
+        		#define INLINING inline
+        	#endif
+	#endif
+
+#else
+	#ifdef _GCC
+		#define INLINING static inline
+	#else
+		#define INLINING inline
+	#endif
+#endif
+
+
+
+
 #define GRAPHICS_TYPE GFX_AUTODETECT_WINDOWED
 
 /*This determines whether RPCemu can use hardware to blit and scale the display.
@@ -39,7 +72,7 @@
 #ifdef __unix
 #define mousehackena 1
 #else
-#define mousehackena 0
+#define mousehackena 1
 #endif
 #define mousehack (mousehackena&&mousehackon)
 
@@ -48,254 +81,55 @@
   instead - this doesn't appear to break RISC OS, but you never know...*/
 #define ABORTCHECKING
 
-int mousehackon;
+extern int mousehackon;
 //#define PREFETCH
 
-/*ARM*/
-extern uint32_t *usrregs[16],userregs[17],superregs[17],fiqregs[17],irqregs[17],abortregs[17],undefregs[17],systemregs[17];
-extern uint32_t spsr[16];
-extern uint32_t armregs[17];
-extern int armirq; //,armfiq;
-extern int cpsr;
-#ifdef PREFETCH
-#define PC (armregs[15]&r15mask)
-#else
-#define PC ((armregs[15]-8)&r15mask)
-#endif
-extern uint32_t ins,output;
-extern int r15mask;
-extern uint32_t mode;
-extern int irq;
-unsigned char flaglookup[16][16];
-void resetarm(void);
-void execarm(int cycles);
-void dumpregs(void);
 
-extern int databort,prefabort;
-extern int prog32;
-
-uint32_t oldpc,oldpc2,oldpc3;
-  //unsigned long *ram,*ram2,*rom,*vram;
-  //unsigned char *ramb,*ramb2,*romb,*vramb;
-  //unsigned char *dirtybuffer;
-
-/* mem.c */
-uint32_t readmemfl(uint32_t addr);
-uint32_t readmemfb(uint32_t addr);
-void writememfb(uint32_t addr, uint8_t val);
-void writememfl(uint32_t addr, uint32_t val);
-uint32_t readmemfb(uint32_t addr);
-void clearmemcache();
-void initmem(void);
-void reallocmem(int ramsize);
-
-extern uint32_t raddrl[256];
-extern uint32_t *raddrl2[256];
-
-extern unsigned long *vraddrl;
-extern uint32_t vraddrls[1024],vraddrphys[1024];
-extern int vraddrlpos;
-//#define readmeml(a) readmemfl(a)
-
-#define readmeml(a) ((vraddrl[(a)>>12]&1)?readmemfl(a):*(uint32_t *)(/*(int32_t)*/(a)+(vraddrl[(a)>>12])))
-#define readmemb(a) ((vraddrl[(a)>>12]&1)?readmemfb(a):*(unsigned char *)(/*(int32_t)*/(a)+(vraddrl[(a)>>12])))
-
-//#define readmeml(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?raddrl2[((a)>>12)&0xFF][(a)>>2]:readmemfl(a))
-//#define readmeml(a) ((((a)&0xFFFFF000)==raddrl)?raddrl2[((a)&0xFFC)>>2]:readmemfl(a))
-
-//#define readmemb(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?((unsigned char *)raddrl2[((a)>>12)&0xFF])[(a)]:readmemfb(a))
-
-extern uint32_t waddrl;
-extern uint32_t *waddrl2;
-extern uint32_t waddrbl;
-extern uint32_t *waddrbl2;
-//uint8_t pagedirty[0x1000];
-//#define writememb(a,v) writememfb(a,v)
-#define HASH(l) (((l)>>2)&0x7FFF)
-#define writememl(a,v) /*if ((a)&0x80000000) printf("%08X %08X%08X\n",a,vraddrl[(a)>>12]>>32,vraddrl[(a)>>12]);*/ if (vraddrl[(a)>>12]&3) writememfl(a,v); else { *(uint32_t *)(/*(int32_t)*/(a)+vraddrl[(a)>>12])=v; }
-#define writememb(a,v) if (vraddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)(/*(int32_t)*/(a)+vraddrl[(a)>>12])=v; }
-//#define writememl(a,v) if (((a)>>12)==waddrl) { waddrl2[((a)&0xFFC)>>2]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfl(a,v); }
-//#define writememb(a,v) if (((a)>>12)==waddrbl) { ((unsigned char *)waddrbl2)[(a)&0xFFF]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfb(a,v); }
-
-extern uint32_t *ram,*ram2,*rom,*vram;
-extern uint8_t *ramb,*romb,*vramb;
-extern uint8_t dirtybuffer[512];
-
-uint32_t tlbcache[0x100000];
-#define translateaddress(addr,rw,prefetch) ((/*!((addr)&0xFC000000) && */!(tlbcache[((addr)>>12)/*&0x3FFF*/]&0xFFF))?(tlbcache[(addr)>>12]|((addr)&0xFFF)):translateaddress2(addr,rw,prefetch))
-
-extern int mmu,memmode;
-
-extern int pcisrom;
-
-/*IOMD*/
-struct iomd
-{
-        unsigned char stata,statb,statc,statd,state,statf;
-        unsigned char maska,maskb,maskc,maskd,maske,maskf;
-        unsigned char romcr0,romcr1;
-        uint32_t vidstart,vidend,vidcur,vidinit;
-        int t0l,t1l,t0c,t1c,t0r,t1r;
-        unsigned char ctrl;
-        unsigned char vidcr;
-        unsigned char sndstat;
-        unsigned char keydat;
-        unsigned char msdat;
-        int mousex,mousey;
-} iomd;
-
-void gentimerirq();
-int delaygenirqleft, delaygenirq;
-
-int i2cclock,i2cdata;
-
-int kcallback,mcallback;
-
-uint32_t cinit;
-int fdccallback;
-int motoron;
-
-char exname[512];
-
-int idecallback;
 
 /*Config*/
-int vrammask;
-int model;
-int rammask;
-int stretchmode;
+extern int vrammask;
+extern int model;
+extern int model2;
+extern int rammask;
+extern int stretchmode;
 
 extern uint32_t soundaddr[4];
 
 extern uint32_t inscount;
-int rinscount;
-int cyccount;
-
-/* arm.c */
-void updatemode(uint32_t m);
+extern int rinscount;
+extern int cyccount;
 
 /* rpc-[linux|win].c */
-void error(const char *format, ...);
-void rpclog(const char *format, ...);
-void updatewindowsize(uint32_t x, uint32_t y);
+extern void error(const char *format, ...);
+extern void rpclog(const char *format, ...);
+extern void updatewindowsize(uint32_t x, uint32_t y);
+extern void wakeupsoundthread();
+extern void wakeupblitterthread();
+extern void updateirqs(void);
+extern void resetrpc();
+extern int quited;
 
-void updateirqs(void);
-
-/* ide.c */
-void writeide(uint16_t addr, uint8_t val);
-void writeidew(uint16_t val);
-uint8_t readide(uint16_t addr);
-uint16_t readidew(void);
-void callbackide(void);
-void resetide(void);
-
-/* cp15.c */
-void writecp15(uint32_t addr, uint32_t val, uint32_t opcode);
-uint32_t readcp15(uint32_t addr);
-void resetcp15(void);
-uint32_t *getpccache(uint32_t addr);
-uint32_t translateaddress2(uint32_t addr, int rw, int prefetch);
-
-/* keyboard.c */
-void resetkeyboard(void);
-void keycallback(void);
-void mscallback(void);
-void writekbd(uint8_t v);
-void writekbdenable(int v);
-void writems(unsigned char v);
-void writemsenable(int v);
-unsigned char getkeyboardstat(void);
-unsigned char readkeyboarddata(void);
-unsigned char getmousestat(void);
-unsigned char readmousedata(void);
-void pollmouse();
-void pollkeyboard();
-
-void doosmouse();
-void setmouseparams(uint32_t a);
-void getunbufmouse(uint32_t a);
-void setmousepos(uint32_t a);
-void osbyte106(uint32_t a);
-void setpointer(uint32_t a);
-void getosmouse();
-void getmousepos(int *x, int *y);
-
-
-/* 82c711.c */
-void reset82c711();
-void callbackfdc(void);
-uint8_t read82c711(uint32_t addr);
-uint8_t readfdcdma(uint32_t addr);
-void writefdcdma(uint32_t addr, uint8_t val);
-void write82c711(uint32_t addr, uint32_t val);
-void loadadf(char *fn, int drive);
-void saveadf(char *fn, int drive);
-
-/* cmos.c */
-void loadcmos();
-void savecmos();
-void reseti2c(void);
-void cmosi2cchange(int nuclock, int nudata);
-void cmostick();
-
-/* vidc20.c */
-void initvideo();
-void closevideo();
-void blitterthread();
-int getxs(void);
-int getys(void);
-void resetbuffer(void);
-void writevidc20(uint32_t val);
-void drawscr();
-void togglefullscreen(int fs);
-int refresh;
-int skipblits;
-
-/* iomd.c */
-void resetiomd(void);
-void endiomd();
-uint32_t readiomd(uint32_t addr);
-void writeiomd(uint32_t addr, uint32_t val);
-uint8_t readmb(void);
-void iomdvsync();
-
-char HOSTFS_ROOT[512];
-
-char discname[2][260];
-int drawscre;
-
-/*Sound*/
-void initsound();
-void closesound();
-void changesamplefreq();
-int soundenabled;
-int soundbufferfull;
-void updatesoundirq();
-int updatesoundbuffer();
-int getbufferlen();
-uint32_t soundaddr[4];
-int samplefreq;
-int soundinited,soundlatch,soundcount;
+extern char exname[512];
+extern int timetolive;
+/*rpcemu.c*/
+extern int startrpcemu();
+extern void execrpcemu();
+extern void endrpcemu();
 
 /*Generic*/
-int lastinscount;
-int infocus;
+extern int lastinscount;
+extern int infocus;
 
 /*FPA*/
-void resetfpa();
-void dumpfpa();
-void fpaopcode(uint32_t opcode);
+extern void resetfpa();
+extern void dumpfpa(void);
+extern void fpaopcode(uint32_t opcode);
 
 
-int loadroms();
 
-/*rpcemu.c*/
-int startrpcemu();
-void execrpcemu();
-void endrpcemu();
 
-int quited;
 
-int icache;
+
+
 
 #endif

@@ -7,22 +7,32 @@
 //int ins;
 int mcalls=0;
 #include <stdio.h>
+#include <stdint.h>
 #include <allegro.h>
 #include <winalleg.h>
+#include <process.h>
 #include <commctrl.h>
 #include "rpcemu.h"
 #include "resources.h"
+#include "vidc20.h"
+#include "keyboard.h"
+#include "sound.h"
+#include "mem.h"
+#include "iomd.h"
+#include "ide.h"
+#include "arm.h"
+#include "cmos.h"
+#include "cp15.h"
+#include "82c711.h"
 
-int fullscreen;
-int blits;
 int soundenabled=0;
-int sndon;
 int mousecapture=0;
-int tlbs,flushes;
-float mips,mhz,tlbsec,flushsec;
+float mips = 0.0f, mhz = 0.0f, tlbsec = 0.0f, flushsec = 0.0f;
 int updatemips=0;
-int vsyncints;
-void domips()
+int vsyncints=0;
+
+
+void domips(void)
 {
         mips=(float)inscount/1000000.0f;
         inscount=0;
@@ -50,21 +60,21 @@ void error(const char *format, ...)
 FILE *arclog;
 void rpclog(const char *format, ...)
 {
-   char buf[256];
-//return;
+   //char buf[256];
+return;/*
    if (!arclog) arclog=fopen("rlog.txt","wt");
    va_list ap;
    va_start(ap, format);
    vsprintf(buf, format, ap);
    va_end(ap);
    fputs(buf,arclog);
-   fflush(arclog);
+   fflush(arclog);*/
 }
 
 int drawscre=0,flyback;
 int dosnd;
 int samplefreq;
-void sndupdate()
+void sndupdate(void)
 {
         int nextlen;
         float temp;
@@ -79,7 +89,7 @@ void sndupdate()
         install_int_ex(sndupdate,MSEC_TO_TIMER(nextlen));
 }
 
-void vblupdate()
+void vblupdate(void)
 {
         drawscre++;
 }
@@ -115,7 +125,7 @@ void updatewindowsize(uint32_t x, uint32_t y)
         }
 }
 
-void releasemousecapture()
+void releasemousecapture(void)
 {
         if (mousecapture)
         {
@@ -160,7 +170,7 @@ void _blitthread(PVOID pvoid)
         blitrunning=0;
 }
 
-void _closeblitthread()
+void _closeblitthread(void)
 {
         if (blitrunning)
         {
@@ -191,7 +201,7 @@ void _soundthread(PVOID pvoid)
         soundrunning=0;
 }
 
-void _closesoundthread()
+void _closesoundthread(void)
 {
         if (soundrunning)
         {
@@ -251,7 +261,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                     int nFunsterStil)
 
 {
-        MSG messages;            /* Here messages to the application are saved */
+        MSG messages = {0};     /* Here messages to the application are saved */
         WNDCLASSEX wincl;        /* Data structure for the windowclass */
         char s[128];
         HANDLE bltthread;
@@ -436,7 +446,7 @@ void changedisc(HWND hwnd, int drive)
 }
 
 int model2;
-int mask;
+int _mask;
 int vrammask2;
 int soundenabled2;
 int refresh2;
@@ -498,7 +508,7 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                            resetrpc();
                         if (chngram)
                         {
-                                rammask=mask;
+                                rammask=_mask;
                                 reallocmem(rammask+1);
                         }
                         model=model2;
@@ -536,7 +546,7 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                         
                         case RadioButton5: case RadioButton6: case RadioButton7:
                         case RadioButton8: case RadioButton9: case RadioButton10:
-                        mask=(0x200000<<(LOWORD(wParam)-RadioButton5))-1;
+                        _mask=(0x200000<<(LOWORD(wParam)-RadioButton5))-1;
                         for (c=RadioButton5;c<=RadioButton10;c++)
                         {
                                 h=GetDlgItem(hdlg,c);
@@ -544,7 +554,7 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                         }
                         h=GetDlgItem(hdlg,LOWORD(wParam));
                         SendMessage(h,BM_SETCHECK,1,0);
-                        if (mask!=rammask) chngram=1;
+                        if (_mask!=rammask) chngram=1;
                         else               chngram=0;
                         return TRUE;
                         

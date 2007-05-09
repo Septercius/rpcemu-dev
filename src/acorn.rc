@@ -12,10 +12,10 @@ BEGIN
         END
         POPUP "&Disc"
         BEGIN
-                MENUITEM "Load Disc &0",IDM_DISC_LD0
-                MENUITEM "Load Disc &1",IDM_DISC_LD1
+                MENUITEM "Load Disc :&0",IDM_DISC_LD0
+                MENUITEM "Load Disc :&1",IDM_DISC_LD1
         END
-        POPUP "&Machine"
+        POPUP "&Settings"
         BEGIN
 #if 0
                 POPUP "&CPU"
@@ -41,10 +41,13 @@ BEGIN
                 END
 #endif
                 MENUITEM "&Configure...",IDM_CONFIG
+                MENUITEM "&Fullscreen mode",IDM_FULLSCR
+                MENUITEM "&Alternative blitting code",IDM_STRETCH
+                MENUITEM "&Blitting optimisation",IDM_BLITOPT
         END
 END
 
-ConfigureDlg DIALOG 20, 20, 178, 150
+ConfigureDlg DIALOG 20, 20, 178, 180
 STYLE WS_POPUP | DS_MODALFRAME | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU
 CAPTION "Configure RPCemu"
 FONT 8, "MS Sans Serif"
@@ -64,7 +67,10 @@ BEGIN
    GROUPBOX "VRAM", GroupBox3, 5, 79, 75, 43 , WS_TABSTOP
    RADIOBUTTON "None", RadioButton11, 16, 89, 53, 12 , WS_TABSTOP
    RADIOBUTTON "2mb", RadioButton12, 16, 103, 53, 12 , WS_TABSTOP
-   PUSHBUTTON "OK", IDOK, 11, 128, 69, 20 , WS_TABSTOP
-   PUSHBUTTON "Cancel", IDCANCEL, 91, 128, 69, 20 , WS_TABSTOP
+   PUSHBUTTON "OK", IDOK, 11, 158, 69, 20 , WS_TABSTOP
+   PUSHBUTTON "Cancel", IDCANCEL, 91, 158, 69, 20 , WS_TABSTOP
    CHECKBOX "Sound", CheckBox1, 101, 108, 64, 12, WS_TABSTOP
+   GROUPBOX "Video refresh rate", GroupBox4, 5, 122, 168, 30 , WS_TABSTOP
+CONTROL "Slider1", Slider1, "msctls_trackbar32" , WS_TABSTOP  | TBS_AUTOTICKS,  9, 132, 140, 13
+LTEXT "60hz", Text1, 150, 132, 20, 8 , WS_TABSTOP
 END

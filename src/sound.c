@@ -1,8 +1,18 @@
 /*RPCemu v0.6 by Tom Walker
   Sound emulation
   Stripped out of iomd.c, so lots of mess here*/
+#include <stdint.h>
 #include <allegro.h>
 #include "rpcemu.h"
+#include "mem.h"
+#include "iomd.h"
+
+int soundenabled;
+int soundbufferfull;
+int getbufferlen();
+uint32_t soundaddr[4];
+int samplefreq;
+int soundinited,soundlatch,soundcount;
 
 AUDIOSTREAM *as;
 #define BUFFERLEN (4410>>1)
@@ -74,7 +84,7 @@ void updatesoundirq()
         uint32_t page,start,end,temp;
         int offset=(iomd.sndstat&1)<<1;
         int len;
-        int c;
+        unsigned int c;
         if (soundbufferfull && bigsoundbufferselect==curbigsoundbuffer)
         {
                 soundcount+=4000;

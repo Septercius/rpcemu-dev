@@ -11,11 +11,19 @@
 #include <string.h>
 
 #include <dirent.h>
+#ifdef _MSC_VER
+#define PATH_MAX 1024
+#else
 #include <unistd.h>
+#endif
+#ifdef __unix
 #include <utime.h>
+#else
+#include <sys/utime.h>
+#endif
 #include <sys/stat.h>
 #include <limits.h>
-
+#include "mem.h"
 #include "hostfs.h"
 
 typedef int bool;
@@ -85,9 +93,8 @@ static FILE *open_file[MAX_OPEN_FILES + 1]; /* array subscript 0 is never used *
 
 static unsigned char *buffer = NULL;
 static size_t buffer_size = 0;
-#define NDEBUG
 #ifdef NDEBUG
-static inline void dbug_hostfs(const char *format, ...) {}
+INLINING void dbug_hostfs(const char *format, ...) {}
 #else
 static void
 dbug_hostfs(const char *format, ...)
@@ -231,10 +238,10 @@ path_construct(const char *old_path, char *new_path, size_t len,
 
     /* Don't set for text filetype, since that is the default */
     if (filetype != 0xfff)
-      sprintf(new_suffix, ",%03x", filetype);
+      sprintf(new_suffix, ",%03x", (unsigned int)filetype);
   } else {
     /* File has load and exec addresses */
-    sprintf(new_suffix, ",%x-%x", load, exec);
+    sprintf(new_suffix, ",%x-%x", (unsigned int)load, (unsigned int)exec);
   }
 }
 
@@ -378,7 +385,7 @@ hostfs_read_object_info(const char *host_pathname,
         if (!whitespace) {
           ARMword load, exec;
 
-          if (sscanf(comma + 1, "%8x-%8x", &load, &exec) == 2) {
+          if (sscanf(comma + 1, "%8x-%8x", (unsigned int*)&load, (unsigned int*)&exec) == 2) {
             object_info->load = load;
             object_info->exec = exec;
             is_timestamped = false;
@@ -396,8 +403,8 @@ hostfs_read_object_info(const char *host_pathname,
 
   /* If the file has timestamp/filetype, instead of load-exec, then fill in */
   if (is_timestamped) {
-    ARMword low  = (info.st_mtime & 255) * 100;
-    ARMword high = (info.st_mtime / 256) * 100 + (low >> 8) + 0x336e996a;
+    ARMword low  = (ARMword)((info.st_mtime & 255) * 100);
+    ARMword high = (ARMword)((info.st_mtime / 256) * 100 + (low >> 8) + 0x336e996a);
 
     object_info->load = 0xfff00000 | (file_type << 8) | (high >> 24);
     object_info->exec = (low & 255) | (high << 8);
@@ -435,7 +442,7 @@ hostfs_path_scan(const char *host_dir_path,
 {
   DIR *d;
   struct dirent *entry;
-  int c;
+  unsigned int c;
 
   assert(host_dir_path && object);
   assert(host_name && ro_leaf);
@@ -696,7 +703,7 @@ hostfs_open(ARMul_State *state)
   case OPEN_MODE_UPDATE:
     dbug_hostfs("\tOpen for update\n");
     open_file[idx] = fopen(host_pathname, "rb+");
-    state->Reg[0] = FILE_INFO_WORD_READ_OK | FILE_INFO_WORD_WRITE_OK;
+    state->Reg[0] = (uint32_t)(FILE_INFO_WORD_READ_OK | FILE_INFO_WORD_WRITE_OK);
     break;
   }
 
@@ -780,7 +787,7 @@ hostfs_putbytes(ARMul_State *state)
   fseek(f, (long) state->Reg[4], SEEK_SET);
 
   for (i = 0; i < state->Reg[3]; i++) {
-    buffer[i] = ARMul_LoadByte(state, ptr);
+    buffer[i] = (unsigned char)ARMul_LoadByte(state, ptr);
     ptr++;
   }
 
@@ -968,7 +975,7 @@ hostfs_file_0_save_file(ARMul_State *state)
 
   while (length >= BUFSIZE) {
     for (i = 0; i < BUFSIZE; i++) {
-      buffer[i] = ARMul_LoadByte(state, ptr);
+      buffer[i] = (unsigned char)ARMul_LoadByte(state, ptr);
       ptr++;
     }
     /* TODO check for errors */
@@ -977,7 +984,7 @@ hostfs_file_0_save_file(ARMul_State *state)
   }
 
   for (i = 0; i < length; i++) {
-    buffer[i] = ARMul_LoadByte(state, ptr);
+    buffer[i] = (unsigned char)ARMul_LoadByte(state, ptr);
     ptr++;
   }
   fwrite(buffer, 1, length, f);
@@ -1432,7 +1439,7 @@ dbug_hostfs("ROPATH %s HOSTPATH %s\n",ro_path,host_pathname);
                 dbug_hostfs("Bad type %i\n",object_info.type);
     /* TODO Improve error return */
     state->Reg[3] = 0;
-    state->Reg[4] = -1;
+    state->Reg[4] = (uint32_t)-1;
     return;
   }
 
@@ -1451,7 +1458,7 @@ dbug_hostfs("ROPATH %s HOSTPATH %s\n",ro_path,host_pathname);
       fprintf(stderr, "HostFS could not open directory \'%s\': %s\n",
               host_pathname, strerror(errno));
       state->Reg[3] = 0;
-      state->Reg[4] = -1;
+      state->Reg[4] = (uint32_t)-1;
       return;
     }
 
@@ -1485,7 +1492,7 @@ dbug_hostfs("Entry %s\n",entry->d_name);
          Return no further items */
       dbug_hostfs("HostFS not enough entries to skip - returning no more\n");
       state->Reg[3] = 0;
-      state->Reg[4] = -1;
+      state->Reg[4] = (uint32_t)-1;
       return;
     }
 
@@ -1517,7 +1524,7 @@ dbug_hostfs("Entry %s\n",entry->d_name);
       }
 
       /* Calculate space required to return name and (optionally) info */
-      string_space = strlen(ro_leaf) + 1;
+      string_space = (unsigned int)strlen(ro_leaf) + 1;
       if (with_info) {
         /* Space required for info, everything word-aligned */
         string_space = ROUND_UP_TO_4(string_space);
@@ -1554,7 +1561,7 @@ dbug_hostfs("Entry %s\n",entry->d_name);
     if (!entry) {
       /* We have completed the directory - return this fact */
       dbug_hostfs("HostFS completed directory\n");
-      state->Reg[4] = -1;
+      state->Reg[4] = (uint32_t)-1;
     } else {
       /* We have not yet finished - return the offset for next time */
       state->Reg[4] = offset;

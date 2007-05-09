@@ -1,13 +1,25 @@
 /*RPCemu v0.6 by Tom Walker
   IOMD emulation*/
-
+#include <stdint.h>
 #include <allegro.h>
 #include <stdio.h>
 #include "rpcemu.h"
+#include "vidc20.h"
+#include "keyboard.h"
+#include "sound.h"
+#include "iomd.h"
+#include "arm.h"
+#include "cmos.h"
 
 //#define OLDTIMER
 
-int curchange;
+int fdccallback = 0;
+int motoron = 0;
+
+int kcallback = 0, mcallback = 0;
+int idecallback = 0;
+int delaygenirqleft = 0, delaygenirq = 0;
+uint32_t cinit = 0;
 
 int sndon=0;
 static int flyback=0;
@@ -29,7 +41,7 @@ void clockcmosproc()
 }
 
 int clockcmos=0;
-void gentimerirq()
+void gentimerirq(void)
 {
         int diff;
         if (!infocus) return;

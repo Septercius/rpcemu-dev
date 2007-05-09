@@ -4,6 +4,9 @@
 
 #include <allegro.h>
 #include "rpcemu.h"
+#include "mem.h"
+#include "sound.h"
+#include "vidc20.h"
 
 #define MB_OK 1
 static void MessageBox(void *param, const char *message, 

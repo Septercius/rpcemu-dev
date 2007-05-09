@@ -19,7 +19,7 @@ typedef struct {
 } ARMul_State;
 
 
-void hostfs(ARMul_State *state);
+extern void hostfs(ARMul_State *state);
 
 #define ARMul_LoadWordS(state, address) readmeml(address)
 #define ARMul_LoadByte(state, address) readmemb(address)

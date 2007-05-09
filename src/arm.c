@@ -68,7 +68,7 @@ int prefabort;
 static void refillpipeline2(void);
 //static char bigs[256];
 //static FILE *olog;
-unsigned char flaglookup[16][16];
+static unsigned char flaglookup[16][16];
 static uint32_t rotatelookup[4096];
 int timetolive = 0;
 uint32_t inscount;
@@ -3503,7 +3503,7 @@ void execarm(int cycs)
                                         }
                                         templ=memmode;
                                         memmode=0;
-                                        templ2=readmeml(addr&~3);
+                                        templ2=readmeml(addr);
                                         memmode=templ;
                                         if (armirq&0x40) break;
                                         if (addr&3) templ2=ldrresult(templ2,addr);
@@ -3558,7 +3558,7 @@ void execarm(int cycs)
                                         }
                                         templ=memmode;
                                         memmode=0;
-                                        templ2=readmemb(addr&~3);
+                                        templ2=readmemb(addr);
                                         memmode=templ;
                                         if (armirq&0x40) break;
                                         if (!(opcode&0x1000000))
@@ -3590,7 +3590,7 @@ void execarm(int cycs)
 
                 			case 0x59: /*LDR RD,[RN,#]*/
                 			addr=GETADDR(RN)+(opcode&0xFFF);
-                			templ=readmeml(addr&~3);
+                			templ=readmeml(addr);
                         		if (addr&3) templ=ldrresult(templ,addr);
                                		if (armirq&0x40) break;
                 			LOADREG(RD,templ);
@@ -3598,7 +3598,7 @@ void execarm(int cycs)
 
                 			case 0x79: /*LDR RD,[RN,shift]*/
                 			addr=GETADDR(RN)+shift_ldrstr(opcode);
-                        		templ=readmeml(addr&~3);
+                        		templ=readmeml(addr);
                         		if (addr&3) templ=ldrresult(templ,addr);
                         		if (armirq&0x40) break;
                 			LOADREG(RD,templ);
@@ -3665,7 +3665,7 @@ void execarm(int cycs)
                                         {
                                                 addr+=addr2;
                                         }
-                                        templ=readmeml(addr&~3);
+                                        templ=readmeml(addr);
                                         if (addr&3) templ=ldrresult(templ,addr);
                                         if (armirq&0x40) break;
                                         if (!(opcode&0x1000000))
@@ -4050,7 +4050,7 @@ void execarm(int cycs)
 #endif
                                         if (MULRS==15 && (opcode&0x10))
                                         {
-                                                writecp15(RN,armregs[RD],opcode);
+                                                writecp15(RN,armregs[RD]);
                                         }
                                         else
                                         {

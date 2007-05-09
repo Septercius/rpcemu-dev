@@ -17,6 +17,8 @@ void generateupdatepc();
 #include "rpcemu.h"
 #include <stdint.h>
 #include "codegen_amd64.h"
+#include "mem.h"
+#include "arm.h"
 
 unsigned char rcodeblock[BLOCKS][1792];
 unsigned long codeblockaddr[BLOCKS];
@@ -145,7 +147,7 @@ addbyte(0); addbyte(0); addbyte(0);
 //	printf("New block %08X %08X %08X\n",blocknum,l,codeblockpc[blocknum]);
 }
 uint32_t opcode;
-void generatecall(uint32_t addr, uint32_t opcode,uint32_t *pcpsr)
+void generatecall(unsigned long addr, uint32_t opcode,uint32_t *pcpsr)
 {
 //asm("addq $4,0x12345678;");
         tempinscount++;

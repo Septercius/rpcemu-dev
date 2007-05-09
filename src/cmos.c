@@ -1,5 +1,6 @@
 /*RPCemu v0.6 by Tom Walker
   I2C + CMOS RAM emulation*/
+#include <stdint.h>
 #include <allegro.h>
 #ifndef __linux__
 #include <winalleg.h>
@@ -11,7 +12,7 @@
 #ifndef __linux__
 SYSTEMTIME systemtime;
 #endif
-uint32_t output,timetolive;
+uint32_t output;
 //unsigned long *armregs[16];
 int cmosstate=0;
 int i2cstate=0;

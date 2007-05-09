@@ -1,8 +1,10 @@
 /*RPCemu v0.6 by Tom Walker
   ROM loader*/
+#include <stdint.h>
 #include <allegro.h>
 #include <stdio.h>
 #include "rpcemu.h"
+#include "mem.h"
 
 char romfns[17][256];
 int loadroms()

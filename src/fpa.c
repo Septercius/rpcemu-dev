@@ -4,14 +4,15 @@
 
 #include <math.h>
 #include "rpcemu.h"
+#include "mem.h"
+#include "arm.h"
 
 #define UNDEFINED  11
 #define undefined() exception(UNDEFINED,8,4)
-//unsigned long oldpc,oldpc2,oldpc3;
-double fparegs[8]; /*No C variable type for 80-bit floating point, so use 64*/
-uint32_t fpsr,fpcr;
+double fparegs[8] = {0.0}; /*No C variable type for 80-bit floating point, so use 64*/
+uint32_t fpsr = 0, fpcr = 0;
 
-void dumpfpa()
+void dumpfpa(void)
 {
         rpclog("\nF0=%f F1=%f F2=%f F3=%f\n",fparegs[0],fparegs[1],fparegs[2],fparegs[3]);
         rpclog("F4=%f F5=%f F6=%f F7=%f\n",fparegs[0],fparegs[1],fparegs[2],fparegs[3]);
@@ -46,7 +47,7 @@ void resetfpa()
 #define CFLAG 0x20000000
 #define VFLAG 0x10000000
 
-static inline void setsubf(double op1, double op2)
+INLINING void setsubf(double op1, double op2)
 {
         armregs[cpsr]&=0xFFFFFFF;
         if (op1==op2) armregs[cpsr]|=ZFLAG;

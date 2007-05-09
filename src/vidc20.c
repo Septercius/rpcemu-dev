@@ -1,22 +1,27 @@
 /*RPCemu v0.6 by Tom Walker
   VIDC20 emulation*/
+#include <stdint.h>
 #include <allegro.h>
 #include "rpcemu.h"
+#include "vidc20.h"
+#include "keyboard.h"
+#include "sound.h"
+#include "mem.h"
+#include "iomd.h"
 
 int fullscreen=0;
-int readflash;
-int palchange,curchange;
+int readflash = 0;
+int palchange = 0,curchange = 0;
 int blits=0;
-float mips;
-BITMAP *b,*bs,*bs2;
-int deskdepth;
-int oldsx,oldsy;
-RGB cursor[3];
-RGB border;
-int drawcode;
-uint32_t vpal[260];
+BITMAP *b = NULL,*bs = NULL,*bs2 = NULL;
+int deskdepth = 0;
+int oldsx = 0,oldsy = 0;
+RGB cursor[3] = {{0,0,0,0},{0,0,0,0},{0,0,0,0}};
+RGB border = {0,0,0,0};
+int drawcode = 0;
+uint32_t vpal[260] = {0};
 
-int thread_yh,thread_yl,thread_xs,thread_ys,thread_doublesize;
+int thread_yh = 0, thread_yl = 0,thread_xs = 0,thread_ys = 0,thread_doublesize = 0;
 int blitready=0;
 int inblit=0;
 int skipnextblit=0;
@@ -435,7 +440,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) addr=iomd.vidstart;
+                                        if (addr==(int)iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -480,7 +485,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) addr=iomd.vidstart;
+                                        if (addr==(int)iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -527,7 +532,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) 
+                                        if (addr==(int)iomd.vidend)
                                         {
                                                 addr=iomd.vidstart;
                                         }
@@ -576,7 +581,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) 
+                                        if (addr==(int)iomd.vidend)
                                            addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
@@ -737,7 +742,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) addr=iomd.vidstart;
+                                        if (addr==(int)iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 olddrawit=drawit;
@@ -789,7 +794,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) addr=iomd.vidstart;
+                                        if (addr==(int)iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && dirtybuffer[(addr>>12)]) vidp16=(unsigned short *)bmp_write_line(b,y);
@@ -848,7 +853,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) addr=iomd.vidstart;
+                                        if (addr==(int)iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -892,7 +897,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) addr=iomd.vidstart;
+                                        if (addr==(int)iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -940,7 +945,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) addr=iomd.vidstart;
+                                        if (addr==(int)iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -984,7 +989,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) addr=iomd.vidstart;
+                                        if (addr==(int)iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -1030,7 +1035,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) addr=iomd.vidstart;
+                                        if (addr==(int)iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -1071,7 +1076,7 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==iomd.vidend) addr=iomd.vidstart;
+                                        if (addr==(int)iomd.vidend) addr=iomd.vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -1428,7 +1433,7 @@ void writevidc20(uint32_t val)
 //                rpclog("Sample rate : %i ns %f hz\n",val,f);
                 break;
                 case 0xE0:
-                if (((val>>5)&7)!=bit8)
+                if (((val>>5)&7)!=(uint32_t)bit8)
                 {
 //                        rpclog("Change mode - %08X %i\n",val,(val>>5)&7);
                         bit8=(val>>5)&7;
@@ -1439,7 +1444,7 @@ void writevidc20(uint32_t val)
         }
 }
 
-void resetbuffer()
+void resetbuffer(void)
 {
         memset(dirtybuffer,1,512);
 //        rpclog("Reset buffer\n");

@@ -14,15 +14,19 @@
 
   Keyboard acks (0xFA) after every byte
   */
-
+#include <stdint.h>
 #include <allegro.h>
 #include "rpcemu.h"
+#include "vidc20.h"
+#include "mem.h"
+#include "iomd.h"
+#include "arm.h"
 
 int mcalls;
 int xs,ys;
 
 int mousecapture;
-int timetolive;
+int mousehackon = 1;
 int kbdenable=0,kbdreset;
 unsigned char kbdstat;
 unsigned char kbdpacket[3]={0,0,0};

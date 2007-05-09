@@ -1,23 +1,22 @@
 /*RPCemu v0.6 by Tom Walker
   System coprocessor + MMU emulation*/
 #include "rpcemu.h"
+#include "mem.h"
+#include "arm.h"
 
-int blockend;
-int indumpregs;
-//unsigned long oldpc,oldpc2,oldpc3;
-int timetolive;
+uint32_t oldpc = 0, oldpc2 = 0, oldpc3 = 0;
+int icache = 0;
 
 #define TLBCACHESIZE 256
 
-int pcisrom;
-uint32_t ins;
-uint32_t tlbcache[0x100000],tlbcache2[TLBCACHESIZE];
-unsigned long *vraddrl;
-uint32_t vraddrls[1024],vraddrphys[1024];
-int tlbcachepos;
-int tlbs,flushes;
-uint32_t pccache,readcache,writecache;
-uint32_t opcode;
+int pcisrom = 0;
+uint32_t tlbcache[0x100000] = {0}, tlbcache2[TLBCACHESIZE] = {0};
+unsigned long *vraddrl = 0;
+uint32_t vraddrls[1024] = {0}, vraddrphys[1024] = {0};
+int tlbcachepos = 0;
+int tlbs = 0, flushes = 0;
+uint32_t pccache = 0, readcache , writecache = 0;
+uint32_t opcode = 0;
 struct cp15
 {
         uint32_t tlbbase,dacr;
@@ -63,7 +62,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 cp15.ctrl=val;
                 if (!icache && val&0x1000) resetcodeblocks();
                 icache=val&0x1000;
-                if (mmu!=(val&1))
+                if (mmu!=(int)(val&1))
                 {
                         for (c=0;c<256;c++)
                             raddrl[c]=0xFFFFFFFF;

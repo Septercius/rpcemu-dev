@@ -3,12 +3,16 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "rpcemu.h"
+#include "vidc20.h"
+#include "mem.h"
+#include "iomd.h"
+#include "ide.h"
+#include "arm.h"
 
 int skip512[2];
 int cdromenabled=0;
 void atapicommand();
 int timetolive;
-int readflash;
 int dumpedread=0;
 struct
 {
@@ -286,15 +290,15 @@ uint8_t readide(uint16_t addr)
 //                rpclog("Read IDEerror %02X\n",ide.atastat);
                 return ide.error;
                 case 0x1F2:
-                return ide.secount;
+                return (uint8_t)ide.secount;
                 case 0x1F3:
-                return ide.sector;
+                return (uint8_t)ide.sector;
                 case 0x1F4:
-                return ide.cylinder&0xFF;
+                return (uint8_t)(ide.cylinder&0xFF);
                 case 0x1F5:
-                return ide.cylinder>>8;
+                return (uint8_t)(ide.cylinder>>8);
                 case 0x1F6:
-                return ide.head|(ide.drive<<4);
+                return (uint8_t)(ide.head|(ide.drive<<4));
                 case 0x1F7:
                 iomd.statb&=~2;
                 updateirqs();
@@ -526,7 +530,7 @@ void callbackide(void)
                 if (!ide.packetstatus)
                 {
                         ide.pos=0;
-                        ide.error=(ide.secount&0xF8)|1;
+                        ide.error=(uint8_t)((ide.secount&0xF8)|1);
                         ide.atastat=8;
                         iomd.statb|=2;
                         updateirqs();
@@ -632,13 +636,13 @@ void atapicommand()
           idebufferb[len++] = (uint8_t)(((blocks + 150) / 75) % 60); // second
           idebufferb[len++] = (uint8_t)((blocks + 150) % 75); // frame;
         } else {
-          idebufferb[len++] = (blocks >> 24) & 0xff;
-          idebufferb[len++] = (blocks >> 16) & 0xff;
-          idebufferb[len++] = (blocks >> 8) & 0xff;
-          idebufferb[len++] = (blocks >> 0) & 0xff;
+          idebufferb[len++] = (uint8_t)((blocks >> 24) & 0xff);
+          idebufferb[len++] = (uint8_t)((blocks >> 16) & 0xff);
+          idebufferb[len++] = (uint8_t)((blocks >> 8) & 0xff);
+          idebufferb[len++] = (uint8_t)((blocks >> 0) & 0xff);
         }
-        idebufferb[0] = ((len-2) >> 8) & 0xff;
-        idebufferb[1] = (len-2) & 0xff;
+        idebufferb[0] = (uint8_t)(((len-2) >> 8) & 0xff);
+        idebufferb[1] = (uint8_t)((len-2) & 0xff);
 
         rpclog("ATAPI buffer len %i\n",len);
         for (c=0;c<len;c++) rpclog("%02X ",idebufferb[c]);

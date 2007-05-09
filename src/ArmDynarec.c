@@ -24,6 +24,14 @@ int inscounts[256];
 
 #include "rpcemu.h"
 #include "hostfs.h"
+//#include "codegen_x86.h"
+#include "keyboard.h"
+#include "mem.h"
+#include "iomd.h"
+#include "ide.h"
+#include "arm.h"
+#include "cp15.h"
+#include "82c711.h"
 
 /*unsigned long readmeml(unsigned long a)
 {
@@ -55,7 +63,6 @@ static void refillpipeline2(void);
 //static char bigs[256];
 //static FILE *olog;
 static uint32_t rotatelookup[4096];
-int timetolive = 0;
 uint32_t inscount;
 //static unsigned char cmosram[256];
 int armirq=0;
@@ -374,7 +381,7 @@ void resetarm(void)
                                 case 14: /*AL*/ exec=1; break;
                                 case 15: /*NV*/ exec=0; break;
                         }
-                        flaglookup[c][d]=exec;
+                        flaglookup[c][d]=(unsigned char)exec;
                 }
         }
 
@@ -403,10 +410,10 @@ void dumpregs()
 {
 /*}*/
 //#if 0
-        FILE *f,*ff;
+        FILE *f;//,*ff;
         char s[1024];
-        int c,d,e;
-        uint32_t templ;
+        int c;//,d,e;
+        //uint32_t templ;
 /*        for (c=0;c<0x100;c++)
         {
                 rpclog("Opcode %02X : %09i\n",c,inscounts[c]);
@@ -437,7 +444,7 @@ void dumpregs()
         if (indumpregs) return;
         indumpregs=1;
 //        f=fopen("ram.dmp","wb");
-        sprintf(s,"R 0=%08X R 4=%08X R 8=%08X R12=%08X\nR 1=%08X R 5=%08X R 9=%08X R13=%08X\nR 2=%08X R 6=%08X R10=%08X R14=%08X\nR 3=%08X R 7=%08X R11=%08X R15=%08X\n%i %s\n%08X %08X %08X",armregs[0],armregs[4],armregs[8],armregs[12],armregs[1],armregs[5],armregs[9],armregs[13],armregs[2],armregs[6],armregs[10],armregs[14],armregs[3],armregs[7],armregs[11],armregs[15],ins,(mmu)?"MMU enabled":"MMU disabled",oldpc,oldpc2,oldpc3);
+        sprintf(s,"R 0=%08X R 4=%08X R 8=%08X R12=%08X\nR 1=%08X R 5=%08X R 9=%08X R13=%08X\nR 2=%08X R 6=%08X R10=%08X R14=%08X\nR 3=%08X R 7=%08X R11=%08X R15=%08X\n%u %s\n%08X %08X %08X",armregs[0],armregs[4],armregs[8],armregs[12],armregs[1],armregs[5],armregs[9],armregs[13],armregs[2],armregs[6],armregs[10],armregs[14],armregs[3],armregs[7],armregs[11],armregs[15],ins,(mmu)?"MMU enabled":"MMU disabled",oldpc,oldpc2,oldpc3);
 //        error("%s",s);
         rpclog("%s",s);
         printf("%s",s);
@@ -528,53 +535,29 @@ memmode=1;
 
 //#define dumpregs()
 
-int loadrom()
+unsigned char readmemfbr()
 {
-        FILE *f;
-//        int c;
-        memset(ram,0,4*1024*1024);
-        #ifdef ALTSET
-        f=fopen("rom1","rb");
-        if (!f) return -2;
-        fread(rom,0x100000,1,f);
-        fclose(f);
-        f=fopen("rom2","rb");
-        if (!f) return -2;
-        fread(&rom[0x40000],0x100000,1,f);
-        fclose(f);
-        f=fopen("rom3","rb");
-        if (!f) return -2;
-        fread(&rom[0x80000],0x100000,1,f);
-        fclose(f);
-        f=fopen("rom4","rb");
-        if (!f) return -2;
-        fread(&rom[0xC0000],0x100000,1,f);
-        fclose(f);
-        #else
-        f=fopen("ic24.rom","rb");
-        if (!f) return -2;
-        fread(rom,0x100000,1,f);
-        fclose(f);
-        f=fopen("ic25.rom","rb");
-        if (!f) return -2;
-        fread(&rom[0x40000],0x100000,1,f);
-        fclose(f);
-        f=fopen("ic26.rom","rb");
-        if (!f) return -2;
-        fread(&rom[0x80000],0x100000,1,f);
-        fclose(f);
-        f=fopen("ic27.rom","rb");
-        if (!f) return -2;
-        fread(&rom[0xC0000],0x100000,1,f);
-        fclose(f);
-        #endif
-        return 0;
+        return readmemb(armregs[0]);
 }
 
+unsigned long readmemflr()
+{
+        return readmeml(armregs[0]);
+}
+
+void writememfbr()
+{
+        writememb(armregs[0],armregs[1]);
+}
+
+void writememflr()
+{
+        writememl(armregs[0],armregs[1]);
+}
 #define checkneg(v) (v&0x80000000)
 #define checkpos(v) !(v&0x80000000)
 
-static inline void setadd(uint32_t op1, uint32_t op2, uint32_t res)
+INLINING void setadd(uint32_t op1, uint32_t op2, uint32_t res)
 {
 /*        armregs[cpsr]&=0xFFFFFFF;
         if (!res)                           armregs[cpsr]|=ZFLAG;
@@ -589,7 +572,7 @@ static inline void setadd(uint32_t op1, uint32_t op2, uint32_t res)
         *pcpsr=((*pcpsr)&0xFFFFFFF)|(temp);
 }
 
-static inline void setsub(uint32_t op1, uint32_t op2, uint32_t res)
+INLINING void setsub(uint32_t op1, uint32_t op2, uint32_t res)
 {
 /*        armregs[cpsr]&=0xFFFFFFF;
         if (!res)                           armregs[cpsr]|=ZFLAG;
@@ -604,7 +587,7 @@ static inline void setsub(uint32_t op1, uint32_t op2, uint32_t res)
         *pcpsr=((*pcpsr)&0xFFFFFFF)|(temp);
 }
 
-static inline void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
+INLINING void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
 {
         armregs[cpsr]&=0xFFFFFFF;
         if (!res)                           armregs[cpsr]|=ZFLAG;
@@ -617,7 +600,7 @@ static inline void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
             armregs[cpsr]|=VFLAG;
 }
 
-static inline void setadc(uint32_t op1, uint32_t op2, uint32_t res)
+INLINING void setadc(uint32_t op1, uint32_t op2, uint32_t res)
 {
         armregs[cpsr]&=0xFFFFFFF;
         if ((checkneg(op1) && checkneg(op2)) ||
@@ -631,7 +614,7 @@ static inline void setadc(uint32_t op1, uint32_t op2, uint32_t res)
 }
 
 #if 0
-static inline void setzn(uint32_t op)
+INLINING void setzn(uint32_t op)
 {
 /*        armregs[cpsr]&=0x3FFFFFFF;
         if (!op)               armregs[cpsr]|=ZFLAG;
@@ -773,7 +756,7 @@ unsigned shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint3
 }
 //#endif
 
-static inline unsigned shift4(unsigned opcode)
+INLINING unsigned shift4(unsigned opcode)
 {
         unsigned shiftmode=opcode&0x60;
         unsigned shiftamount=(opcode&0x10)?(armregs[(opcode>>8)&15]&0xFF):((opcode>>7)&31);
@@ -816,7 +799,7 @@ unsigned shift_ldrstr3(unsigned opcode, unsigned shiftmode, unsigned shiftamount
                 }
 }
 
-static inline unsigned shift_ldrstr2(unsigned opcode)
+INLINING unsigned shift_ldrstr2(unsigned opcode)
 {
         unsigned shiftmode=opcode&0x60;
         unsigned shiftamount=(opcode>>7)&31;
@@ -842,7 +825,7 @@ static inline unsigned shift_ldrstr2(unsigned opcode)
         }
 }
 #endif
-static inline unsigned rotate(unsigned data)
+INLINING unsigned rotate(unsigned data)
 {
         uint32_t rotval;
         rotval=rotatelookup[data&4095];
@@ -956,7 +939,7 @@ void exception(int mmode, uint32_t address, int diff)
 }
 
 #define INARMC
-#include "ArmDynarecOps.c"
+#include "ArmDynarecOps.h"
 void opSWI(unsigned long opcode)
 {
 	inscount++; rinscount++;
@@ -1020,7 +1003,7 @@ void opSWI(unsigned long opcode)
         }
 }*/
 
-void badopcode()
+void badopcode(unsigned long opcode)
 {
         bad_opcode(opcode);
         exit(-1);
@@ -1039,8 +1022,10 @@ unsigned char validforskip[64]=
         1,        0,        1,        0,        1,       0,        1,       0
 };
 
+typedef void (*OpFn)(unsigned long opcode);
+
 int codeblockpos;
-void (*opcodes[256])(unsigned long opcode)=
+OpFn opcodes[256]=
 {
 	opANDreg, opANDregS,opEORreg, opEORregS,opSUBreg,opSUBregS,opRSBreg,opRSBregS,   //00
 	opADDreg, opADDregS,opADCreg, opADCregS,opSBCreg,opSBCregS,opRSCreg,opRSCregS,   //08
@@ -1052,20 +1037,20 @@ void (*opcodes[256])(unsigned long opcode)=
 	badopcode,opTSTimm, opMRSc,   opTEQimm, badopcode,opCMPimm, badopcode,opCMNimm,  //30
 	opORRimm, opORRimmS,opMOVimm, opMOVimmS,opBICimm, opBICimmS,opMVNimm, opMVNimmS, //38
 
-	opSTR,    opLDR,    opSTRT,   opLDRT,   opSTRB,   opLDRB,   badopcode,opLDRBT,   //40
-	opSTR,    opLDR,    opSTRT,   opLDRT,   opSTRB4C, opLDRB,   opSTRB,   opLDRBT,   //48
-	opSTR,    opLDR,    opSTR,    opLDR,    opSTRB,   opLDRB,   opSTRB,   opLDRB,    //50
-	opSTR,    opLDR59,  opSTR,    opLDR,    opSTRB,   opLDRB,   opSTRB,   opLDRB,    //58
+	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRT,   (OpFn)opLDRT,   (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)badopcode,(OpFn)opLDRBT,   //40
+	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRT,   (OpFn)opLDRT,   (OpFn)opSTRB4C, (OpFn)opLDRB,   (OpFn)opSTRB,   (OpFn)opLDRBT,   //48
+	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRB,   (OpFn)opLDRB,    //50
+	(OpFn)opSTR,    (OpFn)opLDR59,  (OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRB,   (OpFn)opLDRB,    //58
 
-	opSTR,    opLDR,    opSTRT,   badopcode,opSTRB,   opLDRB,   opSTRBT,  badopcode, //60
-	opSTR,    opLDR,    opSTRT,   badopcode,opSTRB,   opLDRB,   opSTRBT,  badopcode, //68
-	opSTR,    opLDR,    opSTR,    opLDR,    opSTRB,   opLDRB,   opSTRB,   opLDRB,    //70
-        opSTR,    opLDR79,  opSTR,    opLDR,    opSTRB,   opLDRB7D, opSTRB,   opLDRB,    //78
+	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRT,   (OpFn)badopcode,(OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRBT,  (OpFn)badopcode, //60
+	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRT,   (OpFn)badopcode,(OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRBT,  (OpFn)badopcode, //68
+	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRB,   (OpFn)opLDRB,    //70
+        (OpFn)opSTR,    (OpFn)opLDR79,  (OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRB,   (OpFn)opLDRB7D, (OpFn)opSTRB,   (OpFn)opLDRB,    //78
 
-	opSTMD,   opLDMD,   opSTMD,   opLDMD,   opSTMDS,  opLDMDS,  opSTMDS,  opLDMDS,   //80
-	opSTMI,   opLDMI,   opSTMI,   opLDMI,   opSTMIS,  opLDMIS,  opSTMIS,  opLDMIS,   //88
-	opSTMD,   opLDMD,   opSTMD,   opLDMD,   opSTMDS,  opLDMDS,  opSTMDS,  opLDMDS,   //90
-	opSTMI,   opLDMI,   opSTMI,   opLDMI,   opSTMIS,  opLDMIS,  opSTMIS,  opLDMIS,   //98
+	(OpFn)opSTMD,   (OpFn)opLDMD,   (OpFn)opSTMD,   (OpFn)opLDMD,   (OpFn)opSTMDS,  (OpFn)opLDMDS,  (OpFn)opSTMDS,  (OpFn)opLDMDS,   //80
+	(OpFn)opSTMI,   (OpFn)opLDMI,   (OpFn)opSTMI,   (OpFn)opLDMI,   (OpFn)opSTMIS,  (OpFn)opLDMIS,  (OpFn)opSTMIS,  (OpFn)opLDMIS,   //88
+	(OpFn)opSTMD,   (OpFn)opLDMD,   (OpFn)opSTMD,   (OpFn)opLDMD,   (OpFn)opSTMDS,  (OpFn)opLDMDS,  (OpFn)opSTMDS,  (OpFn)opLDMDS,   //90
+	(OpFn)opSTMI,   (OpFn)opLDMI,   (OpFn)opSTMI,   (OpFn)opLDMI,   (OpFn)opSTMIS,  (OpFn)opLDMIS,  (OpFn)opSTMIS,  (OpFn)opLDMIS,   //98
 
 	opB,	  opB,	    opB,      opB,      opB,      opB,      opB,      opB,       //A0
 	opB,	  opB,	    opB,      opB,      opB,      opB,      opB,      opB,       //A8
@@ -1093,19 +1078,19 @@ int linecyc=0;
 #ifdef __amd64__
 #include "codegen_amd64.h" 
 #endif
-#ifdef i386
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
 #include "codegen_x86.h"
 #endif
 
 //int output=0;
 void execarm(int cycs)
 {
-        int target;
+        //int target;
         int c;
         int hash;
         void (*gen_func)(void);
-        uint32_t templ,templ2,addr,addr2,mask;
-        unsigned char temp;
+        uint32_t templ;//,templ2,addr,addr2,mask;
+        //unsigned char temp;
 //        int RD;
         cycles+=cycs;
         linecyc=100;
@@ -1427,27 +1412,25 @@ void execarm(int cycs)
                         flyback--;
 //                        if (!flyback) rpclog("Vsync low\n");
                 }
+                        if (delaygenirqleft)
+                        {
+                                if (!delaygenirq)
+                                {
+                                        delaygenirq=2;
+                                }
+                                delaygenirq--;
+                                if (!delaygenirq)
+                                {
+                                        delaygenirqleft--;
+                                        gentimerirq();
+                                }
+                        }
 //                printf("T0 now %04X\n",iomd.t0c);
 //                cyc=(oldcyc-cycles);
 /*                if (soundbufferfull)
                 {
                         updatesoundbuffer();
                 }*/
-                if (delaygenirqleft)
-                {
-//                        rpclog("IRQ left! %i %i\n",delaygenirqleft);
-                        if (!delaygenirq)
-                        {
-                                delaygenirq=2;
-                        }
-                        delaygenirq--;
-                        if (!delaygenirq)
-                        {
-                                delaygenirqleft--;
-//                                rpclog("Delayed IRQ\n");
-                                gentimerirq();
-                        }
-                }
                 cycles-=1000;
         }
 }

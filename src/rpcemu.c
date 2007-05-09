@@ -1,11 +1,37 @@
 /*RPCemu v0.6 by Tom Walker
   Main loop
   Should be platform independent*/
-
+#include <stdint.h>
 #include <allegro.h>
 #include "rpcemu.h"
+#include "mem.h"
+#include "vidc20.h"
+#include "keyboard.h"
+#include "sound.h"
+#include "mem.h"
+#include "iomd.h"
+#include "ide.h"
+#include "arm.h"
+#include "cmos.h"
+#include "82c711.h"
+
+unsigned char flaglookup[16][16];
 
 char discname[2][260]={"boot.adf","notboot.adf"};
+char exname[512] = {0};
+
+int vrammask = 0;
+int model = 0;
+int model2 = 0;
+int rammask = 0;
+int stretchmode = 0;
+int lastinscount = 0;
+int infocus = 0;
+int refresh = 0;
+int skipblits = 0;
+int rinscount = 0;
+int cyccount = 0;
+int timetolive = 0;
 
 void loadconfig();
 void saveconfig();
