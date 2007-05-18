@@ -138,6 +138,12 @@ extern void fpaopcode(uint32_t opcode);
 
 
 
+#ifdef _MSC_VER
+/*How do you do this in MSVC?*/
+//register uint32_t armptr __asm esi;
+#else
+register uint32_t armptr asm("esi");
+#endif
 
 
 

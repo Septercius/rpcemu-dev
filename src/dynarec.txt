@@ -45,11 +45,13 @@ The instruction cache currently uses 1.8 megs. This is much improved over previo
 but could probably be improved further by shrinking the block size (shrinking the number of
 blocks any further has a big impact on speed)
 
+The x86-32 emulator is less optimal on MSVC than GCC.
 
-This isn't a true dynarec at the moment, it's what would be called a threaded interpreter. It
-does generate code blocks, but instead of generating native code, it generates calls to 
-handler functions for every opcode. This eliminates instruction fetch and (in many cases)
-condition checking. A full dynarec shouldn't be a massive jump from here.
+
+The x86-32 emulator is now an (almost) full dynarec. Native code is generated most instructions.
+
+
+The x86-64 version is still a threaded interpreter and as such is slower.
 
 The code blocks are flushed when the StrongARM Icache is flushed. This means that, as on a
 real StrongARM, self modifying code won't really work. I did create a version where self
@@ -57,26 +59,26 @@ modifying code did work, but the speed was eratic - some programs performed real
 Hence the current version doesn't have this in.
 
 
-The performance increase on my main machine (Athlon X2 4200+) ranges from about 100% (!SICK,
-RISC OS in general) to 100% (!Fishtank2) to 100% (ArcQuake). 
+The performance increase on my main machine (Athlon X2 4200+) ranges from about 400% (!SICK,
+RISC OS in general) to 400% (!Fishtank2) to 300% (ArcQuake). 
 
 Benchmarks noted :
 
 Dhrystone (!SICK) - 
 
-160k on Athlon X2 4200+
-152k on Core 2 Duo 1.66ghz
-125k on Athlon XP 2400+
-2337 on P120 (that's half ARM2 speed)
+310k on Athlon X2 4200+
+292k on Core 2 Duo 1.66ghz
+231k on Athlon XP 2400+
+ 34k on P2-350 (that's about ARM6 speed)
 
 On Athlon X2 4200+ - 
-Riscosmark CPU test - 68% of StrongARM speed
-Firebench - 164.33fps
-FQuake   - 9.3 fps average (16fps on real SA)
-ArcQuake timedemo demo2 - 7.6fps (10.something on real SA?)
+Riscosmark CPU test - 168% of StrongARM speed
+Firebench - 476fps
+FQuake   - 15 fps average (16fps on real SA)
+ArcQuake timedemo demo2 - 12.5fps (10.something on real SA?)
 
-The highest instruction rate I've seen so far is on Fishtank2, which runs at around 70 
-MIPS. I've also seen 95 MIPS, but I can't remember on what.
+The highest instruction rate I've seen so far is on Firebench, which runs at around 215
+MIPS.
 
 
 Ideas for optimisations/design flaws:
@@ -119,5 +121,9 @@ I have now tried this, and the performance is variable - games and demos are mos
 but the desktop plummets from 67 MIPS to 45, and Dhrystone goes from 48ish MIPS to 4 MIPS.
 Hence it's not implemented!
 
-Obviously this should become a proper dynarec at some point - eg generate actual code for
-each instruction.
+The flag setting code in the generated code is far from optimal. Currently it uses LAHF to
+put the flags in AH, and tests seperately for overflow. setzn uses the fact that the Z and N
+flags are in the same place on both x86 and ARM, and therefore just ORs them straight in.
+ADD/SUB/ADC/CMP use a lookup table for C/Z/N.
+
+The memory access code could be made much better, especially in LDM/STM. 

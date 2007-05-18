@@ -13,7 +13,8 @@ int fullscreen=0;
 int readflash = 0;
 int palchange = 0,curchange = 0;
 int blits=0;
-BITMAP *b = NULL,*bs = NULL,*bs2 = NULL;
+BITMAP *b = NULL,*bs = NULL,*bs2 = NULL,*bs3=NULL,*bs4=NULL;
+int currentbuffer=1;
 int deskdepth = 0;
 int oldsx = 0,oldsy = 0;
 RGB cursor[3] = {{0,0,0,0},{0,0,0,0},{0,0,0,0}};
@@ -31,6 +32,7 @@ void blitterthread()
         int ys=thread_ys;
         int yh=thread_yh;
         int yl=thread_yl;
+        BITMAP *backbuf;
 //        rpclog("Blitter thread - blitready %i\n",blitready);
         if (skipnextblit)
         {
@@ -43,51 +45,75 @@ void blitterthread()
                 return;
         }
         inblit=1;
+        if (fullscreen)
+        {
+                switch (currentbuffer)
+                {
+                        case 0: backbuf=bs4; break;
+                        case 1: backbuf=bs2; break;
+                        case 2: backbuf=bs3; break;
+                }
+        }
         switch (thread_doublesize)
         {
                 case 0: //case 1: case 2: case 3:
   //              case 3:
-        ys=yh-yl;
-                if (fullscreen) blit(b,bs2,0,yl,(SCREEN_W-xs)>>1,yl+((SCREEN_H-oldsy)>>1),xs,ys);
+        if (!(fullscreen && stretchmode)) ys=yh-yl;
+                if (fullscreen)
+                {
+                        if (stretchmode) blit(b,backbuf,0,0,(SCREEN_W-xs)>>1,((SCREEN_H-oldsy)>>1),xs,ys);
+                        else             blit(b,backbuf,0,yl,(SCREEN_W-xs)>>1,yl+((SCREEN_H-oldsy)>>1),xs,ys);
+                }
                 else            blit(b,screen,0,yl,0,yl,xs,ys);
                 break;
                 case 1:
         ys=yh-yl;
-                if (fullscreen) stretch_blit(b,bs2, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
+                if (fullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
                 else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl,                      xs<<1,ys);
                 break;
                 case 2:
                 if (stretchmode)
                 {
-                        if (fullscreen) stretch_blit(b,bs2,0,0,xs,ys,0,0,xs,ys<<1);
-                        else            stretch_blit(b,screen,0,0,xs,ys,0,0,xs,ys<<1);
+                        if (fullscreen) stretch_blit(b,backbuf,0,0,xs,ys,0,0,xs,(ys<<1)-1);
+                        else            stretch_blit(b,screen, 0,0,xs,ys,0,0,xs,(ys<<1)-1);
                 }
                 else
                 {
                         ys=yh-yl;
-                        if (fullscreen) stretch_blit(b,bs2, 0,yl,xs,ys, (SCREEN_W-xs)>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs,(ys<<1)-1);
+                        if (fullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-xs)>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs,(ys<<1)-1);
                         else            stretch_blit(b,screen, 0,yl,xs,ys, 0,               yl<<1,                        xs,(ys<<1)-1);
                 }
                 break;
                 case 3:
                 if (stretchmode)
                 {
-                        if (fullscreen) stretch_blit(b,bs2,0,0,xs,ys,0,0,xs<<1,ys<<1);
-                        else            stretch_blit(b,screen,0,0,xs,ys,0,0,xs<<1,ys<<1);
+                        if (fullscreen) stretch_blit(b,backbuf,0,0,xs,ys,(SCREEN_W-(xs<<1))>>1,((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
+                        else            stretch_blit(b,screen, 0,0,xs,ys,0,0,xs<<1,(ys<<1)-1);
                 }
                 else
                 {
                         ys=yh-yl;
-                        if (fullscreen) stretch_blit(b,bs2, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
+                        if (fullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
                         else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl<<1,                        xs<<1,(ys<<1)-1);
                 }
                 break;
+        }
+        if (fullscreen)
+        {
+                switch (currentbuffer)
+                {
+                        case 0: request_video_bitmap(bs4); currentbuffer=1; break;
+                        case 1: request_video_bitmap(bs2); currentbuffer=2; break;
+                        case 2: request_video_bitmap(bs3); currentbuffer=0; break;
+                }
         }
         inblit=0;
         blitready=0;
 //        sleep(1);
 }
-     
+
+void closevideo();
+
 void initvideo()
 {
         int depth;
@@ -134,6 +160,7 @@ void initvideo()
 //        set_color_depth(8);
 //        if (depth!=15) set_color_depth(16);
 //        else           set_color_depth(15);
+
 #ifdef HARDWAREBLIT
 bs=create_video_bitmap(1024,768);
         b=create_video_bitmap(1024,768);
@@ -145,6 +172,7 @@ bs=create_video_bitmap(1024,768);
 //           b2=create_bitmap(1024,768);
         oldsx=64;
         oldsy=48;
+//        atexit(closevideo);
 }
 
 int palindex;
@@ -208,8 +236,13 @@ void resizedisplay(int x, int y)
         if (fullscreen)
         {
                 destroy_bitmap(b);
-                destroy_bitmap(bs);
-                if (bs2) destroy_bitmap(bs2);
+                if (lastfullscreen)
+                {
+                        destroy_bitmap(bs);
+                        destroy_bitmap(bs2);
+                        destroy_bitmap(bs3);
+                        destroy_bitmap(bs4);
+                }
                 c=0;
                 tryagain:
                 while (fullresolutions[c][0]!=-1)
@@ -236,10 +269,15 @@ void resizedisplay(int x, int y)
 //                rpclog("Mode set\n");
                 bs=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
                 bs2=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
+                bs3=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
+                bs4=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
 //                rpclog("%08X %08X\n",bs,bs2);
                 clear(bs);
                 clear(bs2);
-//                show_video_bitmap(bs2);
+                clear(bs3);
+                clear(bs4);
+                show_video_bitmap(bs4);
+                currentbuffer=1;
 #ifdef HARDWAREBLIT
                 b=create_video_bitmap(x+16,y+16);
                 if (!b) /*Video bitmaps unavailable for some reason*/
@@ -250,7 +288,13 @@ void resizedisplay(int x, int y)
         else
         {
                 if (lastfullscreen) destroy_bitmap(b);
-                if (lastfullscreen) destroy_bitmap(bs);
+                if (lastfullscreen)
+                {
+                        destroy_bitmap(bs);
+                        destroy_bitmap(bs2);
+                        destroy_bitmap(bs3);
+                        destroy_bitmap(bs4);
+                }
                 if (lastfullscreen) set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
                 updatewindowsize(x,y);
                 if (lastfullscreen) bs=create_video_bitmap(1024,768);
@@ -261,8 +305,26 @@ void resizedisplay(int x, int y)
                    b=create_bitmap(1024,768);
                 lastfullscreen=0;
         }
+        resetbuffer();
 }
 
+int videoclosed=0;
+void closevideo()
+{
+        if (videoclosed) return;
+//        rpclog("Calling closevideo()\n");
+        if (b) destroy_bitmap(b);
+        if (bs) destroy_bitmap(bs);
+        if (lastfullscreen)
+        {
+                if (bs2) destroy_bitmap(bs2);
+                if (bs3) destroy_bitmap(bs3);
+                if (bs4) destroy_bitmap(bs4);
+        }
+        videoclosed=1;
+/*        allegro_exit();*/
+}
+        
 void togglefullscreen(int fs)
 {
         oldsx=oldsy=-1;
@@ -1491,8 +1553,8 @@ void resetbuffer(void)
 //        rpclog("Reset buffer\n");
 }
 
-void closevideo()
+/*void closevideo()
 {
         destroy_bitmap(b);
         allegro_exit();
-}
+}*/

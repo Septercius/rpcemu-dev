@@ -62,7 +62,7 @@ int prefabort;
 static void refillpipeline2(void);
 //static char bigs[256];
 //static FILE *olog;
-static uint32_t rotatelookup[4096];
+uint32_t rotatelookup[4096];
 uint32_t inscount;
 //static unsigned char cmosram[256];
 int armirq=0;
@@ -100,14 +100,6 @@ int prog32;
 #define IFLAG 0x08000000
 
 //int RD;
-#define RD ((opcode>>12)&0xF)
-#define RN ((opcode>>16)&0xF)
-#define RM (opcode&0xF)
-
-#define MULRD ((opcode>>16)&0xF)
-#define MULRN ((opcode>>12)&0xF)
-#define MULRS ((opcode>>8)&0xF)
-#define MULRM (opcode&0xF)
 
 #define GETADDR(r) ((r==15)?(armregs[15]&r15mask):armregs[r])
 #define LOADREG(r,v) if (r==15) { armregs[15]=(armregs[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else armregs[r]=(v);
@@ -325,7 +317,7 @@ void updatemode(uint32_t m)
 }
 
 int stmlookup[256];
-#define countbits(c) countbitstable[c]
+//#define countbits(c) countbitstable[c]
 int countbitstable[65536];
 void resetarm(void)
 {
@@ -840,7 +832,6 @@ INLINING unsigned rotate(unsigned data)
         return rotval;
 }
 
-#define rotate2(v) rotatelookup[v&4095]
 static const int ldrlookup[4]={0,8,16,24};
 
 #define ldrresult(v,a) ((v>>ldrlookup[addr&3])|(v<<(32-ldrlookup[addr&3])))
@@ -992,7 +983,7 @@ void opSWI(unsigned long opcode)
                 exception(SUPERVISOR,0xC,4);
         }
 }
-
+unsigned long startpc;
 /*void writememl(unsigned long a, unsigned long v)
 {
         if (vraddrl[(a)>>12]&3)
@@ -1082,6 +1073,7 @@ int linecyc=0;
 #include "codegen_x86.h"
 #endif
 
+int hasldrb[BLOCKS];
 //int output=0;
 void execarm(int cycs)
 {
@@ -1157,15 +1149,24 @@ void execarm(int cycs)
                                 }
                                 else */if (codeblockpc[hash]==PC)
                                 {
-//                                        if (output) rpclog("Calling block 0 %07X %08X %08X %08X\n",PC,&codeblock[0][hash][4],armregs[0],armregs[3]);
+                                        /*if (output) */
 //                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Calling block 0 %07X\n",PC); }
+//rpclog("Calling block 0 %07X\n",PC);
+startpc=armregs[15];
                                         templ=codeblocknum[hash];
+//rpclog("Calling block 0 %i %07X\n",templ,PC);
                                         gen_func=(void *)(&rcodeblock[templ][BLOCKSTART]);
+                                        if (hasldrb[templ])
+                                        {
+//                                                *((uint32_t *)0)=1;
+                                                hasldrb[templ]=0;
+                                        }
 //                                        gen_func=(void *)(&codeblock[blocks[templ]>>24][blocks[templ]&0xFFF][4]);
                                         gen_func();
 //                                        inscount+=codeinscount[0][hash];
 //                                        rinscount+=codeinscount[hash];
                                         if (armirq&0x40) armregs[15]+=4;
+                                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
                                 }
                                 else
                                 {
@@ -1214,6 +1215,7 @@ void execarm(int cycs)
                                                         generatepcinc();
                                                         if ((opcode&0xE000000)==0xA000000) generateupdateinscount();
                                                         if ((opcode>>28)!=0xE) generateflagtestandbranch(opcode,pcpsr);//,flaglookup);
+                                                        else                   lastflagchange=0;
                                                         generatecall((uint32_t)opcodes[(opcode>>20)&0xFF],opcode,pcpsr);
                                                         #ifdef ABORTCHECKING
                                                         if (((opcode+0x6000000)&0xF000000)>=0xA000000) generateirqtest();
@@ -1227,14 +1229,21 @@ void execarm(int cycs)
                                                            opcodes[(opcode>>20)&0xFF](opcode);
                                                 }
                                                 armregs[15]+=4;
-                                                if (!((PC)&0xFFC)) blockend=1;
+                                                if (!((PC)&0xFFC))
+                                                {
+                                                        pccache=PC>>12;
+                                                        pccache2=getpccache(PC);
+                                                        if ((uint32_t)pccache2==0xFFFFFFFF) { opcode=pccache=(uint32_t)pccache2; armirq|=0x80; blockend=1; }
+                                                        else                      opcode=pccache2[PC>>2];
+                                                }
+                                                //blockend=1;
 //                                                inscount++;
                                                 rinscount++;
                                                 c++;
                                         }
 //                                        if (output) rpclog("Block ended at %07X %i\n",PC,c);
 //                                        output=0;
-                                        if (!(armirq&0x80)) endblock(c);
+                                        if (!(armirq&0x80)) endblock(c,pcpsr);
 /*                                        if (oldpc==0x38282E4)
                                         {
                                                 dumplastblock();

@@ -458,3 +458,58 @@ uint32_t *getpccache(uint32_t addr)
         dumpregs();
         exit(-1);
 }
+
+int isvalidforfastread(uint32_t addr)
+{
+//        rpclog("Valid for fast read? %08X\n",addr);
+        if (mmu)
+        {
+                if ((tlbcache[(addr)>>12]&0xFFF)) return 0;
+                addr=tlbcache[(addr)>>12]|((addr)&0xFFF);
+        }
+        else
+        return 0;
+//        rpclog("%08X\n",addr);
+        switch (addr&0x1F000000)
+        {
+                case 0x00000000: /*ROM*/
+                case 0x02000000: /*VRAM*/
+                case 0x10000000: /*SIMM 0 bank 0*/
+                case 0x11000000:
+                case 0x12000000:
+                case 0x13000000:
+                case 0x14000000: /*SIMM 0 bank 1*/
+                case 0x15000000:
+                case 0x16000000:
+                case 0x17000000:
+                return 1;
+        }
+        return 0;
+}
+int isvalidforfastwrite(uint32_t addr)
+{
+//        rpclog("Valid for fast write? %08X\n",addr);
+        if (mmu)
+        {
+                if ((tlbcache[(addr)>>12]&0xFFF)) return 0;
+                addr=tlbcache[(addr)>>12]|((addr)&0xFFF);
+        }
+        else
+           return 0;
+//        rpclog("%08X\n",addr);
+        switch (addr&0x1F000000)
+        {
+//                case 0x00000000: /*ROM*/
+                case 0x02000000: /*VRAM*/
+                case 0x10000000: /*SIMM 0 bank 0*/
+                case 0x11000000:
+                case 0x12000000:
+                case 0x13000000:
+                case 0x14000000: /*SIMM 0 bank 1*/
+                case 0x15000000:
+                case 0x16000000:
+                case 0x17000000:
+                return 1;
+        }
+        return 0;
+}

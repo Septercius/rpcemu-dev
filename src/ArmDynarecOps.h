@@ -332,10 +332,17 @@ void opSBCreg(unsigned long opcode)
 void opSBCregS(unsigned long opcode)
 {
 #ifdef STRONGARM
-	if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
+	if (((opcode&0xE000090)==0x000090)) /*SMULLS*/
 	{
-                error("Bad opcode %08X\n",opcode);
-                exit(-1);
+                int64_t mula,mulb,mulres;
+                mula=(int64_t)(int32_t)armregs[MULRS];
+                mulb=(int64_t)(int32_t)armregs[MULRM];
+                mulres=mula*mulb;
+                armregs[MULRN]=mulres&0xFFFFFFFF;
+                armregs[MULRD]=mulres>>32;
+                armregs[cpsr]&=~0xC0000000;
+                if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
+                if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
         }
         else
         {
@@ -1574,53 +1581,57 @@ int c;
 
 int opSTMD(unsigned long opcode)
 {
-        uint32_t temp=armregs[RN];
+//        uint32_t temp=armregs[RN];
 	//inscount++; //r//inscount++;
         addr=(armregs[RN]-countbits(opcode&0xFFFF))&~3;
         if (!(opcode&0x1000000)) addr+=4;
         STMfirst();
-        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
+//        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
         STMall()
-        if (armirq&0x40) armregs[RN]=temp;
+//        if (armirq&0x40) armregs[RN]=temp;
+        if (!(armirq&0x40) && opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
         return (armirq&0x40);
 }
 
 int opSTMI(unsigned long opcode)
 {
-        uint32_t temp=armregs[RN];
+//        uint32_t temp=armregs[RN];
 	//inscount++; //r//inscount++;
         addr=armregs[RN]&~3;
         if (opcode&0x1000000) addr+=4;
         STMfirst();
-        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
+//        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
         STMall();
-        if (armirq&0x40) armregs[RN]=temp;
+//        if (armirq&0x40) armregs[RN]=temp;
+        if (!(armirq&0x40) && opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
         return (armirq&0x40);
 }
 
 int opSTMDS(unsigned long opcode)
 {
-        uint32_t temp=armregs[RN];
+//        uint32_t temp=armregs[RN];
 	//inscount++; //r//inscount++;
         addr=(armregs[RN]-countbits(opcode&0xFFFF))&~3;
         if (!(opcode&0x1000000)) addr+=4;
         STMfirstS();
-        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
+//        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
         STMallS()
-        if (armirq&0x40) armregs[RN]=temp;
+//        if (armirq&0x40) armregs[RN]=temp;
+        if (!(armirq&0x40) && opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
         return (armirq&0x40);
 }
 
 int opSTMIS(unsigned long opcode)
 {
-        uint32_t temp=armregs[RN];
+//        uint32_t temp=armregs[RN];
 	//inscount++; //r//inscount++;
         addr=armregs[RN]&~3;
         if (opcode&0x1000000) addr+=4;
         STMfirstS();
-        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
+//        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
         STMallS();
-        if (armirq&0x40) armregs[RN]=temp;
+//        if (armirq&0x40) armregs[RN]=temp;
+        if (!(armirq&0x40) && opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
         return (armirq&0x40);
 }
 

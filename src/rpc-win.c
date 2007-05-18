@@ -60,15 +60,15 @@ void error(const char *format, ...)
 FILE *arclog;
 void rpclog(const char *format, ...)
 {
-   //char buf[256];
-return;/*
+   char buf[1024];
+//return;
    if (!arclog) arclog=fopen("rlog.txt","wt");
    va_list ap;
    va_start(ap, format);
    vsprintf(buf, format, ap);
    va_end(ap);
    fputs(buf,arclog);
-   fflush(arclog);*/
+   fflush(arclog);
 }
 
 int drawscre=0,flyback;
@@ -178,6 +178,7 @@ void _closeblitthread(void)
                 while (blitrunning)
                       sleep(1);
         }
+//        closevideo();
 }
 
 void _soundthread(PVOID pvoid)
@@ -374,7 +375,10 @@ infocus=1;
                 if (PeekMessage(&messages,NULL,0,0,PM_REMOVE))
                 {
                         if (messages.message==WM_QUIT)
-                           quited=1;
+                        {
+                                quited=1;
+//                                closevideo();
+                        }
                         /* Translate virtual-key messages into character messages */
                         TranslateMessage(&messages);
                         /* Send message to WindowProcedure */
@@ -401,6 +405,7 @@ infocus=1;
 //        while (vidrunning)
 //              sleep(1);
         #endif
+//        closevideo();
 //        timeEndPeriod(1);
         dumpregs();
         endrpcemu();
@@ -625,6 +630,8 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 }
                 break;
                 case WM_DESTROY:
+                        closevideo();
+                        infocus=0;
                 PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
                 break;
                 case WM_SETFOCUS:

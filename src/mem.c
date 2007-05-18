@@ -120,12 +120,17 @@ void resetmem(void)
 uint32_t readmemfl(uint32_t addr)
 {
         uint32_t addr2;
+//        rpclog("readmemfl %08X\n",addr);
 //        if (addr>=0x21D3738 && addr<0x21D3938) rpclog("Readl %08X %07X\n",addr,PC);
 //        if (!addr && !timetolive) timetolive=250;
         if (mmu)
         {
                 addr2=addr;
-                if ((addr>>12)==readmemcache) addr=(addr&0xFFF)+readmemcache2;
+                if ((addr>>12)==readmemcache)
+                {
+                        addr=(addr&0xFFF)+readmemcache2;
+//                        rpclog("In readmemcache, bizarrely enough\n");
+                }
                 else
                 {
                         readmemcache=addr>>12;
@@ -136,11 +141,12 @@ uint32_t readmemfl(uint32_t addr)
                         if (armirq&0x40)
                         {
                                 /*raddrl[(addr2>>12)&0xFF]=*/vraddrl[addr2>>12]=readmemcache=0xFFFFFFFF;
-//                                rpclog("Abort! %08X\n",addr2);
+                                rpclog("Abort! %08X\n",addr2);
                                 return 0;
                         }
                         readmemcache2=addr&0xFFFFF000;
-//                        rpclog("MMU addr %08X %08X %08X %08X ",addr2,addr,raddrl,readmemcache2&0x7FF000);
+                }
+//                        rpclog("MMU addr %08X %08X %08X %08X\n",addr2,addr,raddrl,readmemcache2);
                         switch (readmemcache2&0x1F000000)
                         {
                                 case 0x00000000: /*ROM*/
@@ -173,7 +179,7 @@ uint32_t readmemfl(uint32_t addr)
 //                                rpclog("Other\n");
                                 /*raddrl[(addr2>>12)&0xFF]=*/vraddrl[addr2>>12]=0xFFFFFFFF;
                         }
-                }
+//                }
         }
         else// if (0)
         {
@@ -322,6 +328,7 @@ uint32_t readmemfb(uint32_t addr)
                                 return 0;
                         }
                         readmemcache2=addr&0xFFFFF000;
+                }
 //                        rpclog("MMU addr %08X %08X %08X %08X ",addr2,addr,raddrl,readmemcache2&0x7FF000);
                         switch (readmemcache2&0x1F000000)
                         {
@@ -348,7 +355,7 @@ uint32_t readmemfb(uint32_t addr)
                                 vradd(addr2,&ram2[((readmemcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
                                 return *(unsigned char *)(vraddrl[addr2>>12]+addr2);
                         }
-                }
+//                }
         }
         switch (addr&0x1F000000)
         {
@@ -428,6 +435,7 @@ void writememfl(uint32_t addr, uint32_t val)
                                 return;
                         }
                         writememcache2=addr&0xFFFFF000;
+                }
 //                        if ((addr&0x1F000000)==0x2000000)
                         switch (writememcache2&0x1F000000)
                         {
@@ -452,7 +460,7 @@ void writememfl(uint32_t addr, uint32_t val)
                                 default:
                                 waddrl=0xFFFFFFFF;
                         }
-                }
+//                }
         }
         else
         {
@@ -609,6 +617,7 @@ void writememfb(uint32_t addr, uint8_t val)
                                 return;
                         }
                         writemembcache2=addr&0xFFFFF000;
+                }
 //                        if ((addr&0x1F000000)==0x2000000)
 //                           dirtybuffer[(addr&vrammask)>>12]=2;
                         switch (writemembcache2&0x1F000000)
@@ -653,7 +662,7 @@ void writememfb(uint32_t addr, uint8_t val)
                                 waddrbl=0xFFFFFFFF;
                                 #endif
                         }
-                }
+//                }
         }
         else
         {

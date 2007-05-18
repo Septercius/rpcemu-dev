@@ -10,9 +10,9 @@ extern void generateupdateinscount();
 extern void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr);
 extern void generatecall(unsigned long addr, uint32_t opcode, uint32_t *pcpsr);
 extern void generateirqtest();
-extern void endblock(int c);
+extern void endblock(int c, uint32_t *pcpsr);
 extern void initcodeblock(uint32_t l);
-
+extern int codewritememfb();
 extern uint32_t *usrregs[16],userregs[17],superregs[17],fiqregs[17],irqregs[17],abortregs[17],undefregs[17],systemregs[17];
 extern uint32_t spsr[16];
 extern uint32_t armregs[17];
@@ -39,4 +39,22 @@ extern int indumpregs;
 extern int blockend;
 
 extern uint32_t oldpc,oldpc2,oldpc3;
+
+extern int lastflagchange;
+
+#define RD ((opcode>>12)&0xF)
+#define RN ((opcode>>16)&0xF)
+#define RM (opcode&0xF)
+
+#define MULRD ((opcode>>16)&0xF)
+#define MULRN ((opcode>>12)&0xF)
+#define MULRS ((opcode>>8)&0xF)
+#define MULRM (opcode&0xF)
+
+extern uint32_t rotatelookup[4096];
+#define rotate2(v) rotatelookup[v&4095]
+
+#define countbits(c) countbitstable[c]
+extern int countbitstable[65536];
+
 #endif //__ARM__
