@@ -15,6 +15,7 @@
 #include "cmos.h"
 #include "82c711.h"
 
+int cdromtype;
 unsigned char flaglookup[16][16];
 
 char discname[2][260]={"boot.adf","notboot.adf"};
@@ -70,6 +71,9 @@ int startrpcemu()
         loadconfig();
         reallocmem(rammask+1);
         initcodeblocks();
+        iso_init();
+//        iso_open("e:/au_cd8.iso");
+        cdromtype=CDROM_ISO;
         return 0;
 }
 

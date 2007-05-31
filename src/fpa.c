@@ -56,7 +56,36 @@ INLINING void setsubf(double op1, double op2)
 //        if ((op1^op2)&(op1^res)&0x80000000) armregs[cpsr]|=VFLAG;
 }
 int times8000;
-double fconstants[8]={0.0f,1.0f,2.0f,3.0f,4.0f,5.0f,0.5f,10.0f};
+double fconstants[8]={0.0,1.0,2.0,3.0,4.0,5.0,0.5,10.0};
+
+double convert80to64(uint32_t *temp)
+{
+        int tempi,len;
+        double *tf2=(double *)&temp[4];
+        temp[4]=temp[2]>>11;
+        temp[4]|=(temp[1]<<21);
+        temp[5]=(temp[1]&~0x80000000)>>11;
+        tempi=(temp[0]&0x7FFF)-16383;
+        len=((tempi>0)?tempi:-tempi)&0x3FF;
+        tempi=((tempi>0)?len:-len)+1023;
+        temp[5]|=(tempi<<20);
+        temp[5]|=(temp[0]&0x80000000);
+        return *tf2;
+}
+
+void convert64to80(uint32_t *temp, double tf)
+{
+        int tempi,len;
+        double *tf2=(double *)&temp[4];
+        *tf2=tf;
+        temp[0]=temp[5]&0x80000000;
+        tempi=((temp[5]>>20)&0x7FF)-1023+16383;
+        temp[0]|=(tempi&0x7FFF);
+        temp[1]=(temp[5]&0xFFFFF)<<11;
+        temp[1]|=((temp[4]>>21)&0x7FF);
+        temp[2]=temp[4]<<11;
+        if (temp[0]&0x7FFF) temp[1]|=0x80000000;
+}
 /*Instruction types :
   Opcodes Cx/Dx, CP1 - LDF/STF
   Opcodes Cx/Dx, CP2 - LFM/SFM
@@ -69,7 +98,7 @@ void fpaopcode(uint32_t opcode)
         double *tf,*tf2;
         float *tfs;
         double tempf;
-        int len;
+        int len,tempi;
         uint32_t addr;
         tf=(double *)temp;
         tf2=(double *)&temp[4];
@@ -102,7 +131,9 @@ void fpaopcode(uint32_t opcode)
                                 case 0x400000: /*Long*/
                                 *tf2=fparegs[FD];
                                 temp[0]=temp[5]&0x80000000;
-                                temp[0]|=(temp[5]&0x7FFF0000)>>16;
+                                tempi=((temp[5]>>20)&0x7FF)-1023+16383;
+                                temp[0]|=(tempi&0x7FFF);
+//                                temp[0]|=(temp[5]&0x7FFF0000)>>16;
                                 temp[1]=(temp[5]&0xFFFFF)<<11;
                                 temp[1]|=((temp[4]>>21)&0x7FF);
                                 temp[2]=temp[4]<<11;
@@ -130,9 +161,9 @@ void fpaopcode(uint32_t opcode)
                                         temp[0]=readmeml(addr+4);
                                         break;
                                         case 3:
-                                        temp[2]=readmeml(addr);
+                                        temp[0]=readmeml(addr);
                                         temp[1]=readmeml(addr+4);
-                                        temp[0]=readmeml(addr+8);
+                                        temp[2]=readmeml(addr+8);
                                         break;
                                 }
                                 switch (opcode&0x408000)
@@ -150,7 +181,11 @@ void fpaopcode(uint32_t opcode)
                                         temp[4]=temp[2]>>11;
                                         temp[4]|=(temp[1]<<21);
                                         temp[5]=(temp[1]&~0x80000000)>>11;
-                                        temp[5]|=((temp[0]&0x7FFF)<<16);
+                                        tempi=(temp[0]&0x7FFF)-16383;
+                                        len=((tempi>0)?tempi:-tempi)&0x3FF;
+                                        tempi=((tempi>0)?len:-len)+1023;
+                                        temp[5]|=(tempi<<20);
+//                                        temp[5]|=((temp[0]&0x7FFF)<<16);
                                         temp[5]|=(temp[0]&0x80000000);
                                         fparegs[FD]=*tf2;
 //                                        fparegs[FD]=*tf;
@@ -171,9 +206,9 @@ void fpaopcode(uint32_t opcode)
                                         writememl(addr+4,temp[0]);
                                         break;
                                         case 3:
-                                        writememl(addr,temp[2]);
+                                        writememl(addr,temp[0]);
                                         writememl(addr+4,temp[1]);
-                                        writememl(addr+8,temp[0]);
+                                        writememl(addr+8,temp[2]);
                                         break;
                                 }
                         }
@@ -197,52 +232,52 @@ void fpaopcode(uint32_t opcode)
                         switch (opcode&0x408000)
                         {
                                 case 0x000000: /*4 registers*/
-                                temp[2]=readmeml(addr);
+                                temp[0]=readmeml(addr);
                                 temp[1]=readmeml(addr+4);
-                                temp[0]=readmeml(addr+8);
-                                fparegs[FD]=*tf;
-                                temp[2]=readmeml(addr+12);
+                                temp[2]=readmeml(addr+8);
+                                fparegs[FD]=convert80to64(&temp[0]);
+                                temp[0]=readmeml(addr+12);
                                 temp[1]=readmeml(addr+16);
-                                temp[0]=readmeml(addr+20);
-                                fparegs[(FD+1)&7]=*tf;
-                                temp[2]=readmeml(addr+24);
+                                temp[2]=readmeml(addr+20);
+                                fparegs[(FD+1)&7]=convert80to64(&temp[0]);
+                                temp[0]=readmeml(addr+24);
                                 temp[1]=readmeml(addr+28);
-                                temp[0]=readmeml(addr+32);
-                                fparegs[(FD+2)&7]=*tf;
-                                temp[2]=readmeml(addr+36);
+                                temp[2]=readmeml(addr+32);
+                                fparegs[(FD+2)&7]=convert80to64(&temp[0]);
+                                temp[0]=readmeml(addr+36);
                                 temp[1]=readmeml(addr+40);
-                                temp[0]=readmeml(addr+44);
-                                fparegs[(FD+3)&7]=*tf;
+                                temp[2]=readmeml(addr+44);
+                                fparegs[(FD+3)&7]=convert80to64(&temp[0]);
                                 break;
                                 case 0x408000: /*3 registers*/
-                                temp[2]=readmeml(addr);
+                                temp[0]=readmeml(addr);
                                 temp[1]=readmeml(addr+4);
-                                temp[0]=readmeml(addr+8);
-                                fparegs[FD]=*tf;
-                                temp[2]=readmeml(addr+12);
+                                temp[2]=readmeml(addr+8);
+                                fparegs[FD]=convert80to64(&temp[0]);
+                                temp[0]=readmeml(addr+12);
                                 temp[1]=readmeml(addr+16);
-                                temp[0]=readmeml(addr+20);
-                                fparegs[(FD+1)&7]=*tf;
-                                temp[2]=readmeml(addr+24);
+                                temp[2]=readmeml(addr+20);
+                                fparegs[(FD+1)&7]=convert80to64(&temp[0]);
+                                temp[0]=readmeml(addr+24);
                                 temp[1]=readmeml(addr+28);
-                                temp[0]=readmeml(addr+32);
-                                fparegs[(FD+2)&7]=*tf;
+                                temp[2]=readmeml(addr+32);
+                                fparegs[(FD+2)&7]=convert80to64(&temp[0]);
                                 break;
                                 case 0x400000: /*2 registers*/
-                                temp[2]=readmeml(addr);
+                                temp[0]=readmeml(addr);
                                 temp[1]=readmeml(addr+4);
-                                temp[0]=readmeml(addr+8);
-                                fparegs[FD]=*tf;
-                                temp[2]=readmeml(addr+12);
+                                temp[2]=readmeml(addr+8);
+                                fparegs[FD]=convert80to64(&temp[0]);
+                                temp[0]=readmeml(addr+12);
                                 temp[1]=readmeml(addr+16);
-                                temp[0]=readmeml(addr+20);
-                                fparegs[(FD+1)&7]=*tf;
+                                temp[2]=readmeml(addr+20);
+                                fparegs[(FD+1)&7]=convert80to64(&temp[0]);
                                 break;
                                 case 0x008000: /*1 register*/
-                                temp[2]=readmeml(addr);
+                                temp[0]=readmeml(addr);
                                 temp[1]=readmeml(addr+4);
-                                temp[0]=readmeml(addr+8);
-                                fparegs[FD]=*tf;
+                                temp[2]=readmeml(addr+8);
+                                fparegs[FD]=convert80to64(&temp[0]);
                                 break;
 
                                 default:
@@ -272,55 +307,55 @@ void fpaopcode(uint32_t opcode)
                         {
                                 case 0x000000: /*4 registers*/
                                 temp[2]=0;
-                                *tf=fparegs[FD];
-                                writememl(addr,temp[2]);
+                                convert64to80(&temp[0],fparegs[FD]);
+                                writememl(addr,temp[0]);
                                 writememl(addr+4,temp[1]);
-                                writememl(addr+8,temp[0]);
-                                *tf=fparegs[(FD+1)&7];
-                                writememl(addr+12,temp[2]);
+                                writememl(addr+8,temp[2]);
+                                convert64to80(&temp[0],fparegs[(FD+1)&7]);
+                                writememl(addr+12,temp[0]);
                                 writememl(addr+16,temp[1]);
-                                writememl(addr+20,temp[0]);
-                                *tf=fparegs[(FD+2)&7];
-                                writememl(addr+24,temp[2]);
+                                writememl(addr+20,temp[2]);
+                                convert64to80(&temp[0],fparegs[(FD+2)&7]);
+                                writememl(addr+24,temp[0]);
                                 writememl(addr+28,temp[1]);
-                                writememl(addr+32,temp[0]);
-                                *tf=fparegs[(FD+3)&7];
-                                writememl(addr+36,temp[2]);
+                                writememl(addr+32,temp[2]);
+                                convert64to80(&temp[0],fparegs[(FD+3)&7]);
+                                writememl(addr+36,temp[0]);
                                 writememl(addr+40,temp[1]);
-                                writememl(addr+44,temp[0]);
+                                writememl(addr+44,temp[2]);
                                 break;
                                 case 0x408000: /*3 registers*/
                                 temp[2]=0;
-                                *tf=fparegs[FD];
-                                writememl(addr,temp[2]);
+                                convert64to80(&temp[0],fparegs[FD]);
+                                writememl(addr,temp[0]);
                                 writememl(addr+4,temp[1]);
-                                writememl(addr+8,temp[0]);
-                                *tf=fparegs[(FD+1)&7];
-                                writememl(addr+12,temp[2]);
+                                writememl(addr+8,temp[2]);
+                                convert64to80(&temp[0],fparegs[(FD+1)&7]);
+                                writememl(addr+12,temp[0]);
                                 writememl(addr+16,temp[1]);
-                                writememl(addr+20,temp[0]);
-                                *tf=fparegs[(FD+2)&7];
-                                writememl(addr+24,temp[2]);
+                                writememl(addr+20,temp[2]);
+                                convert64to80(&temp[0],fparegs[(FD+2)&7]);
+                                writememl(addr+24,temp[0]);
                                 writememl(addr+28,temp[1]);
-                                writememl(addr+32,temp[0]);
+                                writememl(addr+32,temp[2]);
                                 break;
                                 case 0x400000: /*2 registers*/
                                 temp[2]=0;
-                                *tf=fparegs[FD];
-                                writememl(addr,temp[2]);
+                                convert64to80(&temp[0],fparegs[FD]);
+                                writememl(addr,temp[0]);
                                 writememl(addr+4,temp[1]);
-                                writememl(addr+8,temp[0]);
-                                *tf=fparegs[(FD+1)&7];
-                                writememl(addr+12,temp[2]);
+                                writememl(addr+8,temp[2]);
+                                convert64to80(&temp[0],fparegs[(FD+1)&7]);
+                                writememl(addr+12,temp[0]);
                                 writememl(addr+16,temp[1]);
-                                writememl(addr+20,temp[0]);
+                                writememl(addr+20,temp[2]);
                                 break;
                                 case 0x008000: /*1 register*/
                                 temp[2]=0;
-                                *tf=fparegs[FD];
-                                writememl(addr,temp[2]);
+                                convert64to80(&temp[0],fparegs[FD]);
+                                writememl(addr,temp[0]);
                                 writememl(addr+4,temp[1]);
-                                writememl(addr+8,temp[0]);
+                                writememl(addr+8,temp[2]);
                                 break;
                                 
                                 default:

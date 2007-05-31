@@ -3,7 +3,6 @@ Notes on RPCemu dynarec :
 The makefile does not include the relevant files as of yet, as this is totally experimental.
 In order to compile, you must remove arm.c, and include ArmDynarec.c and 
 codegen_x86.c/codegen_amd64.c (depending on CPU type). 
-ArmDynarecOps.c is included in ArmDynarec.c, and doesn't need to be compiled seperately.
 
 This only works on x86-32 and x86-64 at the moment. Other ports are possible, but haven't been done
 yet (and won't be done by me).
@@ -13,8 +12,8 @@ This _has_ now been tested on linux (both x86-32 and x86-64) and works!
 This hasn't been tested on that many programs. The ones that have been tested (and work) include :
 
 RISC OS 3.7
-RISC OS 4.02 (don't enable lazy task swapping if cache is on)
-RISC OS 4.39 (don't enable lazy task swapping if cache is on)
+RISC OS 4.02 (lazy task swapping can now be enabled!)
+RISC OS 4.39
 Quake
 FQuake
 Freedoom
@@ -34,18 +33,19 @@ Delirium
 You must be in SA110 emulation for this to work. ARM610, ARM710 and ARM7500 appear to work, but
 there are many problems.
 
-Compatibility is mostly the same as a real StrongARM RiscPC - ie the stuff that doesn't work
-there won't work here. This includes old versions of apps (eg Ovation, SparkFS), old versions
-of utilities (eg ROS 3.6 !Configure, as included in the supplied RPCemu disk images) and old
-games (ie any unpatched).
+Compatibility is mostly the same as a real StrongARM RiscPC. RPCemu now supports self modifying
+code, so some stuff that didn't work before (eg Ovation, SparkFS) works now. There are still
+problems with some older programs though.
 
-In order to disable the dynarec disable the cache (ie *cache 0). This returns compatibility (mostly) to normal, and to a speed only a little slower than previous versions of RPCemu.
+In order to disable the dynarec disable the cache (ie *cache 0). This returns compatibility (mostly) 
+to normal, and to a speed only a little slower than previous versions of RPCemu.
 
 The instruction cache currently uses 1.8 megs. This is much improved over previous versions,
 but could probably be improved further by shrinking the block size (shrinking the number of
 blocks any further has a big impact on speed)
 
-The x86-32 emulator is less optimal on MSVC than GCC.
+The x86-32 emulator is slightly more buggy when compiled on MSVC than on GCC. I am not sure of the
+reason for this.
 
 
 The x86-32 emulator is now an (almost) full dynarec. Native code is generated most instructions.
@@ -53,10 +53,10 @@ The x86-32 emulator is now an (almost) full dynarec. Native code is generated mo
 
 The x86-64 version is still a threaded interpreter and as such is slower.
 
-The code blocks are flushed when the StrongARM Icache is flushed. This means that, as on a
-real StrongARM, self modifying code won't really work. I did create a version where self
-modifying code did work, but the speed was eratic - some programs performed really badly.
-Hence the current version doesn't have this in.
+
+The code blocks are flushed when the StrongARM Icache is flushed. RPCemu also handles self modifying
+code - when a memory page is written to, all code blocks in that page are invalidated, and when a code
+block is built in a page, that page is invalidated.
 
 
 The performance increase on my main machine (Athlon X2 4200+) ranges from about 400% (!SICK,
@@ -66,26 +66,22 @@ Benchmarks noted :
 
 Dhrystone (!SICK) - 
 
-310k on Athlon X2 4200+
+328k on Athlon X2 4200+
 292k on Core 2 Duo 1.66ghz
 231k on Athlon XP 2400+
  34k on P2-350 (that's about ARM6 speed)
 
 On Athlon X2 4200+ - 
-Riscosmark CPU test - 168% of StrongARM speed
-Firebench - 476fps
+Riscosmark CPU test - 184% of StrongARM speed
+Firebench - 490 fps
 FQuake   - 15 fps average (16fps on real SA)
-ArcQuake timedemo demo2 - 12.5fps (10.something on real SA?)
+ArcQuake timedemo demo2 - 13.1fps (10.something on real SA?)
 
-The highest instruction rate I've seen so far is on Firebench, which runs at around 215
+The highest instruction rate I've seen so far is on Firebench, which runs at around 221
 MIPS.
 
 
 Ideas for optimisations/design flaws:
-
-When the Icache is flushed, all blocks are flushed except those between 3800000 and 3FFFFFF
-(ie those in ROM). This probably breaks any operating system other than RISC OS, but since no
-other operating systems work I don't consider this much of a problem at the minute.
 
 Blocks always end when the PC could be modified (depending on condition codes). In theory, if
 a jump is not taken, then it should be possible to continue the block and put a check in the
@@ -98,6 +94,8 @@ The recompiler adds code at the end of a block, that checks to see if the next b
 already been compiled. If it has, it jumps straight to it, instead of returning to execx86()
 (depending on a few conditions). This helps loops a bit, but they could be made more efficient
 by extending B/BL to jump backwards within the same block.
+Note : I have tried this now, and the performance boost is almost unnoticeable - so it is not 
+in the SVN source.
 None of this is added in the x86-64 version however, as it appears to kill performance. I can't
 figure out _why_ it kills performance, but if it could be made to work properly it would be a
 nice speed increase.
@@ -112,18 +110,10 @@ Abort checking can be done either at the end of every LDR/STR/LDM/STM instructio
 end of each block (depending on the status of ABORTCHECKING - see rpcemu.h). RISC OS 3.7 works
 okay with ABORTCHECKING commented out, but RISC OS 4.02 and 4.39 need it set.
 
-It might be possible to support self modifying code, by keeping a 'page dirty' bit, and
-checking it on relevant blocks. If the bit is set, flush every block on the current page. Not
-sure what effect this would have on performance, or if there would even be much point - the
-StrongARM came out 11 years ago, and no program in that time would/should be using self
-modifying code without flushing the cache.
-I have now tried this, and the performance is variable - games and demos are mostly okay,
-but the desktop plummets from 67 MIPS to 45, and Dhrystone goes from 48ish MIPS to 4 MIPS.
-Hence it's not implemented!
-
 The flag setting code in the generated code is far from optimal. Currently it uses LAHF to
 put the flags in AH, and tests seperately for overflow. setzn uses the fact that the Z and N
 flags are in the same place on both x86 and ARM, and therefore just ORs them straight in.
 ADD/SUB/ADC/CMP use a lookup table for C/Z/N.
 
-The memory access code could be made much better, especially in LDM/STM. 
+The memory access code could be made better, especially in LDM/STM. There have been some 
+improvements in this area recently.

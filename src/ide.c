@@ -9,8 +9,13 @@
 #include "ide.h"
 #include "arm.h"
 
+void callreadcd();
 int skip512[2];
+#if defined WIN32 || defined _WIN32 || defined _WIN32
+int cdromenabled=1;
+#else
 int cdromenabled=0;
+#endif
 void atapicommand();
 int timetolive;
 int dumpedread=0;
@@ -25,13 +30,16 @@ struct
         int packlen;
         int spt[2],hpc[2];
         int packetstatus;
+        int cdpos,cdlen;
+        unsigned char asc;
+        int discchanged;
 } ide;
 
 int idereset=0;
-unsigned short idebuffer[2048];
+unsigned short idebuffer[65536];
 unsigned char *idebufferb;
 FILE *hdfile[2]={NULL,NULL};
-FILE *cdrom=NULL;
+//FILE *cdrom=NULL;
 void closeide0(void)
 {
         fclose(hdfile[0]);
@@ -44,6 +52,7 @@ void closeide1(void)
 
 void resetide(void)
 {
+        int c;
         ide.atastat=0x40;
         idecallback=0;
         if (!hdfile[0])
@@ -111,22 +120,41 @@ void resetide(void)
 //        idebufferb=(unsigned char *)idebuffer;
 //        ide.spt=63;
 //        ide.hpc=16;
-//        cdrom=fopen("d://au_cd8.iso","rb");
+//        cdrom=fopen("e://au_cd8.iso","rb");
+//        rpclog("CDROM sample : \n");
+//        fseek(cdrom,100*2048,SEEK_SET);
+//        for (c=0;c<16;c++) rpclog("%02X ",getc(cdrom));
+//        rpclog("\n");
 }
 
 void writeidew(uint16_t val)
 {
-//        rpclog("Write data %08X %04X\n",ide.pos,val);
+//        rpclog("Write data %08X %04X %i %07X %08X\n",ide.pos,val,ide.packetstatus,PC,armregs[5]);
         idebuffer[ide.pos>>1]=val;
+//        if (ide.command==0xA0) rpclog("Write packet %i %02X %02X %08X %08X\n",ide.pos,idebufferb[ide.pos],idebufferb[ide.pos+1],idebuffer,idebufferb);
         ide.pos+=2;
-        if (ide.command==0xA0 && ide.pos>=0xC)
+        if (ide.packetstatus==4)
+        {
+                if (ide.pos>=(ide.packlen+2))
+                {
+                        ide.packetstatus=5;
+                        idecallback=6;
+//                        rpclog("Packet over!\n");
+                        iomd.statb&=~2;
+                        updateirqs();
+                }
+                return;
+        }
+        else if (ide.packetstatus==5) return;
+        else if (ide.command==0xA0 && ide.pos>=0xC)
         {
                 ide.pos=0;
                 ide.atastat=0x80;
                 ide.packetstatus=1;
                 idecallback=60;
+                rpclog("Packet now waiting!\n");
         }
-        if (ide.pos>=512)
+        else if (ide.pos>=512)
         {
                 ide.pos=0;
                 ide.atastat=0x80;
@@ -166,6 +194,25 @@ void writeide(uint16_t addr, uint8_t val)
                 return;
                 case 0x1F6:
                 ide.head=val&0xF;
+                if (((val>>4)&1)!=ide.drive)
+                {
+                        idecallback=0;
+                        ide.atastat=0x40;
+                        ide.error=0;
+                        ide.secount=1;
+                        ide.sector=1;
+                        ide.head=0;
+                        ide.cylinder=0;
+                        ide.cylprecomp=0;
+                        idereset=0;
+                        ide.command=0;
+                        ide.packetstatus=0;
+                        ide.packlen=0;
+                        ide.cdlen=ide.cdpos=ide.pos=0;
+                        memset(idebuffer,0,512);
+                        iomd.statb&=~2;
+                        updateirqs();
+                }
                 ide.drive=(val>>4)&1;
                         ide.pos=0;
                         ide.atastat=0x40;
@@ -230,7 +277,8 @@ void writeide(uint16_t addr, uint8_t val)
                         ide.packetstatus=0;
                         ide.atastat=0x80;
                         idecallback=30;
-                        output=1;
+                        ide.pos=0;
+//                        output=1;
                         return;
                 }
                 error("Bad IDE command %02X\n",val);
@@ -258,7 +306,7 @@ uint8_t readide(uint16_t addr)
         uint8_t temp;
 //        FILE *f;
 //        int c;
-//        rpclog("Read IDE %08X %08X %08X\n",addr,PC-8,armregs[9]);
+//        if (output==1) rpclog("Read IDE %08X %08X %08X\n",addr,PC-8,armregs[9]);
         switch (addr)
         {
                 case 0x1F0:
@@ -287,15 +335,17 @@ uint8_t readide(uint16_t addr)
                 }
                 return temp;
                 case 0x1F1:
-//                rpclog("Read IDEerror %02X\n",ide.atastat);
+//                rpclog("Read IDEerror %02X %02X\n",ide.atastat,ide.error);
                 return ide.error;
                 case 0x1F2:
                 return (uint8_t)ide.secount;
                 case 0x1F3:
                 return (uint8_t)ide.sector;
                 case 0x1F4:
+//                        rpclog("Read cylinder low %02X\n",ide.cylinder&0xFF);
                 return (uint8_t)(ide.cylinder&0xFF);
                 case 0x1F5:
+//                        rpclog("Read cylinder high %02X\n",ide.cylinder>>8);
                 return (uint8_t)(ide.cylinder>>8);
                 case 0x1F6:
                 return (uint8_t)(ide.head|(ide.drive<<4));
@@ -324,27 +374,34 @@ uint16_t readidew(void)
         {
 //                rpclog("Over! packlen %i %i\n",ide.packlen,ide.pos);
                 ide.pos=0;
-                ide.atastat=0x40;
-                ide.packetstatus=0;
-                if (ide.command==0x20)
+                if (ide.command==0xA0 && ide.packetstatus==6)
                 {
-                        ide.secount--;
-                        if (ide.secount)
+                        callreadcd();
+                }
+                else
+                {
+                        ide.atastat=0x40;
+                        ide.packetstatus=0;
+                        if (ide.command==0x20)
                         {
-                                ide.atastat=0x08;
-                                ide.sector++;
-                                if (ide.sector==(ide.spt[ide.drive]+1))
+                                ide.secount--;
+                                if (ide.secount)
                                 {
-                                        ide.sector=1;
-                                        ide.head++;
-                                        if (ide.head==(ide.hpc[ide.drive]))
+                                        ide.atastat=0x08;
+                                        ide.sector++;
+                                        if (ide.sector==(ide.spt[ide.drive]+1))
                                         {
-                                                ide.head=0;
-                                                ide.cylinder++;
+                                                ide.sector=1;
+                                                ide.head++;
+                                                if (ide.head==(ide.hpc[ide.drive]))
+                                                {
+                                                        ide.head=0;
+                                                        ide.cylinder++;
+                                                }
                                         }
+                                        ide.atastat=0x80;
+                                        idecallback=200;
                                 }
-                                ide.atastat=0x80;
-                                idecallback=200;
                         }
                 }
         }
@@ -527,6 +584,7 @@ void callbackide(void)
                 updateirqs();
                 return;
                 case 0xA0: /*Packet*/
+//                rpclog("Packet callback! %i\n",ide.packetstatus);
                 if (!ide.packetstatus)
                 {
                         ide.pos=0;
@@ -534,15 +592,15 @@ void callbackide(void)
                         ide.atastat=8;
                         iomd.statb|=2;
                         updateirqs();
-                        rpclog("Preparing to recieve packet max DRQ count %04X\n",ide.cylinder);
+//                        rpclog("Preparing to recieve packet max DRQ count %04X\n",ide.cylinder);
                 }
                 else if (ide.packetstatus==1)
                 {
-                        rpclog("packetstatus != 0!\n");
+/*                        rpclog("packetstatus != 0!\n");
                         rpclog("Packet data :\n");
                         for (c=0;c<12;c++)
                             rpclog("%02X ",idebufferb[c]);
-                        rpclog("\n");
+                        rpclog("\n");*/
                         ide.atastat=0x80;
                         
                         atapicommand();
@@ -550,49 +608,129 @@ void callbackide(void)
                 }
                 else if (ide.packetstatus==2)
                 {
-                        rpclog("packetstatus==2\n");
+//                        rpclog("packetstatus==2\n");
                         ide.atastat=0x40;
                         iomd.statb|=2;
                         updateirqs();
+//                        if (output)
+//                        {
+//                                output=2;
+//                                timetolive=10000;
+//                        }
                 }
                 else if (ide.packetstatus==3)
                 {
                         ide.atastat=8;
-                        rpclog("Recieve data packet!\n");
+//                        rpclog("Recieve data packet!\n");
                         iomd.statb|=2;
                         updateirqs();
-                        ide.packetstatus=4;
+                        ide.packetstatus=0xFF;
+                }
+                else if (ide.packetstatus==4)
+                {
+                        ide.atastat=8;
+//                        rpclog("Send data packet!\n");
+                        iomd.statb|=2;
+                        updateirqs();
+//                        ide.packetstatus=5;
+                        ide.pos=2;
+                }
+                else if (ide.packetstatus==5)
+                {
+//                        rpclog("Packetstatus 5 !\n");
+                        atapicommand();
+                }
+                else if (ide.packetstatus==6) /*READ CD callback*/
+                {
+                        ide.atastat=8;
+//                        rpclog("Recieve data packet 6!\n");
+                        iomd.statb|=2;
+                        updateirqs();
+//                        ide.packetstatus=0xFF;
+                }
+                else if (ide.packetstatus==0x80) /*Error callback*/
+                {
+                        ide.atastat=0x41;
+                        iomd.statb|=2;
+                        updateirqs();
                 }
                 return;
         }
 }
 
 /*ATAPI CD-ROM emulation
-  This is incomplete and hence disabled by default. In order to use it you have
-  to set cdromenabled to 1, and open an ISO image to cdrom (see resetide()).
-  Also the ISO length (blocks) is hardwired to the length of the AU_CD8 image.
-  This is not usable in RISC OS at the moment due to the Mode Sense command not
-  being implemented - the documentation I have is quite ambiguous. I'm not
-  entirely sure what RISC OS wants from it.
+  This mostly seems to work. It is implemented only on Windows at the moment as
+  I haven't had time to implement any interfaces for it in the generic gui.
+  It mostly depends on driver files - cdrom-iso.c for ISO image files (in theory
+  on any platform) and cdrom-ioctl.c for Win32 IOCTL access. There's an ATAPI
+  interface defined in ide.h.
+  There are a couple of bugs in the CD audio handling.
   */
 unsigned char atapibuffer[256];
 int atapilen;
 
+void atapi_notready()
+{
+        /*Medium not present is 02/3A/--*/
+        /*cylprecomp is error number*/
+        /*SENSE/ASC/ASCQ*/
+        ide.atastat=0x41;    /*CHECK CONDITION*/
+        ide.error=(2 <<4)|4; /*Unit attention*/
+        if (ide.discchanged) ide.error|=8;
+        ide.discchanged=0;
+        ide.asc=0x3A;
+        ide.packetstatus=0x80;
+        idecallback=50;
+}
+
+void atapi_discchanged()
+{
+        ide.discchanged=1;
+}
+/*Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
+  Not that it means anything*/
+int cdromspeed=706;
 void atapicommand()
 {
         int c;
         int len;
         int msf;
         int blocks=95932;
-        rpclog("New ATAPI command %02X\n",idebufferb[0]);
+        int pos=0;
+//        rpclog("New ATAPI command %02X\n",idebufferb[0]);
                 msf=idebufferb[1]&2;
         switch (idebufferb[0])
         {
                 case 0: /*Test unit ready*/
+                if (!atapi->ready()) { atapi_notready(); return; }
+//                if (atapi->ready())
+//                {
+                        ide.packetstatus=2;
+                        idecallback=50;
+//                }
+//                else
+//                {
+//                        rpclog("Medium not present!\n");
+//                }
+                break;
+                case 0xBB: /*Set CD speed*/
                 ide.packetstatus=2;
                 idecallback=50;
+//                output=1;
                 break;
                 case 0x43: /*Read TOC*/
+                if (!atapi->ready()) { atapi_notready(); return; }
+                if (idebufferb[9]>>7)
+                {
+                        rpclog("Bad read TOC format\n");
+                        rpclog("Packet data :\n");
+                        for (c=0;c<12;c++)
+                            rpclog("%02X ",idebufferb[c]);
+                        rpclog("\n");
+                        exit(-1);
+                }
+                len=atapi->readtoc(idebufferb,idebufferb[6],msf);
+#if 0
                 len=4;
                 if (idebufferb[6]>1 && idebufferb[6]!=0xAA)
                 {
@@ -643,10 +781,10 @@ void atapicommand()
         }
         idebufferb[0] = (uint8_t)(((len-2) >> 8) & 0xff);
         idebufferb[1] = (uint8_t)((len-2) & 0xff);
-
-        rpclog("ATAPI buffer len %i\n",len);
+#endif
+  /*      rpclog("ATAPI buffer len %i\n",len);
         for (c=0;c<len;c++) rpclog("%02X ",idebufferb[c]);
-        rpclog("\n");
+        rpclog("\n");*/
         ide.packetstatus=3;
         ide.cylinder=len;
         ide.secount=2;
@@ -654,7 +792,7 @@ void atapicommand()
         ide.pos=0;
                 idecallback=60;
                 ide.packlen=len;
-        rpclog("Sending packet\n");
+//        rpclog("Sending packet\n");
         return;
         
                 switch (idebufferb[6])
@@ -669,21 +807,29 @@ void atapicommand()
                 exit(-1);
                 
                 case 0xBE: /*Read CD*/
-                printf("Read CD : start LBA %02X%02X%02X%02X Length %02X%02X%02X Flags %02X\n",idebufferb[2],idebufferb[3],idebufferb[4],idebufferb[5],idebufferb[6],idebufferb[7],idebufferb[8],idebufferb[9]);
+                if (!atapi->ready()) { atapi_notready(); return; }
+//                rpclog("Read CD : start LBA %02X%02X%02X%02X Length %02X%02X%02X Flags %02X\n",idebufferb[2],idebufferb[3],idebufferb[4],idebufferb[5],idebufferb[6],idebufferb[7],idebufferb[8],idebufferb[9]);
                 if (idebufferb[9]!=0x10)
                 {
                         rpclog("Bad flags bits %02X\n",idebufferb[9]);
                         exit(-1);
                 }
-                if (idebufferb[6] || idebufferb[7] || (idebufferb[8]!=1))
+/*                if (idebufferb[6] || idebufferb[7] || (idebufferb[8]!=1))
                 {
                         rpclog("More than 1 sector!\n");
                         exit(-1);
-                }
-                c=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
-                fseek(cdrom,c*2048,SEEK_SET);
-                fread(idebufferb,2048,1,cdrom);
-                ide.packetstatus=3;
+                }*/
+                ide.cdlen=(idebufferb[6]<<16)|(idebufferb[7]<<8)|idebufferb[8];
+                ide.cdpos=(idebufferb[2]<<24)|(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
+//                rpclog("Read at %08X %08X\n",ide.cdpos,ide.cdpos*2048);
+                atapi->readsector(idebufferb,ide.cdpos);
+
+//                fseek(cdrom,ide.cdpos*2048,SEEK_SET);
+//                fread(idebufferb,2048,1,cdrom);
+                ide.cdpos++;
+                ide.cdlen--;
+                if (ide.cdlen>=0) ide.packetstatus=6;
+                else              ide.packetstatus=3;
                 ide.cylinder=2048;
                 ide.secount=2;
                 ide.pos=0;
@@ -692,6 +838,7 @@ void atapicommand()
                 return;
                 
                 case 0x44: /*Read Header*/
+                if (!atapi->ready()) { atapi_notready(); return; }
                 if (msf)
                 {
                         rpclog("Read Header MSF!\n");
@@ -710,7 +857,239 @@ void atapicommand()
                 return;
                 
                 case 0x5A: /*Mode Sense*/
+                if (!atapi->ready()) { atapi_notready(); return; }
+                if (idebufferb[2]!=0x3F)
+                {
+                        rpclog("Bad mode sense - not 3F\n");
+                        rpclog("Packet data :\n");
+                        for (c=0;c<12;c++)
+                            rpclog("%02X\n",idebufferb[c]);
+                        exit(-1);
+                }
+                len=(idebufferb[8]|(idebufferb[7]<<8));
+//                rpclog("Mode sense! %i\n",len);
+                for (c=0;c<len;c++) idebufferb[c]=0;
+                /*Set mode parameter header - bytes 0 & 1 are data length (filled out later),
+                  byte 2 is media type*/
+                idebufferb[2]=1; /*120mm data CD-ROM*/
+                pos=8;
+                #if 0
+                /*&01 - Read error recovery*/
+                idebufferb[pos++]=0x01; /*Page code*/
+                idebufferb[pos++]=6; /*Page length*/
+                idebufferb[pos++]=0; /*Error recovery parameters*/
+                idebufferb[pos++]=3; /*Read retry count*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=0; /*Reserved*/
+                /*&01 - Read error recovery*/
+                idebufferb[pos++]=0x01; /*Page code*/
+                idebufferb[pos++]=6; /*Page length*/
+                idebufferb[pos++]=0; /*Error recovery parameters*/
+                idebufferb[pos++]=3; /*Read retry count*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=0; /*Reserved*/
+                #endif
+                /*&01 - Read error recovery*/
+                idebufferb[pos++]=0x01; /*Page code*/
+                idebufferb[pos++]=6; /*Page length*/
+                idebufferb[pos++]=0; /*Error recovery parameters*/
+                idebufferb[pos++]=3; /*Read retry count*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=0; /*Reserved*/
+                /*&0D - CD-ROM Parameters*/
+                idebufferb[pos++]=0x0D; /*Page code*/
+                idebufferb[pos++]=6; /*Page length*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=1; /*Inactivity time multiplier *NEEDED BY RISCOS* value is a guess*/
+                idebufferb[pos++]=0; idebufferb[pos++]=60; /*MSF settings*/
+                idebufferb[pos++]=0; idebufferb[pos++]=75; /*MSF settings*/
+                /*&2A - CD-ROM capabilities and mechanical status*/
+                idebufferb[pos++]=0x2A; /*Page code*/
+                idebufferb[pos++]=0x12; /*Page length*/
+                idebufferb[pos++]=0; idebufferb[pos++]=0; /*CD-R methods*/
+                idebufferb[pos++]=1; /*Supports audio play, not multisession*/
+                idebufferb[pos++]=0; /*Some other stuff not supported*/
+                idebufferb[pos++]=0; /*Some other stuff not supported (lock state + eject)*/
+                idebufferb[pos++]=0; /*Some other stuff not supported*/
+                idebufferb[pos++]=cdromspeed>>8; idebufferb[pos++]=cdromspeed&0xFF; /*Maximum speed - 706kpbs (4x)*/
+                idebufferb[pos++]=0; idebufferb[pos++]=2; /*Number of audio levels - on and off only*/
+                idebufferb[pos++]=0; idebufferb[pos++]=0; /*Buffer size - none*/
+                idebufferb[pos++]=706>>8; idebufferb[pos++]=706&0xFF; /*Current speed - 706kpbs (4x)*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=0; /*Drive digital format*/
+                idebufferb[pos++]=0; /*Reserved*/
+                idebufferb[pos++]=0; /*Reserved*/
+                len=pos;
+                idebufferb[0]=len>>8;
+                idebufferb[1]=len&255;
+/*        rpclog("ATAPI buffer len %i\n",len);
+        for (c=0;c<len;c++) rpclog("%02X ",idebufferb[c]);
+        rpclog("\n");*/
+        ide.packetstatus=3;
+        ide.cylinder=len;
+        ide.secount=2;
+//        ide.atastat=8;
+        ide.pos=0;
+                idecallback=60;
+                ide.packlen=len;
+//        rpclog("Sending packet\n");
+        return;
+
+                case 0x55: /*Mode select*/
+                if (!atapi->ready()) { atapi_notready(); return; }
+                if (ide.packetstatus==5)
+                {
+                        ide.atastat=0;
+//                        rpclog("Recieve data packet!\n");
+                        iomd.statb|=2;
+                        updateirqs();
+                        ide.packetstatus=0xFF;
+                        ide.pos=0;
+                }
+                else
+                {
+                        len=(idebufferb[7]<<8)|idebufferb[8];
+                        ide.packetstatus=4;
+                        ide.cylinder=len;
+                        ide.secount=2;
+                        ide.pos=0;
+                        idecallback=6;
+                        ide.packlen=len;
+/*                        rpclog("Waiting for ARM to send packet %i\n",len);
+                rpclog("Packet data :\n");
+                for (c=0;c<12;c++)
+                    rpclog("%02X ",idebufferb[c]);
+                    rpclog("\n");*/
+//                    output=1;
+//                        output=2;
+//                        timetolive=200000;
+                }
+                return;
+
+                case 0xA5: /*Play audio (12)*/
+                if (!atapi->ready()) { atapi_notready(); return; }
+                /*This is apparently deprecated in the ATAPI spec, and apparently
+                  has been since 1995 (!). Hence I'm having to guess most of it*/
+                pos=(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
+                len=(idebufferb[7]<<16)|(idebufferb[8]<<8)|idebufferb[9];
+                atapi->playaudio(pos,len);
+                ide.packetstatus=2;
+                idecallback=50;
+                break;
+
+                case 0x42: /*Read subchannel*/
+                if (!atapi->ready()) { atapi_notready(); return; }
+                if (idebufferb[3]!=1)
+                {
+                        rpclog("Bad read subchannel!\n");
+                        rpclog("Packet data :\n");
+                        for (c=0;c<12;c++)
+                            rpclog("%02X\n",idebufferb[c]);
+                        dumpregs();
+                        exit(-1);
+                }
+                pos=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0; /*Audio status*/
+                idebufferb[pos++]=0; idebufferb[pos++]=0; /*Subchannel length*/
+                idebufferb[pos++]=1; /*Format code*/
+                idebufferb[1]=atapi->getcurrentsubchannel(&idebufferb[5],msf);
+                len=11+5;
+                ide.packetstatus=3;
+                ide.cylinder=len;
+                ide.secount=2;
+                ide.pos=0;
+                idecallback=60;
+                ide.packlen=len;
+                break;
+
+                case 0x1B: /*Start/stop unit*/
+                if (idebufferb[4]!=2 && idebufferb[4]!=3 && idebufferb[4])
+                {
+                        rpclog("Bad start/stop unit command\n");
+                        rpclog("Packet data :\n");
+                        for (c=0;c<12;c++)
+                            rpclog("%02X\n",idebufferb[c]);
+                        exit(-1);
+                }
+                if (!idebufferb[4])        atapi->stop();
+                else if (idebufferb[4]==2) atapi->eject();
+                else                       atapi->load();
+                ide.packetstatus=2;
+                idecallback=50;
+                break;
                 
+                case 0x12: /*Inquiry*/
+                pos=0;
+                idebufferb[pos++]=5; /*CD-ROM*/
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=31;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]='R';
+                idebufferb[pos++]='P';
+                idebufferb[pos++]='C';
+                idebufferb[pos++]='e';
+                idebufferb[pos++]='m';
+                idebufferb[pos++]='u';
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]='R';
+                idebufferb[pos++]='P';
+                idebufferb[pos++]='C';
+                idebufferb[pos++]='e';
+                idebufferb[pos++]='m';
+                idebufferb[pos++]='u';
+                idebufferb[pos++]='C';
+                idebufferb[pos++]='D';
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                idebufferb[pos++]=0;
+                
+                len=36;
+                ide.packetstatus=3;
+                ide.cylinder=len;
+                ide.secount=2;
+                ide.pos=0;
+                idecallback=60;
+                ide.packlen=len;
+                break;
+                
+                case 0x4B: /*Pause/resume unit*/
+                if (!atapi->ready()) { atapi_notready(); return; }
+                if (idebufferb[8]&1) atapi->resume();
+                else                 atapi->pause();
+                ide.packetstatus=2;
+                idecallback=50;
+                break;
+
+                case 0x2B: /*Seek*/
+                if (!atapi->ready()) { atapi_notready(); return; }
+                pos=(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
+                atapi->seek(pos);
+                ide.packetstatus=2;
+                idecallback=50;
+                break;
+
                 default:
                 rpclog("Bad ATAPI command %02X\n",idebufferb[0]);
                 rpclog("Packet data :\n");
@@ -720,6 +1099,33 @@ void atapicommand()
         }
 }
 
+void callreadcd()
+{
+        iomd.statb&=~2;
+        updateirqs();
+        if (ide.cdlen<=0)
+        {
+                ide.packetstatus=2;
+                idecallback=20;
+                return;
+        }
+//        rpclog("Continue readcd! %i blocks left\n",ide.cdlen);
+        ide.atastat=0x80;
+        
+                atapi->readsector(idebufferb,ide.cdpos);
+                
+//                fseek(cdrom,ide.cdpos*2048,SEEK_SET);
+//        fread(idebufferb,2048,1,cdrom);
+                ide.cdpos++;
+                ide.cdlen--;
+                ide.packetstatus=6;
+                ide.cylinder=2048;
+                ide.secount=2;
+                ide.pos=0;
+                idecallback=60;
+                ide.packlen=2048;
+        output=1;
+}
 
 void filecoresectorop()
 {
@@ -739,3 +1145,4 @@ void filecoresectorop()
         armregs[2]+=armregs[4];
         armregs[4]=0;
 }
+

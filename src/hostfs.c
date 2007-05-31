@@ -23,6 +23,7 @@
 #endif
 #include <sys/stat.h>
 #include <limits.h>
+#include "arm.h"
 #include "mem.h"
 #include "hostfs.h"
 

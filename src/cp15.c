@@ -8,11 +8,13 @@ uint32_t oldpc = 0, oldpc2 = 0, oldpc3 = 0;
 int icache = 0;
 
 #define TLBCACHESIZE 256
-
+int mmucount=0;
 int pcisrom = 0;
 uint32_t tlbcache[0x100000] = {0}, tlbcache2[TLBCACHESIZE] = {0};
 unsigned long *vraddrl = 0;
 uint32_t vraddrls[1024] = {0}, vraddrphys[1024] = {0};
+unsigned long *vwaddrl = 0;
+uint32_t vwaddrls[1024] = {0}, vwaddrphys[1024] = {0};
 int tlbcachepos = 0;
 int tlbs = 0, flushes = 0;
 uint32_t pccache = 0, readcache , writecache = 0;
@@ -43,6 +45,9 @@ void resetcp15(void)
         if (!vraddrl) vraddrl=malloc(0x100000*sizeof(uint32_t *));
         memset(vraddrl,0xFF,0x100000*sizeof(uint32_t *));
         memset(vraddrls,0xFF,1024*sizeof(uint32_t));
+        if (!vwaddrl) vwaddrl=malloc(0x100000*sizeof(uint32_t *));
+        memset(vwaddrl,0xFF,0x100000*sizeof(uint32_t *));
+        memset(vwaddrls,0xFF,1024*sizeof(uint32_t));
 }
 
 int translations=0;
@@ -55,13 +60,23 @@ uint32_t tlbrammask;
 void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 {
         int c;
-//        rpclog("Write CP15 %08X %08X %i %i %07X\n",addr,val,OPC2,CRm,PC);
+        int oldmmu=mmu;
+        if (output) rpclog("Write CP15 %08X %08X %i %i %07X %i\n",addr,val,OPC2,CRm,PC,blockend);
         switch (addr&15)
         {
                 case 1: /*Control*/
                 cp15.ctrl=val;
                 if (!icache && val&0x1000) resetcodeblocks();
                 icache=val&0x1000;
+                if (!(val&1)) { rpclog("MMU disable at %08X\n",PC); ins=0; }
+/*                if (!mmu && val&1)
+                {
+                        if (mmucount)
+                        {
+                                rpclog("MMU count!\n");
+                        }
+                        mmucount++;
+                }*/
                 if (mmu!=(int)(val&1))
                 {
                         for (c=0;c<256;c++)
@@ -76,6 +91,12 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                                         vraddrls[c]=0xFFFFFFFF;
                                         vraddrphys[c]=0xFFFFFFFF;
                                 }
+                                if (vwaddrls[c]!=0xFFFFFFFF)
+                                {
+                                        vwaddrl[vwaddrls[c]]=0xFFFFFFFF;
+                                        vwaddrls[c]=0xFFFFFFFF;
+                                        vwaddrphys[c]=0xFFFFFFFF;
+                                }
                         }
                 }
                 mmu=val&1;
@@ -84,7 +105,12 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 {
                         updatemode(mode&15);
                 }
-//                printf("CP15 control write %08X %08X\n",val,PC);
+//                rpclog("CP15 control write %08X %08X %i\n",val,PC,blockend);
+/*                if (oldmmu && !(val&1))
+                {
+                        dumpregs();
+                        exit(-1);
+                }*/
                 return; /*We can probably ignore all other bits*/
                 case 2: /*TLB base*/
                 cp15.tlbbase=val&~0x3FFF;
@@ -95,6 +121,12 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                                 vraddrl[vraddrls[c]]=0xFFFFFFFF;
                                 vraddrls[c]=0xFFFFFFFF;
                                 vraddrphys[c]=0xFFFFFFFF;
+                        }
+                        if (vwaddrls[c]!=0xFFFFFFFF)
+                        {
+                                vwaddrl[vwaddrls[c]]=0xFFFFFFFF;
+                                vwaddrls[c]=0xFFFFFFFF;
+                                vwaddrphys[c]=0xFFFFFFFF;
                         }
                 }
 //                memset(raddrl,0xFF,1024);
@@ -154,6 +186,12 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                                 vraddrls[c]=0xFFFFFFFF;
                                 vraddrphys[c]=0xFFFFFFFF;
                         }
+                        if (vwaddrls[c]!=0xFFFFFFFF)
+                        {
+                                vwaddrl[vwaddrls[c]]=0xFFFFFFFF;
+                                vwaddrls[c]=0xFFFFFFFF;
+                                vwaddrphys[c]=0xFFFFFFFF;
+                        }
                 }
                 memset(tlbcache2,0xFF,TLBCACHESIZE*4);
 //                for (c=0;c<64;c++)
@@ -185,7 +223,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 if ((CRm&1) && !(OPC2)) resetcodeblocks();
 //                rpclog("Cache invalidate %08X\n",PC);
                 pccache=readcache=writecache=0xFFFFFFFF;
-                blockend=1;
+//                blockend=1;
                 memset(raddrl,0xFF,1024);
 //                for (c=0;c<256;c++)
 //                    raddrl[c]=0xFFFFFFFF;
@@ -236,13 +274,14 @@ uint32_t readcp15(uint32_t addr)
 //54F13001
 //1010042e
 //databort=1;
+//#define output 1
 #define FAULT()         armirq|=0x40;        \
                         if (!prefetch) \
                         { \
                                 cp15.far=addr;       \
                                 cp15.fsr=fsr;        \
                         } \
-                        if (0) rpclog("PERMISSIONS FAULT! %08X %07X %08X %08X %08X %08X %i %03X %08X %08X %08X %08X\n",addr,PC,opcode,oldpc,oldpc2,oldpc3,p,cp15.ctrl&0x300,fld,sld,armregs[16],cp15.dacr);  \
+                        if (output) rpclog("PERMISSIONS FAULT! %08X %07X %08X %08X %08X %08X %i %03X %08X %08X %08X %08X\n",addr,PC,opcode,oldpc,oldpc2,oldpc3,p,cp15.ctrl&0x300,fld,sld,armregs[16],cp15.dacr);  \
                         return 0xFFFFFFFF
 
 int checkpermissions(int p, int fsr, int rw, uint32_t addr, uint32_t fld, uint32_t sld, int prefetch)
@@ -292,7 +331,7 @@ int checkdomain(uint32_t addr, int domain, int type, int prefetch)
         }
         return temp&3;
 }
-
+int prntrans=0;
 uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 {
         uint32_t vaddr=((addr>>18)&~3)|cp15.tlbbase;
@@ -300,6 +339,9 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         uint32_t sldaddr,sld; //,taddr;
         uint32_t oa=addr;
         int temp,temp2,temp3;
+        prntrans=0;
+        if ((addr&~0xFFF)==0xF03B7000) { rpclog("Translate %08X!\n",addr); prntrans=1; }
+        armirq&=~0x40;
 //if (addr&0x80000000) printf("Translating %08X\n",addr);
 /*        if (!(addr&0xFC000000) && !(tlbcache[(addr>>12)&0x3FFF]&0xFFF))
         {
@@ -322,12 +364,12 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 if (prefetch) return 0;
                 cp15.far=addr;
                 cp15.fsr=5;
-//                rpclog("Fault!\n");
+                if (prntrans) rpclog("Fault!\n");
 //                printf("Fault! %08X %07X %i\n",addr,PC,rw);
 //                exit(-1);
                 return 0;
                 case 1: /*Page table*/
-                if (!temp3) return 0;
+                if (!temp3) { return 0; }
                 sldaddr=((addr&0xFF000)>>10)|(fld&0xFFFFFC00);
                 if ((sldaddr&0x1F000000)==0x02000000)
                    sld=vram[(sldaddr&vrammask)>>2];
@@ -337,25 +379,45 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                    sld=ram[(sldaddr&rammask)>>2];
                 if (!(sld&3)) /*Unmapped*/
                 {
+                        if (prntrans) rpclog("Unmapped! %08X %07X %i\n",addr,PC,ins);
                         armirq|=0x40;
                         if (prefetch) return 0;
                         cp15.far=addr;
                         cp15.fsr=7|((fld>>1)&0xF0);
-//                        rpclog("Unmapped! %08X %07X %i\n",addr,PC,ins);
 //                        output=1;
 //                        timetolive=100;
 //                        dumpregs();
 //                        exit(-1);
                         return 0;
                 }
-                temp=(addr&0xC00)>>9;
-                temp2=sld&(0x30<<temp);
-                temp2>>=(4+temp);
+/*                if ((sld&3)!=2)
+                {
+                        rpclog("Unsupported page size - %i %08X\n",sld&3,sld);
+                        dumpregs();
+                        exit(-1);
+                }*/
+                switch (sld&3)
+                {
+                        case 1: /*64kb - NetBSD*/
+                        temp=(addr&0xC000)>>13;
+                        temp2=sld&(0x30<<temp);
+                        temp2>>=(4+temp);
+                        break;
+                        case 2: /*4kb - RISC OS, Linux*/
+                        temp=(addr&0xC00)>>9;
+                        temp2=sld&(0x30<<temp);
+                        temp2>>=(4+temp);
+                        break;
+                }
                 if (temp3!=3)
                 {
                         if (checkpermissions(temp2,15,rw,addr,fld,sld,prefetch))
-                           return 0xFFFFFFFF;
+                        {
+//                                if (output) rpclog("Failed permissions!\n");
+                                return 0xFFFFFFFF;
+                        }
                 }
+                if ((sld&3)==1) sld=((sld&0xFFFF0FFF)|(addr&0xF000));
                 addr=(sld&0xFFFFF000)|(addr&0xFFF);
 //                if (!(oa&0xFC000000))
 //                {
@@ -367,14 +429,17 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 //                        rpclog("Cached to %08X %08X %08X %i  ",oa>>12,tlbcache[oa>>12],tlbcache2[tlbcachepos],tlbcachepos);
                         tlbcachepos=(tlbcachepos+1)&(TLBCACHESIZE-1);
 //                }
-//                rpclog("%08X %08X %08X %08X\n",addr,sld,oa,tlbcache[oa>>12]);
+                if (prntrans) rpclog("P %08X %08X %08X %08X\n",addr,sld,oa,tlbcache[oa>>12]);
                 return addr;
                 case 2: /*Section*/
-                if (!temp3) return 0;
+                if (!temp3) { /*rpclog("Nothing here!\n");*/ return 0; }
                 if (temp3!=3)
                 {
                         if (checkpermissions((fld&0xC00)>>10,13,rw,addr,fld,0xFFFFFFFF,prefetch))
-                           return 0xFFFFFFFF;
+                        {
+//                                if (output) rpclog("Failed permissions!\n");
+                                return 0xFFFFFFFF;
+                        }
                 }
                 addr=(addr&0xFFFFF)|(fld&0xFFF00000);
 //                if (!(oa&0xFC000000))
@@ -389,7 +454,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 /*                        tlbcache[oa>>12]=addr&0xFFFFF000;
                         lastcache=oa>>12;*/
 //                }
-//                rpclog("%08X %08X %08X %08X\n",addr,oa,tlbcache[oa>>12],fld);
+                if (prntrans) rpclog("S %08X %08X %08X %08X\n",addr,oa,tlbcache[oa>>12],fld);
                 return addr;
                 default:
                 error("Bad descriptor type %i %08X\n",fld&3,fld);
@@ -399,7 +464,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         }
         exit(-1);
 }
-
+//#undef output
 /*uint32_t translateaddress(uint32_t addr, int rw)
 {
         if (!(addr&0xFC000000) && !(tlbcache[(addr>>12)&0x3FFF]&0xFFF))
@@ -414,14 +479,17 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 uint32_t *getpccache(uint32_t addr)
 {
         uint32_t addr2;
+//        if (PC==0x97F510) { rpclog("Getpccache... %02X %i\n",armirq,mmu); output=0; }
         addr&=~0xFFF;
         if (mmu)
         {
+                armirq&=~0x40;
 //                if (indumpregs) rpclog("Translate prefetch %08X %02X ",addr,armirq);
                 addr2=translateaddress(addr,0,1);
+                //output=0;
                 if (armirq&0x40)
                 {
-//                        rpclog("Translate prefetch abort!!! %07X\n",PC);
+//                        rpclog("Translate prefetch abort!!! %07X %07X %07X %07X\n",PC,oldpc,oldpc2,oldpc3);
 //                        output=1;
 //                        if (indumpregs) rpclog("Abort!\n");
                         armirq&=~0x40;
@@ -433,6 +501,9 @@ uint32_t *getpccache(uint32_t addr)
 //                if (indumpregs) rpclog("\n");
         }
         else     addr2=addr;
+        /*Invalidate write pointer for this page - so we can handle code modification*/
+        vwaddrl[addr>>12]=0xFFFFFFFF;
+        //output=0;
         pcisrom=0;
         switch (addr2&0x1F000000)
         {

@@ -134,6 +134,9 @@ extern void resetfpa();
 extern void dumpfpa(void);
 extern void fpaopcode(uint32_t opcode);
 
+#define CDROM_ISO   0
+#define CDROM_IOCTL 1
+extern int cdromtype;
 
 
 

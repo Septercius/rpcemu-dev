@@ -718,8 +718,11 @@ void opANDimm(unsigned long opcode)
         }
         else
         {
+                if (RD==14 && RN==14) { andbefore=armregs[14]; andpc=PC; }
                 templ=rotate2(opcode);
+                if (RD==14 && RN==14) andmid=templ;
                 armregs[RD]=GETADDR(RN)&templ;
+                if (RD==14 && RN==14) andafter=armregs[14];
         }
 	//inscount++; //r//inscount++;
 }
@@ -1314,7 +1317,7 @@ int opSTRB4C(unsigned long opcode)
 	writememb(armregs[RN],armregs[RD]);
 	if (armirq&0x40)
         {
-                rpclog("Data abort! %07X\n",PC);
+//                rpclog("Data abort! %07X\n",PC);
                 return 1;
         }
         armregs[RN]+=(opcode&0xFFF);
@@ -1326,8 +1329,8 @@ int opLDR59(unsigned long opcode)
 	//inscount++; //r//inscount++;
         addr=(GETADDR(RN)+(opcode&0xFFF));
         templ=readmeml(addr&~3);
-        if (addr&3) templ=ldrresult(templ,addr);
         if (armirq&0x40) return 1;
+        if (addr&3) templ=ldrresult(templ,addr);
         LOADREG(RD,templ);
         return 0;
 }

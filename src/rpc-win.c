@@ -104,6 +104,24 @@ HWND ghwnd;
 HMENU menu;
 int infocus;
 
+void initmenu()
+{
+        int c;
+        HMENU m;
+        char s[32];
+        m=GetSubMenu(menu,2); /*Settings*/
+        m=GetSubMenu(m,4); /*CD-ROM*/
+        for (c='A';c<='Z';c++)
+        {
+                sprintf(s,"%c:\\",c);
+                if (GetDriveType(s)==DRIVE_CDROM)
+                {
+                        sprintf(s,"CD-ROM Drive %c:",c);
+                        AppendMenu(m,MF_STRING,IDM_CDROM_REAL+c,s);
+                }
+        }
+}
+
 void updatewindowsize(uint32_t x, uint32_t y)
 {
         RECT r;
@@ -174,6 +192,7 @@ void _closeblitthread(void)
 {
         if (blitrunning)
         {
+                wakeupblitterthread();
                 quitblitter=1;
                 while (blitrunning)
                       sleep(1);
@@ -206,6 +225,7 @@ void _closesoundthread(void)
 {
         if (soundrunning)
         {
+                wakeupsoundthread();
                 quitblitter=1;
                 while (soundrunning)
                       sleep(1);
@@ -290,7 +310,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         if (!RegisterClassEx (&wincl))
            return 0;
         menu=LoadMenu(hThisInstance,TEXT("MainMenu"));
-
+        initmenu();
         /* The class is registered, let's create the program*/
         ghwnd = CreateWindowEx (
            0,                   /* Extended possibilites for variation */
@@ -318,7 +338,10 @@ infocus=0;
 //        arclog=fopen("arclog.txt","wt");
         if (startrpcemu())
            return -1;
-           
+//        iso_open();
+//        ioctl_close();
+//        ioctl_gettoc();
+//        ioctl_readsector();
         atexit(releasemousecapture);
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
@@ -448,6 +471,43 @@ void changedisc(HWND hwnd, int drive)
                 strcpy(discname[drive],fn);
                 loadadf(discname[drive], drive);
         }
+}
+
+char isoname[512];
+int selectiso(HWND hwnd)
+{
+        char fn[512];
+        char start[512];
+        OPENFILENAME ofn;
+        fn[0]=0;
+        strcpy(start,isoname);
+//        start[0]=0;
+        ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = hwnd;
+	ofn.hInstance = NULL;
+	ofn.lpstrFilter = "ISO CD-ROM Image\0*.iso\0All Files\0*.*\0";
+	ofn.lpstrCustomFilter = NULL;
+	ofn.nMaxCustFilter = 0;
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFile = fn;
+	ofn.nMaxFile = sizeof(fn);
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = start;//discname[drive];
+	ofn.lpstrTitle = NULL;
+	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.nFileOffset = 0;
+	ofn.nFileExtension = 0;
+	ofn.lpstrDefExt = NULL;
+	ofn.lCustData = 0;
+	ofn.lpfnHook = NULL;
+	ofn.lpTemplateName = NULL;
+        if (GetOpenFileName(&ofn))
+        {
+                strcpy(isoname,fn);
+                return 1;
+        }
+        return 0;
 }
 
 int model2;
@@ -589,6 +649,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         switch (message)                  /* handle the messages */
         {
                 case WM_CREATE:
+                strcpy(isoname,"e:/au_cd8.iso");
 //                _beginthread(soundthread,0,NULL);
                 return 0;
                 case WM_COMMAND:
@@ -626,6 +687,23 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         case IDM_BLITOPT:
                         skipblits^=1;
                         CheckMenuItem(hmenu,IDM_BLITOPT,(skipblits)?MF_CHECKED:MF_UNCHECKED);
+                        return 0;
+                        case IDM_CDROM_ISO:
+                        if (selectiso(ghwnd))
+                        {
+                                atapi->exit();
+                                iso_open(isoname);
+                        }
+                        return 0;
+//                        case IDM_CDROM_G:
+//                        atapi->exit();
+//                        ioctl_open();
+//                        return 0;
+                }
+                if (LOWORD(wParam)>=IDM_CDROM_REAL && LOWORD(wParam)<(IDM_CDROM_REAL+100))
+                {
+                        atapi->exit();
+                        ioctl_open(LOWORD(wParam)-IDM_CDROM_REAL);
                         return 0;
                 }
                 break;

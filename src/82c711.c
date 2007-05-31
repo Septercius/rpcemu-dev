@@ -144,7 +144,7 @@ void writefdc(uint32_t addr, uint32_t val)
 //                printf("3F4 write %02X %07X\n",val,PC);
                 break;
                 case 0x3F5: /*Command*/
-                output=0;
+                //output=0;
 //                printf("Command write %02X %i : rate %i\n",val,ins,fdc.rate);
                 timetolive=50;
                 if (fdc.params)
@@ -292,7 +292,7 @@ void writefdc(uint32_t addr, uint32_t val)
                 }
                 break;
                 case 0x3F7:
-                output=0;
+                //output=0;
 //                printf("3F7 write %02X %07X\n",val,PC);
                 fdc.rate=val&3;
         }

@@ -34,11 +34,16 @@ extern uint32_t waddrl;
 extern uint32_t *waddrl2;
 extern uint32_t waddrbl;
 extern uint32_t *waddrbl2;
+
+extern unsigned long *vwaddrl;
+extern uint32_t vwaddrls[1024],vwaddrphys[1024];
+extern int vwaddrlpos;
+
 //uint8_t pagedirty[0x1000];
 //#define writememb(a,v) writememfb(a,v)
 #define HASH(l) (((l)>>2)&0x7FFF)
-#define writememl(a,v) if (vraddrl[(a)>>12]&3) writememfl(a,v); else { *(uint32_t *)(/*(int32_t)*/(a)+vraddrl[(a)>>12])=v; }
-#define writememb(a,v) if (vraddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)(/*(int32_t)*/(a)+vraddrl[(a)>>12])=v; }
+#define writememl(a,v) if (vwaddrl[(a)>>12]&3) writememfl(a,v); else { *(uint32_t *)(/*(int32_t)*/(a)+vwaddrl[(a)>>12])=v; }
+#define writememb(a,v) if (vwaddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)(/*(int32_t)*/(a)+vwaddrl[(a)>>12])=v; }
 //#define writememl(a,v) if (((a)>>12)==waddrl) { waddrl2[((a)&0xFFC)>>2]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfl(a,v); }
 //#define writememb(a,v) if (((a)>>12)==waddrbl) { ((unsigned char *)waddrbl2)[(a)&0xFFF]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfb(a,v); }
 

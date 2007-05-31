@@ -15,7 +15,7 @@ extern void initcodeblock(uint32_t l);
 extern int codewritememfb();
 extern uint32_t *usrregs[16],userregs[17],superregs[17],fiqregs[17],irqregs[17],abortregs[17],undefregs[17],systemregs[17];
 extern uint32_t spsr[16];
-extern uint32_t armregs[17];
+extern uint32_t armregs[18];
 extern int armirq; //,armfiq;
 extern int cpsr;
 #ifdef PREFETCH
