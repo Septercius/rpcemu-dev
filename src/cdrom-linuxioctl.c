@@ -1,38 +1,39 @@
 #include <stdio.h>
+#include <linux/cdrom.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
 #include "rpcemu.h"
 #include "ide.h"
 
-ATAPI iso_atapi;
+ATAPI ioctl_atapi;
 
-int iso_discchanged=0;
-FILE *iso_file;
-int iso_empty=0;
-int iso_ready()
+int ioctl_discchanged=0;
+int ioctl_empty=0;
+int ioctl_ready()
 {
-        if (iso_empty) return 0;
-        if (iso_discchanged)
-        {
-                iso_discchanged=0;
-                atapi_discchanged();
-                return 0;
-        }
-        return 1;
+	int cdrom=open("/dev/cdrom",O_RDONLY|O_NONBLOCK);
+        if (cdrom<=0) return 0;
+	return 1;
 }
 
-void iso_readsector(uint8_t *b, int sector)
+void ioctl_readsector(uint8_t *b, int sector)
 {
-        if (iso_empty) return;
-        fseek(iso_file,sector*2048,SEEK_SET);
-        fread(b,2048,1,iso_file);
+	int cdrom=open("/dev/cdrom",O_RDONLY|O_NONBLOCK);
+        if (cdrom<=0) return;
+        lseek(cdrom,sector*2048,SEEK_SET);
+        read(cdrom,b,2048);
+	close(cdrom);
 }
 
-int iso_readtoc(unsigned char *b, unsigned char starttrack, int msf)
+/*I'm not sure how to achieve this properly, so the TOC is faked*/
+int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
 {
         int len=4;
         int blocks;
-        if (iso_empty) return 0;
-        fseek(iso_file,-1,SEEK_END);
-        blocks=ftell(iso_file)/2048;
+	int cdrom=open("/dev/cdrom",O_RDONLY|O_NONBLOCK);
+        if (cdrom<=0) return;
+	close(cdrom);
+        blocks=(600*1024*1024)/2048;
         if (starttrack <= 1) {
           b[len++] = 0; // Reserved
           b[len++] = 0x14; // ADR, control
@@ -75,56 +76,53 @@ int iso_readtoc(unsigned char *b, unsigned char starttrack, int msf)
         return len;
 }
 
-uint8_t iso_getcurrentsubchannel(uint8_t *b, int msf)
+uint8_t ioctl_getcurrentsubchannel(uint8_t *b, int msf)
 {
         memset(b,0,2048);
         return 0;
 }
 
-void iso_playaudio(uint32_t pos, uint32_t len)
+void ioctl_playaudio(uint32_t pos, uint32_t len)
 {
 }
 
-void iso_seek(uint32_t pos)
+void ioctl_seek(uint32_t pos)
 {
 }
 
-void iso_null()
+void ioctl_null()
 {
 }
 
-int iso_open(char *fn)
+int ioctl_open()
 {
-        iso_file=fopen(fn,"rb");
-        atapi=&iso_atapi;
-        iso_discchanged=1;
-        iso_empty=0;
+        atapi=&ioctl_atapi;
+        ioctl_discchanged=1;
+        ioctl_empty=0;
 }
 
-void iso_close()
+void ioctl_close()
 {
-        if (iso_file) fclose(iso_file);
 }
 
-void iso_exit()
+void ioctl_exit()
 {
-        if (iso_file) fclose(iso_file);
 }
 
-void iso_init()
+void ioctl_init()
 {
-        iso_empty=1;
-        atapi=&iso_atapi;
+        ioctl_empty=1;
+        atapi=&ioctl_atapi;
 }
 
-ATAPI iso_atapi=
+ATAPI ioctl_atapi=
 {
-        iso_ready,
-        iso_readtoc,
-        iso_getcurrentsubchannel,
-        iso_readsector,
-        iso_playaudio,
-        iso_seek,
-        iso_null,iso_null,iso_null,iso_null,iso_null,
-        iso_exit
+        ioctl_ready,
+        ioctl_readtoc,
+        ioctl_getcurrentsubchannel,
+        ioctl_readsector,
+        ioctl_playaudio,
+        ioctl_seek,
+        ioctl_null,ioctl_null,ioctl_null,ioctl_null,ioctl_null,
+        ioctl_exit
 };

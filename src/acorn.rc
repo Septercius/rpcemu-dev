@@ -44,6 +44,10 @@ BEGIN
                 MENUITEM "&Fullscreen mode",IDM_FULLSCR
                 MENUITEM "&Alternative blitting code",IDM_STRETCH
                 MENUITEM "&Blitting optimisation",IDM_BLITOPT
+                POPUP "&CD-ROM"
+                BEGIN
+                        MENUITEM "&ISO image...",IDM_CDROM_ISO
+                END
         END
 END
 

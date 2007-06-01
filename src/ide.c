@@ -14,7 +14,7 @@ int skip512[2];
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 int cdromenabled=1;
 #else
-int cdromenabled=0;
+int cdromenabled=1;
 #endif
 void atapicommand();
 int timetolive;

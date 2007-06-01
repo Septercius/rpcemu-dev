@@ -27,4 +27,6 @@ typedef struct ATAPI
 
 ATAPI *atapi;
 
+extern int cdromenabled;
+
 #endif //__IDE__

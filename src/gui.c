@@ -5,6 +5,7 @@
 #include "sound.h"
 #include "iomd.h"
 #include "82c711.h"
+#include "ide.h"
 
 DIALOG configuregui[];
 int menuexit(void)
@@ -63,6 +64,96 @@ MENU discmenu[]=
         {"Load drive :&0...",menuld0,NULL,0,NULL},
         {"Load drive :&1...",menuld1,NULL,0,NULL},
         {NULL,NULL,NULL,0,NULL}
+};
+
+int cddisabled()
+{
+	int res;
+	if (cdromenabled)
+	{
+		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
+		if (res==1)
+		{
+			cdromenabled=0;
+			resetrpc();
+		}
+	}
+	return D_CLOSE;
+}
+
+int cdempty()
+{
+	int res;
+	if (!cdromenabled)
+	{
+		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
+		if (res==1)
+		{
+			cdromenabled=1;
+			resetrpc();
+		}
+		else		   
+	 	   return D_CLOSE;
+	}
+	atapi->exit();
+	iso_init();
+	return D_CLOSE;
+}
+
+char isoname[260]="";
+
+int cdisoimage()
+{
+        char fn[260];
+        int ret,res;
+        int xsize=SCREEN_W-32,ysize=SCREEN_H-64;
+	if (!cdromenabled)
+	{
+		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
+		if (res==1)
+		{
+			cdromenabled=1;
+			resetrpc();
+		}
+		else
+	   	   return D_EXIT;
+	}
+		        memcpy(fn,isoname,260);
+		        ret=file_select_ex("Please choose a disc image",fn,"ISO",260,xsize,ysize);
+		        if (ret)
+	        	{
+		                strcpy(isoname,fn);
+				atapi->exit();
+                		iso_open(isoname);
+		        }
+        return D_EXIT;
+}
+
+int cdioctl()
+{
+	int res;
+	if (!cdromenabled)
+	{
+		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
+		if (res==1)
+		{
+			cdromenabled=1;
+			resetrpc();
+		}
+		else return D_CLOSE;
+	}
+	atapi->exit();
+	ioctl_init();
+	return D_CLOSE;
+}
+
+MENU cdmenu[]=
+{
+	{"&Disabled",cddisabled,NULL,0,NULL},
+	{"&Empty",cdempty,NULL,0,NULL},
+	{"&ISO image...",cdisoimage,NULL,0,NULL},
+	{"&IOCTL",cdioctl,NULL,0,NULL},
+	{NULL,NULL,NULL,0,NULL}
 };
 
 MENU settingsmenu[];
@@ -155,6 +246,7 @@ MENU settingsmenu[]=
         {"&Alternative blitting code",menualt,NULL,0,NULL},
         {"&Blitting optimisation",menublt,NULL,0,NULL},
         {"&Mouse hack",menumouse,NULL,0,NULL},
+	{"&CD-ROM",NULL,cdmenu,0,NULL},
         {NULL,NULL,NULL,0,NULL}
 };
 
