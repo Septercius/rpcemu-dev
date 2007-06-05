@@ -16,7 +16,7 @@
 #else
 #include <unistd.h>
 #endif
-#ifdef __unix
+#if defined __unix || defined __MACH__
 #include <utime.h>
 #else
 #include <sys/utime.h>
@@ -1219,7 +1219,7 @@ hostfs_file_8_create_dir(ARMul_State *state)
   dbug_hostfs("\tPATH = %s\n", ro_path);
   dbug_hostfs("\tPATH2 = %s\n", host_path);
 
-#ifdef __unix
+#if defined __unix || __MACH__
   s = mkdir(host_path, 0755);
 #else
   s = mkdir(host_path);

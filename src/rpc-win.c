@@ -345,7 +345,6 @@ infocus=0;
         atexit(releasemousecapture);
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
-        install_int_ex(vblupdate,BPS_TO_TIMER(refresh));
 //        timeBeginPeriod(1);
         if (soundenabled)
         {
@@ -371,6 +370,8 @@ infocus=0;
                 SetThreadPriority(bltthread,THREAD_PRIORITY_TIME_CRITICAL-1);
 //        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 infocus=1;
+        install_int_ex(vblupdate,BPS_TO_TIMER(refresh));
+        drawscre=0;
         while (!quited)
         {
                 if (infocus)

@@ -130,6 +130,9 @@ void resetide(void)
 void writeidew(uint16_t val)
 {
 //        rpclog("Write data %08X %04X %i %07X %08X\n",ide.pos,val,ide.packetstatus,PC,armregs[5]);
+#ifdef _RPCEMU_BIG_ENDIAN
+		val=(val>>8)|(val<<8);
+#endif
         idebuffer[ide.pos>>1]=val;
 //        if (ide.command==0xA0) rpclog("Write packet %i %02X %02X %08X %08X\n",ide.pos,idebufferb[ide.pos],idebufferb[ide.pos+1],idebuffer,idebufferb);
         ide.pos+=2;
@@ -369,6 +372,9 @@ uint16_t readidew(void)
 //        if (ide.command==0xA0) rpclog("Read data2 %08X %04X %07X\n",ide.pos,idebuffer[(ide.pos>>1)],PC);
 //        if (output) rpclog("Read data2 %08X %02X%02X %07X\n",ide.pos,idebuffer[(ide.pos>>1)+1],idebuffer[(ide.pos>>1)],PC);
         temp=idebuffer[ide.pos>>1];
+	#ifdef _RPCEMU_BIG_ENDIAN
+		temp=(temp>>8)|(temp<<8);
+	#endif
         ide.pos+=2;
         if ((ide.pos>=512 && ide.command!=0xA0) || (ide.command==0xA0 && ide.pos>=ide.packlen))
         {

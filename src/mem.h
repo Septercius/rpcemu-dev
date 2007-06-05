@@ -23,7 +23,11 @@ extern int vraddrlpos;
 //#define readmeml(a) readmemfl(a)
 
 #define readmeml(a) ((vraddrl[(a)>>12]&1)?readmemfl(a):*(uint32_t *)(/*(int32_t)*/(a)+(vraddrl[(a)>>12])))
-#define readmemb(a) ((vraddrl[(a)>>12]&1)?readmemfb(a):*(unsigned char *)(/*(int32_t)*/(a)+(vraddrl[(a)>>12])))
+#ifdef _RPCEMU_BIG_ENDIAN
+	#define readmemb(a) ((vraddrl[(a)>>12]&1)?readmemfb(a):*(unsigned char *)(((a)^3)+(vraddrl[(a)>>12])))
+#else
+	#define readmemb(a) ((vraddrl[(a)>>12]&1)?readmemfb(a):*(unsigned char *)((a)+(vraddrl[(a)>>12])))
+#endif
 
 //#define readmeml(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?raddrl2[((a)>>12)&0xFF][(a)>>2]:readmemfl(a))
 //#define readmeml(a) ((((a)&0xFFFFF000)==raddrl)?raddrl2[((a)&0xFFC)>>2]:readmemfl(a))
@@ -43,7 +47,11 @@ extern int vwaddrlpos;
 //#define writememb(a,v) writememfb(a,v)
 #define HASH(l) (((l)>>2)&0x7FFF)
 #define writememl(a,v) if (vwaddrl[(a)>>12]&3) writememfl(a,v); else { *(uint32_t *)(/*(int32_t)*/(a)+vwaddrl[(a)>>12])=v; }
-#define writememb(a,v) if (vwaddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)(/*(int32_t)*/(a)+vwaddrl[(a)>>12])=v; }
+#ifdef _RPCEMU_BIG_ENDIAN
+	#define writememb(a,v) if (vwaddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)(((a)^3)+vwaddrl[(a)>>12])=v; }
+#else
+	#define writememb(a,v) if (vwaddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)((a)+vwaddrl[(a)>>12])=v; }
+#endif
 //#define writememl(a,v) if (((a)>>12)==waddrl) { waddrl2[((a)&0xFFC)>>2]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfl(a,v); }
 //#define writememb(a,v) if (((a)>>12)==waddrbl) { ((unsigned char *)waddrbl2)[(a)&0xFFF]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfb(a,v); }
 

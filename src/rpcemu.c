@@ -51,22 +51,31 @@ int startrpcemu()
                    HOSTFS_ROOT[c]='/';
         }
         initmem();
+//printf("Mem inited...\n");
         if (loadroms())
         {
                 error("RiscOS ROMs missing!");
                 return -1;
         }
+//printf("ROMs loaded!\n");
         resetarm();
         resetfpa();
         resetiomd();
+//printf("IOMD reset!\n");
         resetkeyboard();
+//printf("Keyboard reset!\n");
         reset82c711();
+//printf("82c711 reset!\n");
         resetide();
+//printf("IDE reset!\n");
         reseti2c();
+//printf("i2C reset!\n");
         loadcmos();
         loadadf("boot.adf",0);
         loadadf("notboot.adf",1);
+//printf("About to init video...\n");
         initvideo();
+//printf("Video inited!\n");
         initsound();
         loadconfig();
         reallocmem(rammask+1);
@@ -79,13 +88,19 @@ int startrpcemu()
 
 void execrpcemu()
 {
+//	static int c;
+//	printf("Exec %i\n",c);
+//c++;
         execarm(20000);
         if (drawscre>0)
         {
 //                rpclog("Drawscre %i\n",drawscre);
                 drawscre--;
+                if (drawscre>5) drawscre=0;
                 drawscr();
                 iomdvsync();
+//				poll_keyboard();
+//				poll_mouse();
                 pollmouse();
                 pollkeyboard();
 //                sleep(0);

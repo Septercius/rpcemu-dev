@@ -52,7 +52,7 @@ FILE *arclog;
 void rpclog(const char *format, ...)
 {
    char buf[256];
-   return;
+//   return;
 if (!arclog) arclog=fopen("rpclog.txt","wt");
    va_list ap;
    va_start(ap, format);
@@ -69,10 +69,12 @@ void vblupdate()
 {
         if (infocus) drawscre++;
 }
-
+uint32_t _oldx=-1,_oldy=-1;
 void updatewindowsize(uint32_t x, uint32_t y)
 {
-  //printf("updatewindowsize: %u %u\n", x, y);
+if (x==_oldx && y==_oldy) return;
+  printf("updatewindowsize: %i %i\n", x, y);
+_oldx=x; _oldy=y;
 
                         if (set_gfx_mode(GRAPHICS_TYPE, x, y, 0, 0))
                         {
@@ -134,20 +136,33 @@ int main (void)
         char s[128];
         const char *p;
         char fn[512];
+printf("Started!\n");
 mousehackon=1;
         allegro_init();
+printf("1\n");
+//set_gfx_mode(GFX_AUTODETECT_WINDOWED,640,480,0,0);
+printf("2a\n");
         install_keyboard();
+//poll_keyboard();
+printf("2\n");
+
         install_timer();
+printf("3\n");
         install_mouse();
+//poll_mouse();
 infocus=0;
+printf("Allegro inited...\n");
 //        arclog=fopen("arclog.txt","wt");
         if (startrpcemu())
            return -1;
 	//startblitthread();
+printf("RPCemu started...\n");
         install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate,BPS_TO_TIMER(refresh));
         if (soundenabled) initsound();
         infocus=1;
+mousehackon=1;
+printf("Ready to go!\n");
         while (!quited)
         {
                 if (infocus)
@@ -160,6 +175,9 @@ infocus=0;
                                 updatemips=0;
                         }
                 if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END]) entergui();
+				if (key[KEY_Z] || key[KEY_QUOTE]) mouse_b|=4;
+				if (key[KEY_X]) mouse_b|=2;
+//				if (key[KEY_A] || key[KEY_S]) entergui();
                 if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && mousecapture)
                 {
 		  //                        ClipCursor(&oldclip);

@@ -10,7 +10,7 @@ extern uint32_t codeblockpc[0x8000];
 extern unsigned char codeblockisrom[0x8000];
 extern int codeblocknum[0x8000];
 extern int codeinscount[0x8000];
-
+extern unsigned char codeblockpresent[0x10000];
 #define BLOCKSTART 8
 //uint32_t blocks[1024];
 

@@ -393,6 +393,8 @@ void pollmouse()
                 return;
         }
         if (key[KEY_MENU]) mouseb|=4;
+//		if (key[KEY_Z]) mouseb|=4;
+//		if (key[KEY_X]) mouseb|=2;
 //        poll_mouse();
         get_mouse_mickeys(&x,&y);
         iomd.mousex+=x;
@@ -495,6 +497,7 @@ void pollkeyboard()
         int temp;
         for (c=0;c<128;c++)
         {
+				if (c==KEY_X) c++;
                 if (key[c]!=keys2[c])
                 {
                         keys2[c]=key[c];
@@ -637,7 +640,7 @@ void setpointer(uint32_t a)
         if (num>4) return;
         activex[num]=readmemb(a+4);
         activey[num]=readmemb(a+5);
-//        printf("setpointer %i %i %i\n",num,activex,activey);
+//        printf("setpointer %i %i %i\n",num,activex[num],activey[num]);
 }
 
 void osbyte106(uint32_t a)
@@ -645,7 +648,7 @@ void osbyte106(uint32_t a)
         point=a;
         if (point&0x80) point=0;
         if (point>4) point=0;
-//        printf("osbyte 106 %i %i\n",a,point);
+        //printf("osbyte 106 %i %i\n",a,point);
 }
 void getosmouse()
 {

@@ -344,11 +344,17 @@ uint32_t readmemfb(uint32_t addr)
                         {
                                 case 0x00000000: /*ROM*/
                                 vradd(addr2,&rom[((readmemcache2&0x7FF000)-(long)(addr2&~0xFFF))>>2],2,readmemcache2);
+#ifdef _RPCEMU_BIG_ENDIAN
+								addr2^=3;
+#endif
                                 return *(unsigned char *)((vraddrl[addr2>>12]&~3)+addr2);
 
                                 case 0x02000000: /*VRAM*/
                                 dirtybuffer[(addr&vrammask)>>12]=2;
                                 vradd(addr2,&vram[((readmemcache2&0x1FF000)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
+#ifdef _RPCEMU_BIG_ENDIAN
+								addr2^=3;
+#endif
                                 return *(unsigned char *)(vraddrl[addr2>>12]+addr2);
 
                                 case 0x10000000: /*SIMM 0 bank 0*/
@@ -356,6 +362,9 @@ uint32_t readmemfb(uint32_t addr)
                                 case 0x12000000:
                                 case 0x13000000:
                                 vradd(addr2,&ram[((readmemcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
+#ifdef _RPCEMU_BIG_ENDIAN
+								addr2^=3;
+#endif
                                 return *(unsigned char *)(vraddrl[addr2>>12]+addr2);
 
                                 case 0x14000000: /*SIMM 0 bank 1*/
@@ -363,6 +372,9 @@ uint32_t readmemfb(uint32_t addr)
                                 case 0x16000000:
                                 case 0x17000000:
                                 vradd(addr2,&ram2[((readmemcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
+#ifdef _RPCEMU_BIG_ENDIAN
+								addr2^=3;
+#endif
                                 return *(unsigned char *)(vraddrl[addr2>>12]+addr2);
                         }
 //                }
@@ -370,9 +382,15 @@ uint32_t readmemfb(uint32_t addr)
         switch (addr&0x1F000000)
         {
                 case 0x00000000: /*ROM*/
+#ifdef _RPCEMU_BIG_ENDIAN
+				addr^=3;
+#endif
                 return romb[addr&0x7FFFFF];
                 case 0x02000000: /*VRAM*/
                 if (!vrammask || !model) return 0xFF;
+#ifdef _RPCEMU_BIG_ENDIAN
+				addr^=3;
+#endif
                 return vramb[addr&vrammask];
                 case 0x03000000: /*IO*/
                 if (addr==0x3310000)
@@ -400,11 +418,17 @@ uint32_t readmemfb(uint32_t addr)
                 case 0x11000000:
                 case 0x12000000:
                 case 0x13000000:
+#ifdef _RPCEMU_BIG_ENDIAN
+				addr^=3;
+#endif
                 return ramb[addr&rammask];
                 case 0x14000000: /*SIMM 0 bank 1*/
                 case 0x15000000:
                 case 0x16000000:
                 case 0x17000000:
+#ifdef _RPCEMU_BIG_ENDIAN
+				addr^=3;
+#endif
                 return ramb2[addr&rammask];
         }
         return 0;
@@ -740,6 +764,9 @@ void writememfb(uint32_t addr, uint8_t val)
                 dirtybuffer[(addr&vrammask)>>12]=1;
 #endif
 //                rpclog("Writeb VRAM %08X %07X - %02X %c\n",addr,PC,val,val);
+#ifdef _RPCEMU_BIG_ENDIAN
+				addr^=3;
+#endif
                 vramb[addr&vrammask]=val;
                 return;
                 case 0x03000000: /*IO*/
@@ -776,6 +803,9 @@ void writememfb(uint32_t addr, uint8_t val)
                 case 0x11000000:
                 case 0x12000000:
                 case 0x13000000:
+#ifdef _RPCEMU_BIG_ENDIAN
+				addr^=3;
+#endif
                 ramb[addr&rammask]=val;
 //                if (!model || (vrammask==0 && (addr&rammask)<0x100000))
 //                   dirtybuffer[(addr&rammask)>>12]=1;
@@ -784,6 +814,9 @@ void writememfb(uint32_t addr, uint8_t val)
                 case 0x15000000:
                 case 0x16000000:
                 case 0x17000000:
+#ifdef _RPCEMU_BIG_ENDIAN
+				addr^=3;
+#endif
                 ramb2[addr&rammask]=val;
 //                dirtybuffer[(addr&rammask)>>10]=1;
                 return;

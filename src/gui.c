@@ -128,7 +128,7 @@ int cdisoimage()
 		        }
         return D_EXIT;
 }
-
+#if defined _unix || defined __unix || defined linux || defined __linux
 int cdioctl()
 {
 	int res;
@@ -146,13 +146,15 @@ int cdioctl()
 	ioctl_init();
 	return D_CLOSE;
 }
-
+#endif
 MENU cdmenu[]=
 {
 	{"&Disabled",cddisabled,NULL,0,NULL},
 	{"&Empty",cdempty,NULL,0,NULL},
 	{"&ISO image...",cdisoimage,NULL,0,NULL},
+#if defined _unix || defined __unix || defined linux || defined __linux
 	{"&IOCTL",cdioctl,NULL,0,NULL},
+#endif
 	{NULL,NULL,NULL,0,NULL}
 };
 

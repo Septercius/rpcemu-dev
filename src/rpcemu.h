@@ -44,6 +44,14 @@
 #define fseeko64(_a, _b, _c) fseek(_a, (long)_b, _c)
 #endif
 
+#ifdef __MACH__
+#define fseeko64(_a, _b, _c) fseek(_a, (long)_b, _c)
+#endif
+
+#if defined _BIG_ENDIAN || defined __BIG_ENDIAN__
+	#define _RPCEMU_BIG_ENDIAN
+#endif
+
 #define GRAPHICS_TYPE GFX_AUTODETECT_WINDOWED
 
 /*This determines whether RPCemu can use hardware to blit and scale the display.
@@ -51,7 +59,9 @@
   is slower. However, this must be commented out on some ports (Linux)*/
 #ifndef __unix
 #ifndef DJGPP
+#ifndef __MACH__
 #define HARDWAREBLIT
+#endif
 #endif
 #endif
 
@@ -67,13 +77,15 @@
   In Windows, on many systems, this _must_ be enabled. Otherwise mouse & keyboard
   response will be appallingly bad.*/
 #ifndef __unix
+#ifndef __MACH__
 #define BLITTER_THREAD
+#endif
 #endif
 
 /*This makes the RISC OS mouse pointer follow the host pointer exactly. Useful
   for Linux port, however use mouse capturing if possible - mousehack has some
   bugs*/
-#ifdef __unix
+#if defined __unix || defined __MACH__
 #define mousehackena 1
 #else
 #define mousehackena 0
@@ -140,14 +152,17 @@ extern int cdromtype;
 
 
 
-
-#ifdef _MSC_VER
-/*How do you do this in MSVC?*/
-//register uint32_t armptr __asm esi;
-#else
-register uint32_t armptr asm("esi");
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32 || defined _MSC_VER
+	#ifdef _MSC_VER
+	/*How do you do this in MSVC?*/
+	//register uint32_t armptr __asm esi;
+	#else
+	register uint32_t armptr asm("esi");
+	#endif
 #endif
-
+#ifdef __amd64__
+	register uint32_t *armptr asm("r15");
+#endif
 
 
 #endif

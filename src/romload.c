@@ -15,6 +15,7 @@ int loadroms()
         int c,d,e;
         int len,pos=0;
         struct al_ffblk ff;
+		uint32_t temp;
 //        char s[256];
         char olddir[512],fn[512];
         char *ext;
@@ -30,6 +31,7 @@ int loadroms()
         while (!finished && file<16)
         {
                 ext=get_extension(ff.name);
+				printf("Found rom %s\n",ff.name);
                 if (stricmp(ext,"txt"))
                 {
                         strcpy(romfns[file],ff.name);
@@ -43,6 +45,7 @@ int loadroms()
                 chdir(olddir);
                 return -1;
         }
+//printf("Loading file...\n");
         for (c=0;c<file;c++)
         {
                 for (d=0;d<file;d++)
@@ -61,16 +64,29 @@ int loadroms()
                         }
                 }
         }
+//printf("Really loading files...\n");
         for (c=0;c<file;c++)
         {
                 f=fopen(romfns[c],"rb");
+//				printf("Loading %f\n",romfns[c]);
                 fseek(f,-1,SEEK_END);
                 len=ftell(f)+1;
+//printf("Reading %i bytes\n",len);
                 fseek(f,0,SEEK_SET);
                 fread(&romb[pos],len,1,f);
                 fclose(f);
                 pos+=len;
         }
         chdir(olddir);
+#ifdef _RPCEMU_BIG_ENDIAN /*Byte swap*/
+printf("Byte swapping...\n");
+		for (c=0;c<0x800000;c+=4)
+		{
+				temp=rom[c>>2];
+				temp=((temp&0xFF000000)>>24)|((temp&0x00FF0000)>>8)|((temp&0x0000FF00)<<8)|((temp&0x000000FF)<<24);
+//				temp=((temp>>24)&0xFF)|((temp>>8)&0xFF00)|((temp<<8)&0xFF0000)|((temp<<24)|0xFF000000);
+				rom[c>>2]=temp;
+		}
+#endif
         return 0;
 }

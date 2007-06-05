@@ -136,11 +136,12 @@ void initvideo()
         depth=deskdepth=desktop_color_depth();
         if (depth==16 || depth==15)
         {
-                set_color_depth(16);
+                set_color_depth(15);
+				depth=15;
                 if (set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0))
                 {
-                        set_color_depth(15);
-                        depth=15;
+                        set_color_depth(16);
+                        depth=16;
                         set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
                 }
                 drawcode=16;
@@ -295,7 +296,7 @@ void resizedisplay(int x, int y)
                         destroy_bitmap(bs3);
                         destroy_bitmap(bs4);
                 }
-                if (lastfullscreen) set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
+                if (lastfullscreen) set_gfx_mode(GFX_AUTODETECT_WINDOWED,640,480,0,0);
                 updatewindowsize(x,y);
                 if (lastfullscreen) bs=create_video_bitmap(1024,768);
 #ifdef HARDWAREBLIT
@@ -423,11 +424,13 @@ void drawscr()
         if (ys!=oldsy || xs!=oldsx) resizedisplay(xs,ys);
         if (!(iomd.vidcr&0x20) || vdsr>vder)
         {
+//return;
                 lastframeborder=1;
                 if (!dirtybuffer[0] && !palchange) return;
                 dirtybuffer[0]=0;
                 palchange=0;
                 rectfill(b,0,0,xs,ys,vpal[0x100]);
+//			printf("%i %i\n",xs,ys);
                 blit(b,screen,0,0,0,0,xs,ys);
 //                set_palette(pal2);
                 return;
@@ -534,10 +537,17 @@ void drawscr()
                                         {
                                                 for (xx=0;xx<64;xx+=4)
                                                 {
+												#ifdef _RPCEMU_BIG_ENDIAN
+                                                        vidp[x+xx+3]=vpal[ramp[addr]&1]     |(vpal[(ramp[addr]>>1)&1]<<16);
+                                                        vidp[x+xx+2]=vpal[(ramp[addr]>>2)&1]|(vpal[(ramp[addr]>>3)&1]<<16);
+                                                        vidp[x+xx+1]=vpal[(ramp[addr]>>4)&1]|(vpal[(ramp[addr]>>5)&1]<<16);
+                                                        vidp[x+xx]=  vpal[(ramp[addr]>>6)&1]|(vpal[(ramp[addr]>>7)&1]<<16);
+												#else
                                                         vidp[x+xx]=  vpal[ramp[addr]&1]     |(vpal[(ramp[addr]>>1)&1]<<16);
                                                         vidp[x+xx+1]=vpal[(ramp[addr]>>2)&1]|(vpal[(ramp[addr]>>3)&1]<<16);
                                                         vidp[x+xx+2]=vpal[(ramp[addr]>>4)&1]|(vpal[(ramp[addr]>>5)&1]<<16);
                                                         vidp[x+xx+3]=vpal[(ramp[addr]>>6)&1]|(vpal[(ramp[addr]>>7)&1]<<16);
+												#endif
                                                         addr++;
                                                 }
                                         }
@@ -626,10 +636,18 @@ void drawscr()
                                         {
                                                 for (xx=0;xx<16;xx+=4)
                                                 {
+												#ifdef _RPCEMU_BIG_ENDIAN
+//														if (!x && !y) printf("%02X %04X\n",ramp[addr],vpal[ramp[addr&0xF]]);
+                                                        vidp[x+xx+3]=vpal[ramp[addr]>>4]|(vpal[ramp[addr]&0xF]<<16);
+                                                        vidp[x+xx+2]=vpal[ramp[addr+1]>>4]|(vpal[ramp[addr+1]&0xF]<<16);
+                                                        vidp[x+xx+1]=vpal[ramp[addr+2]>>4]|(vpal[ramp[addr+2]&0xF]<<16);
+                                                        vidp[x+xx]=vpal[ramp[addr+3]>>4]|(vpal[ramp[addr+3]&0xF]<<16);
+												#else
                                                         vidp[x+xx]=vpal[ramp[addr]&0xF]|(vpal[ramp[addr]>>4]<<16);
                                                         vidp[x+xx+1]=vpal[ramp[addr+1]&0xF]|(vpal[ramp[addr+1]>>4]<<16);
                                                         vidp[x+xx+2]=vpal[ramp[addr+2]&0xF]|(vpal[ramp[addr+2]>>4]<<16);
-                                                        vidp[x+xx+3]=vpal[ramp[addr+3]&0xF]|(vpal[ramp[addr+3]>>4]<<16);                                                                                                                                                                        
+                                                        vidp[x+xx+3]=vpal[ramp[addr+3]&0xF]|(vpal[ramp[addr+3]>>4]<<16);                                                                                                                                                                       
+												#endif
                                                         addr+=4;
                                                 }
                                         }
@@ -677,8 +695,13 @@ void drawscr()
                                         {
                                                 for (xx=0;xx<8;xx+=2)
                                                 {
+#ifdef _RPCEMU_BIG_ENDIAN
+                                                        vidp[x+xx+1]=vpal[ramp[addr+1]&0xFF]|(vpal[ramp[addr]&0xFF]<<16);
+                                                        vidp[x+xx]=vpal[ramp[addr+3]&0xFF]|(vpal[ramp[addr+2]&0xFF]<<16);
+#else
                                                         vidp[x+xx]=vpal[ramp[addr]&0xFF]|(vpal[ramp[addr+1]&0xFF]<<16);
                                                         vidp[x+xx+1]=vpal[ramp[addr+2]&0xFF]|(vpal[ramp[addr+3]&0xFF]<<16);
+#endif
                                                         addr+=4;
                                                 }
                                         }
@@ -1035,6 +1058,16 @@ void drawscr()
                                         {
                                                 for (xx=0;xx<32;xx+=8)
                                                 {
+												#ifdef _RPCEMU_BIG_ENDIAN
+                                                        vidp[x+xx]=vpal[ramp[addr+3]&0xF];
+                                                        vidp[x+xx+1]=vpal[(ramp[addr+3]>>4)&0xF];
+                                                        vidp[x+xx+2]=vpal[ramp[addr+2]&0xF];
+                                                        vidp[x+xx+3]=vpal[(ramp[addr+2]>>4)&0xF];
+                                                        vidp[x+xx+4]=vpal[ramp[addr+1]&0xF];
+                                                        vidp[x+xx+5]=vpal[(ramp[addr+1]>>4)&0xF];
+                                                        vidp[x+xx+6]=vpal[ramp[addr]&0xF];
+                                                        vidp[x+xx+7]=vpal[(ramp[addr]>>4)&0xF];
+												#else
                                                         vidp[x+xx]=vpal[ramp[addr]&0xF];
                                                         vidp[x+xx+1]=vpal[(ramp[addr]>>4)&0xF];
                                                         vidp[x+xx+2]=vpal[ramp[addr+1]&0xF];
@@ -1043,6 +1076,7 @@ void drawscr()
                                                         vidp[x+xx+5]=vpal[(ramp[addr+2]>>4)&0xF];
                                                         vidp[x+xx+6]=vpal[ramp[addr+3]&0xF];
                                                         vidp[x+xx+7]=vpal[(ramp[addr+3]>>4)&0xF];
+												#endif
                                                         addr+=4;
                                                 }
                                         }
@@ -1220,10 +1254,16 @@ void drawscr()
                                         vidp16=(unsigned short *)bmp_write_line(b,y+cy);
                                         for (x=0;x<32;x+=4)
                                         {
+										#ifdef _RPCEMU_BIG_ENDIAN
+												addr^=3;
+										#endif
                                                 if ((x+cx)>=0   && ramp[addr]&3)      vidp16[x+cx]=vpal[(ramp[addr]&3)|0x100];
                                                 if ((x+cx+1)>=0 && (ramp[addr]>>2)&3) vidp16[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
                                                 if ((x+cx+2)>=0 && (ramp[addr]>>4)&3) vidp16[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
                                                 if ((x+cx+3)>=0 && (ramp[addr]>>6)&3) vidp16[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
+										#ifdef _RPCEMU_BIG_ENDIAN
+												addr^=3;
+										#endif
                                                 addr++;
                                         }
                                 }
@@ -1238,10 +1278,16 @@ void drawscr()
                                         vidp=(uint32_t *)bmp_write_line(b,y+cy);
                                         for (x=0;x<32;x+=4)
                                         {
+										#ifdef _RPCEMU_BIG_ENDIAN
+												addr^=3;
+										#endif
                                                 if ((x+cx)>=0   && ramp[addr]&3)      vidp[x+cx]=vpal[(ramp[addr]&3)|0x100];
                                                 if ((x+cx+1)>=0 && (ramp[addr]>>2)&3) vidp[x+cx+1]=vpal[((ramp[addr]>>2)&3)|0x100];
                                                 if ((x+cx+2)>=0 && (ramp[addr]>>4)&3) vidp[x+cx+2]=vpal[((ramp[addr]>>4)&3)|0x100];
                                                 if ((x+cx+3)>=0 && (ramp[addr]>>6)&3) vidp[x+cx+3]=vpal[((ramp[addr]>>6)&3)|0x100];
+										#ifdef _RPCEMU_BIG_ENDIAN
+												addr^=3;
+										#endif
                                                 addr++;
                                         }
                                 }
@@ -1409,7 +1455,7 @@ void writevidc20(uint32_t val)
                 case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
                 case 8: case 9: case 0xA: case 0xB: case 0xC: case 0xD: case 0xE:
                         case 0xF:
-//                rpclog("Write palette index %i %08X\n",palindex,val);
+//                printf("Write palette index %i %08X\n",palindex,val);
                 if (val!=vidcpal[palindex])
                 {
                         pal[palindex].r=makecol(val&0xFF,0,0);
@@ -1538,7 +1584,7 @@ void writevidc20(uint32_t val)
                 case 0xE0:
                 if (((val>>5)&7)!=(uint32_t)bit8)
                 {
-//                        rpclog("Change mode - %08X %i\n",val,(val>>5)&7);
+//                        printf("Change mode - %08X %i\n",val,(val>>5)&7);
                         bit8=(val>>5)&7;
                         resetbuffer();
                         palchange=1;
