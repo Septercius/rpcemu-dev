@@ -81,8 +81,10 @@ int startrpcemu()
         reallocmem(rammask+1);
         initcodeblocks();
         iso_init();
+        if (cdromtype==2) /*ISO*/
+           iso_open(isoname);
 //        iso_open("e:/au_cd8.iso");
-        cdromtype=CDROM_ISO;
+//        cdromtype=CDROM_ISO;
         return 0;
 }
 
@@ -137,6 +139,10 @@ void loadconfig()
         else if (!strcmp(p,"64"))  rammask=0x1FFFFFF;
         else if (!strcmp(p,"128")) rammask=0x3FFFFFF;
         else                       rammask=0x7FFFFF;
+        #ifdef DYNAREC
+        model=3;           /*SA1100*/
+        vrammask=0x1FFFFF; /*2mb VRAM*/
+        #else
         p=(char *)get_config_string(NULL,"vram_size",NULL);
         if (!p) vrammask=0x1FFFFF;
         else if (!strcmp(p,"0"))        vrammask=0;
@@ -147,10 +153,16 @@ void loadconfig()
         else if (!strcmp(p,"ARM7500")) model=0;
         else if (!strcmp(p,"SA110"))   model=3;
         else                           model=2;
+        #endif
         soundenabled=get_config_int(NULL,"sound_enabled",1);
         stretchmode=get_config_int(NULL,"stretch_mode",0);
         refresh=get_config_int(NULL,"refresh_rate",60);
         skipblits=get_config_int(NULL,"blit_optimisation",0);
+        cdromenabled=get_config_int(NULL,"cdrom_enabled",0);
+        cdromtype=get_config_int(NULL,"cdrom_type",0);
+        p=(char *)get_config_string(NULL,"cdrom_iso",NULL);
+        if (!p) strcpy(isoname,"");
+        else    strcpy(isoname,p);
 }
 
 void saveconfig()
@@ -158,6 +170,7 @@ void saveconfig()
         char s[256];
         sprintf(s,"%i",((rammask+1)>>20)<<1);
         set_config_string(NULL,"mem_size",s);
+        #ifndef DYNAREC
         switch (model)
         {
                 case 1: sprintf(s,"ARM610"); break;
@@ -168,8 +181,12 @@ void saveconfig()
         set_config_string(NULL,"cpu_type",s);
         if (vrammask) set_config_string(NULL,"vram_size","2");
         else          set_config_string(NULL,"vram_size","0");
+        #endif
         set_config_int(NULL,"sound_enabled",soundenabled);
         set_config_int(NULL,"stretch_mode",stretchmode);
         set_config_int(NULL,"refresh_rate",refresh);
         set_config_int(NULL,"blit_optimisation",skipblits);
+        set_config_int(NULL,"cdrom_enabled",cdromenabled);
+        set_config_int(NULL,"cdrom_type",cdromtype);
+        set_config_string(NULL,"cdrom_iso",isoname);
 }

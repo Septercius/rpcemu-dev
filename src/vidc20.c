@@ -267,6 +267,7 @@ void resizedisplay(int x, int y)
                                 goto tryagain;
                         }
                 }
+#ifdef HARDWAREBLIT                
 //                rpclog("Mode set\n");
                 bs=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
                 bs2=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
@@ -279,7 +280,6 @@ void resizedisplay(int x, int y)
                 clear(bs4);
                 show_video_bitmap(bs4);
                 currentbuffer=1;
-#ifdef HARDWAREBLIT
                 b=create_video_bitmap(x+16,y+16);
                 if (!b) /*Video bitmaps unavailable for some reason*/
 #endif

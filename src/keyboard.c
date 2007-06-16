@@ -497,7 +497,7 @@ void pollkeyboard()
         int temp;
         for (c=0;c<128;c++)
         {
-				if (c==KEY_X) c++;
+//				if (c==KEY_X) c++;
                 if (key[c]!=keys2[c])
                 {
                         keys2[c]=key[c];

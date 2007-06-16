@@ -28,5 +28,5 @@ typedef struct ATAPI
 ATAPI *atapi;
 
 extern int cdromenabled;
-
+extern char isoname[512];
 #endif //__IDE__

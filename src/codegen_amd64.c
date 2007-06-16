@@ -1,25 +1,13 @@
-/*Instruction code (Worst case) :
-  MOVL (pcpsr),%eax          5
-  SHRL $28,%eax              3
-  CMPB $0,flaglookup(%eax)   7
-  JE +15                     2
-  MOVL (opcode),opcodeimm    10
-  CALL opcode                5
-  CMPB $0,armirq             7
-  JNE 0                      1
-  ADD $4,armregs[15]         7
-
-  gives us 47 bytes per instrucion
-  30 bytes for 'AL' instructions
-  */
-
-void generateupdatepc();
 #include "rpcemu.h"
+#ifdef DYNAREC
+#ifdef __amd64__
+
 #include <stdint.h>
 #include "codegen_amd64.h"
 #include "mem.h"
 #include "arm.h"
 
+void generateupdatepc();
 int lastflagchange;
 unsigned char rcodeblock[BLOCKS][1792];
 unsigned long codeblockaddr[BLOCKS];
@@ -473,3 +461,5 @@ void generateirqtest()
                 addlong(&rcodeblock[blockpoint2][0]-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4]));
         }
 }
+#endif
+#endif

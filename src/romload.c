@@ -31,7 +31,7 @@ int loadroms()
         while (!finished && file<16)
         {
                 ext=get_extension(ff.name);
-				printf("Found rom %s\n",ff.name);
+//				printf("Found rom %s\n",ff.name);
                 if (stricmp(ext,"txt"))
                 {
                         strcpy(romfns[file],ff.name);
@@ -79,7 +79,8 @@ int loadroms()
         }
         chdir(olddir);
 #ifdef _RPCEMU_BIG_ENDIAN /*Byte swap*/
-printf("Byte swapping...\n");
+#error It's defined...
+//printf("Byte swapping...\n");
 		for (c=0;c<0x800000;c+=4)
 		{
 				temp=rom[c>>2];

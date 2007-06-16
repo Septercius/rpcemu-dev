@@ -1,13 +1,16 @@
 //ESI is pointer to armregs[]
 
-
-void generateupdatepc();
 #include "rpcemu.h"
+
+#ifdef DYNAREC
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
+
 #include <stdint.h>
 #include "codegen_x86.h"
 #include "mem.h"
 #include "arm.h"
 
+void generateupdatepc();
 int linecyc;
 int hasldrb[BLOCKS];
 #define mwritemem rcodeblock[BLOCKS]
@@ -3091,3 +3094,5 @@ void generateirqtest()
 
 }
 
+#endif
+#endif

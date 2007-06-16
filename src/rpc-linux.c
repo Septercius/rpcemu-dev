@@ -136,33 +136,33 @@ int main (void)
         char s[128];
         const char *p;
         char fn[512];
-printf("Started!\n");
+//printf("Started!\n");
 mousehackon=1;
         allegro_init();
-printf("1\n");
+//printf("1\n");
 //set_gfx_mode(GFX_AUTODETECT_WINDOWED,640,480,0,0);
-printf("2a\n");
+//printf("2a\n");
         install_keyboard();
 //poll_keyboard();
-printf("2\n");
+//printf("2\n");
 
         install_timer();
-printf("3\n");
+//printf("3\n");
         install_mouse();
 //poll_mouse();
 infocus=0;
-printf("Allegro inited...\n");
+//printf("Allegro inited...\n");
 //        arclog=fopen("arclog.txt","wt");
         if (startrpcemu())
            return -1;
 	//startblitthread();
-printf("RPCemu started...\n");
+//printf("RPCemu started...\n");
         install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate,BPS_TO_TIMER(refresh));
         if (soundenabled) initsound();
         infocus=1;
 mousehackon=1;
-printf("Ready to go!\n");
+//printf("Ready to go!\n");
         while (!quited)
         {
                 if (infocus)

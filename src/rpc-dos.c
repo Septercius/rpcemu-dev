@@ -54,7 +54,7 @@ FILE *arclog;
 void rpclog(const char *format, ...)
 {
    char buf[256];
-//   return;
+   return;
 if (!arclog) arclog=fopen("rpclog.txt","wt");
    va_list ap;
    va_start(ap, format);
@@ -142,7 +142,7 @@ infocus=0;
                    }
                         if (updatemips)
                         {
-			  textprintf(screen,font,0,0,makecol(255,255,255),"MIPS: %f (AVG: %f) %i\n", mips, mipstotal / (mipscount - 10),mousehack);
+			  textprintf(screen,font,0,0,makecol(255,255,255),"MIPS: %f (AVG: %f)", mips, mipstotal / (mipscount - 10));
 			        //sprintf(s,"RPCemu v0.3 - %f MIPS - %s",mips,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
 				//                                SetWindowText(ghwnd, s);
                                 updatemips=0;

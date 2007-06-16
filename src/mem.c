@@ -76,7 +76,7 @@ void initmem(void)
             raddrl[c]=0xFFFFFFFF;
         waddrl=0xFFFFFFFF;
         vraddrlpos=vwaddrlpos=0;
-printf("Init RAM %p\n",ram);
+//printf("Init RAM %p\n",ram);
 }
 
 void reallocmem(int ramsize)
@@ -89,7 +89,7 @@ void reallocmem(int ramsize)
         ramb2=(unsigned char *)ram2;
         memset(ram,0,ramsize);
         memset(ram2,0,ramsize);
-printf("Init RAM %p %i\n",ram,ramsize);
+//intf("Init RAM %p %i\n",ram,ramsize);
 //        error("RAMsize now %08X RAMmask now %08X\n",ramsize,rammask);
 }
 

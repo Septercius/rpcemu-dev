@@ -53,7 +53,7 @@ void ioctl_seek(uint32_t pos)
 int ioctl_ready()
 {
         int size;
-        boolean temp;
+        int temp;
         CDROM_TOC ltoc;
         ioctl_open(0);
         temp=DeviceIoControl(hIOCTL,IOCTL_CDROM_READ_TOC, NULL,0,&ltoc,sizeof(ltoc),&size,NULL);

@@ -5,33 +5,22 @@
 CFLAGS = -O3 -march=i686 -ffast-math -fomit-frame-pointer -falign-loops -falign-jumps -falign-functions -ftracer
 LIBS = -lalleg
 
-EXE = rpcemu.exe
-DYNAEXE = rpcemud.exe
+ifdef DYNAREC
+	CFLAGS += -D DYNAREC
+	EXE = rpcemud.exe
+else
+	EXE = rpcemu.exe
+endif
 
 all: $(EXE)
-dynarec : $(DYNAEXE)
 
 OBJS =	82c711.o    \
 	arm.o       \
+	ArmDynarec.o \
+	cdrom-iso.o \
 	cmos.o      \
+	codegen_amd64.o \
 	codegen_null.o \
-	cp15.o      \
-	fpa.o       \
-	gui.o	      \
-	ide.o	      \
-	iomd.o      \
-	keyboard.o  \
-	mem.o       \
-	rpcemu.o    \
-	rpc-dos.o   \
-	romload.o   \
-	sound.o     \
-	vidc20.o    \
-	hostfs.o   
-
-DYNAOBJS =	82c711.o    \
-	ArmDynarec.o       \
-	cmos.o      \
 	codegen_x86.o \
 	cp15.o      \
 	fpa.o       \
@@ -49,7 +38,9 @@ DYNAOBJS =	82c711.o    \
 
 SRCS = 	82c711.c    \
 	arm.c       \
+	cdrom-iso.c \
 	cmos.c      \
+	codegen_amd.c \
 	codegen_null.c \
 	codegen_x86.c \
 	cp15.c      \
@@ -67,9 +58,6 @@ SRCS = 	82c711.c    \
 	hostfs.c 
 
 $(EXE): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $+ $(LIBS)
-
-$(DYNAEXE): $(DYNAOBJS)
 	$(CC) $(CFLAGS) -o $@ $+ $(LIBS)
 
 clean:

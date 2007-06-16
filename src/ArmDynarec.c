@@ -1,3 +1,6 @@
+#include "rpcemu.h"
+
+#ifdef DYNAREC
 unsigned long readmeml(unsigned long a);
 //void writememl(unsigned long a, unsigned long v);
 /*RPCemu v0.6 by Tom Walker
@@ -1105,10 +1108,14 @@ void testit()
 int linecyc=0;
 #ifdef __amd64__
 #include "codegen_amd64.h" 
+#else
+        #if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
+        #include "codegen_x86.h"
+        #else
+                #error Fatal error : no recompiler available for your architecture
+        #endif
 #endif
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
-#include "codegen_x86.h"
-#endif
+
 
 int hasldrb[BLOCKS];
 //int output=0;
@@ -1572,3 +1579,4 @@ lastblockfunc=&rcodeblock[templ][BLOCKSTART];
                 cycles-=1000;
         }
 }
+#endif

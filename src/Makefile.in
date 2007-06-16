@@ -56,15 +56,14 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am_rpcemu_OBJECTS = rpcemu-82c711.$(OBJEXT) rpcemu-arm.$(OBJEXT) \
-	rpcemu-cmos.$(OBJEXT) rpcemu-cp15.$(OBJEXT) \
-	rpcemu-gui.$(OBJEXT) rpcemu-ide.$(OBJEXT) \
-	rpcemu-iomd.$(OBJEXT) rpcemu-keyboard.$(OBJEXT) \
-	rpcemu-mem.$(OBJEXT) rpcemu-romload.$(OBJEXT) \
-	rpcemu-rpc-linux.$(OBJEXT) rpcemu-vidc20.$(OBJEXT) \
-	rpcemu-hostfs.$(OBJEXT) rpcemu-rpcemu.$(OBJEXT) \
-	rpcemu-sound.$(OBJEXT) rpcemu-fpa.$(OBJEXT) \
-	rpcemu-codegen_null.$(OBJEXT)
+am_rpcemu_OBJECTS = 82c711.$(OBJEXT) arm.$(OBJEXT) \
+	ArmDynarec.$(OBJEXT) cmos.$(OBJEXT) cdrom-iso.$(OBJEXT) \
+	cdrom-linuxioctl.$(OBJEXT) codegen_amd64.$(OBJEXT) \
+	codegen_null.$(OBJEXT) codegen_x86.$(OBJEXT) cp15.$(OBJEXT) \
+	gui.$(OBJEXT) ide.$(OBJEXT) iomd.$(OBJEXT) keyboard.$(OBJEXT) \
+	mem.$(OBJEXT) romload.$(OBJEXT) rpc-linux.$(OBJEXT) \
+	vidc20.$(OBJEXT) hostfs.$(OBJEXT) rpcemu.$(OBJEXT) \
+	sound.$(OBJEXT) fpa.$(OBJEXT)
 rpcemu_OBJECTS = $(am_rpcemu_OBJECTS)
 am__DEPENDENCIES_1 =
 rpcemu_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -72,6 +71,11 @@ rpcemu_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
+
+ifdef DYNAREC
+	AM_CFLAGS += -D DYNAREC
+endif
+
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -177,15 +181,17 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 topdir = @topdir@
-rpcemu_SOURCES = 82c711.c arm.c cmos.c \
+rpcemu_SOURCES = 82c711.c arm.c ArmDynarec.c cmos.c \
+cdrom-iso.c cdrom-linuxioctl.c \
+codegen_amd64.c codegen_null.c codegen_x86.c \
 cp15.c gui.c ide.c iomd.c keyboard.c mem.c \
 romload.c rpc-linux.c vidc20.c hostfs.c \
-rpcemu.c sound.c fpa.c codegen_null.c
+rpcemu.c sound.c fpa.c
 
-rpcemu_CFLAGS = $(allegro_CFLAGS)
 rpcemu_LDADD = $(X_PRE_LIBS) $(X_LIBS) $(X_EXTRA_LIBS) $(allegro_LIBS)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
+	cp rpcemu ..
 
 .SUFFIXES:
 .SUFFIXES: .c .o .obj
@@ -272,23 +278,28 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-82c711.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-arm.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-cmos.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-codegen_null.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-cp15.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-fpa.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-gui.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-hostfs.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-ide.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-iomd.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-keyboard.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-mem.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-romload.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-rpc-linux.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-rpcemu.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-sound.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-vidc20.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/82c711.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ArmDynarec.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/arm.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cdrom-iso.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cdrom-linuxioctl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmos.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/codegen_amd64.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/codegen_null.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/codegen_x86.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cp15.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fpa.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hostfs.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ide.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iomd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/keyboard.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/romload.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpc-linux.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sound.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vidc20.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -303,244 +314,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
-
-rpcemu-82c711.o: 82c711.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-82c711.o -MD -MP -MF "$(DEPDIR)/rpcemu-82c711.Tpo" -c -o rpcemu-82c711.o `test -f '82c711.c' || echo '$(srcdir)/'`82c711.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-82c711.Tpo" "$(DEPDIR)/rpcemu-82c711.Po"; else rm -f "$(DEPDIR)/rpcemu-82c711.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='82c711.c' object='rpcemu-82c711.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-82c711.o `test -f '82c711.c' || echo '$(srcdir)/'`82c711.c
-
-rpcemu-82c711.obj: 82c711.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-82c711.obj -MD -MP -MF "$(DEPDIR)/rpcemu-82c711.Tpo" -c -o rpcemu-82c711.obj `if test -f '82c711.c'; then $(CYGPATH_W) '82c711.c'; else $(CYGPATH_W) '$(srcdir)/82c711.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-82c711.Tpo" "$(DEPDIR)/rpcemu-82c711.Po"; else rm -f "$(DEPDIR)/rpcemu-82c711.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='82c711.c' object='rpcemu-82c711.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-82c711.obj `if test -f '82c711.c'; then $(CYGPATH_W) '82c711.c'; else $(CYGPATH_W) '$(srcdir)/82c711.c'; fi`
-
-rpcemu-arm.o: arm.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-arm.o -MD -MP -MF "$(DEPDIR)/rpcemu-arm.Tpo" -c -o rpcemu-arm.o `test -f 'arm.c' || echo '$(srcdir)/'`arm.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-arm.Tpo" "$(DEPDIR)/rpcemu-arm.Po"; else rm -f "$(DEPDIR)/rpcemu-arm.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='arm.c' object='rpcemu-arm.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-arm.o `test -f 'arm.c' || echo '$(srcdir)/'`arm.c
-
-rpcemu-arm.obj: arm.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-arm.obj -MD -MP -MF "$(DEPDIR)/rpcemu-arm.Tpo" -c -o rpcemu-arm.obj `if test -f 'arm.c'; then $(CYGPATH_W) 'arm.c'; else $(CYGPATH_W) '$(srcdir)/arm.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-arm.Tpo" "$(DEPDIR)/rpcemu-arm.Po"; else rm -f "$(DEPDIR)/rpcemu-arm.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='arm.c' object='rpcemu-arm.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-arm.obj `if test -f 'arm.c'; then $(CYGPATH_W) 'arm.c'; else $(CYGPATH_W) '$(srcdir)/arm.c'; fi`
-
-rpcemu-cmos.o: cmos.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-cmos.o -MD -MP -MF "$(DEPDIR)/rpcemu-cmos.Tpo" -c -o rpcemu-cmos.o `test -f 'cmos.c' || echo '$(srcdir)/'`cmos.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-cmos.Tpo" "$(DEPDIR)/rpcemu-cmos.Po"; else rm -f "$(DEPDIR)/rpcemu-cmos.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cmos.c' object='rpcemu-cmos.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-cmos.o `test -f 'cmos.c' || echo '$(srcdir)/'`cmos.c
-
-rpcemu-cmos.obj: cmos.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-cmos.obj -MD -MP -MF "$(DEPDIR)/rpcemu-cmos.Tpo" -c -o rpcemu-cmos.obj `if test -f 'cmos.c'; then $(CYGPATH_W) 'cmos.c'; else $(CYGPATH_W) '$(srcdir)/cmos.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-cmos.Tpo" "$(DEPDIR)/rpcemu-cmos.Po"; else rm -f "$(DEPDIR)/rpcemu-cmos.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cmos.c' object='rpcemu-cmos.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-cmos.obj `if test -f 'cmos.c'; then $(CYGPATH_W) 'cmos.c'; else $(CYGPATH_W) '$(srcdir)/cmos.c'; fi`
-
-rpcemu-cp15.o: cp15.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-cp15.o -MD -MP -MF "$(DEPDIR)/rpcemu-cp15.Tpo" -c -o rpcemu-cp15.o `test -f 'cp15.c' || echo '$(srcdir)/'`cp15.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-cp15.Tpo" "$(DEPDIR)/rpcemu-cp15.Po"; else rm -f "$(DEPDIR)/rpcemu-cp15.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cp15.c' object='rpcemu-cp15.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-cp15.o `test -f 'cp15.c' || echo '$(srcdir)/'`cp15.c
-
-rpcemu-cp15.obj: cp15.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-cp15.obj -MD -MP -MF "$(DEPDIR)/rpcemu-cp15.Tpo" -c -o rpcemu-cp15.obj `if test -f 'cp15.c'; then $(CYGPATH_W) 'cp15.c'; else $(CYGPATH_W) '$(srcdir)/cp15.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-cp15.Tpo" "$(DEPDIR)/rpcemu-cp15.Po"; else rm -f "$(DEPDIR)/rpcemu-cp15.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cp15.c' object='rpcemu-cp15.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-cp15.obj `if test -f 'cp15.c'; then $(CYGPATH_W) 'cp15.c'; else $(CYGPATH_W) '$(srcdir)/cp15.c'; fi`
-
-rpcemu-gui.o: gui.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-gui.o -MD -MP -MF "$(DEPDIR)/rpcemu-gui.Tpo" -c -o rpcemu-gui.o `test -f 'gui.c' || echo '$(srcdir)/'`gui.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-gui.Tpo" "$(DEPDIR)/rpcemu-gui.Po"; else rm -f "$(DEPDIR)/rpcemu-gui.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui.c' object='rpcemu-gui.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-gui.o `test -f 'gui.c' || echo '$(srcdir)/'`gui.c
-
-rpcemu-gui.obj: gui.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-gui.obj -MD -MP -MF "$(DEPDIR)/rpcemu-gui.Tpo" -c -o rpcemu-gui.obj `if test -f 'gui.c'; then $(CYGPATH_W) 'gui.c'; else $(CYGPATH_W) '$(srcdir)/gui.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-gui.Tpo" "$(DEPDIR)/rpcemu-gui.Po"; else rm -f "$(DEPDIR)/rpcemu-gui.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui.c' object='rpcemu-gui.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-gui.obj `if test -f 'gui.c'; then $(CYGPATH_W) 'gui.c'; else $(CYGPATH_W) '$(srcdir)/gui.c'; fi`
-
-rpcemu-ide.o: ide.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-ide.o -MD -MP -MF "$(DEPDIR)/rpcemu-ide.Tpo" -c -o rpcemu-ide.o `test -f 'ide.c' || echo '$(srcdir)/'`ide.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-ide.Tpo" "$(DEPDIR)/rpcemu-ide.Po"; else rm -f "$(DEPDIR)/rpcemu-ide.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ide.c' object='rpcemu-ide.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-ide.o `test -f 'ide.c' || echo '$(srcdir)/'`ide.c
-
-rpcemu-ide.obj: ide.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-ide.obj -MD -MP -MF "$(DEPDIR)/rpcemu-ide.Tpo" -c -o rpcemu-ide.obj `if test -f 'ide.c'; then $(CYGPATH_W) 'ide.c'; else $(CYGPATH_W) '$(srcdir)/ide.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-ide.Tpo" "$(DEPDIR)/rpcemu-ide.Po"; else rm -f "$(DEPDIR)/rpcemu-ide.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ide.c' object='rpcemu-ide.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-ide.obj `if test -f 'ide.c'; then $(CYGPATH_W) 'ide.c'; else $(CYGPATH_W) '$(srcdir)/ide.c'; fi`
-
-rpcemu-iomd.o: iomd.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-iomd.o -MD -MP -MF "$(DEPDIR)/rpcemu-iomd.Tpo" -c -o rpcemu-iomd.o `test -f 'iomd.c' || echo '$(srcdir)/'`iomd.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-iomd.Tpo" "$(DEPDIR)/rpcemu-iomd.Po"; else rm -f "$(DEPDIR)/rpcemu-iomd.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='iomd.c' object='rpcemu-iomd.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-iomd.o `test -f 'iomd.c' || echo '$(srcdir)/'`iomd.c
-
-rpcemu-iomd.obj: iomd.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-iomd.obj -MD -MP -MF "$(DEPDIR)/rpcemu-iomd.Tpo" -c -o rpcemu-iomd.obj `if test -f 'iomd.c'; then $(CYGPATH_W) 'iomd.c'; else $(CYGPATH_W) '$(srcdir)/iomd.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-iomd.Tpo" "$(DEPDIR)/rpcemu-iomd.Po"; else rm -f "$(DEPDIR)/rpcemu-iomd.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='iomd.c' object='rpcemu-iomd.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-iomd.obj `if test -f 'iomd.c'; then $(CYGPATH_W) 'iomd.c'; else $(CYGPATH_W) '$(srcdir)/iomd.c'; fi`
-
-rpcemu-keyboard.o: keyboard.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-keyboard.o -MD -MP -MF "$(DEPDIR)/rpcemu-keyboard.Tpo" -c -o rpcemu-keyboard.o `test -f 'keyboard.c' || echo '$(srcdir)/'`keyboard.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-keyboard.Tpo" "$(DEPDIR)/rpcemu-keyboard.Po"; else rm -f "$(DEPDIR)/rpcemu-keyboard.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='keyboard.c' object='rpcemu-keyboard.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-keyboard.o `test -f 'keyboard.c' || echo '$(srcdir)/'`keyboard.c
-
-rpcemu-keyboard.obj: keyboard.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-keyboard.obj -MD -MP -MF "$(DEPDIR)/rpcemu-keyboard.Tpo" -c -o rpcemu-keyboard.obj `if test -f 'keyboard.c'; then $(CYGPATH_W) 'keyboard.c'; else $(CYGPATH_W) '$(srcdir)/keyboard.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-keyboard.Tpo" "$(DEPDIR)/rpcemu-keyboard.Po"; else rm -f "$(DEPDIR)/rpcemu-keyboard.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='keyboard.c' object='rpcemu-keyboard.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-keyboard.obj `if test -f 'keyboard.c'; then $(CYGPATH_W) 'keyboard.c'; else $(CYGPATH_W) '$(srcdir)/keyboard.c'; fi`
-
-rpcemu-mem.o: mem.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-mem.o -MD -MP -MF "$(DEPDIR)/rpcemu-mem.Tpo" -c -o rpcemu-mem.o `test -f 'mem.c' || echo '$(srcdir)/'`mem.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-mem.Tpo" "$(DEPDIR)/rpcemu-mem.Po"; else rm -f "$(DEPDIR)/rpcemu-mem.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mem.c' object='rpcemu-mem.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-mem.o `test -f 'mem.c' || echo '$(srcdir)/'`mem.c
-
-rpcemu-mem.obj: mem.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-mem.obj -MD -MP -MF "$(DEPDIR)/rpcemu-mem.Tpo" -c -o rpcemu-mem.obj `if test -f 'mem.c'; then $(CYGPATH_W) 'mem.c'; else $(CYGPATH_W) '$(srcdir)/mem.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-mem.Tpo" "$(DEPDIR)/rpcemu-mem.Po"; else rm -f "$(DEPDIR)/rpcemu-mem.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mem.c' object='rpcemu-mem.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-mem.obj `if test -f 'mem.c'; then $(CYGPATH_W) 'mem.c'; else $(CYGPATH_W) '$(srcdir)/mem.c'; fi`
-
-rpcemu-romload.o: romload.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-romload.o -MD -MP -MF "$(DEPDIR)/rpcemu-romload.Tpo" -c -o rpcemu-romload.o `test -f 'romload.c' || echo '$(srcdir)/'`romload.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-romload.Tpo" "$(DEPDIR)/rpcemu-romload.Po"; else rm -f "$(DEPDIR)/rpcemu-romload.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='romload.c' object='rpcemu-romload.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-romload.o `test -f 'romload.c' || echo '$(srcdir)/'`romload.c
-
-rpcemu-romload.obj: romload.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-romload.obj -MD -MP -MF "$(DEPDIR)/rpcemu-romload.Tpo" -c -o rpcemu-romload.obj `if test -f 'romload.c'; then $(CYGPATH_W) 'romload.c'; else $(CYGPATH_W) '$(srcdir)/romload.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-romload.Tpo" "$(DEPDIR)/rpcemu-romload.Po"; else rm -f "$(DEPDIR)/rpcemu-romload.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='romload.c' object='rpcemu-romload.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-romload.obj `if test -f 'romload.c'; then $(CYGPATH_W) 'romload.c'; else $(CYGPATH_W) '$(srcdir)/romload.c'; fi`
-
-rpcemu-rpc-linux.o: rpc-linux.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-rpc-linux.o -MD -MP -MF "$(DEPDIR)/rpcemu-rpc-linux.Tpo" -c -o rpcemu-rpc-linux.o `test -f 'rpc-linux.c' || echo '$(srcdir)/'`rpc-linux.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-rpc-linux.Tpo" "$(DEPDIR)/rpcemu-rpc-linux.Po"; else rm -f "$(DEPDIR)/rpcemu-rpc-linux.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='rpc-linux.c' object='rpcemu-rpc-linux.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-rpc-linux.o `test -f 'rpc-linux.c' || echo '$(srcdir)/'`rpc-linux.c
-
-rpcemu-rpc-linux.obj: rpc-linux.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-rpc-linux.obj -MD -MP -MF "$(DEPDIR)/rpcemu-rpc-linux.Tpo" -c -o rpcemu-rpc-linux.obj `if test -f 'rpc-linux.c'; then $(CYGPATH_W) 'rpc-linux.c'; else $(CYGPATH_W) '$(srcdir)/rpc-linux.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-rpc-linux.Tpo" "$(DEPDIR)/rpcemu-rpc-linux.Po"; else rm -f "$(DEPDIR)/rpcemu-rpc-linux.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='rpc-linux.c' object='rpcemu-rpc-linux.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-rpc-linux.obj `if test -f 'rpc-linux.c'; then $(CYGPATH_W) 'rpc-linux.c'; else $(CYGPATH_W) '$(srcdir)/rpc-linux.c'; fi`
-
-rpcemu-vidc20.o: vidc20.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-vidc20.o -MD -MP -MF "$(DEPDIR)/rpcemu-vidc20.Tpo" -c -o rpcemu-vidc20.o `test -f 'vidc20.c' || echo '$(srcdir)/'`vidc20.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-vidc20.Tpo" "$(DEPDIR)/rpcemu-vidc20.Po"; else rm -f "$(DEPDIR)/rpcemu-vidc20.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='vidc20.c' object='rpcemu-vidc20.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-vidc20.o `test -f 'vidc20.c' || echo '$(srcdir)/'`vidc20.c
-
-rpcemu-vidc20.obj: vidc20.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-vidc20.obj -MD -MP -MF "$(DEPDIR)/rpcemu-vidc20.Tpo" -c -o rpcemu-vidc20.obj `if test -f 'vidc20.c'; then $(CYGPATH_W) 'vidc20.c'; else $(CYGPATH_W) '$(srcdir)/vidc20.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-vidc20.Tpo" "$(DEPDIR)/rpcemu-vidc20.Po"; else rm -f "$(DEPDIR)/rpcemu-vidc20.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='vidc20.c' object='rpcemu-vidc20.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-vidc20.obj `if test -f 'vidc20.c'; then $(CYGPATH_W) 'vidc20.c'; else $(CYGPATH_W) '$(srcdir)/vidc20.c'; fi`
-
-rpcemu-hostfs.o: hostfs.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-hostfs.o -MD -MP -MF "$(DEPDIR)/rpcemu-hostfs.Tpo" -c -o rpcemu-hostfs.o `test -f 'hostfs.c' || echo '$(srcdir)/'`hostfs.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-hostfs.Tpo" "$(DEPDIR)/rpcemu-hostfs.Po"; else rm -f "$(DEPDIR)/rpcemu-hostfs.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='hostfs.c' object='rpcemu-hostfs.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-hostfs.o `test -f 'hostfs.c' || echo '$(srcdir)/'`hostfs.c
-
-rpcemu-hostfs.obj: hostfs.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-hostfs.obj -MD -MP -MF "$(DEPDIR)/rpcemu-hostfs.Tpo" -c -o rpcemu-hostfs.obj `if test -f 'hostfs.c'; then $(CYGPATH_W) 'hostfs.c'; else $(CYGPATH_W) '$(srcdir)/hostfs.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-hostfs.Tpo" "$(DEPDIR)/rpcemu-hostfs.Po"; else rm -f "$(DEPDIR)/rpcemu-hostfs.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='hostfs.c' object='rpcemu-hostfs.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-hostfs.obj `if test -f 'hostfs.c'; then $(CYGPATH_W) 'hostfs.c'; else $(CYGPATH_W) '$(srcdir)/hostfs.c'; fi`
-
-rpcemu-rpcemu.o: rpcemu.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-rpcemu.o -MD -MP -MF "$(DEPDIR)/rpcemu-rpcemu.Tpo" -c -o rpcemu-rpcemu.o `test -f 'rpcemu.c' || echo '$(srcdir)/'`rpcemu.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-rpcemu.Tpo" "$(DEPDIR)/rpcemu-rpcemu.Po"; else rm -f "$(DEPDIR)/rpcemu-rpcemu.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='rpcemu.c' object='rpcemu-rpcemu.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-rpcemu.o `test -f 'rpcemu.c' || echo '$(srcdir)/'`rpcemu.c
-
-rpcemu-rpcemu.obj: rpcemu.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-rpcemu.obj -MD -MP -MF "$(DEPDIR)/rpcemu-rpcemu.Tpo" -c -o rpcemu-rpcemu.obj `if test -f 'rpcemu.c'; then $(CYGPATH_W) 'rpcemu.c'; else $(CYGPATH_W) '$(srcdir)/rpcemu.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-rpcemu.Tpo" "$(DEPDIR)/rpcemu-rpcemu.Po"; else rm -f "$(DEPDIR)/rpcemu-rpcemu.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='rpcemu.c' object='rpcemu-rpcemu.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-rpcemu.obj `if test -f 'rpcemu.c'; then $(CYGPATH_W) 'rpcemu.c'; else $(CYGPATH_W) '$(srcdir)/rpcemu.c'; fi`
-
-rpcemu-sound.o: sound.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-sound.o -MD -MP -MF "$(DEPDIR)/rpcemu-sound.Tpo" -c -o rpcemu-sound.o `test -f 'sound.c' || echo '$(srcdir)/'`sound.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-sound.Tpo" "$(DEPDIR)/rpcemu-sound.Po"; else rm -f "$(DEPDIR)/rpcemu-sound.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sound.c' object='rpcemu-sound.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-sound.o `test -f 'sound.c' || echo '$(srcdir)/'`sound.c
-
-rpcemu-sound.obj: sound.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-sound.obj -MD -MP -MF "$(DEPDIR)/rpcemu-sound.Tpo" -c -o rpcemu-sound.obj `if test -f 'sound.c'; then $(CYGPATH_W) 'sound.c'; else $(CYGPATH_W) '$(srcdir)/sound.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-sound.Tpo" "$(DEPDIR)/rpcemu-sound.Po"; else rm -f "$(DEPDIR)/rpcemu-sound.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sound.c' object='rpcemu-sound.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-sound.obj `if test -f 'sound.c'; then $(CYGPATH_W) 'sound.c'; else $(CYGPATH_W) '$(srcdir)/sound.c'; fi`
-
-rpcemu-fpa.o: fpa.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-fpa.o -MD -MP -MF "$(DEPDIR)/rpcemu-fpa.Tpo" -c -o rpcemu-fpa.o `test -f 'fpa.c' || echo '$(srcdir)/'`fpa.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-fpa.Tpo" "$(DEPDIR)/rpcemu-fpa.Po"; else rm -f "$(DEPDIR)/rpcemu-fpa.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='fpa.c' object='rpcemu-fpa.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-fpa.o `test -f 'fpa.c' || echo '$(srcdir)/'`fpa.c
-
-rpcemu-fpa.obj: fpa.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-fpa.obj -MD -MP -MF "$(DEPDIR)/rpcemu-fpa.Tpo" -c -o rpcemu-fpa.obj `if test -f 'fpa.c'; then $(CYGPATH_W) 'fpa.c'; else $(CYGPATH_W) '$(srcdir)/fpa.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-fpa.Tpo" "$(DEPDIR)/rpcemu-fpa.Po"; else rm -f "$(DEPDIR)/rpcemu-fpa.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='fpa.c' object='rpcemu-fpa.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-fpa.obj `if test -f 'fpa.c'; then $(CYGPATH_W) 'fpa.c'; else $(CYGPATH_W) '$(srcdir)/fpa.c'; fi`
-
-rpcemu-codegen_null.o: codegen_null.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-codegen_null.o -MD -MP -MF "$(DEPDIR)/rpcemu-codegen_null.Tpo" -c -o rpcemu-codegen_null.o `test -f 'codegen_null.c' || echo '$(srcdir)/'`codegen_null.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-codegen_null.Tpo" "$(DEPDIR)/rpcemu-codegen_null.Po"; else rm -f "$(DEPDIR)/rpcemu-codegen_null.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='codegen_null.c' object='rpcemu-codegen_null.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-codegen_null.o `test -f 'codegen_null.c' || echo '$(srcdir)/'`codegen_null.c
-
-rpcemu-codegen_null.obj: codegen_null.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-codegen_null.obj -MD -MP -MF "$(DEPDIR)/rpcemu-codegen_null.Tpo" -c -o rpcemu-codegen_null.obj `if test -f 'codegen_null.c'; then $(CYGPATH_W) 'codegen_null.c'; else $(CYGPATH_W) '$(srcdir)/codegen_null.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rpcemu-codegen_null.Tpo" "$(DEPDIR)/rpcemu-codegen_null.Po"; else rm -f "$(DEPDIR)/rpcemu-codegen_null.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='codegen_null.c' object='rpcemu-codegen_null.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-codegen_null.obj `if test -f 'codegen_null.c'; then $(CYGPATH_W) 'codegen_null.c'; else $(CYGPATH_W) '$(srcdir)/codegen_null.c'; fi`
 uninstall-info-am:
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)

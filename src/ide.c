@@ -1,7 +1,12 @@
 /*RPCemu v0.6 by Tom Walker
   IDE emulation*/
+
+#define _LARGEFILE_SOURCE
+#define _LARGEFILE64_SOURCE
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdint.h>
+#include <sys/types.h>
 #include "rpcemu.h"
 #include "vidc20.h"
 #include "mem.h"
@@ -11,11 +16,7 @@
 
 void callreadcd();
 int skip512[2];
-#if defined WIN32 || defined _WIN32 || defined _WIN32
 int cdromenabled=1;
-#else
-int cdromenabled=1;
-#endif
 void atapicommand();
 int timetolive;
 int dumpedread=0;
@@ -60,10 +61,14 @@ void resetide(void)
                 hdfile[0]=fopen("hd4.hdf","rb+");
                 if (!hdfile[0])
                 {
-                        hdfile[0]=fopen("hd4.hdf","wb");
-                        putc(0,hdfile[0]);
-                        fclose(hdfile[0]);
-                        hdfile[0]=fopen("hd4.hdf","rb+");
+                        hdfile[0]=fopen64("hd4.hdf","rb+");
+                        if (!hdfile[0])
+                        {
+                                hdfile[0]=fopen("hd4.hdf","wb");
+                                putc(0,hdfile[0]);
+                                fclose(hdfile[0]);
+                                hdfile[0]=fopen64("hd4.hdf","rb+");
+                        }
                 }
                 atexit(closeide0);
         }
@@ -90,23 +95,27 @@ void resetide(void)
         }
         if (!hdfile[1])
         {
-                hdfile[1]=fopen("hd5.hdf","rb+");
+                hdfile[1]=fopen64("hd5.hdf","rb+");
                 if (!hdfile[1])
                 {
-                        hdfile[1]=fopen("hd5.hdf","wb");
-                        putc(0,hdfile[1]);
-                        fclose(hdfile[1]);
-                        hdfile[1]=fopen("hd5.hdf","rb+");
+                        hdfile[1]=fopen64("hd5.hdf","rb+");
+                        if (!hdfile[1])
+                        {
+                                hdfile[1]=fopen64("hd5.hdf","wb");
+                                putc(0,hdfile[1]);
+                                fclose(hdfile[1]);
+                                hdfile[1]=fopen64("hd5.hdf","rb+");
+                        }
                 }
                 atexit(closeide1);
         }
-        fseek(hdfile[1],0xFC1,SEEK_SET);
+        fseeko64(hdfile[1],0xFC1,SEEK_SET);
         ide.spt[1]=getc(hdfile[1]);
         ide.hpc[1]=getc(hdfile[1]);
         skip512[1]=1;
         if (!ide.spt[1] || !ide.hpc[1])
         {
-                fseek(hdfile[1],0xDC1,SEEK_SET);
+                fseeko64(hdfile[1],0xDC1,SEEK_SET);
                 ide.spt[1]=getc(hdfile[1]);
                 ide.hpc[1]=getc(hdfile[1]);
                 skip512[1]=0;
@@ -155,7 +164,7 @@ void writeidew(uint16_t val)
                 ide.atastat=0x80;
                 ide.packetstatus=1;
                 idecallback=60;
-                rpclog("Packet now waiting!\n");
+//                rpclog("Packet now waiting!\n");
         }
         else if (ide.pos>=512)
         {
@@ -226,6 +235,10 @@ void writeide(uint16_t addr, uint8_t val)
                 ide.error=0;
                 switch (val)
                 {
+                        case 0x08: /*Device reset*/
+                        ide.atastat=0x40;
+                        idecallback=100;
+                        return;
                         case 0x10: /*Restore*/
                         case 0x70: /*Seek*/
                         ide.atastat=0x40;
@@ -416,8 +429,8 @@ uint16_t readidew(void)
 
 void callbackide(void)
 {
+        off64_t addr;
         int c;
-        int64_t addr;
         if (idereset)
         {
                 ide.atastat=0x40;
@@ -432,6 +445,22 @@ void callbackide(void)
         }
         switch (ide.command)
         {
+                case 0x08: /*Device reset*/
+                ide.atastat=0x40;
+                ide.error=1; /*Device passed*/
+                if (!ide.drive || !cdromenabled)
+                {
+                        ide.secount=ide.sector=1;
+                        ide.cylinder=0;
+                }
+                else
+                {
+                        ide.secount=ide.sector=1;
+                        ide.cylinder=0xEB14;
+                }
+                iomd.statb|=2;
+                updateirqs();
+                return;
                 case 0x10: /*Restore*/
                 case 0x70: /*Seek*/
 //                rpclog("Restore callback\n");
@@ -442,7 +471,7 @@ void callbackide(void)
                 case 0x20: /*Read sectors*/
 //                rpclog("Read sector %i %i %i\n",ide.hpc[ide.drive],ide.spt[ide.drive],skip512[ide.drive]);
                 readflash=1;
-                addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+(ide.sector-1)+skip512[ide.drive])*512;
+                addr=(off64_t)((((((uint64_t)ide.cylinder*(uint64_t)ide.hpc[ide.drive])+(uint64_t)ide.head)*(uint64_t)ide.spt[ide.drive])+((uint64_t)ide.sector-1)+(uint64_t)skip512[ide.drive])*(uint64_t)512);
 //                rpclog("Read %i %i %i %08X\n",ide.cylinder,ide.head,ide.sector,addr);
                 /*                if (ide.cylinder || ide.head)
                 {
@@ -459,7 +488,8 @@ void callbackide(void)
                 return;
                 case 0x30: /*Write sector*/
                 readflash=2;
-                addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+(ide.sector-1)+skip512[ide.drive])*512;
+                addr=(off64_t)((((((uint64_t)ide.cylinder*(uint64_t)ide.hpc[ide.drive])+(uint64_t)ide.head)*(uint64_t)ide.spt[ide.drive])+((uint64_t)ide.sector-1)+(uint64_t)skip512[ide.drive])*(uint64_t)512);
+//                addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+(ide.sector-1)+skip512[ide.drive])*512;
 //                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
                 fseeko64(hdfile[ide.drive],addr,SEEK_SET);
                 fwrite(idebuffer,512,1,hdfile[ide.drive]);
@@ -493,8 +523,9 @@ void callbackide(void)
                 updateirqs();
                 return;
                 case 0x50: /*Format track*/
-                addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+skip512[ide.drive])*512;
-//                rpclog("Format cyl %i head %i offset %08X secount %I\n",ide.cylinder,ide.head,addr,ide.secount);
+                addr=(off64_t)((((((uint64_t)ide.cylinder*(uint64_t)ide.hpc[ide.drive])+(uint64_t)ide.head)*(uint64_t)ide.spt[ide.drive])+((uint64_t)ide.sector-1)+(uint64_t)skip512[ide.drive])*(uint64_t)512);
+//                addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+skip512[ide.drive])*512;
+                rpclog("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
                 fseeko64(hdfile[ide.drive],addr,SEEK_SET);
                 memset(idebufferb,0,512);
                 for (c=0;c<ide.secount;c++)
@@ -563,7 +594,8 @@ void callbackide(void)
                         return;
                 }
                 memset(idebuffer,0,512);
-                idebuffer[1]=101; /*Cylinders*/
+//                idebuffer[1]=101; /*Cylinders*/
+                idebuffer[1]=65535; /*Cylinders*/
                 idebuffer[3]=16;  /*Heads*/
                 idebuffer[6]=63;  /*Sectors*/
                 for (addr=10;addr<20;addr++)

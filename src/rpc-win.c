@@ -315,7 +315,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         ghwnd = CreateWindowEx (
            0,                   /* Extended possibilites for variation */
            szClassName,         /* Classname */
-           "RPCemu v0.6",       /* Title Text */
+           "RPCemu v0.7",       /* Title Text */
            WS_OVERLAPPEDWINDOW, /* default window */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
@@ -338,6 +338,11 @@ infocus=0;
 //        arclog=fopen("arclog.txt","wt");
         if (startrpcemu())
            return -1;
+        if (cdromtype>2) WindowProcedure(ghwnd,WM_COMMAND,IDM_CDROM_DISABLED+cdromtype,0);
+        CheckMenuItem(menu,IDM_CDROM_DISABLED+cdromtype,MF_CHECKED);
+        
+        CheckMenuItem(menu,IDM_STRETCH,(stretchmode)?MF_CHECKED:MF_UNCHECKED);
+        CheckMenuItem(menu,IDM_BLITOPT,(skipblits)?MF_CHECKED:MF_UNCHECKED);
 //        iso_open();
 //        ioctl_close();
 //        ioctl_gettoc();
@@ -380,7 +385,7 @@ infocus=1;
                 }
                 if (updatemips)
                 {
-                        sprintf(s,"RPCemu v0.6 - %f MIPS %f %i %f %i - %s",mips,tlbsec,ins,flushsec,vsyncints,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
+                        sprintf(s,"RPCemu v0.7 - %f MIPS %f %i %f %i - %s",mips,tlbsec,ins,flushsec,vsyncints,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
                         SetWindowText(ghwnd, s);
                         updatemips=0;
                 }
@@ -650,7 +655,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         switch (message)                  /* handle the messages */
         {
                 case WM_CREATE:
-                strcpy(isoname,"e:/au_cd8.iso");
+                strcpy(isoname,"");
 //                _beginthread(soundthread,0,NULL);
                 return 0;
                 case WM_COMMAND:
@@ -670,7 +675,11 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         changedisc(ghwnd,1);
                         return 0;
                         case IDM_CONFIG:
+                        #ifdef DYNAREC
+                        DialogBox(hinstance,TEXT("ConfigureDlgDynaRec"),ghwnd,configdlgproc);
+                        #else
                         DialogBox(hinstance,TEXT("ConfigureDlg"),ghwnd,configdlgproc);
+                        #endif
                         return 0;
                         case IDM_STRETCH:
                         stretchmode^=1;
@@ -689,12 +698,55 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         skipblits^=1;
                         CheckMenuItem(hmenu,IDM_BLITOPT,(skipblits)?MF_CHECKED:MF_UNCHECKED);
                         return 0;
+                        case IDM_CDROM_DISABLED:
+                        if (cdromenabled)
+                        {
+                                if (MessageBox(ghwnd,"This will reset RPCemu!\nOkay to continue?","RPCemu",MB_OKCANCEL)==IDOK)
+                                {
+                                        cdromenabled=0;
+                                        resetrpc();
+                                        CheckMenuItem(hmenu,IDM_CDROM_DISABLED+cdromtype,MF_UNCHECKED);
+                                        cdromtype=IDM_CDROM_DISABLED-IDM_CDROM_DISABLED;
+                                        CheckMenuItem(hmenu,IDM_CDROM_DISABLED+cdromtype,MF_CHECKED);
+                                }
+                        }
+                        return 0;
+                        case IDM_CDROM_EMPTY:
+                        if (!cdromenabled)
+                        {
+                                if (MessageBox(ghwnd,"This will reset RPCemu!\nOkay to continue?","RPCemu",MB_OKCANCEL)==IDOK)
+                                {
+                                        cdromenabled=1;
+                                        resetrpc();
+                                }
+                                else
+                                   return 0;
+                        }
+                        atapi->exit();
+                        iso_init();
+                        CheckMenuItem(hmenu,IDM_CDROM_DISABLED+cdromtype,MF_UNCHECKED);
+                        cdromtype=IDM_CDROM_EMPTY-IDM_CDROM_DISABLED;
+                        CheckMenuItem(hmenu,IDM_CDROM_DISABLED+cdromtype,MF_CHECKED);
+                        return 0;
                         case IDM_CDROM_ISO:
                         if (selectiso(ghwnd))
                         {
+                                if (!cdromenabled)
+                                {
+                                        if (MessageBox(ghwnd,"This will reset RPCemu!\nOkay to continue?","RPCemu",MB_OKCANCEL)==IDOK)
+                                        {
+                                                cdromenabled=1;
+                                                resetrpc();
+                                        }
+                                        else
+                                           return 0;
+                                }
                                 atapi->exit();
                                 iso_open(isoname);
                         }
+                        CheckMenuItem(hmenu,IDM_CDROM_DISABLED+cdromtype,MF_UNCHECKED);
+                        cdromtype=IDM_CDROM_ISO-IDM_CDROM_DISABLED;
+                        CheckMenuItem(hmenu,IDM_CDROM_DISABLED+cdromtype,MF_CHECKED);
                         return 0;
 //                        case IDM_CDROM_G:
 //                        atapi->exit();
@@ -703,8 +755,21 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 }
                 if (LOWORD(wParam)>=IDM_CDROM_REAL && LOWORD(wParam)<(IDM_CDROM_REAL+100))
                 {
+                        if (!cdromenabled)
+                        {
+                                if (MessageBox(ghwnd,"This will reset RPCemu!\nOkay to continue?","RPCemu",MB_OKCANCEL)==IDOK)
+                                {
+                                        cdromenabled=1;
+                                        resetrpc();
+                                }
+                                else
+                                   return 0;
+                        }
                         atapi->exit();
                         ioctl_open(LOWORD(wParam)-IDM_CDROM_REAL);
+                        CheckMenuItem(hmenu,IDM_CDROM_DISABLED+cdromtype,MF_UNCHECKED);
+                        cdromtype=LOWORD(wParam)-IDM_CDROM_DISABLED;
+                        CheckMenuItem(hmenu,IDM_CDROM_DISABLED+cdromtype,MF_CHECKED);
                         return 0;
                 }
                 break;
