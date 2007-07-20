@@ -7,7 +7,6 @@
 int swiout=0;
 int times8000=0;
 int blits;
-
 /*3/12/06 - databort and prefabort have been rolled into bits 6 and 7 of armirq.
   This gives a minor speedup.
   MSR fixes from John-Mark Bell allow RISC OS 6 to work.
@@ -4340,6 +4339,7 @@ exception(SUPERVISOR,0xC,4);
                                 output=1;
                                 ins=0;
                         }*/
+//                        if (PC==0x14820) armregs[6]=0x8;
                 #if 0
                         if (PC==(lastswi+4))
                         {
@@ -4438,10 +4438,10 @@ exception(SUPERVISOR,0xC,4);
                 }
 //                printf("T0 now %04X\n",iomd.t0c);
 //                cyc=(oldcyc-cycles);
-                if (soundbufferfull)
+/*                if (soundbufferfull)
                 {
                         updatesoundbuffer();
-                }
+                }*/
                 if (delaygenirqleft)
                 {
 //                        rpclog("IRQ left! %i %i\n",delaygenirqleft);

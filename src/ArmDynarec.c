@@ -406,7 +406,7 @@ int insnum[256];
 void dumpregs()
 {
 /*}*/
-//#if 0
+#if 1
         FILE *f;//,*ff;
         char s[1024];
         int c,d;//,d,e;
@@ -449,7 +449,7 @@ void dumpregs()
 //        fwrite(ram,0x400000,1,f);
 //        fclose(f);
 memmode=1;
-        f=fopen("kernel.dmp","wb");
+/*        f=fopen("kernel.dmp","wb");
         for (c=0xC0000000;c<0xC0200000;c+=4096)
         {
                 armirq=0;
@@ -496,16 +496,16 @@ memmode=1;
         f=fopen("ram.dmp","wb");
         for (c=0x8000;c<0x70000;c++)
             putc(readmemb(c),f);
-        fclose(f);
+        fclose(f);*/
         f=fopen("ram0.dmp","wb");
         for (c=0x0000;c<0x8000;c++)
             putc(readmemb(c),f);
         fclose(f);
 
-        f=fopen("ram10.dmp","wb");
+  /*      f=fopen("ram10.dmp","wb");
         for (c=0x10000000;c<0x10800000;c++)
             putc(readmemb(c),f);
-        fclose(f);
+        fclose(f);*/
 /*        f=fopen("bsdk.dmp","wb");
         for (c=0xF0000000;c<0xF0800000;c++)
             putc(readmemb(c),f);
@@ -560,11 +560,10 @@ memmode=1;
         }
         fclose(f);*/
         indumpregs=0;
+#endif
 }
-//#endif
 
-//#define dumpregs()
-
+#define dumpregs()
 unsigned char readmemfbr()
 {
         return readmemb(armregs[0]);

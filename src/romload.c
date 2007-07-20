@@ -89,5 +89,11 @@ int loadroms()
 				rom[c>>2]=temp;
 		}
 #endif
+        /*Patch ROM for 8 meg vram!*/
+        if (rom[0x14820>>2]==0xE3560001 && /*Check for ROS 4.02 startup*/
+            rom[0x14824>>2]==0x33A02050 &&
+            rom[0x14828>>2]==0x03A02004 &&
+            rom[0x1482C>>2]==0x83A02008)
+           rom[0x14824>>2]=0xE3A06008; /*MOV R6,#8 - 8 megs*/
         return 0;
 }

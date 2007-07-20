@@ -329,7 +329,7 @@ void closevideo()
 void togglefullscreen(int fs)
 {
         oldsx=oldsy=-1;
-        memset(dirtybuffer,1,512);
+        memset(dirtybuffer,1,512*4);
 }
 
 void dblit(int xs, int yl, int yh)
@@ -394,8 +394,8 @@ void drawscr()
         #endif
         blits++;
 //        rpclog("Draw screen\n");
-        iomd.vidend=(iomd.vidend&0x1FFFFF)|(iomd.vidinit&~0x1FFFFF);
-        iomd.vidstart=(iomd.vidstart&0x1FFFFF)|(iomd.vidinit&~0x1FFFFF);        
+        iomd.vidend=(iomd.vidend&0x7FFFFF)|(iomd.vidinit&~0x7FFFFF);
+        iomd.vidstart=(iomd.vidstart&0x7FFFFF)|(iomd.vidinit&~0x7FFFFF);
 //        rpclog("XS %i YS %i\n",xs,ys);
         if (xs<2) xs=2;
         if (ys<1) ys=480;
@@ -455,7 +455,7 @@ void drawscr()
         
         if (palchange)
         {
-                memset(dirtybuffer,1,512);
+                memset(dirtybuffer,1,512*4);
 //                palchange=0;
         }
         x=y=c=0;
@@ -501,15 +501,15 @@ void drawscr()
         else                         ramp=vramb;
         ramw=(unsigned short *)ramp;
 //        #endif
-        addr=iomd.vidinit&0x1FFFFF;
+        addr=iomd.vidinit&0x7FFFFF;
         curchange=0;
 //        rpclog("First block %i %08X last block %i %08X finished at %i %08X\n",firstblock,firstblock,lastblock,lastblock,c,c);
         x=y=0;
         drawit=dirtybuffer[addr>>12];
         if (drawit) dirtybuffer[addr>>12]--;
         if (drawit) yl=0;
-        iomd.vidstart&=0x1FFFFF;
-        iomd.vidend&=0x1FFFFF;        
+        iomd.vidstart&=0x7FFFFF;
+        iomd.vidend&=0x7FFFFF;
         switch (drawcode)
         {
                 case 16:
@@ -1595,7 +1595,7 @@ void writevidc20(uint32_t val)
 
 void resetbuffer(void)
 {
-        memset(dirtybuffer,1,512);
+        memset(dirtybuffer,1,512*4);
 //        rpclog("Reset buffer\n");
 }
 

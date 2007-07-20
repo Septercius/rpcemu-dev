@@ -62,7 +62,7 @@ void rpclog(const char *format, ...)
 {
    char buf[1024];
 //return;
-   if (!arclog) arclog=fopen("rlog.txt","wt");
+   if (!arclog) arclog=fopen("e:/devcpp/rpc/rlog.txt","wt");
    va_list ap;
    va_start(ap, format);
    vsprintf(buf, format, ap);
@@ -601,7 +601,7 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
                         SendMessage(h,BM_SETCHECK,0,0);
                         h=GetDlgItem(hdlg,RadioButton12);
                         SendMessage(h,BM_SETCHECK,1,0);
-                        vrammask2=0x1FFFFF;
+                        vrammask2=0x7FFFFF;
                         return TRUE;
                         
                         case RadioButton1: case RadioButton2: case RadioButton3: case RadioButton4:

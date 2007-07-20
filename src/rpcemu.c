@@ -141,12 +141,12 @@ void loadconfig()
         else                       rammask=0x7FFFFF;
         #ifdef DYNAREC
         model=3;           /*SA1100*/
-        vrammask=0x1FFFFF; /*2mb VRAM*/
+        vrammask=0x7FFFFF; /*2mb VRAM*/
         #else
         p=(char *)get_config_string(NULL,"vram_size",NULL);
-        if (!p) vrammask=0x1FFFFF;
+        if (!p) vrammask=0x7FFFFF;
         else if (!strcmp(p,"0"))        vrammask=0;
-        else                       vrammask=0x1FFFFF;
+        else                       vrammask=0x7FFFFF;
         p=(char *)get_config_string(NULL,"cpu_type",NULL);
         if (!p) model=2;
         else if (!strcmp(p,"ARM610")) model=1;

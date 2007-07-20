@@ -219,15 +219,15 @@ void writeiomd(uint32_t addr, uint32_t val)
 //                curchange=1;
                 return;
                 case 0x1D0: /*Video DMA current*/
-                iomd.vidcur=val&0x1FFFFF;                
+                iomd.vidcur=val&0x7FFFFF;
 //                rpclog("Vidcur = %08X\n",val);
                 return;
                 case 0x1D4: /*Video DMA end*/
-                if (vrammask && model) iomd.vidend=(val+2048)&0x1FFFF0;
-                else                   iomd.vidend=(val+16)&0x1FFFF0;
+                if (vrammask && model) iomd.vidend=(val+2048)&0x7FFFF0;
+                else                   iomd.vidend=(val+16)&0x7FFFF0;
                 return;
                 case 0x1D8: /*Video DMA start*/
-                iomd.vidstart=val&0x1FFFFF;
+                iomd.vidstart=val&0x7FFFFF;
                 resetbuffer();
                 return;
                 case 0x1DC: /*Video DMA init*/

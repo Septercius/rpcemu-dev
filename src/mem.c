@@ -14,7 +14,7 @@ int timetolive;
 //#define LARGETLB
 uint32_t *ram = NULL, *ram2 = NULL, *rom = NULL, *vram = NULL;
 uint8_t *ramb = NULL, *ramb2 = NULL, *romb = NULL, *vramb = NULL;
-uint8_t dirtybuffer[512];
+uint8_t dirtybuffer[512*4];
 
 uint32_t raddrl[256] = {0};
 uint32_t *raddrl2[256] = {NULL};
@@ -65,7 +65,7 @@ void initmem(void)
         ram=(uint32_t *)malloc(2*1024*1024);
         ram2=(uint32_t *)malloc(2*1024*1024);
         rom=(uint32_t *)malloc(8*1024*1024);
-        vram=(uint32_t *)malloc(2*1024*1024);
+        vram=(uint32_t *)malloc(8*1024*1024); /*8 meg VRAM!*/
         ramb=(unsigned char *)ram;
         ramb2=(unsigned char *)ram2;
         romb=(unsigned char *)rom;
@@ -164,7 +164,7 @@ uint32_t readmemfl(uint32_t addr)
                                 
                                 case 0x02000000: /*VRAM*/
                                 dirtybuffer[(addr&vrammask)>>12]=2;
-                                vradd(addr2,&vram[((readmemcache2&0x1FF000)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
+                                vradd(addr2,&vram[((readmemcache2&0x7FF000)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
 //                                vwadd(addr2,&vram[((readmemcache2&0x1FF000)-(addr2&~0xFFF))>>2],readmemcache2);
                                 return *(uint32_t *)(vraddrl[addr2>>12]+(addr2&~3));
                                 
@@ -203,7 +203,7 @@ uint32_t readmemfl(uint32_t addr)
                        case 0x02000000: /*VRAM*/
 //			printf("VRAM %08X%08X %08X%08X\n",((unsigned long)vram)>>32,vram,((unsigned long)&vram[((addr&0x1FF000)-(long)(addr&~0xFFF))>>2])>>32,&vram[((addr&0x1FF000)-(long)(addr&~0xFFF))>>2]);
 //                       rpclog("VRAM\n");
-                       vradd(addr,&vram[((addr&0x1FF000)-(long)(addr&~0xFFF))>>2],0,addr);
+                       vradd(addr,&vram[((addr&0x7FF000)-(long)(addr&~0xFFF))>>2],0,addr);
                        break;
                        case 0x10000000: /*SIMM 0 bank 0*/
                        case 0x11000000:
@@ -351,7 +351,7 @@ uint32_t readmemfb(uint32_t addr)
 
                                 case 0x02000000: /*VRAM*/
                                 dirtybuffer[(addr&vrammask)>>12]=2;
-                                vradd(addr2,&vram[((readmemcache2&0x1FF000)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
+                                vradd(addr2,&vram[((readmemcache2&0x7FF000)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
 								addr2^=3;
 #endif
@@ -476,7 +476,7 @@ void writememfl(uint32_t addr, uint32_t val)
                         {
                                 case 0x02000000: /*VRAM*/
                                 dirtybuffer[(addr&vrammask)>>12]=2;
-                                vwadd(addr2,&vram[((writememcache2&0x1FF000)-(long)(addr2&~0xFFF))>>2],0,writememcache2);
+                                vwadd(addr2,&vram[((writememcache2&0x7FF000)-(long)(addr2&~0xFFF))>>2],0,writememcache2);
                                 break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 if ((!vrammask || !model) && (addr&0x1FF00000)==0x10000000)
@@ -503,7 +503,7 @@ void writememfl(uint32_t addr, uint32_t val)
                 switch ((waddrl<<12)&0x1F000000)
                 {
                         case 0x02000000: /*VRAM*/
-                        waddrl2=&vram[((waddrl<<12)&0x1FF000)>>2];
+                        waddrl2=&vram[((waddrl<<12)&0x7FF000)>>2];
                         break;
                         case 0x10000000: /*SIMM 0 bank 0*/
                         case 0x11000000:
@@ -660,7 +660,7 @@ void writememfb(uint32_t addr, uint8_t val)
                         {
                                 case 0x02000000: /*VRAM*/
                                 dirtybuffer[(addr&vrammask)>>12]=2;
-                                vwadd(addr2,&vram[((writemembcache2&0x1FF000)-(long)(addr2&~0xFFF))>>2],0,writemembcache2);
+                                vwadd(addr2,&vram[((writemembcache2&0x7FF000)-(long)(addr2&~0xFFF))>>2],0,writemembcache2);
                                 break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 if ((!vrammask || !model) && (addr&0x1FF00000)==0x10000000)
@@ -680,7 +680,7 @@ void writememfb(uint32_t addr, uint8_t val)
                                 waddrl=0xFFFFFFFF;
                                 #if 0
                                 case 0x02000000: /*VRAM*/
-                                waddrbl2=&vram[(writemembcache2&0x1FF000)>>2];
+                                waddrbl2=&vram[(writemembcache2&0x7FF000)>>2];
                                 break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 case 0x11000000:
@@ -706,7 +706,7 @@ void writememfb(uint32_t addr, uint8_t val)
                 switch ((waddrbl<<12)&0x1F000000)
                 {
                         case 0x02000000: /*VRAM*/
-                        waddrbl2=&vram[((waddrbl<<12)&0x1FF000)>>2];
+                        waddrbl2=&vram[((waddrbl<<12)&0x7FF000)>>2];
                         break;
                         case 0x10000000: /*SIMM 0 bank 0*/
                         case 0x11000000:
