@@ -114,18 +114,21 @@ void blitterthread()
 
 void closevideo();
 
+#define DEFAULT_W 640
+#define DEFAULT_H 480
+
 void initvideo()
 {
         int depth;
-//        int tempo=0;
+
 #ifdef FULLSCREENALWAYS
        depth=16;
        set_color_depth(16);
-       if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,640,480,0,0))
+       if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,DEFAULT_W,DEFAULT_H,0,0))
        {
                 set_color_depth(15);
                 depth=15;
-                if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,640,480,0,0))
+                if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,DEFAULT_W,DEFAULT_H,0,0))
                 {
                         printf("Failed to set video mode 640x480x16\n");
                         exit(-1);
@@ -137,19 +140,19 @@ void initvideo()
         if (depth==16 || depth==15)
         {
                 set_color_depth(15);
-				depth=15;
-                if (set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0))
+                depth=15;
+                if (set_gfx_mode(GFX_AUTODETECT_WINDOWED,DEFAULT_W,DEFAULT_H,0,0))
                 {
                         set_color_depth(16);
                         depth=16;
-                        set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
+                        set_gfx_mode(GFX_AUTODETECT_WINDOWED,DEFAULT_W,DEFAULT_H,0,0);
                 }
                 drawcode=16;
         }
         else if (depth==32)
         {
                 set_color_depth(depth);
-                set_gfx_mode(GFX_AUTODETECT_WINDOWED,1024,768,0,0);
+                set_gfx_mode(GFX_AUTODETECT_WINDOWED,DEFAULT_W,DEFAULT_H,0,0);
                 drawcode=32;
         }
         else
@@ -158,22 +161,8 @@ void initvideo()
                 exit(0);
         }
 #endif
-//        set_color_depth(8);
-//        if (depth!=15) set_color_depth(16);
-//        else           set_color_depth(15);
 
-#ifdef HARDWAREBLIT
-bs=create_video_bitmap(1024,768);
-        b=create_video_bitmap(1024,768);
-        if (!b) /*Video bitmaps unavailable for some reason*/
-#endif
-           b=create_bitmap(1024,768);
-//        b2=create_video_bitmap(1024,768);
-//        if (!b2) /*Video bitmaps unavailable for some reason*/
-//           b2=create_bitmap(1024,768);
-        oldsx=64;
-        oldsy=48;
-//        atexit(closevideo);
+        oldsx=oldsy=-1;
 }
 
 int palindex;
@@ -208,10 +197,11 @@ int fullresolutions[][2]=
         {1024,768},
         {1280,800},
         {1280,1024},
+        {1600,1200},
+        {1920,1200},
         {-1,-1}
 };
 
-int lastfullscreen=0;
 void resizedisplay(int x, int y)
 {
         int c;
@@ -221,29 +211,12 @@ void resizedisplay(int x, int y)
         #endif
         if (x<16) x=16;
         if (y<16) y=16;
-        if (fullscreen)
-        {
-                if (x>1280) x=1280;
-                if (y>1024) y=1024;
-        }
-        else
-        {
-                if (x>1024) x=1024;
-                if (y>768) y=768;
-        }
         oldsx=x;
         oldsy=y;
         while (inblit || blitready) sleep(1);
+	closevideo();
         if (fullscreen)
         {
-                destroy_bitmap(b);
-                if (lastfullscreen)
-                {
-                        destroy_bitmap(bs);
-                        destroy_bitmap(bs2);
-                        destroy_bitmap(bs3);
-                        destroy_bitmap(bs4);
-                }
                 c=0;
                 tryagain:
                 while (fullresolutions[c][0]!=-1)
@@ -284,50 +257,37 @@ void resizedisplay(int x, int y)
                 if (!b) /*Video bitmaps unavailable for some reason*/
 #endif
                    b=create_bitmap(x+16,y+16);
-                lastfullscreen=1;
         }
         else
         {
-                if (lastfullscreen) destroy_bitmap(b);
-                if (lastfullscreen)
-                {
-                        destroy_bitmap(bs);
-                        destroy_bitmap(bs2);
-                        destroy_bitmap(bs3);
-                        destroy_bitmap(bs4);
-                }
-                if (lastfullscreen) set_gfx_mode(GFX_AUTODETECT_WINDOWED,640,480,0,0);
+                set_gfx_mode(GFX_AUTODETECT_WINDOWED,x,y,0,0);
                 updatewindowsize(x,y);
-                if (lastfullscreen) bs=create_video_bitmap(1024,768);
-#ifdef HARDWAREBLIT
-                if (lastfullscreen) b=create_video_bitmap(1024,768);
-#endif
-                if (!b && lastfullscreen) /*Video bitmaps unavailable for some reason*/
-                   b=create_bitmap(1024,768);
-                lastfullscreen=0;
+                bs=create_video_bitmap(x,y);
+                b=create_video_bitmap(x,y);
+                if (!b) /*Video bitmaps unavailable for some reason*/
+                   b=create_bitmap(x,y);
         }
         resetbuffer();
 }
 
-int videoclosed=0;
 void closevideo()
 {
-        if (videoclosed) return;
 //        rpclog("Calling closevideo()\n");
         if (b) destroy_bitmap(b);
         if (bs) destroy_bitmap(bs);
-        if (lastfullscreen)
-        {
-                if (bs2) destroy_bitmap(bs2);
-                if (bs3) destroy_bitmap(bs3);
-                if (bs4) destroy_bitmap(bs4);
-        }
-        videoclosed=1;
-/*        allegro_exit();*/
+	if (bs2) destroy_bitmap(bs2);
+	if (bs3) destroy_bitmap(bs3);
+	if (bs4) destroy_bitmap(bs4);
+	b = NULL;
+	bs = NULL;
+	bs2 = NULL;
+	bs3 = NULL;
+	bs4 = NULL;
 }
         
 void togglefullscreen(int fs)
 {
+        fullscreen=fs;
         oldsx=oldsy=-1;
         memset(dirtybuffer,1,512*4);
 }
@@ -411,16 +371,6 @@ void drawscr()
                 doublesize|=2;
         }
         #endif
-        if (fullscreen)
-        {
-                if (ys>1024) ys=1024;
-                if (xs>1280) xs=1280;
-        }
-        else
-        {
-                if (ys>768) ys=768;
-                if (xs>1024) xs=1024;
-        }
         if (ys!=oldsy || xs!=oldsx) resizedisplay(xs,ys);
         if (!(iomd.vidcr&0x20) || vdsr>vder)
         {
@@ -1598,9 +1548,3 @@ void resetbuffer(void)
         memset(dirtybuffer,1,512*4);
 //        rpclog("Reset buffer\n");
 }
-
-/*void closevideo()
-{
-        destroy_bitmap(b);
-        allegro_exit();
-}*/

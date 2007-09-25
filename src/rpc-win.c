@@ -391,7 +391,6 @@ infocus=1;
                 }
                 if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && fullscreen)
                 {
-                        fullscreen=0;
                         togglefullscreen(0);
                         mousecapture=0;
                 }
@@ -686,7 +685,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         CheckMenuItem(hmenu,IDM_STRETCH,(stretchmode)?MF_CHECKED:MF_UNCHECKED);
                         return 0;
                         case IDM_FULLSCR:
-                        fullscreen=1;
                         if (mousecapture)
                         {
                                 ClipCursor(&oldclip);

@@ -160,24 +160,31 @@ MENU cdmenu[]=
 
 MENU settingsmenu[];
 
+int menufullscreen(void)
+{
+        togglefullscreen(!fullscreen);
+        settingsmenu[1].flags=(fullscreen)?D_SELECTED:0;
+        return D_CLOSE;
+}
+
 int menualt(void)
 {
         stretchmode^=1;
-        settingsmenu[1].flags=(stretchmode)?D_SELECTED:0;
+        settingsmenu[2].flags=(stretchmode)?D_SELECTED:0;
         return D_CLOSE;
 }
 
 int menublt(void)
 {
         skipblits^=1;
-        settingsmenu[2].flags=(skipblits)?D_SELECTED:0;
+        settingsmenu[3].flags=(skipblits)?D_SELECTED:0;
         return D_CLOSE;
 }
 
 int menumouse(void)
 {
         mousehackon^=1;
-        settingsmenu[3].flags=(mousehackon)?D_SELECTED:0;
+        settingsmenu[4].flags=(mousehackon)?D_SELECTED:0;
         return D_CLOSE;
 }
 
@@ -245,6 +252,7 @@ int hzcallback(void *dp3, int d2)
 MENU settingsmenu[]=
 {
         {"&Settings...",menusettings,NULL,0,NULL},
+        {"&Fullscreen mode",menufullscreen,NULL,0,NULL},
         {"&Alternative blitting code",menualt,NULL,0,NULL},
         {"&Blitting optimisation",menublt,NULL,0,NULL},
         {"&Mouse hack",menumouse,NULL,0,NULL},
@@ -322,9 +330,10 @@ void entergui()
         
         if (soundenabled) stopsound();
         
-        settingsmenu[1].flags=(stretchmode)?D_SELECTED:0;
-        settingsmenu[2].flags=(skipblits)?D_SELECTED:0;
-        settingsmenu[3].flags=(mousehackon)?D_SELECTED:0;
+        settingsmenu[1].flags=(fullscreen)?D_SELECTED:0;
+        settingsmenu[2].flags=(stretchmode)?D_SELECTED:0;
+        settingsmenu[3].flags=(skipblits)?D_SELECTED:0;
+        settingsmenu[4].flags=(mousehackon)?D_SELECTED:0;
         
         dp=init_dialog(rpcemugui,0);
         show_mouse(screen);
