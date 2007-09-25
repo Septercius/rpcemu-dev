@@ -131,6 +131,12 @@ void startblitthread()
 	atexit(endblitthread);
 }
 
+void close_button_handler(void)
+{
+  quited = TRUE;
+}
+END_OF_FUNCTION(close_button_handler)
+
 int main (void) 
 {
         char s[128];
@@ -139,6 +145,9 @@ int main (void)
 //printf("Started!\n");
 mousehackon=1;
         allegro_init();
+
+	LOCK_FUNCTION(close_button_handler);
+	set_close_button_callback(close_button_handler);
 //printf("1\n");
 //set_gfx_mode(GFX_AUTODETECT_WINDOWED,640,480,0,0);
 //printf("2a\n");
