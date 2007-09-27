@@ -13,8 +13,6 @@ extern void togglefullscreen(int fs);
 extern int refresh;
 extern int skipblits;
 extern int fullscreen;
-extern int blits;
 extern int readflash;
-extern int curchange;
 
 #endif //__VIDC20__

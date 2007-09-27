@@ -11,7 +11,7 @@ int soundenabled;
 int soundbufferfull;
 int getbufferlen();
 uint32_t soundaddr[4];
-int samplefreq;
+static int samplefreq;
 int soundinited,soundlatch,soundcount;
 
 AUDIOSTREAM *as;
@@ -52,8 +52,14 @@ int updatebigsound=0;
 
 int oldsamplefreq=44100;
 
-void changesamplefreq()
+int getsamplefreq()
 {
+        return samplefreq;
+}
+
+void changesamplefreq(int newsamplefreq)
+{
+        samplefreq = newsamplefreq;
         if (samplefreq!=oldsamplefreq)
         {
         

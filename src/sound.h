@@ -3,7 +3,8 @@
 
 extern void initsound();
 extern void closesound();
-extern void changesamplefreq();
+extern int getsamplefreq();
+extern void changesamplefreq(int newsamplefreq);
 extern int soundenabled;
 extern int soundbufferfull;
 extern void updatesoundirq();

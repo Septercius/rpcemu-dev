@@ -73,7 +73,6 @@ void rpclog(const char *format, ...)
 
 int drawscre=0,flyback;
 int dosnd;
-int samplefreq;
 void sndupdate(void)
 {
         int nextlen;
@@ -83,7 +82,7 @@ void sndupdate(void)
         iomd.sndstat^=1;
         iomd.sndstat|=6;
         nextlen=getbufferlen()>>2;
-        temp=((float)nextlen/(float)samplefreq)*1000.0f;
+        temp=((float)nextlen/(float)getsamplefreq())*1000.0f;
         nextlen=(int)temp;
         if (nextlen<10) nextlen=10;
         install_int_ex(sndupdate,MSEC_TO_TIMER(nextlen));

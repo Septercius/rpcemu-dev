@@ -8,7 +8,6 @@ unsigned long readmeml(unsigned long a);
   Dynamic recompiling version!*/
 int swiout=0;
 int times8000=0;
-int blits;
 unsigned long abortaddr,abortaddr2;
 int twice=0;
 unsigned long lastblockfunc;
