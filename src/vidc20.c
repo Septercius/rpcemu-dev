@@ -13,10 +13,11 @@ int fullscreen=0;
 int readflash = 0;
 static BITMAP *b = NULL,*bs = NULL,*bs2 = NULL,*bs3=NULL,*bs4=NULL;
 static int currentbuffer=1;
-static int deskdepth = 0;
 static int oldsx = 0,oldsy = 0;
 static int drawcode = 0;
 
+
+/* This state is written by the main thread. The display thread should not read it. */
 struct vidc_state {
         uint32_t vidcpal[0x104];
         int palindex;
@@ -26,7 +27,9 @@ struct vidc_state {
         int bit8;
 } vidc;
 
-
+/* This state is a cached version of the main state, and is read by the display thread.
+   The *changed variables indicate data that needs refreshing, the rest should only be
+   changed when the display thread is not running. */
 static struct {
         struct
         {
@@ -36,12 +39,32 @@ static struct {
         int palchange;
         uint32_t vpal[260];
         int curchange;
+        uint32_t iomd_vidstart;
+        uint32_t iomd_vidend;
+        uint32_t iomd_vidinit;
+        unsigned char iomd_vidcr;
+        int xsize;
+        int ysize;
+        int cursorx;
+        int cursory;
+        int cursorheight;
+        int lastblock;
+        int doublesize;
+        int bpp;
+        uint8_t *dirtybuffer;
 } cached_state;
+
+uint8_t dirtybuffer1[512*4];
+uint8_t dirtybuffer2[512*4];
+
+/* Dirty buffer currently in use by main thread */
+uint8_t *dirtybuffer = dirtybuffer1;
 
 static int thread_yh = 0, thread_yl = 0,thread_xs = 0,thread_ys = 0,thread_doublesize = 0;
 static int blitready=0;
 static int inblit=0;
 static int skipnextblit=0;
+
 void blitterthread()
 {
         int xs=thread_xs;
@@ -152,7 +175,7 @@ void initvideo()
        }
        drawcode=16;
 #else
-        depth=deskdepth=desktop_color_depth();
+        depth=desktop_color_depth();
         if (depth==16 || depth==15)
         {
                 set_color_depth(15);
@@ -180,7 +203,8 @@ void initvideo()
 
         oldsx=oldsy=-1;
         memset(&cached_state, 0, sizeof(cached_state));
-
+        memset(dirtybuffer1,1,512*4);
+        memset(dirtybuffer2,1,512*4);
 }
 
 
@@ -317,26 +341,18 @@ static void calccrc(unsigned short *crc, unsigned char byte)
         }
 }
 
+void drawscr2();
 
 void drawscr()
 {
-        static int ony,ocy;
         static int lastframeborder=0;
-        int x,y,xx;
-        int xs=vidc.hder-vidc.hdsr;
-        int ys=vidc.vder-vidc.vdsr;
-        int addr;
-        int cx=vidc.hcsr-vidc.hdsr;
-        int cy=vidc.vcsr-vidc.vdsr,ny=vidc.vcer-vidc.vcsr;
-        int drawit=0,olddrawit=0;
-        int yl=-1,yh=-1;
+        int x,y;
+        cached_state.xsize=vidc.hder-vidc.hdsr;
+        cached_state.ysize=vidc.vder-vidc.vdsr;
+        cached_state.cursorx=vidc.hcsr-vidc.hdsr;
+        cached_state.cursory=vidc.vcsr-vidc.vdsr;
+        cached_state.cursorheight=vidc.vcer-vidc.vcsr;
         int c;
-        int doublesize=0;
-        uint32_t temp;
-        unsigned char *ramp;
-        unsigned short temp16,*ramw;
-        uint32_t *vidp=NULL;
-        unsigned short *vidp16=NULL;
         int firstblock,lastblock;
 
 
@@ -367,45 +383,42 @@ void drawscr()
         #ifdef BLITTER_THREAD
         while (blitready)
         {
-/*                if (soundbufferfull)
-                {
-                        updatesoundbuffer();
-                }*/
                 sleep(0);
-//                return;
         }
         #endif
 //        rpclog("Draw screen\n");
-        uint32_t iomd_vidstart = iomd.vidstart;
-        uint32_t iomd_vidend = iomd.vidend;
-        uint32_t iomd_vidinit = iomd.vidinit;
-        unsigned char iomd_vidcr = iomd.vidcr;
-//        rpclog("XS %i YS %i\n",xs,ys);
-        if (xs<2) xs=2;
-        if (ys<1) ys=480;
+        cached_state.iomd_vidstart = iomd.vidstart;
+        cached_state.iomd_vidend = iomd.vidend;
+        cached_state.iomd_vidinit = iomd.vidinit;
+        cached_state.iomd_vidcr = iomd.vidcr;
+        cached_state.bpp = vidc.bit8;
+//        rpclog("XS %i YS %i\n",cached_state.xsize,cached_state.ysize);
+        if (cached_state.xsize<2) cached_state.xsize=2;
+        if (cached_state.ysize<1) cached_state.ysize=480;
+        cached_state.doublesize=0;
         #ifdef HARDWAREBLIT
-        if (xs<=448 || (xs<=480 && ys<=352))
+        if (cached_state.xsize<=448 || (cached_state.xsize<=480 && cached_state.ysize<=352))
         {
-                xs<<=1;
-                doublesize=1;
+                cached_state.xsize<<=1;
+                cached_state.doublesize=1;
         }
-        if (ys<=352)
+        if (cached_state.ysize<=352)
         {
-                ys<<=1;
-                doublesize|=2;
+                cached_state.ysize<<=1;
+                cached_state.doublesize|=2;
         }
         #endif
-        if (ys!=oldsy || xs!=oldsx) resizedisplay(xs,ys);
-        if (!(iomd_vidcr&0x20) || vidc.vdsr>vidc.vder)
+        if (cached_state.ysize!=oldsy || cached_state.xsize!=oldsx) resizedisplay(cached_state.xsize,cached_state.ysize);
+        if (!(cached_state.iomd_vidcr&0x20) || vidc.vdsr>vidc.vder)
         {
 //return;
                 lastframeborder=1;
                 if (!dirtybuffer[0] && !cached_state.palchange) return;
                 dirtybuffer[0]=0;
                 cached_state.palchange=0;
-                rectfill(b,0,0,xs,ys,cached_state.vpal[0x100]);
-//                      printf("%i %i\n",xs,ys);
-                blit(b,screen,0,0,0,0,xs,ys);
+                rectfill(b,0,0,cached_state.xsize,cached_state.ysize,cached_state.vpal[0x100]);
+//                      printf("%i %i\n",cached_state.xsize,cached_state.ysize);
+                blit(b,screen,0,0,0,0,cached_state.xsize,cached_state.ysize);
                 return;
         }
         if (cached_state.palchange)
@@ -414,28 +427,29 @@ void drawscr()
                 cached_state.palchange=0;
         }
 
-        if (doublesize&1) xs>>=1;
-        if (doublesize&2) ys>>=1;
+        if (cached_state.doublesize&1) cached_state.xsize>>=1;
+        if (cached_state.doublesize&2) cached_state.ysize>>=1;
         if (lastframeborder)
         {
                 lastframeborder=0;
                 resetbuffer();
         }
-        if (drawit) yl=0;
         
         if (mousehack)
         {
-                static int ovcsr=0,ohcsr=0;
-                getmousepos(&cx,&cy);
-                if (cy!=ovcsr || cx!=ohcsr) cached_state.curchange=1;
-                ovcsr=cy;
-                ohcsr=cx;
-//                printf("Mouse at %i,%i %i\n",cx,cy,ny);
+                static int oldcursorx=0;
+                static int oldcursory=0;
+
+                getmousepos(&cached_state.cursorx,&cached_state.cursory);
+                if (cached_state.cursory!=oldcursory || cached_state.cursorx!=oldcursorx) cached_state.curchange=1;
+                oldcursory=cached_state.cursory;
+                oldcursorx=cached_state.cursorx;
+//                printf("Mouse at %i,%i %i\n",cached_state.cursorx,cached_state.cursory,cached_state.cursorheight);
         }
         
         x=y=c=0;
         firstblock=lastblock=-1;
-        while (y<ys)
+        while (y<cached_state.ysize)
         {
                 if (dirtybuffer[c++])
                 {
@@ -443,54 +457,77 @@ void drawscr()
                         if (firstblock==-1) firstblock=c;
                 }
                 x+=(xdiff[vidc.bit8]<<2);
-                while (x>xs)
+                while (x>cached_state.xsize)
                 {
-                        x-=xs;
+                        x-=cached_state.xsize;
                         y++;
                 }
         }
-//        #if 0
+        cached_state.lastblock = lastblock;
+        cached_state.dirtybuffer = dirtybuffer;
+        dirtybuffer = (dirtybuffer == dirtybuffer1) ? dirtybuffer2 : dirtybuffer1;
+
         if (firstblock==-1 && !cached_state.curchange) 
         {
                 unsigned short crc=0xFFFF;
                 static uint32_t curcrc=0;
+                unsigned char *ramp;
+                int addr;
                 /*Not looking good for screen redraw - check to see if cursor data has changed*/
                 if (cinit&0x4000000) ramp=(unsigned char *)ram2;
                 else                 ramp=(unsigned char *)ram;
                 addr=(cinit&rammask);//>>2;
-                temp=0;
-                for (c=0;c<(ny<<3);c++)
+                for (c=0;c<(cached_state.cursorheight<<3);c++)
                     calccrc(&crc, ramp[addr++]);
                 /*If cursor data matches then no point redrawing screen - return*/
                 if (crc==curcrc && skipblits)
                 {
-                        skipnextblit++;
                 #ifdef BLITTER_THREAD
+                        skipnextblit++;
                         wakeupblitterthread();
                 #endif
                         return;
                 }
                 curcrc=crc;
         }
-        if (iomd_vidinit&0x10000000) ramp=ramb;
-        else                         ramp=vramb;
-        ramw=(unsigned short *)ramp;
-//        #endif
-        addr=iomd_vidinit&0x7FFFFF;
         cached_state.curchange=0;
 //        rpclog("First block %i %08X last block %i %08X finished at %i %08X\n",firstblock,firstblock,lastblock,lastblock,c,c);
-        x=y=0;
-        drawit=dirtybuffer[addr>>12];
-        if (drawit) dirtybuffer[addr>>12]--;
+
+        drawscr2();
+}
+ 
+void drawscr2()
+{
+        uint32_t *vidp=NULL;
+        unsigned short *vidp16=NULL;
+        int drawit=0;
+        int olddrawit=0;
+        int x = 0;
+        int y = 0;
+        unsigned char *ramp;
+        unsigned short *ramw;
+        int addr;
+        int yl=-1,yh=-1;
+        static int ony,ocy;
+        int c;
+
+        if (cached_state.iomd_vidinit&0x10000000) ramp=ramb;
+        else                         ramp=vramb;
+        ramw=(unsigned short *)ramp;
+
+        addr=cached_state.iomd_vidinit&0x7FFFFF;
+
+        drawit=cached_state.dirtybuffer[addr>>12];
         if (drawit) yl=0;
+
         switch (drawcode)
         {
                 case 16:
-                switch (vidc.bit8)
+                switch (cached_state.bpp)
                 {
                         case 0: /*1 bpp*/
-                        xs>>=1;
-                        for (;y<ys;y++)
+                        cached_state.xsize>>=1;
+                        for (;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-2)))
                                 {
@@ -504,10 +541,11 @@ void drawscr()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (;x<xs;x+=64)
+                                for (;x<cached_state.xsize;x+=64)
                                 {
                                         if (drawit)
                                         {
+                                                int xx;
                                                 for (xx=0;xx<64;xx+=4)
                                                 {
                                                                                                 #ifdef _RPCEMU_BIG_ENDIAN
@@ -526,12 +564,11 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend) addr=iomd_vidstart;
+                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>12)];
-                                                if (drawit) dirtybuffer[(addr>>12)]--;
+                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
@@ -540,11 +577,11 @@ void drawscr()
                                 }
                                 x=0;
                         }
-                        xs<<=1;
+                        cached_state.xsize<<=1;
                         break;
                         case 1: /*2 bpp*/
-                        xs>>=1;
-                        for (y=0;y<ys;y++)
+                        cached_state.xsize>>=1;
+                        for (y=0;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-2)))
                                 {
@@ -558,10 +595,11 @@ void drawscr()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<xs;x+=32)
+                                for (x=0;x<cached_state.xsize;x+=32)
                                 {
                                         if (drawit)
                                         {
+                                                int xx;
                                                 for (xx=0;xx<32;xx+=2)
                                                 {
                                                         vidp[x+xx]=cached_state.vpal[ramp[addr]&3]|(cached_state.vpal[(ramp[addr]>>2)&3]<<16);
@@ -571,12 +609,11 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend) addr=iomd_vidstart;
+                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>12)];
-                                                if (drawit) dirtybuffer[(addr>>12)]--;
+                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
@@ -584,11 +621,11 @@ void drawscr()
                                         }
                                 }
                         }
-                        xs<<=1;
+                        cached_state.xsize<<=1;
                         break;
                         case 2: /*4 bpp*/
-                        xs>>=1;
-                        for (y=0;y<ys;y++)
+                        cached_state.xsize>>=1;
+                        for (y=0;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-2)))                                
                                 {
@@ -603,10 +640,11 @@ void drawscr()
                                         yh=y+1;
                                 }
 //                                rpclog("Line %i drawit %i addr %06X\n",y,drawit,addr);
-                                for (x=0;x<xs;x+=16)
+                                for (x=0;x<cached_state.xsize;x+=16)
                                 {
                                         if (drawit)
                                         {
+                                                int xx;
                                                 for (xx=0;xx<16;xx+=4)
                                                 {
                                                                                                 #ifdef _RPCEMU_BIG_ENDIAN
@@ -626,15 +664,14 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend)
+                                        if (addr==(int)cached_state.iomd_vidend)
                                         {
-                                                addr=iomd_vidstart;
+                                                addr=cached_state.iomd_vidstart;
                                         }
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>12)];
-                                                if (drawit) dirtybuffer[(addr>>12)]--;
+                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
 //                                                rpclog("Hit 4k boundary %06X %i,%i %i\n",addr,x,y,drawit);
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
                                                 if (drawit) yh=y+8;
@@ -643,12 +680,12 @@ void drawscr()
                                         }
                                 }
                         }
-                        xs<<=1;
+                        cached_state.xsize<<=1;
                         break;
                         case 3: /*8 bpp*/
-                        xs>>=1;
-//                        rpclog("Start %08X End %08X Init %08X\n",iomd_vidstart,iomd_vidend,addr);
-                        for (;y<ys;y++)
+                        cached_state.xsize>>=1;
+//                        rpclog("Start %08X End %08X Init %08X\n",cached_state.iomd_vidstart,cached_state.iomd_vidend,addr);
+                        for (;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-1)))
                                 {
@@ -662,10 +699,11 @@ void drawscr()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (;x<xs;x+=8)
+                                for (;x<cached_state.xsize;x+=8)
                                 {
                                         if (drawit)
                                         {
+                                                int xx;
                                                 for (xx=0;xx<8;xx+=2)
                                                 {
 #ifdef _RPCEMU_BIG_ENDIAN
@@ -680,117 +718,29 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend)
-                                           addr=iomd_vidstart;
+                                        if (addr==(int)cached_state.iomd_vidend)
+                                           addr=cached_state.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 olddrawit=drawit;
-                                                drawit=dirtybuffer[(addr>>12)];
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
                                                 if (drawit)
                                                 {
-                                                        dirtybuffer[(addr>>12)]--;
                                                         yh=y+1;
                                                         if (yl==-1) yl=y;
                                                 }
                                                 if (y<(ony+ocy) && (y>=(ocy-1))) drawit=1;
                                                 if (drawit && !olddrawit) vidp=(uint32_t *)bmp_write_line(b,y);
                                         }
-/*                                        if (!(addr&0xFFF))
-                                        {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>12)];
-                                                if (drawit) dirtybuffer[(addr>>12)]--;
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
-                                        }*/
                                 }
                                 x=0;
                         }
-                        xs<<=1;
+                        cached_state.xsize<<=1;
   //                      rpclog("Yl %i Yh %i\n",yl,yh);
                         break;
                         case 4: /*16 bpp*/
-                #if 0
-                        xs>>=1;
-                        y=x=0;
-                        addr>>=1;
-                        xxx=addr&0x7FF;
-                        while (y<ys)
-                        {
-                                drawit=dirtybuffer[addr>>11];
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
-                                   drawit=1;
-                                if (drawit)
-                                {
-                                        dirtybuffer[addr>>11]=0;
-                                        vidp=bmp_write_line(b,y);
-                                        if (yl==-1) yl=y;
-                                        for (c=(xxx>>1);c<2048;c+=8)
-                                        {
-                                                temp16=ramw[addr];
-                                                temp=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+1];
-                                                temp|=(cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b)<<16;
-                                                vidp[x++]=temp;
-                                                temp16=ramw[addr+2];
-                                                temp=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+3];
-                                                temp|=(cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b)<<16;
-                                                vidp[x++]=temp;
-                                                temp16=ramw[addr+4];
-                                                temp=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+5];
-                                                temp|=(cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b)<<16;
-                                                vidp[x++]=temp;
-                                                temp16=ramw[addr+6];
-                                                temp=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+7];
-                                                temp|=(cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b)<<16;
-                                                vidp[x++]=temp;
-/*                                                vidp[x+1]=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+2];
-                                                vidp[x+2]=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+3];
-                                                vidp[x+3]=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+4];
-                                                vidp[x+4]=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+5];
-                                                vidp[x+5]=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+6];
-                                                vidp[x+6]=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+7];
-                                                vidp[x+7]=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;*/
-                                                addr+=8;
-//                                                x+=8;
-                                                if (x>=xs)
-                                                {
-                                                        x=0;
-                                                        y++;
-                                                        vidp=bmp_write_line(b,y);
-                                                }
-                                        }
-                                        xxx=0;
-                                        yh=y+1;
-                                }
-                                else
-                                {
-                                        if (xxx) x+=((2048-(xxx>>1))>>1);
-                                        else     x+=(2048>>1);
-                                        xxx=0;
-                                        while (x>xs)
-                                        {
-                                                x-=xs;
-                                                y++;
-                                        }
-                                        addr+=2048;
-                                }
-                        }
-                        xs<<=1;
-                #endif
-                        xs>>=1;
-                        for (y=0;y<ys;y++)
+                        cached_state.xsize>>=1;
+                        for (y=0;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-1)))
                                 {
@@ -804,7 +754,7 @@ void drawscr()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<xs;x+=4)
+                                for (x=0;x<cached_state.xsize;x+=4)
                                 {
                                         if (drawit)
                                         {
@@ -813,51 +763,34 @@ void drawscr()
                                                 vidp[x+1]=cached_state.pal16lookup[ramw[addr+2]]|(cached_state.pal16lookup[ramw[addr+3]]<<16);
                                                 vidp[x+2]=cached_state.pal16lookup[ramw[addr+4]]|(cached_state.pal16lookup[ramw[addr+5]]<<16);
                                                 vidp[x+3]=cached_state.pal16lookup[ramw[addr+6]]|(cached_state.pal16lookup[ramw[addr+7]]<<16);
-/*                                                temp16=ramw[addr];
-                                                temp=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+1];
-                                                vidp[x]=((cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b)<<16)|temp;
-                                                temp16=ramw[addr+2];
-                                                temp=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+3];
-                                                vidp[x+1]=((cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b)<<16)|temp;
-                                                temp16=ramw[addr+4];
-                                                temp=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+5];
-                                                vidp[x+2]=((cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b)<<16)|temp;
-                                                temp16=ramw[addr+6];
-                                                temp=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b;
-                                                temp16=ramw[addr+7];
-                                                vidp[x+3]=((cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[temp16>>8].b)<<16)|temp;*/
                                                 addr<<=1;
                                                 addr+=16;
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend) addr=iomd_vidstart;
+                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
                                                 olddrawit=drawit;
-                                                drawit=dirtybuffer[(addr>>12)];
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
                                                 if (drawit) 
                                                 {
-                                                        dirtybuffer[(addr>>12)]--;
                                                         yh=y+1;
                                                         if (yl==-1) yl=y;
                                                 }
                                                 if (y<(ony+ocy) && (y>=(ocy-1))) drawit=1;                                                
                                                 if (drawit && !olddrawit) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                if ((addr>>12)==lastblock && y>(ony+ocy))
+                                                if ((addr>>12)==cached_state.lastblock && y>(ony+ocy))
                                                    y=x=65536;
                                         }
                                 }
                         }
-                        xs<<=1;
+                        cached_state.xsize<<=1;
                         break;
                         case 6: /*32 bpp*/
-//                        textprintf(b,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,xs,ys);
-//                        textprintf(screen,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,xs,ys);
-                        for (y=0;y<ys;y++)
+//                        textprintf(b,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,cached_state.xsize,cached_state.ysize);
+//                        textprintf(screen,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,cached_state.xsize,cached_state.ysize);
+                        for (y=0;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-2)))
                                 {
@@ -871,29 +804,29 @@ void drawscr()
                                         vidp16=(unsigned short *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<xs;x+=4)
+                                for (x=0;x<cached_state.xsize;x+=4)
                                 {
                                         if (drawit)
                                         {
+                                                int xx;
                                                 for (xx=0;xx<4;xx++)
                                                 {
                                                         //VIDC20 pixel format is  xxxx xxxx BBBB BBBB GGGG GGGG RRRR RRRR
                                                         //Windows pixel format is                     RRRR RGGG GGGB BBBB
-                                                        temp=ramp[addr]|(ramp[addr+1]<<8)|(ramp[addr+2]<<16)|(ramp[addr+3]<<24);
+                                                        uint32_t temp=ramp[addr]|(ramp[addr+1]<<8)|(ramp[addr+2]<<16)|(ramp[addr+3]<<24);
                                                         vidp16[x+xx]=cached_state.pal[temp&0xFF].r|cached_state.pal[(temp>>8)&0xFF].g|cached_state.pal[(temp>>16)&0xFF].b;
                                                         addr+=4;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend) addr=iomd_vidstart;
+                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp16=(unsigned short *)bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>12)];
+                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp16=(unsigned short *)bmp_write_line(b,y);
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
 //                                                drawit=1;
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>12)]--;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -912,7 +845,7 @@ void drawscr()
                 switch (vidc.bit8)
                 {
                         case 0: /*1 bpp*/
-                        for (y=0;y<ys;y++)
+                        for (y=0;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-2)))
                                 {
@@ -926,10 +859,11 @@ void drawscr()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<xs;x+=128)
+                                for (x=0;x<cached_state.xsize;x+=128)
                                 {
                                         if (drawit)
                                         {
+                                                int xx;
                                                 for (xx=0;xx<128;xx+=8)
                                                 {
                                                         vidp[x+xx]=cached_state.vpal[ramp[addr]&1];
@@ -945,13 +879,12 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend) addr=iomd_vidstart;
+                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>12)];
+                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -960,7 +893,7 @@ void drawscr()
                         }
                         break;
                         case 1: /*2 bpp*/
-                        for (y=0;y<ys;y++)
+                        for (y=0;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-2)))
                                 {
@@ -974,10 +907,11 @@ void drawscr()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<xs;x+=64)
+                                for (x=0;x<cached_state.xsize;x+=64)
                                 {
                                         if (drawit)
                                         {
+                                                int xx;
                                                 for (xx=0;xx<64;xx+=4)
                                                 {
                                                         vidp[x+xx]=cached_state.vpal[ramp[addr]&3];
@@ -989,13 +923,12 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend) addr=iomd_vidstart;
+                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>12)];
+                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -1004,7 +937,7 @@ void drawscr()
                         }
                         break;
                         case 2: /*4 bpp*/
-                        for (y=0;y<ys;y++)
+                        for (y=0;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-2)))
                                 {
@@ -1018,10 +951,11 @@ void drawscr()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<xs;x+=32)
+                                for (x=0;x<cached_state.xsize;x+=32)
                                 {
                                         if (drawit)
                                         {
+                                                int xx;
                                                 for (xx=0;xx<32;xx+=8)
                                                 {
                                                                                                 #ifdef _RPCEMU_BIG_ENDIAN
@@ -1048,13 +982,12 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend) addr=iomd_vidstart;
+                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>12)];
+                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -1063,7 +996,7 @@ void drawscr()
                         }
                         break;
                         case 3: /*8 bpp*/
-                        for (y=0;y<ys;y++)
+                        for (y=0;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-2)))
                                 {
@@ -1077,10 +1010,11 @@ void drawscr()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<xs;x+=16)
+                                for (x=0;x<cached_state.xsize;x+=16)
                                 {
                                         if (drawit)
                                         {
+                                                int xx;
                                                 for (xx=0;xx<16;xx+=4)
                                                 {
                                                         vidp[x+xx]=cached_state.vpal[ramp[addr]&0xFF];
@@ -1092,13 +1026,12 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend) addr=iomd_vidstart;
+                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>12)];
+                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -1107,7 +1040,7 @@ void drawscr()
                         }
                         break;
                         case 4: /*16 bpp*/
-                        for (y=0;y<ys;y++)
+                        for (y=0;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-2)))
                                 {
@@ -1121,12 +1054,14 @@ void drawscr()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<xs;x+=8)
+                                for (x=0;x<cached_state.xsize;x+=8)
                                 {
                                         if (drawit)
                                         {
+                                                int xx;
                                                 for (xx=0;xx<8;xx+=2)
                                                 {
+                                                        unsigned short temp16;
                                                         /*VIDC20 format :                      xBBB BBGG GGGR RRRR
                                                           Windows format : xxxx xxxx RRRR RRRR GGGG GGGG BBBB BBBB*/
                                                         temp16=ramp[addr]|(ramp[addr+1]<<8);
@@ -1138,13 +1073,12 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend) addr=iomd_vidstart;
+                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>12)];
+                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -1153,7 +1087,7 @@ void drawscr()
                         }
                         break;
                         case 6: /*32 bpp*/
-                        for (y=0;y<ys;y++)
+                        for (y=0;y<cached_state.ysize;y++)
                         {
                                 if (y<(ony+ocy) && (y>=(ocy-2)))
                                 {
@@ -1167,10 +1101,11 @@ void drawscr()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<xs;x+=4)
+                                for (x=0;x<cached_state.xsize;x+=4)
                                 {
                                         if (drawit)
                                         {
+                                                int xx;
                                                 for (xx=0;xx<4;xx++)
                                                 {
                                                         vidp[x+xx]=cached_state.pal[ramp[addr]].r|cached_state.pal[ramp[addr+1]].g|cached_state.pal[ramp[addr+2]].b;
@@ -1179,13 +1114,12 @@ void drawscr()
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)iomd_vidend) addr=iomd_vidstart;
+                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=dirtybuffer[(addr>>12)];
+                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=cached_state.dirtybuffer[(addr>>12)];
                                                 if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
-                                                dirtybuffer[(addr>>12)]=0;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -1198,34 +1132,30 @@ void drawscr()
                         exit(-1);
                 }
         }
-/*                if (soundbufferfull)
-                {
-                        updatesoundbuffer();
-                }*/
-        if (ny>1)
+        if (cached_state.cursorheight>1)
         {
                 if (cinit&0x4000000) ramp=(unsigned char *)ram2;
                 else                 ramp=(unsigned char *)ram;
                 addr=cinit&rammask;
-//                printf("Mouse now at %i,%i\n",cx,cy);
+//                printf("Mouse now at %i,%i\n",cached_state.cursorx,cached_state.cursory);
                 switch (drawcode)
                 {
                         case 16:
-                        for (y=0;y<ny;y++)
+                        for (y=0;y<cached_state.cursorheight;y++)
                         {
-                                if ((y+cy)>=ys) break;
-                                if ((y+cy)>=0)
+                                if ((y+cached_state.cursory)>=cached_state.ysize) break;
+                                if ((y+cached_state.cursory)>=0)
                                 {
-                                        vidp16=(unsigned short *)bmp_write_line(b,y+cy);
+                                        vidp16=(unsigned short *)bmp_write_line(b,y+cached_state.cursory);
                                         for (x=0;x<32;x+=4)
                                         {
                                                                                 #ifdef _RPCEMU_BIG_ENDIAN
                                                                                                 addr^=3;
                                                                                 #endif
-                                                if ((x+cx)>=0   && ramp[addr]&3)      vidp16[x+cx]=cached_state.vpal[(ramp[addr]&3)|0x100];
-                                                if ((x+cx+1)>=0 && (ramp[addr]>>2)&3) vidp16[x+cx+1]=cached_state.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                if ((x+cx+2)>=0 && (ramp[addr]>>4)&3) vidp16[x+cx+2]=cached_state.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                if ((x+cx+3)>=0 && (ramp[addr]>>6)&3) vidp16[x+cx+3]=cached_state.vpal[((ramp[addr]>>6)&3)|0x100];
+                                                if ((x+cached_state.cursorx)>=0   && ramp[addr]&3)      vidp16[x+cached_state.cursorx]=cached_state.vpal[(ramp[addr]&3)|0x100];
+                                                if ((x+cached_state.cursorx+1)>=0 && (ramp[addr]>>2)&3) vidp16[x+cached_state.cursorx+1]=cached_state.vpal[((ramp[addr]>>2)&3)|0x100];
+                                                if ((x+cached_state.cursorx+2)>=0 && (ramp[addr]>>4)&3) vidp16[x+cached_state.cursorx+2]=cached_state.vpal[((ramp[addr]>>4)&3)|0x100];
+                                                if ((x+cached_state.cursorx+3)>=0 && (ramp[addr]>>6)&3) vidp16[x+cached_state.cursorx+3]=cached_state.vpal[((ramp[addr]>>6)&3)|0x100];
                                                                                 #ifdef _RPCEMU_BIG_ENDIAN
                                                                                                 addr^=3;
                                                                                 #endif
@@ -1235,21 +1165,21 @@ void drawscr()
                         }
                         break;
                         case 32:
-                        for (y=0;y<ny;y++)
+                        for (y=0;y<cached_state.cursorheight;y++)
                         {
-                                if ((y+cy)>=ys) break;
-                                if ((y+cy)>=0)
+                                if ((y+cached_state.cursory)>=cached_state.ysize) break;
+                                if ((y+cached_state.cursory)>=0)
                                 {
-                                        vidp=(uint32_t *)bmp_write_line(b,y+cy);
+                                        vidp=(uint32_t *)bmp_write_line(b,y+cached_state.cursory);
                                         for (x=0;x<32;x+=4)
                                         {
                                                                                 #ifdef _RPCEMU_BIG_ENDIAN
                                                                                                 addr^=3;
                                                                                 #endif
-                                                if ((x+cx)>=0   && ramp[addr]&3)      vidp[x+cx]=cached_state.vpal[(ramp[addr]&3)|0x100];
-                                                if ((x+cx+1)>=0 && (ramp[addr]>>2)&3) vidp[x+cx+1]=cached_state.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                if ((x+cx+2)>=0 && (ramp[addr]>>4)&3) vidp[x+cx+2]=cached_state.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                if ((x+cx+3)>=0 && (ramp[addr]>>6)&3) vidp[x+cx+3]=cached_state.vpal[((ramp[addr]>>6)&3)|0x100];
+                                                if ((x+cached_state.cursorx)>=0   && ramp[addr]&3)      vidp[x+cached_state.cursorx]=cached_state.vpal[(ramp[addr]&3)|0x100];
+                                                if ((x+cached_state.cursorx+1)>=0 && (ramp[addr]>>2)&3) vidp[x+cached_state.cursorx+1]=cached_state.vpal[((ramp[addr]>>2)&3)|0x100];
+                                                if ((x+cached_state.cursorx+2)>=0 && (ramp[addr]>>4)&3) vidp[x+cached_state.cursorx+2]=cached_state.vpal[((ramp[addr]>>4)&3)|0x100];
+                                                if ((x+cached_state.cursorx+3)>=0 && (ramp[addr]>>6)&3) vidp[x+cached_state.cursorx+3]=cached_state.vpal[((ramp[addr]>>6)&3)|0x100];
                                                                                 #ifdef _RPCEMU_BIG_ENDIAN
                                                                                                 addr^=3;
                                                                                 #endif
@@ -1259,67 +1189,14 @@ void drawscr()
                         }
                         break;
                 }
-                if (yl>cy) yl=cy;
-                if (yl==-1) yl=cy;
-                if (cy<0) yl=0;
-                if (yh<(ny+cy)) yh=ny+cy;
+                if (yl>cached_state.cursory) yl=cached_state.cursory;
+                if (yl==-1) yl=cached_state.cursory;
+                if (cached_state.cursory<0) yl=0;
+                if (yh<(cached_state.cursorheight+cached_state.cursory)) yh=cached_state.cursorheight+cached_state.cursory;
         }
-        ony=ny;
-        ocy=cy;
+        ony=cached_state.cursorheight;
+        ocy=cached_state.cursory;
 
-/*
-cx=mouse_x;
-cy=mouse_y;
-        if (ny>1)
-        {
-                if (cinit&0x4000000) ramp=(unsigned char *)ram2;
-                else                 ramp=(unsigned char *)ram;
-                addr=cinit&rammask;
-//                printf("Mouse now at %i,%i\n",cx,cy);
-                switch (drawcode)
-                {
-                        case 16:
-                        for (y=0;y<ny;y++)
-                        {
-                                if ((y+cy)>=ys) break;
-                                if ((y+cy)>=0)
-                                {
-                                        vidp16=(unsigned short *)bmp_write_line(b,y+cy);
-                                        for (x=0;x<32;x+=4)
-                                        {
-                                                if ((x+cx)>=0   && ramp[addr]&3)      vidp16[x+cx]=cached_state.vpal[(ramp[addr]&3)|0x100];
-                                                if ((x+cx+1)>=0 && (ramp[addr]>>2)&3) vidp16[x+cx+1]=cached_state.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                if ((x+cx+2)>=0 && (ramp[addr]>>4)&3) vidp16[x+cx+2]=cached_state.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                if ((x+cx+3)>=0 && (ramp[addr]>>6)&3) vidp16[x+cx+3]=cached_state.vpal[((ramp[addr]>>6)&3)|0x100];
-                                                addr++;
-                                        }
-                                }
-                        }
-                        break;
-                        case 32:
-                        for (y=0;y<ny;y++)
-                        {
-                                if ((y+cy)>=ys) break;
-                                if ((y+cy)>=0)
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y+cy);
-                                        for (x=0;x<32;x+=4)
-                                        {
-                                                if ((x+cx)>=0   && ramp[addr]&3)      vidp[x+cx]=cached_state.vpal[(ramp[addr]&3)|0x100];
-                                                if ((x+cx+1)>=0 && (ramp[addr]>>2)&3) vidp[x+cx+1]=cached_state.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                if ((x+cx+2)>=0 && (ramp[addr]>>4)&3) vidp[x+cx+2]=cached_state.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                if ((x+cx+3)>=0 && (ramp[addr]>>6)&3) vidp[x+cx+3]=cached_state.vpal[((ramp[addr]>>6)&3)|0x100];
-                                                addr++;
-                                        }
-                                }
-                        }
-                        break;
-                }
-                if (yl>cy) yl=cy;
-                if (yl==-1) yl=cy;
-                if (cy<0) yl=0;
-                if (yh<(ny+cy)) yh=ny+cy;
-        }*/
 
         bmp_unwrite_line(b); 
         for (c=0;c<1024;c++)
@@ -1333,79 +1210,27 @@ cy=mouse_y;
                 }
         }
         
-/*        if (readflash)
-        {
-                rectfill(screen,xs-40,4,xs-8,11,readflash);
-                readflash=0;
-        }*/
-//        else
-//           blit(b,screen,xs-40,4,xs-40,4,xs-8,11);
+        memset(cached_state.dirtybuffer,0,512*4);
 //        rpclog("YL %i YH %i\n",yl,yh);
-        if (yh>ys) yh=ys;
+        if (yh>cached_state.ysize) yh=cached_state.ysize;
         if (yl==-1 && yh==-1) return;
         if (yl==-1) yl=0;
-//        printf("Cursor %i %i %i\n",cx,cy,ny);
+//        printf("Cursor %i %i %i\n",cached_state.cursorx,cached_state.cursory,cached_state.cursorheight);
 //        rpclog("%i %02X\n",drawcode,bit8);        
-//        sleep(2);
-//        rpclog("Blitting from 0,%i size %i,%i\n",yl,xs,ys);
-/*                if (soundbufferfull)
-                {
-                        updatesoundbuffer();
-                }*/
-        #ifdef BLITTER_THREAD
+//        rpclog("Blitting from 0,%i size %i,%i\n",yl,cached_state.xsize,cached_state.ysize);
                 blitready=1;
-                thread_xs=xs;
-                thread_ys=ys;
+                thread_xs=cached_state.xsize;
+                thread_ys=cached_state.ysize;
                 thread_yl=yl;
                 thread_yh=yh;
-                thread_doublesize=doublesize;
+                thread_doublesize=cached_state.doublesize;
+        #ifdef BLITTER_THREAD
                 wakeupblitterthread();
                 return;
         #endif
-//        rpclog("Blit %i %i %i %i\n",xs,yl,yh,yh-yl);
-        switch (doublesize)
-        {
-                case 0:// case 1: case 2: case 3:
-  //              case 3:
-        ys=yh-yl;
-                if (fullscreen) blit(b,screen,0,yl,(SCREEN_W-xs)>>1,yl+((SCREEN_H-oldsy)>>1),xs,ys);
-                else            blit(b,screen,0,yl,0,yl,xs,ys);
-                return;
-                case 1:
-        ys=yh-yl;
-                if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
-                else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl,                      xs<<1,ys);
-                return;
-                case 2:
-                if (stretchmode)
-                {
-                        if (fullscreen) stretch_blit(b,screen,0,0,xs,ys,0,0,xs,ys<<1);
-                        else            stretch_blit(b,screen,0,0,xs,ys,0,0,xs,ys<<1);
-                }
-                else
-                {
-                        ys=yh-yl;
-                        if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-xs)>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs,ys<<1);
-                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,               yl<<1,                        xs,ys<<1);
-                }
-                return;
-                case 3:
-                if (stretchmode)
-                {
-                        if (fullscreen) stretch_blit(b,screen,0,0,xs,ys,0,0,xs<<1,ys<<1);
-                        else            stretch_blit(b,screen,0,0,xs,ys,0,0,xs<<1,ys<<1);
-                }
-                else
-                {
-                        ys=yh-yl;
-                        if (fullscreen) stretch_blit(b,screen, 0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs<<1,ys<<1);
-                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl<<1,                        xs<<1,ys<<1);
-                }
-                return;
-        }
-//        printf("%i %i %i - ",hdsr,hder,hder-hdsr);
-//        printf("%i %i %i\n",vdsr,vder,vder-vdsr);
+                blitterthread();
 }
+
 
 
 void writevidc20(uint32_t val)

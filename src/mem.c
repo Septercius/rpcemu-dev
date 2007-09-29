@@ -14,7 +14,6 @@ int timetolive;
 //#define LARGETLB
 uint32_t *ram = NULL, *ram2 = NULL, *rom = NULL, *vram = NULL;
 uint8_t *ramb = NULL, *ramb2 = NULL, *romb = NULL, *vramb = NULL;
-uint8_t dirtybuffer[512*4];
 
 uint32_t raddrl[256] = {0};
 uint32_t *raddrl2[256] = {NULL};

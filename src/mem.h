@@ -57,7 +57,6 @@ extern int vwaddrlpos;
 
 extern uint32_t *ram,*ram2,*rom,*vram;
 extern uint8_t *ramb,*romb,*vramb;
-extern uint8_t dirtybuffer[512*4];
 
 extern uint32_t tlbcache[0x100000];
 #define translateaddress(addr,rw,prefetch) ((/*!((addr)&0xFC000000) && */!(tlbcache[((addr)>>12)/*&0x3FFF*/]&0xFFF))?(tlbcache[(addr)>>12]|((addr)&0xFFF)):translateaddress2(addr,rw,prefetch))
