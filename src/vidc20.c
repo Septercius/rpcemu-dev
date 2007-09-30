@@ -1168,10 +1168,14 @@ void vidcthread()
 #ifdef _RPCEMU_BIG_ENDIAN
                                                 addr^=3;
 #endif
-                                                if ((x+thr.cursorx)>=0   && ramp[addr]&3)      vidp16[x+thr.cursorx]=thr.vpal[(ramp[addr]&3)|0x100];
-                                                if ((x+thr.cursorx+1)>=0 && (ramp[addr]>>2)&3) vidp16[x+thr.cursorx+1]=thr.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                if ((x+thr.cursorx+2)>=0 && (ramp[addr]>>4)&3) vidp16[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                if ((x+thr.cursorx+3)>=0 && (ramp[addr]>>6)&3) vidp16[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
+                                                if ((x+thr.cursorx)>=0   && (x+thr.cursorx)<thr.xsize && ramp[addr]&3)
+                                                    vidp16[x+thr.cursorx]=thr.vpal[(ramp[addr]&3)|0x100];
+                                                if ((x+thr.cursorx+1)>=0 && (x+thr.cursorx+1)<thr.xsize && (ramp[addr]>>2)&3)
+                                                    vidp16[x+thr.cursorx+1]=thr.vpal[((ramp[addr]>>2)&3)|0x100];
+                                                if ((x+thr.cursorx+2)>=0 && (x+thr.cursorx+2)<thr.xsize && (ramp[addr]>>4)&3)
+                                                    vidp16[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
+                                                if ((x+thr.cursorx+3)>=0 && (x+thr.cursorx+3)<thr.xsize && (ramp[addr]>>6)&3)
+                                                    vidp16[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
 #ifdef _RPCEMU_BIG_ENDIAN
                                                 addr^=3;
 #endif
@@ -1192,10 +1196,14 @@ void vidcthread()
 #ifdef _RPCEMU_BIG_ENDIAN
                                                 addr^=3;
 #endif
-                                                if ((x+thr.cursorx)>=0   && ramp[addr]&3)      vidp[x+thr.cursorx]=thr.vpal[(ramp[addr]&3)|0x100];
-                                                if ((x+thr.cursorx+1)>=0 && (ramp[addr]>>2)&3) vidp[x+thr.cursorx+1]=thr.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                if ((x+thr.cursorx+2)>=0 && (ramp[addr]>>4)&3) vidp[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                if ((x+thr.cursorx+3)>=0 && (ramp[addr]>>6)&3) vidp[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
+                                                if ((x+thr.cursorx)>=0   && (x+thr.cursorx)<thr.xsize && ramp[addr]&3)
+                                                    vidp[x+thr.cursorx]=thr.vpal[(ramp[addr]&3)|0x100];
+                                                if ((x+thr.cursorx+1)>=0 && (x+thr.cursorx+1)<thr.xsize && (ramp[addr]>>2)&3)
+                                                    vidp[x+thr.cursorx+1]=thr.vpal[((ramp[addr]>>2)&3)|0x100];
+                                                if ((x+thr.cursorx+2)>=0 && (x+thr.cursorx+2)<thr.xsize && (ramp[addr]>>4)&3)
+                                                    vidp[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
+                                                if ((x+thr.cursorx+3)>=0 && (x+thr.cursorx+3)<thr.xsize && (ramp[addr]>>6)&3) 
+                                                    vidp[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
 #ifdef _RPCEMU_BIG_ENDIAN
                                                 addr^=3;
 #endif
