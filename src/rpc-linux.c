@@ -3,6 +3,7 @@
   Not just for Linux - works as a Win32 console app as well*/
 
 #include <allegro.h>
+#include <pthread.h>
 #include "rpcemu.h"
 #include "mem.h"
 #include "sound.h"
@@ -46,6 +47,15 @@ void error(const char *format, ...)
    vsprintf(buf, format, ap);
    va_end(ap);
    MessageBox(NULL,buf,"RPCemu error",MB_OK);
+}
+
+static void fatal(const char *format, ...)
+{
+   va_list ap;
+   va_start(ap, format);
+   error(format, ap);
+   va_end(ap);
+   abort();
 }
 
 FILE *arclog;
@@ -101,34 +111,67 @@ void resetrpc()
 }
 
 int quited=0;
-int blitrunning=1;
 
-void *blitthread(void *threadid)
+#ifdef VIDC_THREAD
+pthread_t thread;
+pthread_cond_t vidccond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t vidcmutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void *vidcthreadrunner(void *threadid)
 {
-	blitrunning=1;
+        if (pthread_mutex_lock(&vidcmutex)) fatal("Cannot lock mutex");
 	while (!quited)
 	{
-		blitterthread();
-		sleep(0);
+                if (pthread_cond_wait(&vidccond, &vidcmutex)) fatal("pthread_cond_wait failed");
+		if (!quited) vidcthread();
 	}
-	blitrunning=0;
-	pthread_exit(NULL);
+        pthread_mutex_unlock(&vidcmutex);
+	return NULL;
+}
+#endif
+
+
+
+void vidcstartthread(void)
+{
+#ifdef VIDC_THREAD
+    if (pthread_create(&thread,NULL,vidcthreadrunner,NULL)) fatal("Couldn't create vidc thread");
+#endif
 }
 
-pthread_t thread;
-void endblitthread()
+void vidcendthread(void)
 {
+#ifdef VIDC_THREAD
 	quited=1;
-	while (blitrunning) sleep(1);
+        if (pthread_cond_signal(&vidccond)) fatal("Couldn't signal vidc thread");
+	pthread_join(thread, NULL);
+#endif
 }
 
-
-void startblitthread()
+void vidcwakeupthread(void)
 {
-	int c;
-//return;
-	c=pthread_create(&thread,NULL,blitthread,NULL);
-	atexit(endblitthread);
+#ifdef VIDC_THREAD
+        if (pthread_cond_signal(&vidccond)) fatal("Couldn't signal vidc thread");
+#else
+        vidcthread();
+#endif
+}
+
+int vidctrymutex(void)
+{
+#ifdef VIDC_THREAD
+    int ret = pthread_mutex_trylock(&vidcmutex);
+    if (ret == EBUSY) return 0;
+    if (ret) fatal("Getting vidc mutex failed");
+#endif
+    return 1;
+}
+
+void vidcreleasemutex(void)
+{
+#ifdef VIDC_THREAD
+    if (pthread_mutex_unlock(&vidcmutex)) fatal("Releasing vidc mutex failed");
+#endif
 }
 
 void close_button_handler(void)
@@ -164,7 +207,6 @@ infocus=0;
 //        arclog=fopen("arclog.txt","wt");
         if (startrpcemu())
            return -1;
-	//startblitthread();
 //printf("RPCemu started...\n");
         install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate,BPS_TO_TIMER(refresh));

@@ -25,20 +25,20 @@ struct vidc_state {
         uint32_t vdsr,vcsr,vcer,vder;
         uint32_t b0,b1;
         int bit8;
+        int palchange;
+        int curchange;
 } vidc;
 
 /* This state is a cached version of the main state, and is read by the display thread.
-   The *changed variables indicate data that needs refreshing, the rest should only be
-   changed when the display thread is not running. */
-static struct {
+   The main thread should only change them when it has the mutex (and so the display
+   thread is not running). */
+static struct cached_state {
         struct
         {
                 uint32_t r,g,b;
         } pal[256];
         uint16_t pal16lookup[65536];
-        int palchange;
         uint32_t vpal[260];
-        int curchange;
         uint32_t iomd_vidstart;
         uint32_t iomd_vidend;
         uint32_t iomd_vidinit;
@@ -52,38 +52,21 @@ static struct {
         int doublesize;
         int bpp;
         uint8_t *dirtybuffer;
-} cached_state;
+        int needvsync;
+        int threadpending;
+} thr;
 
+/* Two dirty buffers, so one can be written to by the main thread
+   while the display thread is reading the other */
 uint8_t dirtybuffer1[512*4];
 uint8_t dirtybuffer2[512*4];
 
 /* Dirty buffer currently in use by main thread */
 uint8_t *dirtybuffer = dirtybuffer1;
 
-static int thread_yh = 0, thread_yl = 0,thread_xs = 0,thread_ys = 0,thread_doublesize = 0;
-static int blitready=0;
-static int inblit=0;
-static int skipnextblit=0;
-
-void blitterthread()
+static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 {
-        int xs=thread_xs;
-        int ys=thread_ys;
-        int yh=thread_yh;
-        int yl=thread_yl;
         BITMAP *backbuf;
-//        rpclog("Blitter thread - blitready %i\n",blitready);
-        if (skipnextblit)
-        {
-                skipnextblit--;
-                blitready=0;
-                return;
-        }
-        if (!blitready)
-        {
-                return;
-        }
-        inblit=1;
         if (fullscreen)
         {
                 switch (currentbuffer)
@@ -93,11 +76,10 @@ void blitterthread()
                         case 2: backbuf=bs3; break;
                 }
         }
-        switch (thread_doublesize)
+        switch (doublesize)
         {
-                case 0: //case 1: case 2: case 3:
-  //              case 3:
-        if (!(fullscreen && stretchmode)) ys=yh-yl;
+                case 0:
+                if (!(fullscreen && stretchmode)) ys=yh-yl;
                 if (fullscreen)
                 {
                         if (stretchmode) blit(b,backbuf,0,0,(SCREEN_W-xs)>>1,((SCREEN_H-oldsy)>>1),xs,ys);
@@ -106,7 +88,7 @@ void blitterthread()
                 else            blit(b,screen,0,yl,0,yl,xs,ys);
                 break;
                 case 1:
-        ys=yh-yl;
+                ys=yh-yl;
                 if (fullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
                 else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl,                      xs<<1,ys);
                 break;
@@ -146,12 +128,7 @@ void blitterthread()
                         case 2: request_video_bitmap(bs3); currentbuffer=0; break;
                 }
         }
-        inblit=0;
-        blitready=0;
-//        sleep(1);
 }
-
-void closevideo();
 
 #define DEFAULT_W 640
 #define DEFAULT_H 480
@@ -202,9 +179,10 @@ void initvideo()
 #endif
 
         oldsx=oldsy=-1;
-        memset(&cached_state, 0, sizeof(cached_state));
+        memset(&thr, 0, sizeof(thr));
         memset(dirtybuffer1,1,512*4);
         memset(dirtybuffer2,1,512*4);
+        vidcstartthread();
 }
 
 
@@ -215,6 +193,20 @@ int getxs()
 int getys()
 {
         return vidc.vder-vidc.vdsr;
+}
+
+static void freebitmaps(void)
+{
+        if (b) destroy_bitmap(b);
+        if (bs) destroy_bitmap(bs);
+        if (bs2) destroy_bitmap(bs2);
+        if (bs3) destroy_bitmap(bs3);
+        if (bs4) destroy_bitmap(bs4);
+        b = NULL;
+        bs = NULL;
+        bs2 = NULL;
+        bs3 = NULL;
+        bs4 = NULL;
 }
 
 static const int fullresolutions[][2]=
@@ -245,8 +237,7 @@ void resizedisplay(int x, int y)
         if (y<16) y=16;
         oldsx=x;
         oldsy=y;
-        while (inblit || blitready) sleep(1);
-        closevideo();
+        freebitmaps();
         if (fullscreen)
         {
                 c=0;
@@ -305,16 +296,8 @@ void resizedisplay(int x, int y)
 void closevideo()
 {
 //        rpclog("Calling closevideo()\n");
-        if (b) destroy_bitmap(b);
-        if (bs) destroy_bitmap(bs);
-        if (bs2) destroy_bitmap(bs2);
-        if (bs3) destroy_bitmap(bs3);
-        if (bs4) destroy_bitmap(bs4);
-        b = NULL;
-        bs = NULL;
-        bs2 = NULL;
-        bs3 = NULL;
-        bs4 = NULL;
+        vidcendthread();
+        freebitmaps();
 }
         
 void togglefullscreen(int fs)
@@ -341,195 +324,228 @@ static void calccrc(unsigned short *crc, unsigned char byte)
         }
 }
 
-void drawscr2();
-
-void drawscr()
+/* Called periodically from the main thread. If needredraw is non-zero
+   then the refresh timer indicates it is time for a new frame */
+void drawscr(int needredraw)
 {
         static int lastframeborder=0;
         int x,y;
-        cached_state.xsize=vidc.hder-vidc.hdsr;
-        cached_state.ysize=vidc.vder-vidc.vdsr;
-        cached_state.cursorx=vidc.hcsr-vidc.hdsr;
-        cached_state.cursory=vidc.vcsr-vidc.vdsr;
-        cached_state.cursorheight=vidc.vcer-vidc.vcsr;
         int c;
         int firstblock,lastblock;
 
+        /* Must get the mutex before altering the thread's state. */
+        if (!vidctrymutex()) return;
 
-        if (cached_state.palchange)
+        /* If the thread hasn't run since the last request then don't request it again */
+        if (thr.threadpending) needredraw = 0;
+
+        if (needredraw)
         {
-                int i;
-                for (i=0; i < 0x100; i++)
-                {
-                        cached_state.pal[i].r=makecol(vidc.vidcpal[i]&0xFF,0,0);
-                        cached_state.pal[i].g=makecol(0,(vidc.vidcpal[i]>>8)&0xFF,0);
-                        cached_state.pal[i].b=makecol(0,0,(vidc.vidcpal[i]>>16)&0xFF);
-                }
-                for (i=0; i < 0x104; i++)
-                {
-                        cached_state.vpal[i]=makecol(vidc.vidcpal[i]&0xFF,(vidc.vidcpal[i]>>8)&0xFF,(vidc.vidcpal[i]>>16)&0xFF);
-                }
-                if ((vidc.bit8 == 4) && (drawcode == 16))
+                        
+                thr.xsize=vidc.hder-vidc.hdsr;
+                thr.ysize=vidc.vder-vidc.vdsr;
+                thr.cursorx=vidc.hcsr-vidc.hdsr;
+                thr.cursory=vidc.vcsr-vidc.vdsr;
+                thr.cursorheight=vidc.vcer-vidc.vcsr;
+
+                if (vidc.palchange)
                 {
                         int i;
-                        for (i=0;i<65536;i++)
+                        for (i=0; i < 0x100; i++)
                         {
-                                cached_state.pal16lookup[i]=cached_state.pal[i&0xFF].r|cached_state.pal[(i>>4)&0xFF].g|cached_state.pal[i>>8].b;
+                                thr.pal[i].r=makecol(vidc.vidcpal[i]&0xFF,0,0);
+                                thr.pal[i].g=makecol(0,(vidc.vidcpal[i]>>8)&0xFF,0);
+                                thr.pal[i].b=makecol(0,0,(vidc.vidcpal[i]>>16)&0xFF);
+                        }
+                        for (i=0; i < 0x104; i++)
+                        {
+                                thr.vpal[i]=makecol(vidc.vidcpal[i]&0xFF,(vidc.vidcpal[i]>>8)&0xFF,(vidc.vidcpal[i]>>16)&0xFF);
+                        }
+                        if ((vidc.bit8 == 4) && (drawcode == 16))
+                        {
+                                int i;
+                                for (i=0;i<65536;i++)
+                                {
+                                        thr.pal16lookup[i]=thr.pal[i&0xFF].r|thr.pal[(i>>4)&0xFF].g|thr.pal[i>>8].b;
+                                }
                         }
                 }
-        }
 
 
-        #ifdef BLITTER_THREAD
-        while (blitready)
-        {
-                sleep(0);
-        }
-        #endif
-//        rpclog("Draw screen\n");
-        cached_state.iomd_vidstart = iomd.vidstart;
-        cached_state.iomd_vidend = iomd.vidend;
-        cached_state.iomd_vidinit = iomd.vidinit;
-        cached_state.iomd_vidcr = iomd.vidcr;
-        cached_state.bpp = vidc.bit8;
-//        rpclog("XS %i YS %i\n",cached_state.xsize,cached_state.ysize);
-        if (cached_state.xsize<2) cached_state.xsize=2;
-        if (cached_state.ysize<1) cached_state.ysize=480;
-        cached_state.doublesize=0;
-        #ifdef HARDWAREBLIT
-        if (cached_state.xsize<=448 || (cached_state.xsize<=480 && cached_state.ysize<=352))
-        {
-                cached_state.xsize<<=1;
-                cached_state.doublesize=1;
-        }
-        if (cached_state.ysize<=352)
-        {
-                cached_state.ysize<<=1;
-                cached_state.doublesize|=2;
-        }
-        #endif
-        if (cached_state.ysize!=oldsy || cached_state.xsize!=oldsx) resizedisplay(cached_state.xsize,cached_state.ysize);
-        if (!(cached_state.iomd_vidcr&0x20) || vidc.vdsr>vidc.vder)
-        {
-//return;
-                lastframeborder=1;
-                if (!dirtybuffer[0] && !cached_state.palchange) return;
-                dirtybuffer[0]=0;
-                cached_state.palchange=0;
-                rectfill(b,0,0,cached_state.xsize,cached_state.ysize,cached_state.vpal[0x100]);
-//                      printf("%i %i\n",cached_state.xsize,cached_state.ysize);
-                blit(b,screen,0,0,0,0,cached_state.xsize,cached_state.ysize);
-                return;
-        }
-        if (cached_state.palchange)
-        {
-                memset(dirtybuffer,1,512*4);
-                cached_state.palchange=0;
+//                rpclog("Draw screen\n");
+                thr.iomd_vidstart = iomd.vidstart;
+                thr.iomd_vidend = iomd.vidend;
+                thr.iomd_vidinit = iomd.vidinit;
+                thr.iomd_vidcr = iomd.vidcr;
+                thr.bpp = vidc.bit8;
+//                rpclog("XS %i YS %i\n",thr.xsize,thr.ysize);
+                if (thr.xsize<2) thr.xsize=2;
+                if (thr.ysize<1) thr.ysize=480;
+                thr.doublesize=0;
+#ifdef HARDWAREBLIT
+                if (thr.xsize<=448 || (thr.xsize<=480 && thr.ysize<=352))
+                {
+                        thr.xsize<<=1;
+                        thr.doublesize=1;
+                }
+                if (thr.ysize<=352)
+                {
+                        thr.ysize<<=1;
+                        thr.doublesize|=2;
+                }
+#endif
+                if (thr.ysize!=oldsy || thr.xsize!=oldsx) resizedisplay(thr.xsize,thr.ysize);
+                if (!(thr.iomd_vidcr&0x20) || vidc.vdsr>vidc.vder)
+                {
+                        lastframeborder=1;
+                        if (dirtybuffer[0] || vidc.palchange)
+                        {
+                                dirtybuffer[0]=0;
+                                vidc.palchange=0;
+                                rectfill(b,0,0,thr.xsize,thr.ysize,thr.vpal[0x100]);
+//                                      printf("%i %i\n",thr.xsize,thr.ysize);
+                                blit(b,screen,0,0,0,0,thr.xsize,thr.ysize);
+                        }
+                        needredraw = 0;
+                        thr.needvsync = 1;
+                }
         }
 
-        if (cached_state.doublesize&1) cached_state.xsize>>=1;
-        if (cached_state.doublesize&2) cached_state.ysize>>=1;
-        if (lastframeborder)
+        if (needredraw)
         {
-                lastframeborder=0;
-                resetbuffer();
-        }
+                if (vidc.palchange)
+                {
+                        resetbuffer();
+                        vidc.palchange=0;
+                }
+
+                if (thr.doublesize&1) thr.xsize>>=1;
+                if (thr.doublesize&2) thr.ysize>>=1;
+                if (lastframeborder)
+                {
+                        lastframeborder=0;
+                        resetbuffer();
+                }
         
-        if (mousehack)
-        {
-                static int oldcursorx=0;
-                static int oldcursory=0;
+                if (mousehack)
+                {
+                        static int oldcursorx=0;
+                        static int oldcursory=0;
 
-                getmousepos(&cached_state.cursorx,&cached_state.cursory);
-                if (cached_state.cursory!=oldcursory || cached_state.cursorx!=oldcursorx) cached_state.curchange=1;
-                oldcursory=cached_state.cursory;
-                oldcursorx=cached_state.cursorx;
-//                printf("Mouse at %i,%i %i\n",cached_state.cursorx,cached_state.cursory,cached_state.cursorheight);
-        }
+                        getmousepos(&thr.cursorx,&thr.cursory);
+                        if (thr.cursory!=oldcursory || thr.cursorx!=oldcursorx) vidc.curchange=1;
+                        oldcursory=thr.cursory;
+                        oldcursorx=thr.cursorx;
+//                        printf("Mouse at %i,%i %i\n",thr.cursorx,thr.cursory,thr.cursorheight);
+                }
         
-        x=y=c=0;
-        firstblock=lastblock=-1;
-        while (y<cached_state.ysize)
-        {
-                if (dirtybuffer[c++])
+                x=y=c=0;
+                firstblock=lastblock=-1;
+                while (y<thr.ysize)
                 {
-                        lastblock=c;
-                        if (firstblock==-1) firstblock=c;
+                        if (dirtybuffer[c++])
+                        {
+                                lastblock=c;
+                                if (firstblock==-1) firstblock=c;
+                        }
+                        x+=(xdiff[vidc.bit8]<<2);
+                        while (x>thr.xsize)
+                        {
+                                x-=thr.xsize;
+                                y++;
+                        }
                 }
-                x+=(xdiff[vidc.bit8]<<2);
-                while (x>cached_state.xsize)
-                {
-                        x-=cached_state.xsize;
-                        y++;
-                }
-        }
-        cached_state.lastblock = lastblock;
-        cached_state.dirtybuffer = dirtybuffer;
-        dirtybuffer = (dirtybuffer == dirtybuffer1) ? dirtybuffer2 : dirtybuffer1;
+                thr.lastblock = lastblock;
+                thr.dirtybuffer = dirtybuffer;
+                dirtybuffer = (dirtybuffer == dirtybuffer1) ? dirtybuffer2 : dirtybuffer1;
 
-        if (firstblock==-1 && !cached_state.curchange) 
-        {
-                unsigned short crc=0xFFFF;
-                static uint32_t curcrc=0;
-                unsigned char *ramp;
-                int addr;
-                /*Not looking good for screen redraw - check to see if cursor data has changed*/
-                if (cinit&0x4000000) ramp=(unsigned char *)ram2;
-                else                 ramp=(unsigned char *)ram;
-                addr=(cinit&rammask);//>>2;
-                for (c=0;c<(cached_state.cursorheight<<3);c++)
-                    calccrc(&crc, ramp[addr++]);
-                /*If cursor data matches then no point redrawing screen - return*/
-                if (crc==curcrc && skipblits)
+                if (firstblock==-1 && !vidc.curchange) 
                 {
-                #ifdef BLITTER_THREAD
-                        skipnextblit++;
-                        wakeupblitterthread();
-                #endif
-                        return;
+                        unsigned short crc=0xFFFF;
+                        static uint32_t curcrc=0;
+                        unsigned char *ramp;
+                        int addr;
+                        /*Not looking good for screen redraw - check to see if cursor data has changed*/
+                        if (cinit&0x4000000) ramp=(unsigned char *)ram2;
+                        else                 ramp=(unsigned char *)ram;
+                        addr=(cinit&rammask);//>>2;
+                        for (c=0;c<(thr.cursorheight<<3);c++)
+                            calccrc(&crc, ramp[addr++]);
+                        /*If cursor data matches then no point redrawing screen - return*/
+                        if (crc==curcrc && skipblits)
+                        {
+                                needredraw = 0;
+                                thr.needvsync = 1;
+                        }
+                        curcrc=crc;
                 }
-                curcrc=crc;
+                vidc.curchange=0;
+//                rpclog("First block %i %08X last block %i %08X finished at %i %08X\n",firstblock,firstblock,lastblock,lastblock,c,c);
         }
-        cached_state.curchange=0;
-//        rpclog("First block %i %08X last block %i %08X finished at %i %08X\n",firstblock,firstblock,lastblock,lastblock,c,c);
+        if (needredraw)
+        {
+                for (c=0;c<1024;c++)
+                {
+//                        rpclog("%03i %08X %08X %08X\n",c,vraddrphys[c],(vraddrphys[c]&0x1F000000),vraddrls[c]<<12);
+                        if ((vwaddrphys[c]&0x1F000000)==0x02000000)
+                        {
+//                                rpclog("Invalidated %08X\n",vraddrls[c]);
+                                vwaddrl[vwaddrls[c]]=0xFFFFFFFF;
+                                vwaddrphys[c]=vwaddrls[c]=0xFFFFFFFF;
+                        }
+                }
+                thr.threadpending = 1;
+        }
 
-        drawscr2();
+        if (thr.needvsync) 
+        {
+            iomdvsync();
+            thr.needvsync = 0;
+        }
+        vidcreleasemutex();
+
+        if (needredraw) vidcwakeupthread();
 }
- 
-void drawscr2()
+
+/* VIDC display thread. This is called whenever vidcwakeupthread() signals it.
+   It will only be called when it has the vidc mutex. */ 
+void vidcthread()
 {
         uint32_t *vidp=NULL;
         unsigned short *vidp16=NULL;
         int drawit=0;
-        int olddrawit=0;
         int x = 0;
         int y = 0;
         unsigned char *ramp;
         unsigned short *ramw;
         int addr;
         int yl=-1,yh=-1;
-        static int ony,ocy;
-        int c;
+        static int oldcursorheight;
+        static int oldcursory;
 
-        if (cached_state.iomd_vidinit&0x10000000) ramp=ramb;
+        thr.threadpending = 0;
+
+        if (b == NULL) abort();
+
+        if (thr.iomd_vidinit&0x10000000) ramp=ramb;
         else                         ramp=vramb;
         ramw=(unsigned short *)ramp;
 
-        addr=cached_state.iomd_vidinit&0x7FFFFF;
+        addr=thr.iomd_vidinit&0x7FFFFF;
 
-        drawit=cached_state.dirtybuffer[addr>>12];
+        drawit=thr.dirtybuffer[addr>>12];
         if (drawit) yl=0;
 
         switch (drawcode)
         {
                 case 16:
-                switch (cached_state.bpp)
+                switch (thr.bpp)
                 {
                         case 0: /*1 bpp*/
-                        cached_state.xsize>>=1;
-                        for (;y<cached_state.ysize;y++)
+                        thr.xsize>>=1;
+                        for (;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
 //                                        yh=y+8;
@@ -541,35 +557,35 @@ void drawscr2()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (;x<cached_state.xsize;x+=64)
+                                for (;x<thr.xsize;x+=64)
                                 {
                                         if (drawit)
                                         {
                                                 int xx;
                                                 for (xx=0;xx<64;xx+=4)
                                                 {
-                                                                                                #ifdef _RPCEMU_BIG_ENDIAN
-                                                        vidp[x+xx+3]=cached_state.vpal[ramp[addr]&1]     |(cached_state.vpal[(ramp[addr]>>1)&1]<<16);
-                                                        vidp[x+xx+2]=cached_state.vpal[(ramp[addr]>>2)&1]|(cached_state.vpal[(ramp[addr]>>3)&1]<<16);
-                                                        vidp[x+xx+1]=cached_state.vpal[(ramp[addr]>>4)&1]|(cached_state.vpal[(ramp[addr]>>5)&1]<<16);
-                                                        vidp[x+xx]=  cached_state.vpal[(ramp[addr]>>6)&1]|(cached_state.vpal[(ramp[addr]>>7)&1]<<16);
-                                                                                                #else
-                                                        vidp[x+xx]=  cached_state.vpal[ramp[addr]&1]     |(cached_state.vpal[(ramp[addr]>>1)&1]<<16);
-                                                        vidp[x+xx+1]=cached_state.vpal[(ramp[addr]>>2)&1]|(cached_state.vpal[(ramp[addr]>>3)&1]<<16);
-                                                        vidp[x+xx+2]=cached_state.vpal[(ramp[addr]>>4)&1]|(cached_state.vpal[(ramp[addr]>>5)&1]<<16);
-                                                        vidp[x+xx+3]=cached_state.vpal[(ramp[addr]>>6)&1]|(cached_state.vpal[(ramp[addr]>>7)&1]<<16);
-                                                                                                #endif
+#ifdef _RPCEMU_BIG_ENDIAN
+                                                        vidp[x+xx+3]=thr.vpal[ramp[addr]&1]     |(thr.vpal[(ramp[addr]>>1)&1]<<16);
+                                                        vidp[x+xx+2]=thr.vpal[(ramp[addr]>>2)&1]|(thr.vpal[(ramp[addr]>>3)&1]<<16);
+                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr]>>4)&1]|(thr.vpal[(ramp[addr]>>5)&1]<<16);
+                                                        vidp[x+xx]=  thr.vpal[(ramp[addr]>>6)&1]|(thr.vpal[(ramp[addr]>>7)&1]<<16);
+#else
+                                                        vidp[x+xx]=  thr.vpal[ramp[addr]&1]     |(thr.vpal[(ramp[addr]>>1)&1]<<16);
+                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr]>>2)&1]|(thr.vpal[(ramp[addr]>>3)&1]<<16);
+                                                        vidp[x+xx+2]=thr.vpal[(ramp[addr]>>4)&1]|(thr.vpal[(ramp[addr]>>5)&1]<<16);
+                                                        vidp[x+xx+3]=thr.vpal[(ramp[addr]>>6)&1]|(thr.vpal[(ramp[addr]>>7)&1]<<16);
+#endif
                                                         addr++;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
+                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
+                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=thr.dirtybuffer[(addr>>12)];
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -577,13 +593,13 @@ void drawscr2()
                                 }
                                 x=0;
                         }
-                        cached_state.xsize<<=1;
+                        thr.xsize<<=1;
                         break;
                         case 1: /*2 bpp*/
-                        cached_state.xsize>>=1;
-                        for (y=0;y<cached_state.ysize;y++)
+                        thr.xsize>>=1;
+                        for (y=0;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
 //                                        yh=y+8;
@@ -595,39 +611,39 @@ void drawscr2()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<cached_state.xsize;x+=32)
+                                for (x=0;x<thr.xsize;x+=32)
                                 {
                                         if (drawit)
                                         {
                                                 int xx;
                                                 for (xx=0;xx<32;xx+=2)
                                                 {
-                                                        vidp[x+xx]=cached_state.vpal[ramp[addr]&3]|(cached_state.vpal[(ramp[addr]>>2)&3]<<16);
-                                                        vidp[x+xx+1]=cached_state.vpal[(ramp[addr]>>4)&3]|(cached_state.vpal[(ramp[addr]>>6)&3]<<16);
+                                                        vidp[x+xx]=thr.vpal[ramp[addr]&3]|(thr.vpal[(ramp[addr]>>2)&3]<<16);
+                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr]>>4)&3]|(thr.vpal[(ramp[addr]>>6)&3]<<16);
                                                         addr++;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
+                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
+                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=thr.dirtybuffer[(addr>>12)];
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
                                         }
                                 }
                         }
-                        cached_state.xsize<<=1;
+                        thr.xsize<<=1;
                         break;
                         case 2: /*4 bpp*/
-                        cached_state.xsize>>=1;
-                        for (y=0;y<cached_state.ysize;y++)
+                        thr.xsize>>=1;
+                        for (y=0;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))                                
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))                                
                                 {
                                         drawit=1;
 //                                        yh=y+8;
@@ -640,54 +656,54 @@ void drawscr2()
                                         yh=y+1;
                                 }
 //                                rpclog("Line %i drawit %i addr %06X\n",y,drawit,addr);
-                                for (x=0;x<cached_state.xsize;x+=16)
+                                for (x=0;x<thr.xsize;x+=16)
                                 {
                                         if (drawit)
                                         {
                                                 int xx;
                                                 for (xx=0;xx<16;xx+=4)
                                                 {
-                                                                                                #ifdef _RPCEMU_BIG_ENDIAN
+#ifdef _RPCEMU_BIG_ENDIAN
 //                                                                                                              if (!x && !y) printf("%02X %04X\n",ramp[addr],vpal[ramp[addr&0xF]]);
-                                                        vidp[x+xx+3]=cached_state.vpal[ramp[addr]>>4]|(cached_state.vpal[ramp[addr]&0xF]<<16);
-                                                        vidp[x+xx+2]=cached_state.vpal[ramp[addr+1]>>4]|(cached_state.vpal[ramp[addr+1]&0xF]<<16);
-                                                        vidp[x+xx+1]=cached_state.vpal[ramp[addr+2]>>4]|(cached_state.vpal[ramp[addr+2]&0xF]<<16);
-                                                        vidp[x+xx]=cached_state.vpal[ramp[addr+3]>>4]|(cached_state.vpal[ramp[addr+3]&0xF]<<16);
-                                                                                                #else
-                                                        vidp[x+xx]=cached_state.vpal[ramp[addr]&0xF]|(cached_state.vpal[ramp[addr]>>4]<<16);
-                                                        vidp[x+xx+1]=cached_state.vpal[ramp[addr+1]&0xF]|(cached_state.vpal[ramp[addr+1]>>4]<<16);
-                                                        vidp[x+xx+2]=cached_state.vpal[ramp[addr+2]&0xF]|(cached_state.vpal[ramp[addr+2]>>4]<<16);
-                                                        vidp[x+xx+3]=cached_state.vpal[ramp[addr+3]&0xF]|(cached_state.vpal[ramp[addr+3]>>4]<<16);                                                                                                                                                                       
-                                                                                                #endif
+                                                        vidp[x+xx+3]=thr.vpal[ramp[addr]>>4]|(thr.vpal[ramp[addr]&0xF]<<16);
+                                                        vidp[x+xx+2]=thr.vpal[ramp[addr+1]>>4]|(thr.vpal[ramp[addr+1]&0xF]<<16);
+                                                        vidp[x+xx+1]=thr.vpal[ramp[addr+2]>>4]|(thr.vpal[ramp[addr+2]&0xF]<<16);
+                                                        vidp[x+xx]=thr.vpal[ramp[addr+3]>>4]|(thr.vpal[ramp[addr+3]&0xF]<<16);
+#else
+                                                        vidp[x+xx]=thr.vpal[ramp[addr]&0xF]|(thr.vpal[ramp[addr]>>4]<<16);
+                                                        vidp[x+xx+1]=thr.vpal[ramp[addr+1]&0xF]|(thr.vpal[ramp[addr+1]>>4]<<16);
+                                                        vidp[x+xx+2]=thr.vpal[ramp[addr+2]&0xF]|(thr.vpal[ramp[addr+2]>>4]<<16);
+                                                        vidp[x+xx+3]=thr.vpal[ramp[addr+3]&0xF]|(thr.vpal[ramp[addr+3]>>4]<<16);                                                                                                                                                                       
+#endif
                                                         addr+=4;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend)
+                                        if (addr==(int)thr.iomd_vidend)
                                         {
-                                                addr=cached_state.iomd_vidstart;
+                                                addr=thr.iomd_vidstart;
                                         }
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
+                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=thr.dirtybuffer[(addr>>12)];
 //                                                rpclog("Hit 4k boundary %06X %i,%i %i\n",addr,x,y,drawit);
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
                                         }
                                 }
                         }
-                        cached_state.xsize<<=1;
+                        thr.xsize<<=1;
                         break;
                         case 3: /*8 bpp*/
-                        cached_state.xsize>>=1;
-//                        rpclog("Start %08X End %08X Init %08X\n",cached_state.iomd_vidstart,cached_state.iomd_vidend,addr);
-                        for (;y<cached_state.ysize;y++)
+                        thr.xsize>>=1;
+//                        rpclog("Start %08X End %08X Init %08X\n",thr.iomd_vidstart,thr.iomd_vidend,addr);
+                        for (;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-1)))
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1)))
                                 {
                                         drawit=1;
 //                                        yh=y+8;
@@ -699,7 +715,7 @@ void drawscr2()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (;x<cached_state.xsize;x+=8)
+                                for (;x<thr.xsize;x+=8)
                                 {
                                         if (drawit)
                                         {
@@ -707,42 +723,42 @@ void drawscr2()
                                                 for (xx=0;xx<8;xx+=2)
                                                 {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        vidp[x+xx+1]=cached_state.vpal[ramp[addr+1]&0xFF]|(cached_state.vpal[ramp[addr]&0xFF]<<16);
-                                                        vidp[x+xx]=cached_state.vpal[ramp[addr+3]&0xFF]|(cached_state.vpal[ramp[addr+2]&0xFF]<<16);
+                                                        vidp[x+xx+1]=thr.vpal[ramp[addr+1]&0xFF]|(thr.vpal[ramp[addr]&0xFF]<<16);
+                                                        vidp[x+xx]=thr.vpal[ramp[addr+3]&0xFF]|(thr.vpal[ramp[addr+2]&0xFF]<<16);
 #else
-                                                        vidp[x+xx]=cached_state.vpal[ramp[addr]&0xFF]|(cached_state.vpal[ramp[addr+1]&0xFF]<<16);
-                                                        vidp[x+xx+1]=cached_state.vpal[ramp[addr+2]&0xFF]|(cached_state.vpal[ramp[addr+3]&0xFF]<<16);
+                                                        vidp[x+xx]=thr.vpal[ramp[addr]&0xFF]|(thr.vpal[ramp[addr+1]&0xFF]<<16);
+                                                        vidp[x+xx+1]=thr.vpal[ramp[addr+2]&0xFF]|(thr.vpal[ramp[addr+3]&0xFF]<<16);
 #endif
                                                         addr+=4;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend)
-                                           addr=cached_state.iomd_vidstart;
+                                        if (addr==(int)thr.iomd_vidend)
+                                           addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                olddrawit=drawit;
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
+                                                int olddrawit=drawit;
+                                                drawit=thr.dirtybuffer[(addr>>12)];
                                                 if (drawit)
                                                 {
                                                         yh=y+1;
                                                         if (yl==-1) yl=y;
                                                 }
-                                                if (y<(ony+ocy) && (y>=(ocy-1))) drawit=1;
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1))) drawit=1;
                                                 if (drawit && !olddrawit) vidp=(uint32_t *)bmp_write_line(b,y);
                                         }
                                 }
                                 x=0;
                         }
-                        cached_state.xsize<<=1;
+                        thr.xsize<<=1;
   //                      rpclog("Yl %i Yh %i\n",yl,yh);
                         break;
                         case 4: /*16 bpp*/
-                        cached_state.xsize>>=1;
-                        for (y=0;y<cached_state.ysize;y++)
+                        thr.xsize>>=1;
+                        for (y=0;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-1)))
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1)))
                                 {
                                         drawit=1;
 //                                        yh=y+8;
@@ -754,45 +770,45 @@ void drawscr2()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<cached_state.xsize;x+=4)
+                                for (x=0;x<thr.xsize;x+=4)
                                 {
                                         if (drawit)
                                         {
                                                 addr>>=1;
-                                                vidp[x]=cached_state.pal16lookup[ramw[addr]]|(cached_state.pal16lookup[ramw[addr+1]]<<16);
-                                                vidp[x+1]=cached_state.pal16lookup[ramw[addr+2]]|(cached_state.pal16lookup[ramw[addr+3]]<<16);
-                                                vidp[x+2]=cached_state.pal16lookup[ramw[addr+4]]|(cached_state.pal16lookup[ramw[addr+5]]<<16);
-                                                vidp[x+3]=cached_state.pal16lookup[ramw[addr+6]]|(cached_state.pal16lookup[ramw[addr+7]]<<16);
+                                                vidp[x]=thr.pal16lookup[ramw[addr]]|(thr.pal16lookup[ramw[addr+1]]<<16);
+                                                vidp[x+1]=thr.pal16lookup[ramw[addr+2]]|(thr.pal16lookup[ramw[addr+3]]<<16);
+                                                vidp[x+2]=thr.pal16lookup[ramw[addr+4]]|(thr.pal16lookup[ramw[addr+5]]<<16);
+                                                vidp[x+3]=thr.pal16lookup[ramw[addr+6]]|(thr.pal16lookup[ramw[addr+7]]<<16);
                                                 addr<<=1;
                                                 addr+=16;
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
+                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                olddrawit=drawit;
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
+                                                int olddrawit=drawit;
+                                                drawit=thr.dirtybuffer[(addr>>12)];
                                                 if (drawit) 
                                                 {
                                                         yh=y+1;
                                                         if (yl==-1) yl=y;
                                                 }
-                                                if (y<(ony+ocy) && (y>=(ocy-1))) drawit=1;                                                
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1))) drawit=1;                                                
                                                 if (drawit && !olddrawit) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                if ((addr>>12)==cached_state.lastblock && y>(ony+ocy))
+                                                if ((addr>>12)==thr.lastblock && y>(oldcursorheight+oldcursory))
                                                    y=x=65536;
                                         }
                                 }
                         }
-                        cached_state.xsize<<=1;
+                        thr.xsize<<=1;
                         break;
                         case 6: /*32 bpp*/
-//                        textprintf(b,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,cached_state.xsize,cached_state.ysize);
-//                        textprintf(screen,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,cached_state.xsize,cached_state.ysize);
-                        for (y=0;y<cached_state.ysize;y++)
+//                        textprintf(b,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,thr.xsize,thr.ysize);
+//                        textprintf(screen,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,thr.xsize,thr.ysize);
+                        for (y=0;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
 //                                        yh=y+8;
@@ -804,7 +820,7 @@ void drawscr2()
                                         vidp16=(unsigned short *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<cached_state.xsize;x+=4)
+                                for (x=0;x<thr.xsize;x+=4)
                                 {
                                         if (drawit)
                                         {
@@ -814,19 +830,19 @@ void drawscr2()
                                                         //VIDC20 pixel format is  xxxx xxxx BBBB BBBB GGGG GGGG RRRR RRRR
                                                         //Windows pixel format is                     RRRR RGGG GGGB BBBB
                                                         uint32_t temp=ramp[addr]|(ramp[addr+1]<<8)|(ramp[addr+2]<<16)|(ramp[addr+3]<<24);
-                                                        vidp16[x+xx]=cached_state.pal[temp&0xFF].r|cached_state.pal[(temp>>8)&0xFF].g|cached_state.pal[(temp>>16)&0xFF].b;
+                                                        vidp16[x+xx]=thr.pal[temp&0xFF].r|thr.pal[(temp>>8)&0xFF].g|thr.pal[(temp>>16)&0xFF].b;
                                                         addr+=4;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
+                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp16=(unsigned short *)bmp_write_line(b,y);
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
+                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp16=(unsigned short *)bmp_write_line(b,y);
+                                                drawit=thr.dirtybuffer[(addr>>12)];
 //                                                drawit=1;
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -837,17 +853,17 @@ void drawscr2()
 //                        textprintf(screen,font,0,16,makecol(255,255,255),"%i %i   ",yl,yh);
                         break;
                         default:
-                        error("Bad BPP %i\n",vidc.bit8);
+                        error("Bad BPP %i\n",thr.bpp);
                         exit(-1);
                 }
                 break;
                 case 32:
-                switch (vidc.bit8)
+                switch (thr.bpp)
                 {
                         case 0: /*1 bpp*/
-                        for (y=0;y<cached_state.ysize;y++)
+                        for (y=0;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
                                         yh=y+8;
@@ -859,32 +875,32 @@ void drawscr2()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<cached_state.xsize;x+=128)
+                                for (x=0;x<thr.xsize;x+=128)
                                 {
                                         if (drawit)
                                         {
                                                 int xx;
                                                 for (xx=0;xx<128;xx+=8)
                                                 {
-                                                        vidp[x+xx]=cached_state.vpal[ramp[addr]&1];
-                                                        vidp[x+xx+1]=cached_state.vpal[(ramp[addr]>>1)&1];
-                                                        vidp[x+xx+2]=cached_state.vpal[(ramp[addr]>>2)&1];
-                                                        vidp[x+xx+3]=cached_state.vpal[(ramp[addr]>>3)&1];
-                                                        vidp[x+xx+4]=cached_state.vpal[(ramp[addr]>>4)&1];
-                                                        vidp[x+xx+5]=cached_state.vpal[(ramp[addr]>>5)&1];
-                                                        vidp[x+xx+6]=cached_state.vpal[(ramp[addr]>>6)&1];
-                                                        vidp[x+xx+7]=cached_state.vpal[(ramp[addr]>>7)&1];
+                                                        vidp[x+xx]=thr.vpal[ramp[addr]&1];
+                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr]>>1)&1];
+                                                        vidp[x+xx+2]=thr.vpal[(ramp[addr]>>2)&1];
+                                                        vidp[x+xx+3]=thr.vpal[(ramp[addr]>>3)&1];
+                                                        vidp[x+xx+4]=thr.vpal[(ramp[addr]>>4)&1];
+                                                        vidp[x+xx+5]=thr.vpal[(ramp[addr]>>5)&1];
+                                                        vidp[x+xx+6]=thr.vpal[(ramp[addr]>>6)&1];
+                                                        vidp[x+xx+7]=thr.vpal[(ramp[addr]>>7)&1];
                                                         addr++;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
+                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
+                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=thr.dirtybuffer[(addr>>12)];
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -893,9 +909,9 @@ void drawscr2()
                         }
                         break;
                         case 1: /*2 bpp*/
-                        for (y=0;y<cached_state.ysize;y++)
+                        for (y=0;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
                                         yh=y+8;
@@ -907,28 +923,28 @@ void drawscr2()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<cached_state.xsize;x+=64)
+                                for (x=0;x<thr.xsize;x+=64)
                                 {
                                         if (drawit)
                                         {
                                                 int xx;
                                                 for (xx=0;xx<64;xx+=4)
                                                 {
-                                                        vidp[x+xx]=cached_state.vpal[ramp[addr]&3];
-                                                        vidp[x+xx+1]=cached_state.vpal[(ramp[addr]>>2)&3];
-                                                        vidp[x+xx+2]=cached_state.vpal[(ramp[addr]>>4)&3];
-                                                        vidp[x+xx+3]=cached_state.vpal[(ramp[addr]>>6)&3];
+                                                        vidp[x+xx]=thr.vpal[ramp[addr]&3];
+                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr]>>2)&3];
+                                                        vidp[x+xx+2]=thr.vpal[(ramp[addr]>>4)&3];
+                                                        vidp[x+xx+3]=thr.vpal[(ramp[addr]>>6)&3];
                                                         addr++;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
+                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
+                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=thr.dirtybuffer[(addr>>12)];
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -937,9 +953,9 @@ void drawscr2()
                         }
                         break;
                         case 2: /*4 bpp*/
-                        for (y=0;y<cached_state.ysize;y++)
+                        for (y=0;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
                                         yh=y+8;
@@ -951,43 +967,43 @@ void drawscr2()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<cached_state.xsize;x+=32)
+                                for (x=0;x<thr.xsize;x+=32)
                                 {
                                         if (drawit)
                                         {
                                                 int xx;
                                                 for (xx=0;xx<32;xx+=8)
                                                 {
-                                                                                                #ifdef _RPCEMU_BIG_ENDIAN
-                                                        vidp[x+xx]=cached_state.vpal[ramp[addr+3]&0xF];
-                                                        vidp[x+xx+1]=cached_state.vpal[(ramp[addr+3]>>4)&0xF];
-                                                        vidp[x+xx+2]=cached_state.vpal[ramp[addr+2]&0xF];
-                                                        vidp[x+xx+3]=cached_state.vpal[(ramp[addr+2]>>4)&0xF];
-                                                        vidp[x+xx+4]=cached_state.vpal[ramp[addr+1]&0xF];
-                                                        vidp[x+xx+5]=cached_state.vpal[(ramp[addr+1]>>4)&0xF];
-                                                        vidp[x+xx+6]=cached_state.vpal[ramp[addr]&0xF];
-                                                        vidp[x+xx+7]=cached_state.vpal[(ramp[addr]>>4)&0xF];
-                                                                                                #else
-                                                        vidp[x+xx]=cached_state.vpal[ramp[addr]&0xF];
-                                                        vidp[x+xx+1]=cached_state.vpal[(ramp[addr]>>4)&0xF];
-                                                        vidp[x+xx+2]=cached_state.vpal[ramp[addr+1]&0xF];
-                                                        vidp[x+xx+3]=cached_state.vpal[(ramp[addr+1]>>4)&0xF];
-                                                        vidp[x+xx+4]=cached_state.vpal[ramp[addr+2]&0xF];
-                                                        vidp[x+xx+5]=cached_state.vpal[(ramp[addr+2]>>4)&0xF];
-                                                        vidp[x+xx+6]=cached_state.vpal[ramp[addr+3]&0xF];
-                                                        vidp[x+xx+7]=cached_state.vpal[(ramp[addr+3]>>4)&0xF];
-                                                                                                #endif
+#ifdef _RPCEMU_BIG_ENDIAN
+                                                        vidp[x+xx]=thr.vpal[ramp[addr+3]&0xF];
+                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr+3]>>4)&0xF];
+                                                        vidp[x+xx+2]=thr.vpal[ramp[addr+2]&0xF];
+                                                        vidp[x+xx+3]=thr.vpal[(ramp[addr+2]>>4)&0xF];
+                                                        vidp[x+xx+4]=thr.vpal[ramp[addr+1]&0xF];
+                                                        vidp[x+xx+5]=thr.vpal[(ramp[addr+1]>>4)&0xF];
+                                                        vidp[x+xx+6]=thr.vpal[ramp[addr]&0xF];
+                                                        vidp[x+xx+7]=thr.vpal[(ramp[addr]>>4)&0xF];
+#else
+                                                        vidp[x+xx]=thr.vpal[ramp[addr]&0xF];
+                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr]>>4)&0xF];
+                                                        vidp[x+xx+2]=thr.vpal[ramp[addr+1]&0xF];
+                                                        vidp[x+xx+3]=thr.vpal[(ramp[addr+1]>>4)&0xF];
+                                                        vidp[x+xx+4]=thr.vpal[ramp[addr+2]&0xF];
+                                                        vidp[x+xx+5]=thr.vpal[(ramp[addr+2]>>4)&0xF];
+                                                        vidp[x+xx+6]=thr.vpal[ramp[addr+3]&0xF];
+                                                        vidp[x+xx+7]=thr.vpal[(ramp[addr+3]>>4)&0xF];
+#endif
                                                         addr+=4;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
+                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
+                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=thr.dirtybuffer[(addr>>12)];
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -996,9 +1012,9 @@ void drawscr2()
                         }
                         break;
                         case 3: /*8 bpp*/
-                        for (y=0;y<cached_state.ysize;y++)
+                        for (y=0;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
                                         yh=y+8;
@@ -1010,28 +1026,28 @@ void drawscr2()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<cached_state.xsize;x+=16)
+                                for (x=0;x<thr.xsize;x+=16)
                                 {
                                         if (drawit)
                                         {
                                                 int xx;
                                                 for (xx=0;xx<16;xx+=4)
                                                 {
-                                                        vidp[x+xx]=cached_state.vpal[ramp[addr]&0xFF];
-                                                        vidp[x+xx+1]=cached_state.vpal[ramp[addr+1]&0xFF];                                                        
-                                                        vidp[x+xx+2]=cached_state.vpal[ramp[addr+2]&0xFF];                                                        
-                                                        vidp[x+xx+3]=cached_state.vpal[ramp[addr+3]&0xFF];                                                                                                                
+                                                        vidp[x+xx]=thr.vpal[ramp[addr]&0xFF];
+                                                        vidp[x+xx+1]=thr.vpal[ramp[addr+1]&0xFF];                                                        
+                                                        vidp[x+xx+2]=thr.vpal[ramp[addr+2]&0xFF];                                                        
+                                                        vidp[x+xx+3]=thr.vpal[ramp[addr+3]&0xFF];                                                                                                                
                                                         addr+=4;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
+                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
+                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=thr.dirtybuffer[(addr>>12)];
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -1040,9 +1056,9 @@ void drawscr2()
                         }
                         break;
                         case 4: /*16 bpp*/
-                        for (y=0;y<cached_state.ysize;y++)
+                        for (y=0;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
                                         yh=y+8;
@@ -1054,7 +1070,7 @@ void drawscr2()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<cached_state.xsize;x+=8)
+                                for (x=0;x<thr.xsize;x+=8)
                                 {
                                         if (drawit)
                                         {
@@ -1065,20 +1081,20 @@ void drawscr2()
                                                         /*VIDC20 format :                      xBBB BBGG GGGR RRRR
                                                           Windows format : xxxx xxxx RRRR RRRR GGGG GGGG BBBB BBBB*/
                                                         temp16=ramp[addr]|(ramp[addr+1]<<8);
-                                                        vidp[x+xx]=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[(temp16>>8)&0xFF].b;
+                                                        vidp[x+xx]=thr.pal[temp16&0xFF].r|thr.pal[(temp16>>4)&0xFF].g|thr.pal[(temp16>>8)&0xFF].b;
                                                         temp16=ramp[addr+2]|(ramp[addr+3]<<8);
-                                                        vidp[x+xx+1]=cached_state.pal[temp16&0xFF].r|cached_state.pal[(temp16>>4)&0xFF].g|cached_state.pal[(temp16>>8)&0xFF].b;
+                                                        vidp[x+xx+1]=thr.pal[temp16&0xFF].r|thr.pal[(temp16>>4)&0xFF].g|thr.pal[(temp16>>8)&0xFF].b;
                                                         addr+=4;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
+                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
+                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=thr.dirtybuffer[(addr>>12)];
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -1087,9 +1103,9 @@ void drawscr2()
                         }
                         break;
                         case 6: /*32 bpp*/
-                        for (y=0;y<cached_state.ysize;y++)
+                        for (y=0;y<thr.ysize;y++)
                         {
-                                if (y<(ony+ocy) && (y>=(ocy-2)))
+                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
                                         yh=y+8;
@@ -1101,25 +1117,25 @@ void drawscr2()
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<cached_state.xsize;x+=4)
+                                for (x=0;x<thr.xsize;x+=4)
                                 {
                                         if (drawit)
                                         {
                                                 int xx;
                                                 for (xx=0;xx<4;xx++)
                                                 {
-                                                        vidp[x+xx]=cached_state.pal[ramp[addr]].r|cached_state.pal[ramp[addr+1]].g|cached_state.pal[ramp[addr+2]].b;
+                                                        vidp[x+xx]=thr.pal[ramp[addr]].r|thr.pal[ramp[addr+1]].g|thr.pal[ramp[addr+2]].b;
                                                         addr+=4;
                                                 }
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)cached_state.iomd_vidend) addr=cached_state.iomd_vidstart;
+                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && cached_state.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=cached_state.dirtybuffer[(addr>>12)];
-                                                if (y<(ony+ocy) && (y>=(ocy-2))) drawit=1;
+                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
+                                                drawit=thr.dirtybuffer[(addr>>12)];
+                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
                                                 if (drawit) yh=y+8;
                                                 if (yl==-1 && drawit)
                                                    yl=y;
@@ -1128,107 +1144,89 @@ void drawscr2()
                         }
                         break;
                         default:
-                        error("Bad BPP %i\n",vidc.bit8);
+                        error("Bad BPP %i\n",thr.bpp);
                         exit(-1);
                 }
         }
-        if (cached_state.cursorheight>1)
+        if (thr.cursorheight>1)
         {
                 if (cinit&0x4000000) ramp=(unsigned char *)ram2;
                 else                 ramp=(unsigned char *)ram;
                 addr=cinit&rammask;
-//                printf("Mouse now at %i,%i\n",cached_state.cursorx,cached_state.cursory);
+//                printf("Mouse now at %i,%i\n",thr.cursorx,thr.cursory);
                 switch (drawcode)
                 {
                         case 16:
-                        for (y=0;y<cached_state.cursorheight;y++)
+                        for (y=0;y<thr.cursorheight;y++)
                         {
-                                if ((y+cached_state.cursory)>=cached_state.ysize) break;
-                                if ((y+cached_state.cursory)>=0)
+                                if ((y+thr.cursory)>=thr.ysize) break;
+                                if ((y+thr.cursory)>=0)
                                 {
-                                        vidp16=(unsigned short *)bmp_write_line(b,y+cached_state.cursory);
+                                        vidp16=(unsigned short *)bmp_write_line(b,y+thr.cursory);
                                         for (x=0;x<32;x+=4)
                                         {
-                                                                                #ifdef _RPCEMU_BIG_ENDIAN
-                                                                                                addr^=3;
-                                                                                #endif
-                                                if ((x+cached_state.cursorx)>=0   && ramp[addr]&3)      vidp16[x+cached_state.cursorx]=cached_state.vpal[(ramp[addr]&3)|0x100];
-                                                if ((x+cached_state.cursorx+1)>=0 && (ramp[addr]>>2)&3) vidp16[x+cached_state.cursorx+1]=cached_state.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                if ((x+cached_state.cursorx+2)>=0 && (ramp[addr]>>4)&3) vidp16[x+cached_state.cursorx+2]=cached_state.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                if ((x+cached_state.cursorx+3)>=0 && (ramp[addr]>>6)&3) vidp16[x+cached_state.cursorx+3]=cached_state.vpal[((ramp[addr]>>6)&3)|0x100];
-                                                                                #ifdef _RPCEMU_BIG_ENDIAN
-                                                                                                addr^=3;
-                                                                                #endif
+#ifdef _RPCEMU_BIG_ENDIAN
+                                                addr^=3;
+#endif
+                                                if ((x+thr.cursorx)>=0   && ramp[addr]&3)      vidp16[x+thr.cursorx]=thr.vpal[(ramp[addr]&3)|0x100];
+                                                if ((x+thr.cursorx+1)>=0 && (ramp[addr]>>2)&3) vidp16[x+thr.cursorx+1]=thr.vpal[((ramp[addr]>>2)&3)|0x100];
+                                                if ((x+thr.cursorx+2)>=0 && (ramp[addr]>>4)&3) vidp16[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
+                                                if ((x+thr.cursorx+3)>=0 && (ramp[addr]>>6)&3) vidp16[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
+#ifdef _RPCEMU_BIG_ENDIAN
+                                                addr^=3;
+#endif
                                                 addr++;
                                         }
                                 }
                         }
                         break;
                         case 32:
-                        for (y=0;y<cached_state.cursorheight;y++)
+                        for (y=0;y<thr.cursorheight;y++)
                         {
-                                if ((y+cached_state.cursory)>=cached_state.ysize) break;
-                                if ((y+cached_state.cursory)>=0)
+                                if ((y+thr.cursory)>=thr.ysize) break;
+                                if ((y+thr.cursory)>=0)
                                 {
-                                        vidp=(uint32_t *)bmp_write_line(b,y+cached_state.cursory);
+                                        vidp=(uint32_t *)bmp_write_line(b,y+thr.cursory);
                                         for (x=0;x<32;x+=4)
                                         {
-                                                                                #ifdef _RPCEMU_BIG_ENDIAN
-                                                                                                addr^=3;
-                                                                                #endif
-                                                if ((x+cached_state.cursorx)>=0   && ramp[addr]&3)      vidp[x+cached_state.cursorx]=cached_state.vpal[(ramp[addr]&3)|0x100];
-                                                if ((x+cached_state.cursorx+1)>=0 && (ramp[addr]>>2)&3) vidp[x+cached_state.cursorx+1]=cached_state.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                if ((x+cached_state.cursorx+2)>=0 && (ramp[addr]>>4)&3) vidp[x+cached_state.cursorx+2]=cached_state.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                if ((x+cached_state.cursorx+3)>=0 && (ramp[addr]>>6)&3) vidp[x+cached_state.cursorx+3]=cached_state.vpal[((ramp[addr]>>6)&3)|0x100];
-                                                                                #ifdef _RPCEMU_BIG_ENDIAN
-                                                                                                addr^=3;
-                                                                                #endif
+#ifdef _RPCEMU_BIG_ENDIAN
+                                                addr^=3;
+#endif
+                                                if ((x+thr.cursorx)>=0   && ramp[addr]&3)      vidp[x+thr.cursorx]=thr.vpal[(ramp[addr]&3)|0x100];
+                                                if ((x+thr.cursorx+1)>=0 && (ramp[addr]>>2)&3) vidp[x+thr.cursorx+1]=thr.vpal[((ramp[addr]>>2)&3)|0x100];
+                                                if ((x+thr.cursorx+2)>=0 && (ramp[addr]>>4)&3) vidp[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
+                                                if ((x+thr.cursorx+3)>=0 && (ramp[addr]>>6)&3) vidp[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
+#ifdef _RPCEMU_BIG_ENDIAN
+                                                addr^=3;
+#endif
                                                 addr++;
                                         }
                                 }
                         }
                         break;
                 }
-                if (yl>cached_state.cursory) yl=cached_state.cursory;
-                if (yl==-1) yl=cached_state.cursory;
-                if (cached_state.cursory<0) yl=0;
-                if (yh<(cached_state.cursorheight+cached_state.cursory)) yh=cached_state.cursorheight+cached_state.cursory;
+                if (yl>thr.cursory) yl=thr.cursory;
+                if (yl==-1) yl=thr.cursory;
+                if (thr.cursory<0) yl=0;
+                if (yh<(thr.cursorheight+thr.cursory)) yh=thr.cursorheight+thr.cursory;
         }
-        ony=cached_state.cursorheight;
-        ocy=cached_state.cursory;
+        oldcursorheight=thr.cursorheight;
+        oldcursory=thr.cursory;
 
 
         bmp_unwrite_line(b); 
-        for (c=0;c<1024;c++)
-        {
-//                rpclog("%03i %08X %08X %08X\n",c,vraddrphys[c],(vraddrphys[c]&0x1F000000),vraddrls[c]<<12);
-                if ((vwaddrphys[c]&0x1F000000)==0x02000000)
-                {
-//                        rpclog("Invalidated %08X\n",vraddrls[c]);
-                        vwaddrl[vwaddrls[c]]=0xFFFFFFFF;
-                        vwaddrphys[c]=vwaddrls[c]=0xFFFFFFFF;
-                }
-        }
         
-        memset(cached_state.dirtybuffer,0,512*4);
+        /* Clean the dirtybuffer now we have updated eveything in it */
+        memset(thr.dirtybuffer,0,512*4);
+        thr.needvsync = 1;
 //        rpclog("YL %i YH %i\n",yl,yh);
-        if (yh>cached_state.ysize) yh=cached_state.ysize;
+        if (yh>thr.ysize) yh=thr.ysize;
         if (yl==-1 && yh==-1) return;
         if (yl==-1) yl=0;
-//        printf("Cursor %i %i %i\n",cached_state.cursorx,cached_state.cursory,cached_state.cursorheight);
+//        printf("Cursor %i %i %i\n",thr.cursorx,thr.cursory,thr.cursorheight);
 //        rpclog("%i %02X\n",drawcode,bit8);        
-//        rpclog("Blitting from 0,%i size %i,%i\n",yl,cached_state.xsize,cached_state.ysize);
-                blitready=1;
-                thread_xs=cached_state.xsize;
-                thread_ys=cached_state.ysize;
-                thread_yl=yl;
-                thread_yh=yh;
-                thread_doublesize=cached_state.doublesize;
-        #ifdef BLITTER_THREAD
-                wakeupblitterthread();
-                return;
-        #endif
-                blitterthread();
+//        rpclog("Blitting from 0,%i size %i,%i\n",yl,thr.xsize,thr.ysize);
+        blitterthread(thr.xsize, thr.ysize, yl, yh, thr.doublesize);
 }
 
 
@@ -1246,7 +1244,7 @@ void writevidc20(uint32_t val)
                 if (val!=vidc.vidcpal[vidc.palindex])
                 {
                         vidc.vidcpal[vidc.palindex]=val;
-                        cached_state.palchange=1;
+                        vidc.palchange=1;
                 }
                 vidc.palindex++;
                 vidc.palindex&=255;
@@ -1261,7 +1259,7 @@ void writevidc20(uint32_t val)
                 /* Border colour register */
                 if (val!=vidc.vidcpal[0x100])
                 {
-                        cached_state.palchange=1;
+                        vidc.palchange=1;
                         vidc.vidcpal[0x100]=val;
 //                        rpclog("Change border colour %08X\n",val);
                 }
@@ -1275,8 +1273,8 @@ void writevidc20(uint32_t val)
                 if (val!=vidc.vidcpal[0x101])
                 {
                         vidc.vidcpal[0x101]=val;
-                        cached_state.palchange=1;
-                        cached_state.curchange=1;                        
+                        vidc.palchange=1;
+                        vidc.curchange=1;                        
                 }
                 break;
                 case 0x60: case 0x61: case 0x62: case 0x63:
@@ -1287,8 +1285,8 @@ void writevidc20(uint32_t val)
                 if (val!=vidc.vidcpal[0x102])
                 {
                         vidc.vidcpal[0x102]=val;
-                        cached_state.palchange=1;                        
-                        cached_state.curchange=1;                        
+                        vidc.palchange=1;                        
+                        vidc.curchange=1;                        
                 }
                 break;
                 case 0x70: case 0x71: case 0x72: case 0x73:
@@ -1299,8 +1297,8 @@ void writevidc20(uint32_t val)
                 if (val!=vidc.vidcpal[0x103])
                 {
                         vidc.vidcpal[0x103]=val;
-                        cached_state.palchange=1;
-                        cached_state.curchange=1;
+                        vidc.palchange=1;
+                        vidc.curchange=1;
                 }
                 break;
                 case 0x83: /* Horizontal Display Start Register */
@@ -1311,25 +1309,25 @@ void writevidc20(uint32_t val)
                 break;
                 case 0x86: /* Horizontal Cursor Start Register */
 //                printf("HCSR write %03X\n",val&0xFFE);
-                if (vidc.hcsr != (val&0xFFE)) cached_state.curchange=1;
+                if (vidc.hcsr != (val&0xFFE)) vidc.curchange=1;
                 vidc.hcsr=val&0xFFE;
                 break;
                 case 0x93: /* Vertical Display Start Register */
                 vidc.vdsr=val&0xFFF;
-                cached_state.palchange=1;
+                vidc.palchange=1;
                 break;
                 case 0x94: /* Vertical Display End Register */
                 vidc.vder=val&0xFFF;
-                cached_state.palchange=1;
+                vidc.palchange=1;
                 break;
                 case 0x96: /* Vertical Cursor Start Register */
 //                printf("VCSR write %03X\n",val&0xFFF);
-                if (vidc.vcsr != (val&0xFFF)) cached_state.curchange=1;
+                if (vidc.vcsr != (val&0xFFF)) vidc.curchange=1;
                 vidc.vcsr=val&0xFFF;
                 break;
                 case 0x97: /* Vertical Cursor End Register */
 //                printf("VCER write %03X\n",val&0xFFF);
-                if (vidc.vcer != (val&0xFFF)) cached_state.curchange=1;
+                if (vidc.vcer != (val&0xFFF)) vidc.curchange=1;
                 vidc.vcer=val&0xFFF;
                 break;
                 case 0xB0: /* Sound Frequency Register */
@@ -1356,7 +1354,7 @@ void writevidc20(uint32_t val)
 //                        printf("Change mode - %08X %i\n",val,(val>>5)&7);
                         vidc.bit8=(val>>5)&7;
                         resetbuffer();
-                        cached_state.palchange=1;
+                        vidc.palchange=1;
                 }
                 break;
         }

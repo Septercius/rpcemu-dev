@@ -173,30 +173,34 @@ int quited=0;
 int quitblitter=0;
 int blitrunning=0,vidrunning=0,soundrunning=0;
 static HANDLE waitobject,soundobject;
-void _blitthread(PVOID pvoid)
+static CRITICAL_SECTION vidcmutex;
+
+void vidcthreadrunner(PVOID pvoid)
 {
-//        timeBeginPeriod(1);
         blitrunning=1;
         while (!quitblitter)
         {
                 WaitForSingleObject(waitobject,INFINITE);
+                EnterCriticalSection(&vidcmutex);
                 if (!quitblitter)
-                   blitterthread();
-//                sleep(0);
+                   vidcthread();
+                LeaveCriticalSection(&vidcmutex);
         }
         blitrunning=0;
 }
 
-void _closeblitthread(void)
+void vidcendthread(void)
 {
+#ifdef VIDC_THREAD
         if (blitrunning)
         {
-                wakeupblitterthread();
                 quitblitter=1;
+                vidcwakeupthread();
                 while (blitrunning)
                       sleep(1);
         }
-//        closevideo();
+        DeleteCriticalSection(&vidcmutex);
+#endif
 }
 
 void _soundthread(PVOID pvoid)
@@ -231,45 +235,45 @@ void _closesoundthread(void)
         }
 }
 
-void wakeupblitterthread()
+void vidcwakeupthread()
 {
+#ifdef VIDC_THREAD
         SetEvent(waitobject);
+#else
+        vidcthread();
+#endif
 }
+
 void wakeupsoundthread()
 {
         SetEvent(soundobject);
 }
 
-void _vidthread(PVOID pvoid)
+void vidcstartthread(void)
 {
-        timeBeginPeriod(1);
-        vidrunning=1;
-        while (!quitblitter)
-        {
-                if (drawscre>0)
-                {
-//                rpclog("Drawscre %i\n",drawscre);
-                        drawscre--;
-                        drawscr();
-                        iomdvsync();
-                        pollmouse();
-                        pollkeyboard();
-//                doosmouse();
-//                cmostick();
-                }
-                sleep(0);
-        }
-        vidrunning=0;
+    HANDLE bltthread;
+#ifdef VIDC_THREAD
+    waitobject=CreateEvent(NULL, FALSE, FALSE, NULL);
+    bltthread=(HANDLE)_beginthread(vidcthreadrunner,0,NULL);
+    SetThreadPriority(bltthread,THREAD_PRIORITY_TIME_CRITICAL);
+    InitializeCriticalSectionAndSpinCount(&vidcmutex,0);
+#endif
 }
 
-void _closevidthread()
+int vidctrymutex(void)
 {
-        if (vidrunning)
-        {
-                quitblitter=1;
-                while (vidrunning)
-                      sleep(1);
-        }
+#ifdef VIDC_THREAD
+    return TryEnterCriticalSection(&vidcmutex);
+#else
+    return 1;
+#endif
+}
+
+void vidcreleasemutex(void)
+{
+#ifdef VIDC_THREAD
+    LeaveCriticalSection(&vidcmutex);
+#endif
 }
 
 
@@ -284,7 +288,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         MSG messages = {0};     /* Here messages to the application are saved */
         WNDCLASSEX wincl;        /* Data structure for the windowclass */
         char s[128];
-        HANDLE bltthread;
         HANDLE soundthread;
 
         hinstance=hThisInstance;
@@ -360,18 +363,9 @@ infocus=0;
         {
                 install_int_ex(sndupdate,BPS_TO_TIMER(10));
         }
-        #ifdef BLITTER_THREAD
-        waitobject=CreateEvent(NULL, FALSE, FALSE, NULL);
-        bltthread=(HANDLE)_beginthread(_blitthread,0,NULL);
-        atexit(_closeblitthread);
-        SetThreadPriority(bltthread,THREAD_PRIORITY_TIME_CRITICAL);
-//        _beginthread(_vidthread,0,NULL);
-//        atexit(_closevidthread);
-        #endif
                 soundobject=CreateEvent(NULL, FALSE, FALSE, NULL);
                 soundthread=(HANDLE)_beginthread(_soundthread,0,NULL);
                 atexit(_closesoundthread);
-                SetThreadPriority(bltthread,THREAD_PRIORITY_TIME_CRITICAL-1);
 //        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 infocus=1;
         install_int_ex(vblupdate,BPS_TO_TIMER(refresh));

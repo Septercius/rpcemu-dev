@@ -94,13 +94,13 @@ void execrpcemu()
 //	printf("Exec %i\n",c);
 //c++;
         execarm(20000);
+        drawscr(drawscre);
         if (drawscre>0)
         {
 //                rpclog("Drawscre %i\n",drawscre);
                 drawscre--;
                 if (drawscre>5) drawscre=0;
-                drawscr();
-                iomdvsync();
+                
 //				poll_keyboard();
 //				poll_mouse();
                 pollmouse();
@@ -113,6 +113,7 @@ void execrpcemu()
 
 void endrpcemu()
 {
+        closevideo();
         endiomd();
         saveadf(discname[0], 0);
         saveadf(discname[1], 1);
@@ -122,7 +123,6 @@ void endrpcemu()
         free(rom);
         savecmos();
         saveconfig();
-        closevideo();
 }
 
 void loadconfig()

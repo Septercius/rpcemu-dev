@@ -69,18 +69,12 @@
   gives a large speedup on a dual-core processor when lots of screen data is
   being updated (eg a full 800x600 screen), and improves the sound stability a
   bit. Not sure how it performs on a single core processor.
-  This alters vidc20.c a little - when the rest of drawscr() finishes, it sets a
-  flag instead of blitting. This is tested by blitterthread(), which must be
-  called regularly. If a thread is not created in the platform specific file,
-  then no blits happen, and the emulator will hang due to the synchronisation in
-  place.
+  This alters vidc20.c a little - when the rest of drawscr() finishes, it wakes
+  up the vidc display thread which then reads from VRAM, converts from VIDC 
+  format, then blits to screen.
   In Windows, on many systems, this _must_ be enabled. Otherwise mouse & keyboard
   response will be appallingly bad.*/
-#ifndef __unix
-#ifndef __MACH__
-#define BLITTER_THREAD
-#endif
-#endif
+#define VIDC_THREAD
 
 /*This makes the RISC OS mouse pointer follow the host pointer exactly. Useful
   for Linux port, however use mouse capturing if possible - mousehack has some
@@ -125,7 +119,6 @@ extern void error(const char *format, ...);
 extern void rpclog(const char *format, ...);
 extern void updatewindowsize(uint32_t x, uint32_t y);
 extern void wakeupsoundthread();
-extern void wakeupblitterthread();
 extern void updateirqs(void);
 extern void resetrpc();
 extern int quited;

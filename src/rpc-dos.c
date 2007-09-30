@@ -73,6 +73,28 @@ void vblupdate()
         drawscre++;
 }
 
+void vidcstartthread(void)
+{
+}
+
+void vidcendthread(void)
+{
+}
+
+void vidcwakeupthread(void)
+{
+        vidcthread();
+}
+
+int vidctrymutex(void)
+{
+        return 1;
+}
+
+void vidcreleasemutex(void)
+{
+}
+
 void sndint()
 {
         iomd.state|=0x10;
