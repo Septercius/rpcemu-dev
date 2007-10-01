@@ -158,10 +158,10 @@ static void refillpipeline(void)
         {
                 pccache=addr>>10;
                 pccache2=getpccache(addr<<2);
-                if ((uint32_t)pccache2==0xFFFFFFFF)
+                if (pccache2==NULL)
                 {
                         opcode2=opcode3=0xFFFFFFFF;
-                        pccache=(uint32_t)pccache2;
+                        pccache=0xFFFFFFFF;
                         return;
                 }
         }
@@ -171,10 +171,10 @@ static void refillpipeline(void)
         {
                 pccache=addr>>10;
                 pccache2=getpccache(addr<<2);
-                if ((uint32_t)pccache2==0xFFFFFFFF)
+                if (pccache2==NULL)
                 {
                         opcode3=0xFFFFFFFF;
-                        pccache=(uint32_t)pccache2;
+                        pccache=0xFFFFFFFF;
                         return;
                 }
         }
@@ -472,7 +472,7 @@ memmode=1;
                 armirq=0;
                 pccache2=getpccache(c);
                 rpclog("pccache %08X\n",pccache2);
-                if (pccache2!=0xFFFFFFFF)
+                if (pccache2!=NULL)
                 {
                         rpclog("Writing\n");
                         fwrite(&pccache2[c>>2],4096,1,f);
@@ -893,10 +893,10 @@ static void refillpipeline2()
         {
                 pccache=addr>>12;
                 pccache2=getpccache(addr);
-                if ((uint32_t)pccache2==0xFFFFFFFF)
+                if (pccache2==NULL)
                 {
                         opcode2=opcode3=0xFFFFFFFF;
-                        pccache=(uint32_t)pccache2;
+                        pccache=0xFFFFFFFF;
                         return;
                 }
         }
@@ -906,10 +906,10 @@ static void refillpipeline2()
         {
                 pccache=addr>>12;
                 pccache2=getpccache(addr);
-                if ((uint32_t)pccache2==0xFFFFFFFF)
+                if (pccache2==NULL)
                 {
                         opcode3=0xFFFFFFFF;
-                        pccache=(uint32_t)pccache2;
+                        pccache=0xFFFFFFFF;
                         return;
                 }
         }
@@ -1612,7 +1612,7 @@ void execarm(int cycs)
                         {
                                 pccache=PC>>12;
                                 pccache2=getpccache(PC);
-                                if ((uint32_t)pccache2==0xFFFFFFFF) opcode=pccache=(uint32_t)pccache2;
+                                if (pccache2==NULL) opcode=pccache=0xFFFFFFFF;
 #ifdef PREFETCH
                                 else                      opcode3=pccache2[PC>>2];
 #else
@@ -4012,17 +4012,17 @@ void execarm(int cycs)
         {
                 pccache=templ>>10;
                 pccache2=getpccache(templ<<2);
-                if ((uint32_t)pccache2==0xFFFFFFFF) pccache=(uint32_t)pccache2;
-                else                                opcode2=pccache2[templ];
+                if (pccache2==NULL) pccache=0xFFFFFFFF;
+                else                opcode2=pccache2[templ];
         }
         else opcode2=pccache2[templ];
         templ++;
-        if (!(templ&0x3FF) || (uint32_t)pccache2==0xFFFFFFFF)
+        if (!(templ&0x3FF) || pccache2==NULL)
         {
                 pccache=templ>>10;
                 pccache2=getpccache(templ<<2);
-                if ((uint32_t)pccache2==0xFFFFFFFF) pccache=(uint32_t)pccache2;
-                else                                opcode3=pccache2[templ];
+                if (pccache2==NULL) pccache=0xFFFFFFFF;
+                else                opcode3=pccache2[templ];
         }
         else opcode3=pccache2[templ];
 #endif
@@ -4045,15 +4045,15 @@ void execarm(int cycs)
         {
                 pccache=templ>>10;
                 pccache2=getpccache(templ<<2);
-                if ((uint32_t)pccache2==0xFFFFFFFF) pccache=(uint32_t)pccache2;
-                else                                opcode2=pccache2[templ];
+                if (pccache2==0xFFFFFFFF) pccache=0xFFFFFFFF;
+                else                      opcode2=pccache2[templ];
                 templ++;
-                if (!(templ&0x3FF) || (uint32_t)pccache2==0xFFFFFFFF)
+                if (!(templ&0x3FF) || pccache2==NULL)
                 {
                         pccache=templ>>10;
                         pccache2=getpccache(templ<<2);
-                        if ((uint32_t)pccache2==0xFFFFFFFF) pccache=(uint32_t)pccache2;
-                        else                                opcode3=pccache2[templ];
+                        if (pccache2==NULL) pccache=0xFFFFFFFF;
+                        else                opcode3=pccache2[templ];
                 }
                 else opcode3=pccache2[templ];
         }

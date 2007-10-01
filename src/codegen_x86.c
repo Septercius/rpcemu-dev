@@ -2723,7 +2723,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
         return 1;
 }
 
-void generatecall(unsigned long addr, uint32_t opcode, uint32_t *pcpsr)
+void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr)
 {
         int temp=7+5;
         int old=codeblockpos;
@@ -2742,7 +2742,7 @@ void generatecall(unsigned long addr, uint32_t opcode, uint32_t *pcpsr)
         addbyte(0x24);
         addlong(opcode);
         addbyte(0xE8); /*CALL*/
-        addlong(addr-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4]));
+        addlong(((char *)addr-(char *)(&rcodeblock[blockpoint2][codeblockpos+4])));
 //#if 0
         if (!flaglookup[opcode>>28][(*pcpsr)>>28] && (opcode&0xE000000)==0xA000000)
         {

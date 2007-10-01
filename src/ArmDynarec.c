@@ -10,7 +10,6 @@ int swiout=0;
 int times8000=0;
 unsigned long abortaddr,abortaddr2;
 int twice=0;
-unsigned long lastblockfunc;
 int blockend;
 #define STRONGARM
 
@@ -139,10 +138,10 @@ static void refillpipeline(void)
         {
                 pccache=addr>>10;
                 pccache2=getpccache(addr<<2);
-                if ((uint32_t)pccache2==0xFFFFFFFF)
+                if (pccache2==NULL)
                 {
                         opcode2=opcode3=0xFFFFFFFF;
-                        pccache=(uint32_t)pccache2;
+                        pccache=0xFFFFFFFF;
                         return;
                 }
         }
@@ -152,10 +151,10 @@ static void refillpipeline(void)
         {
                 pccache=addr>>10;
                 pccache2=getpccache(addr<<2);
-                if ((uint32_t)pccache2==0xFFFFFFFF)
+                if (pccache2==NULL)
                 {
                         opcode3=0xFFFFFFFF;
-                        pccache=(uint32_t)pccache2;
+                        pccache=0xFFFFFFFF;
                         return;
                 }
         }
@@ -454,7 +453,7 @@ memmode=1;
                 armirq=0;
                 pccache2=getpccache(c);
 //                rpclog("pccache %08X\n",pccache2);
-                if (pccache2!=0xFFFFFFFF)
+                if (pccache2!=NULL)
                 {
 //                        rpclog("Writing\n");
                         fwrite(&pccache2[c>>2],4096,1,f);
@@ -467,7 +466,7 @@ memmode=1;
                 armirq=0;
                 pccache2=getpccache(c);
 //                rpclog("pccache %08X\n",pccache2);
-                if (pccache2!=0xFFFFFFFF)
+                if (pccache2!=NULL)
                 {
 //                        rpclog("Writing\n");
                         fwrite(&pccache2[c>>2],4096,1,f);
@@ -485,7 +484,7 @@ memmode=1;
                 armirq=0;
                 pccache2=getpccache(c);
 //                rpclog("pccache %08X\n",pccache2);
-                if (pccache2!=0xFFFFFFFF)
+                if (pccache2!=NULL)
                 {
 //                        rpclog("Writing\n");
                         fwrite(&pccache2[c>>2],4096,1,f);
@@ -883,10 +882,10 @@ static void refillpipeline2()
         {
                 pccache=addr>>12;
                 pccache2=getpccache(addr);
-                if ((uint32_t)pccache2==0xFFFFFFFF)
+                if (pccache2==NULL)
                 {
                         opcode2=opcode3=0xFFFFFFFF;
-                        pccache=(uint32_t)pccache2;
+                        pccache=0xFFFFFFFF;
                         return;
                 }
         }
@@ -896,10 +895,10 @@ static void refillpipeline2()
         {
                 pccache=addr>>12;
                 pccache2=getpccache(addr);
-                if ((uint32_t)pccache2==0xFFFFFFFF)
+                if (pccache2==NULL)
                 {
                         opcode3=0xFFFFFFFF;
-                        pccache=(uint32_t)pccache2;
+                        pccache=0xFFFFFFFF;
                         return;
                 }
         }
@@ -1051,8 +1050,6 @@ unsigned char validforskip[64]=
         1,        0,        1,        0,        1,       0,        1,       0
 };
 
-typedef void (*OpFn)(unsigned long opcode);
-
 int codeblockpos;
 OpFn opcodes[256]=
 {
@@ -1172,8 +1169,8 @@ void execarm(int cycs)
                                 {
                                         pccache=PC>>12;
                                         pccache2=getpccache(PC);
-                                        if ((uint32_t)pccache2==0xFFFFFFFF) { opcode=pccache=(uint32_t)pccache2; armirq|=0x80; }
-                                        else                      opcode=pccache2[PC>>2];
+                                        if (pccache2==NULL) { opcode=pccache=0xFFFFFFFF; armirq|=0x80; }
+                                        else                  opcode=pccache2[PC>>2];
                                 }
 //                                rpclog("%08X %08X %08X %08X %08X\n",pccache2,pccache2+(PC>>2),PC,0xFE3E0020+0x3816000,pccache);
                                 while (!blockend && !(armirq&0xC0))
@@ -1248,7 +1245,6 @@ startpc=armregs[15];
 //                                        if (PC==0x397F510) rpclog("Hit it 1\n");
 //                                        if (PC==0x38071A8) rpclog("Hit 2t 1\n");
 //                                        gen_func=(void *)(&codeblock[blocks[templ]>>24][blocks[templ]&0xFFF][4]);
-lastblockfunc=&rcodeblock[templ][BLOCKSTART];
                                         gen_func();
 //                                        inscount+=codeinscount[0][hash];
 //                                        rinscount+=codeinscount[hash];
@@ -1269,8 +1265,8 @@ lastblockfunc=&rcodeblock[templ][BLOCKSTART];
                                         {
                                                 pccache=PC>>12;
                                                 pccache2=getpccache(PC);
-                                                if ((uint32_t)pccache2==0xFFFFFFFF) { opcode=pccache=(uint32_t)pccache2; armirq|=0x80; }
-                                                else                      opcode=pccache2[PC>>2];
+                                                if (pccache2==NULL) { opcode=pccache=0xFFFFFFFF; armirq|=0x80; }
+                                                else                  opcode=pccache2[PC>>2];
                                         }
                                         if (!(armirq&0x80)) 
 					{
@@ -1306,7 +1302,7 @@ lastblockfunc=&rcodeblock[templ][BLOCKSTART];
                                                         if ((opcode&0xE000000)==0xA000000) generateupdateinscount();
                                                         if ((opcode>>28)!=0xE) generateflagtestandbranch(opcode,pcpsr);//,flaglookup);
                                                         else                   lastflagchange=0;
-                                                        generatecall((uint32_t)opcodes[(opcode>>20)&0xFF],opcode,pcpsr);
+                                                        generatecall(opcodes[(opcode>>20)&0xFF],opcode,pcpsr);
                                                         #ifdef ABORTCHECKING
                                                         if (((opcode+0x6000000)&0xF000000)>=0xA000000) generateirqtest();
                                                         #endif
@@ -1324,8 +1320,8 @@ lastblockfunc=&rcodeblock[templ][BLOCKSTART];
                                                         blockend=1;
 /*                                                        pccache=PC>>12;
                                                         pccache2=getpccache(PC);
-                                                        if ((uint32_t)pccache2==0xFFFFFFFF) { opcode=pccache=(uint32_t)pccache2; armirq|=0x80; blockend=1; rpclog("Abort!\n"); }
-                                                        else                      opcode=pccache2[PC>>2];*/
+                                                        if (pccache2==NULL) { opcode=pccache=0xFFFFFFFF; armirq|=0x80; blockend=1; rpclog("Abort!\n"); }
+                                                        else                  opcode=pccache2[PC>>2];*/
                                                 }
                                                 //blockend=1;
 //                                                inscount++;

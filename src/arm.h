@@ -1,6 +1,8 @@
 #ifndef __ARM__
 #define __ARM__
 
+typedef void (*OpFn)(unsigned long opcode);
+
 extern void updatemode(uint32_t m);
 extern void resetcodeblocks();
 extern void initcodeblocks();
@@ -8,7 +10,7 @@ extern void generatepcinc();
 extern void generateupdatepc();
 extern void generateupdateinscount();
 extern void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr);
-extern void generatecall(unsigned long addr, uint32_t opcode, uint32_t *pcpsr);
+extern void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr);
 extern void generateirqtest();
 extern void endblock(int c, uint32_t *pcpsr);
 extern void initcodeblock(uint32_t l);

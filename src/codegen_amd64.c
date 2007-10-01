@@ -145,7 +145,7 @@ addbyte(0); addbyte(0); addbyte(0);
 //	printf("New block %08X %08X %08X\n",blocknum,l,codeblockpc[blocknum]);
 }
 uint32_t opcode;
-void generatecall(unsigned long addr, uint32_t opcode,uint32_t *pcpsr)
+void generatecall(OpFn addr, uint32_t opcode,uint32_t *pcpsr)
 {
 //asm("addq $4,0x12345678;");
         tempinscount++;
@@ -155,7 +155,7 @@ void generatecall(unsigned long addr, uint32_t opcode,uint32_t *pcpsr)
 	addbyte(0xBF); /*MOVL $opcode,%edi*/
         addlong(opcode);
         addbyte(0xE8); /*CALL*/
-        addlong(addr-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4]));
+        addlong(((char *)addr-(char *)(&rcodeblock[blockpoint2][codeblockpos+4])));
 //#if 0
         if (!flaglookup[opcode>>28][(*pcpsr)>>28] && (opcode&0xE000000)==0xA000000)
         {
