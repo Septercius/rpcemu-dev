@@ -553,8 +553,8 @@ void pollkeyboard()
         }
 }
 
-short ml,mr,mt,mb;
-int activex[5],activey[5];
+static short ml,mr,mt,mb;
+static int activex[5],activey[5];
 void doosmouse()
 {
         short temp;
@@ -598,40 +598,60 @@ void setmousepos(uint32_t a)
 //        position_mouse(temp,temp2);
 }
 
+/* Gets the x and y coords in native and OS units */
+static void getmouseosxy(int *x, int *y, int *osx, int *osy)
+{
+        *osy=(getys()<<1)-(mouse_y<<1);
+//        printf("Mouse Y - %i %i  ",mouse_y,*osy);
+        if (*osy<mt) *osy=mt;
+        if (*osy>mb) *osy=mb;
+//        printf("%i %i  %i  ",mt,mb,*osy);
+        *y=((getys()<<1)-*osy)>>1;
+//        printf("%i\n",*y);
+
+        *osx=mouse_x<<1;
+        if (*osx>mr) *osx=mr;
+        if (*osx<ml) *osx=ml;
+        *x=*osx>>1;
+
+        if (((mouse_y != *y) || (mouse_x != *x)) && mousehack)
+        {
+                /* Restrict the pointer to the bounding box, unless the 
+                   box is greater than or equal to the full screen size */
+                if ((ml > 0) || (mr <= ((getxs()-1)<<1)) ||
+                    (mt > 0) || (mb <= ((getys()-1)<<1)))
+                {
+                        position_mouse(*x,*y);
+                }
+        }
+}
+
 void getunbufmouse(uint32_t a)
 {
-        short temp;
-//        return;
+        int x;
+        int y;
+        int osx;
+        int osy;
+
 //        printf("getunbufmouse\n");
-        temp=(getys()<<1)-((mouse_y/*-offsety*/)<<1);
-        if (temp<mt) temp=mt;
-        if (temp>mb) temp=mb;
-        writememb(a+1,temp&0xFF);
-        writememb(a+2,(temp>>8)&0xFF);
-        temp=(mouse_x/*-offsetx*/)<<1;
-        if (temp>mr) temp=mr;
-        if (temp<ml) temp=ml;
-        writememb(a+3,temp&0xFF);
-        writememb(a+4,(temp>>8)&0xFF);
+        getmouseosxy(&x,&y,&osx,&osy);
+
+        writememb(a+1,osy&0xFF);
+        writememb(a+2,(osy>>8)&0xFF);
+        writememb(a+3,osx&0xFF);
+        writememb(a+4,(osx>>8)&0xFF);
 }
 
 int point=0;
 void getmousepos(int *x, int *y)
 {
-        short temp;
-        temp=(getys()<<1)-(mouse_y<<1);
-//        printf("Mouse Y - %i %i  ",mouse_y,temp);
-        if (temp<mt) temp=mt;
-        if (temp>mb) temp=mb;
-//        printf("%i %i  %i  ",mt,mb,temp);
-        temp=((getys()<<1)-temp)>>1;
-//        printf("%i %i\n",temp,(int)temp-activey[point]);
-        *y=(int)temp-activey[point];
-        temp=mouse_x<<1;
-        if (temp>mr) temp=mr;
-        if (temp<ml) temp=ml;
-        temp>>=1;
-        *x=(int)temp-activex[point];
+        int osx;
+        int osy;
+
+        getmouseosxy(x,y,&osx,&osy);
+
+        *y-=activey[point];
+        *x-=activex[point];
 }
         
 void setpointer(uint32_t a)
