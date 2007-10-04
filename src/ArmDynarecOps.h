@@ -1301,6 +1301,19 @@ int opLDRBT(unsigned long opcode)
         return 0;
 }
 
+int opSTRB46(unsigned long opcode)
+{
+	//inscount++; //r//inscount++;
+	writememb(armregs[RN],armregs[RD]);
+	if (armirq&0x40)
+        {
+                rpclog("Data abort! %07X\n",PC);
+                return 1;
+        }
+        armregs[RN]-=(opcode&0xFFF);
+        return 0;
+}
+
 int opSTRB4C(unsigned long opcode)
 {
 	//inscount++; //r//inscount++;
@@ -1353,7 +1366,7 @@ int opSTR(unsigned long opcode)
         if ((opcode&0x2000010)==0x2000010)
         {
                 undefined();
-                return;
+                return 1;
         }
         addr=GETADDR(RN);
         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
@@ -1381,7 +1394,7 @@ int opLDR(unsigned long opcode)
         if ((opcode&0x2000010)==0x2000010)
         {
                 undefined();
-                return;
+                return 1;
         }
         addr=GETADDR(RN);
         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);

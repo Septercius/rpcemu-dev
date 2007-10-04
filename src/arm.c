@@ -3587,6 +3587,12 @@ void execarm(int cycs)
                                         }*/
                                         break;
 //#if 0
+                                        case 0x46: /*STRB RD,[RN],-#*/
+                                        writememb(armregs[RN],armregs[RD]);
+                                        if (armirq&0x40) break;
+                                        armregs[RN]-=(opcode&0xFFF);
+                                        break;
+
 			             case 0x4C: /*STRB RD,[RN],#*/
                                      writememb(armregs[RN],armregs[RD]);
 		                     if (armirq&0x40) break;
