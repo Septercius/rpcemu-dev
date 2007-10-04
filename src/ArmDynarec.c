@@ -307,6 +307,7 @@ void updatemode(uint32_t m)
                 pcpsr=&armregs[15];
 //                printf("Now 26-bit mode %i %08X %i\n",mode&15,PC,ins);
                 r15mask=0x3FFFFFC;
+                armregs[16]=(armregs[16]&0xFFFFFFE0)|mode;
                 if (om&16)
                 {
                         armregs[15]&=r15mask;
