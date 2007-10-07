@@ -9,9 +9,10 @@
 #include "rpcemu.h"
 
 #define ARCEM_SWI_CHUNK    0x56ac0
-#define ARCEM_SWI_SHUTDOWN (ARCEM_SWI_CHUNK + 0)
-#define ARCEM_SWI_HOSTFS   (ARCEM_SWI_CHUNK + 1)
-#define ARCEM_SWI_DEBUG    (ARCEM_SWI_CHUNK + 2)
+#define ARCEM_SWI_SHUTDOWN  (ARCEM_SWI_CHUNK + 0)
+#define ARCEM_SWI_HOSTFS    (ARCEM_SWI_CHUNK + 1)
+#define ARCEM_SWI_DEBUG     (ARCEM_SWI_CHUNK + 2)
+#define ARCEM_SWI_NANOSLEEP (ARCEM_SWI_CHUNK + 3)
 
 typedef uint32_t ARMword;
 typedef struct {

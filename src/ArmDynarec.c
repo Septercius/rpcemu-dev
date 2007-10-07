@@ -1011,6 +1011,18 @@ void opSWI(unsigned long opcode)
 		state.Reg = armregs;
 	        hostfs(&state);
 	}
+        else if (templ == ARCEM_SWI_NANOSLEEP)
+        {
+#if defined WIN32 || defined _WIN32 || defined _WIN32
+                Sleep(armregs[0]/1000000);
+#else
+                struct timespec tm;
+                tm.tv_sec = 0;
+                tm.tv_nsec = armregs[0];
+                nanosleep(&tm, NULL);
+                armregs[15]&=~VFLAG;
+#endif
+        }
 	else
 	{
                 realswi:
