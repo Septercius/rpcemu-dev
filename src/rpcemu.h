@@ -126,6 +126,7 @@ extern int quited;
 extern char exname[512];
 extern int timetolive;
 /*rpcemu.c*/
+extern void fatal(const char *format, ...);
 extern int startrpcemu();
 extern void execrpcemu();
 extern void endrpcemu();

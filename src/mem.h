@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-extern int loadroms();
-
 extern uint32_t readmemfl(uint32_t addr);
 extern uint32_t readmemfb(uint32_t addr);
 extern void writememfb(uint32_t addr, uint8_t val);

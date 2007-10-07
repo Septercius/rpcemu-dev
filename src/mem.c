@@ -243,7 +243,6 @@ uint32_t readmemfl(uint32_t addr)
 //                rpclog("Read IO %08X %08X\n",addr,PC);
                 if ((addr&0xFF0000)==0x200000)
                    return readiomd(addr);
-                if (addr==0x3310000) return 0;
                 if ((addr&0xFFF000)==0x10000) /*82c711*/
                 {
                         if ((addr&0xFFC)==0x7C0) return readidew();
@@ -252,23 +251,30 @@ uint32_t readmemfl(uint32_t addr)
                 return 0xFFFFFFFF;
                 break;
 
-                case 0x0C000000: /*???*/
-                return 0xFFFFFFFF;                
-                case 0x10000000: /*SIMM 0 bank 0*/
-                case 0x11000000:
-                case 0x12000000:
-                case 0x13000000:
+            case 0x08000000:
+            case 0x09000000:
+            case 0x0A000000:
+            case 0x0B000000:
+            case 0x0C000000:
+            case 0x0D000000:
+            case 0x0E000000:
+            case 0x0F000000:
+                    return readeasi(addr);
+            case 0x10000000: /*SIMM 0 bank 0*/
+            case 0x11000000:
+            case 0x12000000:
+            case 0x13000000:
 
 //                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
                 return ram[(addr&rammask)>>2];
 
-                case 0x14000000: /*SIMM 0 bank 1*/
-                case 0x15000000:
-                case 0x16000000:
-                case 0x17000000:
+            case 0x14000000: /*SIMM 0 bank 1*/
+            case 0x15000000:
+            case 0x16000000:
+            case 0x17000000:
                 return ram2[(addr&rammask)>>2];
-                case 0x18000000: /*SIMM 1 bank 0*/
-                case 0x1C000000: /*SIMM 1 bank 1*/
+            case 0x18000000: /*SIMM 1 bank 0*/
+            case 0x1C000000: /*SIMM 1 bank 1*/
                 return 0;
         }
         return 0;
@@ -397,7 +403,6 @@ uint32_t readmemfb(uint32_t addr)
 //                rpclog("Readb IO %08X %08X\n",addr,PC);
                 if ((addr&0xFF0000)==0x200000)
                    return readiomd(addr);
-                if (addr==0x3310000) return 0;
                 if (addr>=0x3012000 && addr<=0x302A000)
                    return readfdcdma(addr);
                 if ((addr&0xFFF000)==0x10000) /*82c711*/
@@ -405,14 +410,23 @@ uint32_t readmemfb(uint32_t addr)
                 if ((addr&0xFF0000)==0x20000) /*82c711*/
                    return read82c711(addr);
                 if ((addr&0xF00000)==0x300000) /*IO*/
-                   return 0;
+                   return 0xFFFFFFFF;
                 if ((addr&0xFFF0000)==0x33A0000)
                 {
 //                        rpclog("Read Econet %08X %08X\n",addr,PC);
                         return 0xFF; /*Econet?*/
                 }
-                return 0xFF;
+                return 0xFFFFFFFF;
                 break;
+                case 0x08000000:
+                case 0x09000000:
+                case 0x0A000000:
+                case 0x0B000000:
+                case 0x0C000000:
+                case 0x0D000000:
+                case 0x0E000000:
+                case 0x0F000000:
+                    return readeasi(addr);
                 case 0x10000000: /*SIMM 0 bank 0*/
                 case 0x11000000:
                 case 0x12000000:
@@ -824,75 +838,3 @@ void writememfb(uint32_t addr, uint8_t val)
         dumpregs();
         exit(-1);*/
 }
-/*
-#include <allegro.h>
-
-char romfns[17][256];
-int loadroms()
-{
-        FILE *f;
-        int finished=0;
-        int file=0;
-        int c,d,e;
-        int len,pos=0;
-        struct al_ffblk ff;
-//        char s[256];
-        char olddir[512],fn[512];
-        char *ext;
-        getcwd(olddir,511);
-        append_filename(fn,exname,"roms",511);
-        chdir(fn);
-        finished=al_findfirst("*.*",&ff,0xFFFF&~FA_DIREC);
-        if (finished)
-        {
-                chdir(olddir);
-                return -1;
-        }
-        while (!finished && file<16)
-        {
-                ext=get_extension(ff.name);
-                if (stricmp(ext,"txt"))
-                {
-                        strcpy(romfns[file],ff.name);
-                        file++;
-                }
-                finished = al_findnext(&ff);
-        }
-        al_findclose(&ff);
-        if (file==0)
-        {
-                chdir(olddir);
-                return -1;
-        }
-        for (c=0;c<file;c++)
-        {
-                for (d=0;d<file;d++)
-                {
-                        if (c>d)
-                        {
-                                e=0;
-                                while (romfns[c][e]==romfns[d][e] && romfns[c][e])
-                                      e++;
-                                if (romfns[c][e]<romfns[d][e])
-                                {
-                                        memcpy(romfns[16],romfns[c],256);
-                                        memcpy(romfns[c],romfns[d],256);
-                                        memcpy(romfns[d],romfns[16],256);
-                                }
-                        }
-                }
-        }
-        for (c=0;c<file;c++)
-        {
-                f=fopen(romfns[c],"rb");
-                fseek(f,-1,SEEK_END);
-                len=ftell(f)+1;
-                fseek(f,0,SEEK_SET);
-                fread(&romb[pos],len,1,f);
-                fclose(f);
-                pos+=len;
-        }
-        chdir(olddir);
-        return 0;
-}
-*/

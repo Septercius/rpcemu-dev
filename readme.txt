@@ -24,7 +24,7 @@ Changes from v0.4 :
 ROMs :
 ~~~~~~
 
-RiscOS is a commercial product, please do not ask me to provide ROM images, as I
+RISC OS is a commercial product, please do not ask me to provide ROM images, as I
 won't. However, they can be obtained from a real RiscPC/A7000 with the following 
 commands :
 
@@ -38,12 +38,16 @@ or alternatively
 *save rom  3800000+400000
 
 The ROM files need to be placed in the roms directory.
-RiscOS 3.6, 3.7 and X.XX have been tested and work, not sure about any other 
+RISC OS 3.6, 3.7 and X.XX have been tested and work, not sure about any other 
 versions.
 RPCemu will load in the disc images 'boot.adf' and 'notboot.adf' into :0 and :1
 on startup if they exist, so that you can boot straight away. (the CMOS is
 configured for this). It will also load in hd4.hdf and hd5.hdf straight on startup.
 
+RPCEmu emulates a podule containing up to 4MB of ROM which can be used to hold 
+additional RISC OS modules. To use this ROM, create a poduleroms directory, 
+and copy any modules into this directory. These modules are then active before
+RISC OS boots, and so can be used for things like booting off HostFS.
 
 Emulates :
 ~~~~~~~~~~
@@ -95,7 +99,7 @@ job. There are a couple of things to note when formatting :
 - Never run a long soak test on the hard disc - this does not work!
 
 Once formatted you can copy the boot sequence from floppy (or just download
-the preprepared hardfile). To get RiscOS to boot off hard disc, type the 
+the preprepared hardfile). To get RISC OS to boot off hard disc, type the 
 following commands at the command prompt :
 
 *dir adfs::4.$
@@ -111,8 +115,9 @@ hex numbers after a comma, or a pair of load/exec addresses.
 
 I am not aware of any bugs with HostFS, however if you come across any let me know.
 
-One problem is that as the HostFS module is software loaded, it is impossible to boot
-from HostFS. Therefore, a disc image or hardfile must always be present.
+It is possible to boot from HostFS. To do so, copy the HostFS module into the poduleroms
+directory, so that it gets loaded in to ROM, then
+*configure filesystem HostFS
 
 
 Sound :

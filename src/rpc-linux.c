@@ -9,13 +9,6 @@
 #include "sound.h"
 #include "vidc20.h"
 
-#define MB_OK 1
-static void MessageBox(void *param, const char *message, 
-		       const char *title, int type) {
-  printf("MessageBox: %s %s\n", title, message);
-}
-
-
 
 int mousecapture=0;
 float mips;
@@ -40,22 +33,11 @@ static void domips(void)
 
 void error(const char *format, ...)
 {
-   char buf[256];
-
    va_list ap;
    va_start(ap, format);
-   vsprintf(buf, format, ap);
+   fprintf(stderr, "RPCemu error: ");
+   vfprintf(stderr, format, ap);
    va_end(ap);
-   MessageBox(NULL,buf,"RPCemu error",MB_OK);
-}
-
-static void fatal(const char *format, ...)
-{
-   va_list ap;
-   va_start(ap, format);
-   error(format, ap);
-   va_end(ap);
-   abort();
 }
 
 FILE *arclog;

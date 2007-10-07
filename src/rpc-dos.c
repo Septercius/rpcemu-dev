@@ -10,12 +10,6 @@
 #include "iomd.h"
 
 int quited=0;
-#define MB_OK 1
-static void MessageBox(void *param, const char *message, 
-		       const char *title, int type) {
-  printf("MessageBox: %s %s\n", title, message);
-}
-
 
 
 int mousecapture=0;
@@ -45,9 +39,9 @@ void error(const char *format, ...)
 
    va_list ap;
    va_start(ap, format);
-   vsprintf(buf, format, ap);
+   fprintf(stderr, "RPCemu error: ");
+   vfprintf(stderr, format, ap);
    va_end(ap);
-   MessageBox(NULL,buf,"RPCemu error",MB_OK);
 }
 
 FILE *arclog;

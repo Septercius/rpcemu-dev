@@ -37,6 +37,15 @@ int timetolive = 0;
 void loadconfig();
 void saveconfig();
 
+void fatal(const char *format, ...)
+{
+   va_list ap;
+   va_start(ap, format);
+   error(format, ap);
+   va_end(ap);
+   abort();
+}
+
 int startrpcemu()
 {
         int c;
