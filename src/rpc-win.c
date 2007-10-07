@@ -63,6 +63,7 @@ void rpclog(const char *format, ...)
    char buf[1024];
 //return;
    if (!arclog) arclog=fopen("e:/devcpp/rpc/rlog.txt","wt");
+   if (!arclog) return;
    va_list ap;
    va_start(ap, format);
    vsprintf(buf, format, ap);
