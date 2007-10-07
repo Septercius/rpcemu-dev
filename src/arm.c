@@ -46,6 +46,7 @@ int times8000=0;
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <time.h>
 
 int inscounts[256];
 //#include <allegro.h>
@@ -56,6 +57,9 @@ int inscounts[256];
 #include "mem.h"
 #include "iomd.h"
 #include "sound.h"
+#include "keyboard.h"
+#include "82c711.h"
+#include "ide.h"
 
 int blockend;
 int r15diff;
@@ -425,11 +429,11 @@ void dumpregs()
 {
 /*}*/
 //#if 0
-        FILE *f,*ff;
         char s[1024];
+/*        FILE *f,*ff;
         int c,d,e;
         uint32_t templ;
-/*        for (c=0;c<0x100;c++)
+        for (c=0;c<0x100;c++)
         {
                 rpclog("Opcode %02X : %09i\n",c,inscounts[c]);
                 insnum[c]=c;

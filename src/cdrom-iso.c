@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "rpcemu.h"
 #include "ide.h"
+#include "cdrom-iso.h"
 
 ATAPI iso_atapi;
 
@@ -99,6 +100,7 @@ int iso_open(char *fn)
         atapi=&iso_atapi;
         iso_discchanged=1;
         iso_empty=0;
+        return 0;
 }
 
 void iso_close()

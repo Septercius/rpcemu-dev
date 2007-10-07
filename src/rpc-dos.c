@@ -8,6 +8,7 @@
 #include "vidc20.h"
 #include "sound.h"
 #include "iomd.h"
+#include "gui.h"
 
 int quited=0;
 
@@ -111,18 +112,6 @@ void updatewindowsize(uint32_t x, uint32_t y)
 
 void releasemousecapture()
 {
-}
-
-void resetrpc()
-{
-        memset(ram,0,rammask+1);
-        resetcp15();
-        resetarm();
-        resetkeyboard();
-        resetiomd();
-        reseti2c();
-        resetide();
-        reset82c711();
 }
 
 

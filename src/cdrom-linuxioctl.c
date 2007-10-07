@@ -2,6 +2,7 @@
 #include <linux/cdrom.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 #include "rpcemu.h"
 #include "ide.h"
 
@@ -31,7 +32,7 @@ int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
         int len=4;
         int blocks;
 	int cdrom=open("/dev/cdrom",O_RDONLY|O_NONBLOCK);
-        if (cdrom<=0) return;
+        if (cdrom<=0) return 0;
 	close(cdrom);
         blocks=(600*1024*1024)/2048;
         if (starttrack <= 1) {
@@ -99,6 +100,7 @@ int ioctl_open()
         atapi=&ioctl_atapi;
         ioctl_discchanged=1;
         ioctl_empty=0;
+        return 0;
 }
 
 void ioctl_close()

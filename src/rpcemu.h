@@ -120,7 +120,6 @@ extern void rpclog(const char *format, ...);
 extern void updatewindowsize(uint32_t x, uint32_t y);
 extern void wakeupsoundthread();
 extern void updateirqs(void);
-extern void resetrpc();
 extern int quited;
 
 extern char exname[512];
@@ -130,6 +129,7 @@ extern void fatal(const char *format, ...);
 extern int startrpcemu();
 extern void execrpcemu();
 extern void endrpcemu();
+extern void resetrpc();
 
 /*Generic*/
 extern int lastinscount;

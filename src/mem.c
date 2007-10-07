@@ -9,6 +9,7 @@
 #include "arm.h"
 #include "cp15.h"
 #include "82c711.h"
+#include "romload.h"
 
 int timetolive;
 //#define LARGETLB

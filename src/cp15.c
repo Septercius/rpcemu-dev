@@ -60,7 +60,6 @@ uint32_t tlbrammask;
 void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 {
         int c;
-        int oldmmu=mmu;
         if (output) rpclog("Write CP15 %08X %08X %i %i %07X %i\n",addr,val,OPC2,CRm,PC,blockend);
         switch (addr&15)
         {
@@ -106,11 +105,6 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                         updatemode(mode&15);
                 }
 //                rpclog("CP15 control write %08X %08X %i\n",val,PC,blockend);
-/*                if (oldmmu && !(val&1))
-                {
-                        dumpregs();
-                        exit(-1);
-                }*/
                 return; /*We can probably ignore all other bits*/
                 case 2: /*TLB base*/
                 cp15.tlbbase=val&~0x3FFF;

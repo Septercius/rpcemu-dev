@@ -6,6 +6,7 @@
 #include "iomd.h"
 #include "82c711.h"
 #include "ide.h"
+#include "cdrom-iso.h"
 
 DIALOG configuregui[];
 int menuexit(void)

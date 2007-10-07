@@ -66,7 +66,7 @@ uint8_t *dirtybuffer = dirtybuffer1;
 
 static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 {
-        BITMAP *backbuf;
+        BITMAP *backbuf=bs4;
         if (fullscreen)
         {
                 switch (currentbuffer)

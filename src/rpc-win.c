@@ -152,20 +152,6 @@ void releasemousecapture(void)
         }
 }
 
-int dorpcreset=0;
-void resetrpc()
-{
-        memset(ram,0,rammask+1);
-        memset(vram,0,vrammask+1);
-        resetcp15();
-        resetarm();
-        resetkeyboard();
-        resetiomd();
-        reseti2c();
-        resetide();
-        reset82c711();
-}
-
 int quited=0;
 
 /*Ignore _ALL_ this for now. It doesn't work very well, and doesn't even get

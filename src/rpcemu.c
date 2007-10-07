@@ -14,6 +14,9 @@
 #include "arm.h"
 #include "cmos.h"
 #include "82c711.h"
+#include "romload.h"
+#include "cp15.h"
+#include "cdrom-iso.h"
 
 int cdromtype;
 unsigned char flaglookup[16][16];
@@ -44,6 +47,19 @@ void fatal(const char *format, ...)
    error(format, ap);
    va_end(ap);
    abort();
+}
+
+void resetrpc()
+{
+        memset(ram,0,rammask+1);
+        memset(vram,0,vrammask+1);
+        resetcp15();
+        resetarm();
+        resetkeyboard();
+        resetiomd();
+        reseti2c();
+        resetide();
+        reset82c711();
 }
 
 int startrpcemu()
