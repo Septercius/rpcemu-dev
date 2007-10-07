@@ -564,7 +564,7 @@ void vidcthread()
                                                 int xx;
                                                 for (xx=0;xx<64;xx+=4)
                                                 {
-#ifdef _RPCEMU_BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                                                         vidp[x+xx+3]=thr.vpal[ramp[addr]&1]     |(thr.vpal[(ramp[addr]>>1)&1]<<16);
                                                         vidp[x+xx+2]=thr.vpal[(ramp[addr]>>2)&1]|(thr.vpal[(ramp[addr]>>3)&1]<<16);
                                                         vidp[x+xx+1]=thr.vpal[(ramp[addr]>>4)&1]|(thr.vpal[(ramp[addr]>>5)&1]<<16);
@@ -663,7 +663,7 @@ void vidcthread()
                                                 int xx;
                                                 for (xx=0;xx<16;xx+=4)
                                                 {
-#ifdef _RPCEMU_BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
 //                                                                                                              if (!x && !y) printf("%02X %04X\n",ramp[addr],vpal[ramp[addr&0xF]]);
                                                         vidp[x+xx+3]=thr.vpal[ramp[addr]>>4]|(thr.vpal[ramp[addr]&0xF]<<16);
                                                         vidp[x+xx+2]=thr.vpal[ramp[addr+1]>>4]|(thr.vpal[ramp[addr+1]&0xF]<<16);
@@ -722,7 +722,7 @@ void vidcthread()
                                                 int xx;
                                                 for (xx=0;xx<8;xx+=2)
                                                 {
-#ifdef _RPCEMU_BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                                                         vidp[x+xx+1]=thr.vpal[ramp[addr+1]&0xFF]|(thr.vpal[ramp[addr]&0xFF]<<16);
                                                         vidp[x+xx]=thr.vpal[ramp[addr+3]&0xFF]|(thr.vpal[ramp[addr+2]&0xFF]<<16);
 #else
@@ -974,7 +974,7 @@ void vidcthread()
                                                 int xx;
                                                 for (xx=0;xx<32;xx+=8)
                                                 {
-#ifdef _RPCEMU_BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                                                         vidp[x+xx]=thr.vpal[ramp[addr+3]&0xF];
                                                         vidp[x+xx+1]=thr.vpal[(ramp[addr+3]>>4)&0xF];
                                                         vidp[x+xx+2]=thr.vpal[ramp[addr+2]&0xF];
@@ -1165,7 +1165,7 @@ void vidcthread()
                                         vidp16=(unsigned short *)bmp_write_line(b,y+thr.cursory);
                                         for (x=0;x<32;x+=4)
                                         {
-#ifdef _RPCEMU_BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                                                 addr^=3;
 #endif
                                                 if ((x+thr.cursorx)>=0   && (x+thr.cursorx)<thr.xsize && ramp[addr]&3)
@@ -1176,7 +1176,7 @@ void vidcthread()
                                                     vidp16[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
                                                 if ((x+thr.cursorx+3)>=0 && (x+thr.cursorx+3)<thr.xsize && (ramp[addr]>>6)&3)
                                                     vidp16[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
-#ifdef _RPCEMU_BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                                                 addr^=3;
 #endif
                                                 addr++;
@@ -1193,7 +1193,7 @@ void vidcthread()
                                         vidp=(uint32_t *)bmp_write_line(b,y+thr.cursory);
                                         for (x=0;x<32;x+=4)
                                         {
-#ifdef _RPCEMU_BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                                                 addr^=3;
 #endif
                                                 if ((x+thr.cursorx)>=0   && (x+thr.cursorx)<thr.xsize && ramp[addr]&3)
@@ -1204,7 +1204,7 @@ void vidcthread()
                                                     vidp[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
                                                 if ((x+thr.cursorx+3)>=0 && (x+thr.cursorx+3)<thr.xsize && (ramp[addr]>>6)&3) 
                                                     vidp[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
-#ifdef _RPCEMU_BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                                                 addr^=3;
 #endif
                                                 addr++;

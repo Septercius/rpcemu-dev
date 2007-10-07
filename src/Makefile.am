@@ -1,10 +1,51 @@
 # Makefile.am for the RPCemu
 
 bin_PROGRAMS = rpcemu
-rpcemu_SOURCES = 82c711.c arm.c cmos.c \
-cp15.c gui.c ide.c iomd.c keyboard.c mem.c \
-romload.c rpc-linux.c vidc20.c hostfs.c \
-rpcemu.c sound.c fpa.c codegen_null.c
 
-rpcemu_CFLAGS=$(allegro_CFLAGS)
-rpcemu_LDADD=$(X_PRE_LIBS) $(X_LIBS) $(X_EXTRA_LIBS) $(allegro_LIBS)
+rpcemu_CFLAGS = $(allegro_CFLAGS)
+
+# workaround for Win32 Allegro, which has `allegro-config' missing
+if OS_WIN
+rpcemu_LDADD = -lalleg
+else
+rpcemu_LDADD = $(allegro_LIBS)
+endif
+
+rpcemu_SOURCES = 82c711.c 82c711.h cdrom-iso.c cmos.c cmos.h cp15.c cp15.h \
+fpa.c hostfs.c hostfs.h ide.c ide.h iomd.c iomd.h keyboard.c keyboard.h mem.c \
+mem.h romload.c rpcemu.c sound.c sound.h vidc20.c vidc20.h
+
+if DYNAREC
+rpcemu_SOURCES += ArmDynarec.c ArmDynarecOps.h
+rpcemu_CFLAGS += -DDYNAREC
+
+if CPU_X86_64
+rpcemu_SOURCES += codegen_amd64.c codegen_amd64.h
+endif
+if CPU_I386
+rpcemu_SOURCES += codegen_x86.c codegen_x86.h
+endif
+
+else
+# non-DYNAREC
+rpcemu_SOURCES += arm.c arm.h codegen_null.c
+endif
+
+if OS_WIN
+rpcemu_SOURCES += cdrom-ioctl.c rpc-win.c resources.h
+rpcemu_CPPFLAGS = -Dsleep=Sleep
+rpcemu_LDADD += acorn.o -lcomdlg32 -lwinmm
+
+%.o: %.rc
+	windres $^ $@
+endif
+
+if OS_LINUX
+rpcemu_SOURCES += rpc-linux.c gui.c cdrom-linuxioctl.c
+endif
+
+if OS_MACOSX
+rpcemu_SOURCES += rpc-macosx.c gui.c
+endif
+
+EXTRA_DIST = acorn.rc rpcemu.ico makefile.dj rpc-dos.c
