@@ -38,6 +38,7 @@ void error(const char *format, ...)
    va_start(ap, format);
    fprintf(stderr, "RPCemu error: ");
    vfprintf(stderr, format, ap);
+   fprintf(stderr,"\n");
    va_end(ap);
 }
 

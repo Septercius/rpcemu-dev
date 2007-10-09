@@ -64,7 +64,7 @@ void initmem(void)
         int c;
         ram=(uint32_t *)malloc(2*1024*1024);
         ram2=(uint32_t *)malloc(2*1024*1024);
-        rom=(uint32_t *)malloc(8*1024*1024);
+        rom=(uint32_t *)malloc(ROMSIZE);
         vram=(uint32_t *)malloc(8*1024*1024); /*8 meg VRAM!*/
         ramb=(unsigned char *)ram;
         ramb2=(unsigned char *)ram2;

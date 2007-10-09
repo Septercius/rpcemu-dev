@@ -119,7 +119,7 @@ int loadroms(void)
 
         getcwd(olddir,sizeof(olddir));
         append_filename(fn,exname,"roms",sizeof(fn));
-        chdir(fn);
+        if (chdir(fn)) fatal("Cannot find roms directory %s",fn);
         finished=al_findfirst("*.*",&ff,0xFFFF&~FA_DIREC);
         if (finished)
         {
@@ -166,9 +166,11 @@ int loadroms(void)
         for (c=0;c<file;c++)
         {
                 f=fopen(romfns[c],"rb");
-//				printf("Loading %f\n",romfns[c]);
+                //printf("Loading %s\n",romfns[c]);
+                if (f==NULL) fatal("Can't open rom file %s",romfns[c]);
                 fseek(f,-1,SEEK_END);
                 len=ftell(f)+1;
+                if (pos + len > ROMSIZE) fatal("ROM files larger than 8MB");
 //printf("Reading %i bytes\n",len);
                 fseek(f,0,SEEK_SET);
                 fread(&romb[pos],len,1,f);
