@@ -66,7 +66,8 @@ uint8_t *dirtybuffer = dirtybuffer1;
 
 static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 {
-        BITMAP *backbuf=bs4;
+        BITMAP *backbuf=screen;
+#ifdef HARDWAREBLIT
         if (fullscreen)
         {
                 switch (currentbuffer)
@@ -76,6 +77,7 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
                         case 2: backbuf=bs3; break;
                 }
         }
+#endif
         switch (doublesize)
         {
                 case 0:
@@ -121,12 +123,14 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
         }
         if (fullscreen)
         {
+#ifdef HARDWAREBLIT
                 switch (currentbuffer)
                 {
                         case 0: request_video_bitmap(bs4); currentbuffer=1; break;
                         case 1: request_video_bitmap(bs2); currentbuffer=2; break;
                         case 2: request_video_bitmap(bs3); currentbuffer=0; break;
                 }
+#endif
         }
 }
 
