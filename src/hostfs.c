@@ -1353,6 +1353,8 @@ hostfs_func_8_rename(ARMul_State *state)
   char ro_path2[PATH_MAX], host_pathname2[PATH_MAX], ro_leaf2[PATH_MAX];
   risc_os_object_info object_info1, object_info2;
   char new_pathname[PATH_MAX];
+  char *hpn2;
+  int c;
 
   assert(state);
 
@@ -1396,7 +1398,15 @@ hostfs_func_8_rename(ARMul_State *state)
   }
 
   strcat(host_pathname2, "/");
-  strcat(host_pathname2, ro_leaf2);
+  /* New leafname - change slashes to dots */
+  hpn2 = host_pathname2 + strlen(host_pathname2);
+  for (c = 0; c < strlen(ro_leaf2); c++) {
+    if (ro_leaf2[c] == '/')
+      hpn2[c] = '.';
+    else
+      hpn2[c] = ro_leaf2[c];
+  }
+  hpn2[c] = '\0';
 
   path_construct(host_pathname2, new_pathname, sizeof(new_pathname),
                  object_info1.load, object_info1.exec);
