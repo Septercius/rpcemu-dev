@@ -7,6 +7,11 @@
 #include "mem.h"
 #include "arm.h"
 
+#ifdef __linux__
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
 void generateupdatepc();
 int lastflagchange;
 unsigned char rcodeblock[BLOCKS][1792];
@@ -35,12 +40,29 @@ int pcinc=0;
 void initcodeblocks()
 {
         int c;
+#ifdef __linux__
+	void *start;
+	size_t len;
+	long pagesize = sysconf(_SC_PAGESIZE);
+	long pagemask = ~(pagesize - 1);
+#endif
         /*Clear all blocks*/
         memset(codeblockpc,0xFF,4*0x1000);
 //        memset(codeblockcount,0,0x1000);
         blockpoint=0;
         for (c=0;c<BLOCKS;c++) blocks[c]=0xFFFFFFFF;
         for (c=0;c<BLOCKS;c++) codeblockaddr[c]=&rcodeblock[c][4];
+
+#ifdef __linux__
+	/* Set memory pages containing rcodeblock[]s executable -
+	   necessary when NX/XD feature is active on CPU(s) */
+	start = (void *)((long)rcodeblock & pagemask);
+	len = (sizeof rcodeblock + pagesize) & pagemask;
+	if (mprotect(start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+		perror("mprotect");
+		exit(1);
+	}
+#endif
 }
 
 void resetcodeblocks()

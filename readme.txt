@@ -163,6 +163,24 @@ This isn't a common problem, no ATI or 3dfx cards I tried suffer from this, nor 
 GeForce 3.
 
 
+On SELinux-using distributions like Fedora, it's also necessary to
+actually allow RPCemu to mark any of its own memory pages as
+executable, otherwise the mprotect() call fails with EPERM (permission
+denied). On Fedora, you can toggle a particular SELinux boolean to
+permit this operation for all processes:
+
+  $ su -c "/usr/sbin/setsebool -P allow_execmem=1"
+
+I realize that this compromises the system's security, but it's at
+least better than disabling SELinux as a whole.
+
+By the way, in Fedora's graphical configuration tool
+`system-config-selinux', this SELinux boolean can be found under
+"Memory Protection" -> "Allow unconfined executables to map a memory
+region as both executable and writable. [...]".
+
+
+
 Todo list :
 ~~~~~~~~~~~
 

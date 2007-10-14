@@ -10,6 +10,11 @@
 #include "mem.h"
 #include "arm.h"
 
+#ifdef __linux__
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
 void generateupdatepc();
 int linecyc;
 int hasldrb[BLOCKS];
@@ -63,6 +68,12 @@ int pcinc=0;
 void initcodeblocks()
 {
         int c;
+#ifdef __linux__
+	void *start;
+	size_t len;
+	long pagesize = sysconf(_SC_PAGESIZE);
+	long pagemask = ~(pagesize - 1);
+#endif
         /*Clear all blocks*/
         memset(codeblockpc,0xFF,4*0x1000);
 //        memset(codeblockcount,0,0x1000);
@@ -205,6 +216,17 @@ addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
         }
         addbyte(0xC3); /*RET*/
+
+#ifdef __linux__
+	/* Set memory pages containing rcodeblock[]s executable -
+	   necessary when NX/XD feature is active on CPU(s) */
+	start = (void *)((long)rcodeblock & pagemask);
+	len = (sizeof rcodeblock + pagesize) & pagemask;
+	if (mprotect(start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+		perror("mprotect");
+		exit(1);
+	}
+#endif
 }
 
 void resetcodeblocks()
