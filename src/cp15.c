@@ -130,7 +130,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 //                waddrl=0xFFFFFFFF;
                 switch (cp15.tlbbase&0x1F000000)
                 {
-                        case 0x02000000: /*VRAM - yes RiscOS 3.7 does put the TLB in VRAM at one point*/
+                        case 0x02000000: /*VRAM - yes RISC OS 3.7 does put the TLB in VRAM at one point*/
                         tlbram=vram; tlbrammask=vrammask>>2; break;
                         case 0x10000000: /*SIMM 0 bank 0*/
                         case 0x11000000:

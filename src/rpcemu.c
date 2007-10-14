@@ -79,7 +79,7 @@ int startrpcemu()
 //printf("Mem inited...\n");
         if (loadroms())
         {
-                error("RiscOS ROMs missing!");
+                error("RISC OS ROMs missing!");
                 return -1;
         }
 //printf("ROMs loaded!\n");
