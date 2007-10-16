@@ -16,6 +16,7 @@
 
 # Makefile.am for the RPCemu
 
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
@@ -101,6 +102,7 @@ rpcemu_OBJECTS = $(am_rpcemu_OBJECTS)
 am__DEPENDENCIES_1 =
 @OS_WIN_FALSE@rpcemu_DEPENDENCIES = $(am__DEPENDENCIES_1)
 @OS_WIN_TRUE@rpcemu_DEPENDENCIES = acorn.o
+SCRIPTS = $(noinst_SCRIPTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -224,6 +226,8 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+noinst_SCRIPTS = ../rpcemu
+CLEANFILES = $(noinst_SCRIPTS)
 rpcemu_CFLAGS = $(allegro_CFLAGS) $(am__append_2)
 @OS_WIN_FALSE@rpcemu_LDADD = $(allegro_LIBS)
 
@@ -892,7 +896,7 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS) config.h
+all-am: Makefile $(PROGRAMS) $(SCRIPTS) config.h
 installdirs:
 	for dir in "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
@@ -914,6 +918,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -987,6 +992,9 @@ uninstall-am: uninstall-binPROGRAMS uninstall-info-am
 	tags uninstall uninstall-am uninstall-binPROGRAMS \
 	uninstall-info-am
 
+
+../rpcemu: rpcemu
+	cp rpcemu ..
 
 @OS_WIN_TRUE@%.o: %.rc
 @OS_WIN_TRUE@	windres $^ $@

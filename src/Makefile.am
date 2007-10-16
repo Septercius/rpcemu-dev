@@ -1,6 +1,11 @@
 # Makefile.am for the RPCemu
 
 bin_PROGRAMS = rpcemu
+noinst_SCRIPTS = ../rpcemu
+CLEANFILES = $(noinst_SCRIPTS)
+
+../rpcemu: rpcemu
+	cp rpcemu ..
 
 rpcemu_CFLAGS = $(allegro_CFLAGS)
 
