@@ -18,7 +18,6 @@ int motoron = 0;
 
 int kcallback = 0, mcallback = 0;
 int idecallback = 0;
-int delaygenirqleft = 0, delaygenirq = 0;
 uint32_t cinit = 0;
 
 int sndon=0;
@@ -43,17 +42,7 @@ void clockcmosproc()
 int clockcmos=0;
 void gentimerirq(void)
 {
-        int diff;
         if (!infocus) return;
-        diff=rinscount-lastinscount;
-        if (diff<5000)
-        {
-                delaygenirqleft++;
-//                rpclog("Haven't moved! %i\n",inscount);
-                return;
-        }
-//           rpclog("Haven't moved!\n");
-        lastinscount=rinscount;
         clockcmos++;
         if (clockcmos==5)
         {
@@ -349,7 +338,6 @@ void resetiomd(void)
         iomd.maska=iomd.maskb=iomd.maskc=iomd.maskd=iomd.maske=0;
         remove_int(timerairq);
         remove_int(timerbirq);
-        delaygenirqleft=0;
         soundcount=100000;
         iomd.t0c=iomd.t1c=iomd.t0l=iomd.t1l=0xFFFF;
         #ifndef OLDTIMER

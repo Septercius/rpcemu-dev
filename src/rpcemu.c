@@ -29,7 +29,6 @@ int model = 0;
 int model2 = 0;
 int rammask = 0;
 int stretchmode = 0;
-int lastinscount = 0;
 int infocus = 0;
 int refresh = 0;
 int skipblits = 0;

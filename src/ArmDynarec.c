@@ -1558,25 +1558,6 @@ startpc=armregs[15];
                                 updateirqs();
                         }
                 }
-                        if (delaygenirqleft)
-                        {
-                                if (!delaygenirq)
-                                {
-                                        delaygenirq=2;
-                                }
-                                delaygenirq--;
-                                if (!delaygenirq)
-                                {
-                                        delaygenirqleft--;
-                                        gentimerirq();
-                                }
-                        }
-//                printf("T0 now %04X\n",iomd.t0c);
-//                cyc=(oldcyc-cycles);
-/*                if (soundbufferfull)
-                {
-                        updatesoundbuffer();
-                }*/
                 cycles-=1000;
         }
 }

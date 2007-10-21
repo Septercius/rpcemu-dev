@@ -4458,21 +4458,6 @@ exception(SUPERVISOR,0xC,4);
                 {
                         updatesoundbuffer();
                 }*/
-                if (delaygenirqleft)
-                {
-//                        rpclog("IRQ left! %i %i\n",delaygenirqleft);
-                        if (!delaygenirq)
-                        {
-                                delaygenirq=100;
-                        }
-                        delaygenirq--;
-                        if (!delaygenirq)
-                        {
-                                delaygenirqleft--;
-//                                rpclog("Delayed IRQ\n");
-                                gentimerirq();
-                        }
-                }
                 cycles-=200;
         }
 }
