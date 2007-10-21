@@ -34,7 +34,7 @@ extern void endiomd();
 extern uint32_t readiomd(uint32_t addr);
 extern void writeiomd(uint32_t addr, uint32_t val);
 extern uint8_t readmb(void);
-extern void iomdvsync();
+extern void iomdvsync(int vsync);
 
 extern char HOSTFS_ROOT[512];
 

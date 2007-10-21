@@ -55,7 +55,7 @@ if (!arclog) arclog=fopen("rpclog.txt","wt");
    fputs(buf,arclog);
 }
 
-int drawscre=0,flyback;
+int drawscre=0;
 
 void vblupdate()
 {

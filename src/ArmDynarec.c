@@ -49,7 +49,6 @@ int inscounts[256];
 }*/
 
 int r15diff;
-int flyback;
 //static int r11check=0;
 static int oldmode;
 static int fdci=0;
@@ -1558,11 +1557,6 @@ startpc=armregs[15];
                                 iomd.stata|=4;
                                 updateirqs();
                         }
-                }
-                if (flyback)
-                {
-                        flyback--;
-//                        if (!flyback) rpclog("Vsync low\n");
                 }
                         if (delaygenirqleft)
                         {

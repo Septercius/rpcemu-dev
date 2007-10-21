@@ -63,7 +63,6 @@ int inscounts[256];
 
 int blockend;
 int r15diff;
-int flyback;
 //static int r11check=0;
 static int oldmode;
 static int fdci=0;
@@ -4452,11 +4451,6 @@ exception(SUPERVISOR,0xC,4);
                                 iomd.stata|=4;
                                 updateirqs();
                         }
-                }
-                if (flyback)
-                {
-                        flyback--;
-//                        if (!flyback) rpclog("Vsync low\n");
                 }
 //                printf("T0 now %04X\n",iomd.t0c);
 //                cyc=(oldcyc-cycles);

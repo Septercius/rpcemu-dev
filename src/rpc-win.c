@@ -72,7 +72,7 @@ void rpclog(const char *format, ...)
    fflush(arclog);
 }
 
-int drawscre=0,flyback;
+int drawscre=0;
 int dosnd;
 void sndupdate(void)
 {

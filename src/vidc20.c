@@ -12,7 +12,9 @@
 int fullscreen=0;
 int readflash = 0;
 static BITMAP *b = NULL,*bs = NULL,*bs2 = NULL,*bs3=NULL,*bs4=NULL;
+#ifdef HARDWAREBLIT                
 static int currentbuffer=1;
+#endif
 static int oldsx = 0,oldsy = 0;
 static int drawcode = 0;
 
@@ -503,8 +505,12 @@ void drawscr(int needredraw)
 
         if (thr.needvsync) 
         {
-            iomdvsync();
+            iomdvsync(1);
             thr.needvsync = 0;
+        }
+        if (needredraw)
+        {
+            iomdvsync(0);
         }
         vidcreleasemutex();
 

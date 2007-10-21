@@ -59,7 +59,7 @@ if (!arclog) arclog=fopen("rpclog.txt","wt");
    fflush(arclog);
 }
 
-int drawscre=0,flyback;
+int drawscre=0;
 
 int infocus;
 

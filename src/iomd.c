@@ -380,12 +380,20 @@ void updateiomdtimers()
         }
 }
 
-void iomdvsync()
+void iomdvsync(int vsync)
 {
-//        rpclog("Vsync high\n");
-        iomd.stata|=8;
-        updateirqs();
-        flyback=20;
+        if (vsync)
+        {
+//                rpclog("Vsync high\n");
+                iomd.stata|=8;
+                updateirqs();
+                flyback=1;
+        }
+        else
+        {
+//                rpclog("Vsync low\n");
+                flyback=0;
+        }
 }
 
 void dumpiomdregs()
