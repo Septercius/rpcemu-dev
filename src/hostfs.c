@@ -118,7 +118,7 @@ hostfs_ensure_buffer_size(size_t buffer_size_needed)
   if (buffer_size_needed > buffer_size) {
     buffer = realloc(buffer, buffer_size_needed);
     if (!buffer) {
-      fprintf(stderr, "HostFS could not increase buffer size to %u bytes\n",
+      fprintf(stderr, "HostFS could not increase buffer size to %zu bytes\n",
               buffer_size_needed);
       exit(EXIT_FAILURE);
     }
@@ -245,36 +245,6 @@ path_construct(const char *old_path, char *new_path, size_t len,
     /* File has load and exec addresses */
     sprintf(new_suffix, ",%x-%x", (unsigned int)load, (unsigned int)exec);
   }
-}
-
-static void
-riscos_path_to_host(const char *path, char *host_path)
-{
-//        char *s=host_path,*s2=path;
-  assert(path);
-  assert(host_path);
-
-  while (*path) {
-    switch (*path) {
-    case '$':
-      strcpy(host_path, HOSTFS_ROOT);
-      host_path += strlen(host_path);
-      break;
-    case '.':
-      *host_path++ = '/';
-      break;
-    case '/':
-      *host_path++ = '.';
-      break;
-    default:
-      *host_path++ = *path;
-      break;
-    }
-    path++;
-  }
-
-  *host_path = '\0';
-//  rpclog("ROS path to host : %s -> %s\n",s2,s);
 }
 
 /**
@@ -431,6 +401,7 @@ hostfs_read_object_info(const char *host_pathname,
 /**
  * @param host_dir_path Full Host path to directory to scan
  * @param object        Object name to search for
+ * @param case_sensitive Case sensitive matching (used for the destination of renames)
  * @param host_name     Return Host name of object (filled-in if object found)
  * @param ro_leaf       Return RISC OS leaf (filled-in if object found)
  * @param object_info   Return object info (filled-in)
@@ -438,6 +409,7 @@ hostfs_read_object_info(const char *host_pathname,
 static void
 hostfs_path_scan(const char *host_dir_path,
                  const char *object,
+                 int case_sensitive,
                  char *host_name,
                  char *ro_leaf,
                  risc_os_object_info *object_info)
@@ -492,10 +464,19 @@ hostfs_path_scan(const char *host_dir_path,
                    ro_leaf[c]='.';
         }
     /* Compare leaf and object names in case-insensitive manner */
-    if (strcasecmp(ro_leaf, object) != 0) {
+    if (case_sensitive) {
+
+      if (strcmp(ro_leaf, object) != 0) {
+//          rpclog("%s <> %s\n",ro_leaf,object);
+        /* Names do not match */
+        continue;
+      }
+    } else {
+      if (strcasecmp(ro_leaf, object) != 0) {
 //        rpclog("%s <> %s\n",ro_leaf,object);
-      /* Names do not match */
-      continue;
+        /* Names do not match */
+        continue;
+      }
     }
 
     /* A match has been found - exit the function early */
@@ -513,12 +494,14 @@ hostfs_path_scan(const char *host_dir_path,
 
 /**
  * @param ro_path       Full RISC OS path to object
+ * @param preserve_leaf Preserve the case of the leafname (used for the destination of renames)
  * @param host_pathname Return full Host path to object (filled-in)
  * @param ro_leaf       Return RISC OS leaf (filled-in if object found)
  * @param object_info   Return object info (filled-in)
  */
 static void
 hostfs_path_process(const char *ro_path,
+                    int preserve_leaf,
                     char *host_pathname,
                     char *ro_leaf,
                     risc_os_object_info *object_info)
@@ -562,7 +545,7 @@ hostfs_path_process(const char *ro_path,
 
         *component = '\0'; /* add terminator */
 
-        hostfs_path_scan(host_pathname, component_name,
+        hostfs_path_scan(host_pathname, component_name, 0,
                          host_name, ro_leaf, object_info);
         if (object_info->type == OBJECT_TYPE_NOT_FOUND) {
           /* This component of the path is invalid */
@@ -604,7 +587,7 @@ hostfs_path_process(const char *ro_path,
 
     *component = '\0'; /* add terminator */
 
-    hostfs_path_scan(host_pathname, component_name,
+    hostfs_path_scan(host_pathname, component_name, preserve_leaf,
                      host_name, ro_leaf, object_info);
     if (object_info->type == OBJECT_TYPE_NOT_FOUND) {
       /* This component of the path is invalid */
@@ -630,6 +613,36 @@ hostfs_path_process(const char *ro_path,
     strcat(host_pathname, "/");
     strcat(host_pathname, host_name);
   }
+}
+
+static void
+riscos_path_to_host(const char *path, char *host_path)
+{
+  char ro_leaf[PATH_MAX];
+  risc_os_object_info object_info;
+
+  assert(path);
+  assert(host_path);
+
+  hostfs_path_process(path, 0, host_path, ro_leaf, &object_info);
+
+  if (object_info.type == OBJECT_TYPE_NOT_FOUND) {
+    char *hpn2;
+    int c;
+
+    strcat(host_path, "/");
+  
+    /* New leafname - change slashes to dots */
+    hpn2 = host_path + strlen(host_path);
+    for (c = 0; c < strlen(ro_leaf); c++) {
+      if (ro_leaf[c] == '/')
+        hpn2[c] = '.';
+      else
+        hpn2[c] = ro_leaf[c];
+    }
+    hpn2[c] = '\0';
+  }
+
 }
 
 /* Search through the open_file[] array, and allocate an index.
@@ -671,7 +684,7 @@ hostfs_open(ARMul_State *state)
   get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
   dbug_hostfs("\tPATH = %s\n", ro_path);
 
-  hostfs_path_process(ro_path, host_pathname, ro_leaf, &object_info);
+  hostfs_path_process(ro_path, 0, host_pathname, ro_leaf, &object_info);
 
   if (object_info.type == OBJECT_TYPE_NOT_FOUND) {
     /* FIXME RISC OS uses this to create files - not therefore an error if not found */
@@ -941,7 +954,7 @@ hostfs_file_0_save_file(ARMul_State *state)
   riscos_path_to_host(ro_path, host_path);
   dbug_hostfs("\tPATH2 = %s\n", host_path);
 
-  hostfs_path_process(ro_path, host_pathname, ro_leaf, &object_info);
+  hostfs_path_process(ro_path, 0, host_pathname, ro_leaf, &object_info);
   dbug_hostfs("\tro_path = \"%s\"\n", ro_path);
   if (object_info.type != OBJECT_TYPE_NOT_FOUND) {
     dbug_hostfs("\thost_pathname = \"%s\"\n\tro_leaf = \"%s\"\n",
@@ -1020,7 +1033,7 @@ hostfs_file_1_write_cat_info(ARMul_State *state)
 
   /* TODO Ensure we do not try to modify the root object: i.e. $ */
 
-  hostfs_path_process(ro_path, host_pathname, ro_leaf, &object_info);
+  hostfs_path_process(ro_path, 0, host_pathname, ro_leaf, &object_info);
 
   switch (object_info.type) {
   case OBJECT_TYPE_NOT_FOUND:
@@ -1080,7 +1093,7 @@ hostfs_file_5_read_cat_info(ARMul_State *state)
   get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
   dbug_hostfs("\tPATH = %s\n", ro_path);
 
-  hostfs_path_process(ro_path, host_pathname, ro_leaf, &object_info);
+  hostfs_path_process(ro_path, 0, host_pathname, ro_leaf, &object_info);
 
   state->Reg[0] = object_info.type;
 
@@ -1110,7 +1123,7 @@ hostfs_file_6_delete(ARMul_State *state)
 
   /* TODO Ensure we do not try to delete the root object: i.e. $ */
 
-  hostfs_path_process(ro_path, host_pathname, ro_leaf, &object_info);
+  hostfs_path_process(ro_path, 0, host_pathname, ro_leaf, &object_info);
 
   state->Reg[0] = object_info.type;
 
@@ -1267,7 +1280,7 @@ hostfs_file_255_load_file(ARMul_State *state)
   get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
   dbug_hostfs("\tPATH = %s\n", ro_path);
 
-  hostfs_path_process(ro_path, host_pathname, ro_leaf, &object_info);
+  hostfs_path_process(ro_path, 0, host_pathname, ro_leaf, &object_info);
 
   state->Reg[2] = object_info.load;
   state->Reg[3] = object_info.exec;
@@ -1340,7 +1353,7 @@ hostfs_func_0_chdir(ARMul_State *state)
   dbug_hostfs("\tr1 = 0x%08x (ptr to wildcarded dir. name)\n", state->Reg[1]);
 
   get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
-  riscos_path_to_host(ro_path, host_path);
+//  riscos_path_to_host(ro_path, host_path);
 //  rpclog("RO path %s host path %s\n",ro_path,host_path);
   dbug_hostfs("\tPATH = %s\n", ro_path);
   dbug_hostfs("\tPATH2 = %s\n", host_path);
@@ -1373,13 +1386,13 @@ hostfs_func_8_rename(ARMul_State *state)
   get_string(state, state->Reg[1], ro_path1, sizeof(ro_path1));
   dbug_hostfs("\tPATH_OLD = %s\n", ro_path1);
 
-  hostfs_path_process(ro_path1, host_pathname1, ro_leaf1, &object_info1);
+  hostfs_path_process(ro_path1, 0, host_pathname1, ro_leaf1, &object_info1);
 
   /* Process new path */
   get_string(state, state->Reg[2], ro_path2, sizeof(ro_path2));
   dbug_hostfs("\tPATH_NEW = %s\n", ro_path2);
 
-  hostfs_path_process(ro_path2, host_pathname2, ro_leaf2, &object_info2);
+  hostfs_path_process(ro_path2, 1, host_pathname2, ro_leaf2, &object_info2);
 
 
   if (object_info1.type == OBJECT_TYPE_NOT_FOUND) {
@@ -1445,7 +1458,7 @@ hostfs_read_dir(ARMul_State *state, bool with_info)
   get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
   dbug_hostfs("\tPATH = %s\n", ro_path);
 
-  hostfs_path_process(ro_path, host_pathname, ro_leaf, &object_info);
+  hostfs_path_process(ro_path, 0, host_pathname, ro_leaf, &object_info);
 dbug_hostfs("ROPATH %s HOSTPATH %s\n",ro_path,host_pathname);
   if (object_info.type != OBJECT_TYPE_DIRECTORY) {
                 dbug_hostfs("Bad type %i\n",object_info.type);
