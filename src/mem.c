@@ -399,24 +399,19 @@ uint32_t readmemfb(uint32_t addr)
 #endif
                 return vramb[addr&vrammask];
                 case 0x03000000: /*IO*/
-                if (addr==0x3310000)
+                if (addr==0x03310000)
                    return readmb();
 //                rpclog("Readb IO %08X %08X\n",addr,PC);
-                if ((addr&0xFF0000)==0x200000)
+                if ((addr&0x00FF0000)==0x00200000)
                    return readiomd(addr);
-                if (addr>=0x3012000 && addr<=0x302A000)
+                if (addr>=0x03012000 && addr<=0x0302A000)
                    return readfdcdma(addr);
-                if ((addr&0xFFF000)==0x10000) /*82c711*/
-                   return read82c711(addr);
-                if ((addr&0xFF0000)==0x20000) /*82c711*/
-                   return read82c711(addr);
-                if ((addr&0xF00000)==0x300000) /*IO*/
+                if ((addr&0x00FFF400)==0x0002B000) /* Network podule */
                    return 0xFFFFFFFF;
-                if ((addr&0xFFF0000)==0x33A0000)
-                {
-//                        rpclog("Read Econet %08X %08X\n",addr,PC);
-                        return 0xFF; /*Econet?*/
-                }
+                if ((addr&0x00FFF000)==0x00010000) /*82c711*/
+                   return read82c711(addr);
+                if ((addr&0x00FF0000)==0x00020000) /*82c711*/
+                   return read82c711(addr);
                 return 0xFFFFFFFF;
                 break;
                 case 0x08000000:
