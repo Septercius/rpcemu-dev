@@ -21,6 +21,7 @@ int blockend;
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <time.h>
 
 int inscounts[256];
 //#include <allegro.h>
@@ -407,7 +408,7 @@ void dumpregs()
 #if 1
         FILE *f;//,*ff;
         char s[1024];
-        int c,d;//,d,e;
+        int c;//,d,e;
         //uint32_t templ;
 /*        for (c=0;c<0x100;c++)
         {
@@ -1133,7 +1134,6 @@ void execarm(int cycs)
         int c;
         int hash;
         void (*gen_func)(void);
-        int mod;
         uint32_t templ;//,templ2,addr,addr2,mask;
         //unsigned char temp;
 //        int RD;
