@@ -31,4 +31,5 @@ void atapi_discchanged();
 
 extern int cdromenabled;
 extern char isoname[512];
+extern int ideboard;
 #endif //__IDE__

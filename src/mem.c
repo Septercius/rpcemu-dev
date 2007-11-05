@@ -10,6 +10,7 @@
 #include "cp15.h"
 #include "82c711.h"
 #include "romload.h"
+#include "podules.h"
 
 int timetolive;
 //#define LARGETLB
@@ -123,6 +124,8 @@ void resetmem(void)
                        vwaddrl[a>>12]=v; \
                        vwaddrphys[vwaddrlpos]=p; \
                        vwaddrlpos=(vwaddrlpos+1)&1023;*/
+
+int bank;
 
 uint32_t readmemfl(uint32_t addr)
 {
@@ -239,15 +242,29 @@ uint32_t readmemfl(uint32_t addr)
                 return vram[(addr&vrammask)>>2];
 
             case 0x03000000: /*IO*/
-                if (addr==0x3310000)
-                   return readmb();
-//                rpclog("Read IO %08X %08X\n",addr,PC);
-                if ((addr&0xFF0000)==0x200000)
-                   return readiomd(addr);
-                if ((addr&0xFFF000)==0x10000) /*82c711*/
+                if (!(addr&0xC00000))
                 {
-                        if ((addr&0xFFC)==0x7C0) return readidew();
-                        return read82c711(addr);
+                        bank=(addr>>16)&7;
+                        switch (bank)
+                        {
+                                case 0:
+                                return readiomd(addr);
+                                case 1: case 2:
+                                if (addr==0x3310000)
+                                   return readmb();
+                                if ((addr&0xFFF000)==0x10000) /*82c711*/
+                                {
+                                        if ((addr&0xFFC)==0x7C0)
+                                        {
+                                                ideboard=0;
+                                                return readidew();
+                                        }
+                                        return read82c711(addr);
+                                }
+                                break;
+                                case 4:
+                                return readpodulew((addr&0xC000)>>14,addr&0x3FFF);
+                        }
                 }
                 return 0xFFFFFFFF;
                 break;
@@ -299,8 +316,6 @@ uint32_t mem_getphys(uint32_t addr)
         }
         return addr;
 }
-
-
 
 uint32_t readmemfb(uint32_t addr)
 {
@@ -399,19 +414,30 @@ uint32_t readmemfb(uint32_t addr)
 #endif
                 return vramb[addr&vrammask];
                 case 0x03000000: /*IO*/
-                if (addr==0x03310000)
-                   return readmb();
-//                rpclog("Readb IO %08X %08X\n",addr,PC);
-                if ((addr&0x00FF0000)==0x00200000)
-                   return readiomd(addr);
-                if (addr>=0x03012000 && addr<=0x0302A000)
-                   return readfdcdma(addr);
-                if ((addr&0x00FFF400)==0x0002B000) /* Network podule */
-                   return 0xFFFFFFFF;
-                if ((addr&0x00FFF000)==0x00010000) /*82c711*/
-                   return read82c711(addr);
-                if ((addr&0x00FF0000)==0x00020000) /*82c711*/
-                   return read82c711(addr);
+                if (!(addr&0xC00000))
+                {
+                        bank=(addr>>16)&7;
+                        switch (bank)
+                        {
+                                case 0:
+                                return readiomd(addr);
+                                case 1: case 2:
+                                if (addr==0x03310000)
+                                   return readmb();
+                                if (addr>=0x03012000 && addr<=0x0302A000)
+                                   return readfdcdma(addr);
+                                if ((addr&0x00FFF400)==0x0002B000) /* Network podule */
+                                   return 0xFFFFFFFF;
+                                if ((addr&0x00FFF000)==0x00010000) /*82c711*/
+                                   return read82c711(addr);
+                                if ((addr&0x00FF0000)==0x00020000) /*82c711*/
+                                   return read82c711(addr);
+                                break;
+                                case 4:
+                                return readpoduleb((addr&0xC000)>>14,addr&0x3FFF);
+                                break;
+                        }
+                }
                 return 0xFFFFFFFF;
                 break;
                 case 0x08000000:
@@ -572,32 +598,40 @@ void writememfl(uint32_t addr, uint32_t val)
                 return;
 
                 case 0x03000000: /*IO*/
-//                rpclog("Write IO %08X %08X %08X\n",addr,val,PC);
-                if ((addr&0xFF0000)==0x200000)
+                if (!(addr&0xC00000))
                 {
-                        writeiomd(addr,val);
-                        return;
+                        bank=(addr>>16)&7;
+                        switch (bank)
+                        {
+                                case 0:
+                                writeiomd(addr,val);
+                                return;
+                                case 1: case 2:
+                                if ((addr&0xFFF000)==0x10000) /*82c711*/
+                                {
+                                        if ((addr&0xFFC)==0x7C0)
+                                        {
+                                                ideboard=0;
+                                                writeidew(val);
+                                                return;
+                                        }
+                                        write82c711(addr,val);
+                                        return;
+                                }
+                                if ((addr&0xFFF0000)==0x33A0000)
+                                {
+                                        return; /*Econet?*/
+                                }
+                                break;
+                                case 4:
+                                writepodulew((addr&0xC000)>>14,addr&0x3FFF,val>>16);
+                                break;
+                        }
                 }
-                if (addr==0x3400000) /*VIDC20*/
+                if ((addr&0xC00000)==0x400000) /*VIDC20*/
                 {
                         writevidc20(val);
                         return;
-                }
-                if ((addr&0xFFF000)==0x10000) /*82c711*/
-                {
-                        if ((addr&0xFFC)==0x7C0)
-                        {
-//                                if (output) rpclog("Write IDE W %08X %07X\n",val,PC-8);
-                                writeidew(val);
-                                return;
-                        }
-                        write82c711(addr,val);
-                        return;
-                }
-                if ((addr&0xFFF0000)==0x33A0000)
-                {
-//                        rpclog("Write Econet %08X %08X %08X\n",addr,val,PC);
-                        return; /*Econet?*/
                 }
                 break;
 
@@ -779,33 +813,41 @@ void writememfb(uint32_t addr, uint8_t val)
                 vramb[addr&vrammask]=val;
                 return;
                 case 0x03000000: /*IO*/
-//                rpclog("Writeb IO %08X %02X %08X\n",addr,val,PC);
-                if ((addr&0xFF0000)==0x200000)
+                if (!(addr&0xC00000))
                 {
-                        writeiomd(addr,val);
-                        return;
-                }
-                if (addr==0x3310000) return;
-                if ((addr&0xFC0000)==0x240000) return;
-                if (addr>=0x3012000 && addr<=0x302A000)
-                {
-                        writefdcdma(addr,val);
-                        return;
-                }
-                if ((addr&0xFF0000)==0x10000) /*82c711*/
-                {
-                        write82c711(addr,val);
-                        return;
-                }
-                if ((addr&0xFF0000)==0x20000) /*82c711*/
-                {
-                        write82c711(addr,val);
-                        return;
-                }
-                if ((addr&0xFFF0000)==0x33A0000)
-                {
-//                        rpclog("Write Econet %08X %08X %08X\n",addr,val,PC);
-                        return; /*Econet?*/
+                        bank=(addr>>16)&7;
+                        switch (bank)
+                        {
+                                case 0:
+                                writeiomd(addr,val);
+                                return;
+                                case 1: case 2:
+                                if (addr==0x3310000) return;
+                                if ((addr&0xFC0000)==0x240000) return;
+                                if (addr>=0x3012000 && addr<=0x302A000)
+                                {
+                                        writefdcdma(addr,val);
+                                        return;
+                                }
+                                if ((addr&0xFF0000)==0x10000) /*82c711*/
+                                {
+                                        write82c711(addr,val);
+                                        return;
+                                }
+                                if ((addr&0xFF0000)==0x20000) /*82c711*/
+                                {
+                                        write82c711(addr,val);
+                                        return;
+                                }
+                                if ((addr&0xFFF0000)==0x33A0000)
+                                {
+                                        return; /*Econet?*/
+                                }
+                                break;
+                                case 4:
+                                writepoduleb((addr&0xC000)>>14,addr&0x3FFF,val);
+                                break;
+                        }
                 }
                 break;
                 case 0x10000000: /*SIMM 0 bank 0*/

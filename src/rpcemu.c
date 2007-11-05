@@ -107,6 +107,8 @@ int startrpcemu()
         iso_init();
         if (cdromtype==2) /*ISO*/
            iso_open(isoname);
+        initpodules();
+        initics();
 //        iso_open("e:/au_cd8.iso");
 //        cdromtype=CDROM_ISO;
         return 0;

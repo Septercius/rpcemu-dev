@@ -339,6 +339,7 @@ void write82c711(uint32_t addr, uint32_t val)
         if (addr2==0x3FE) scratch=val;
         if ((addr2>=0x1F0 && addr2<=0x1F7) || addr2==0x3F6)
         {
+                ideboard=0;
                 writeide(addr2,val);
                 return;
         }
@@ -432,6 +433,7 @@ uint8_t read82c711(uint32_t addr)
         if (addr2==0x279) return 0x90;
         if ((addr2>=0x1F0 && addr2<=0x1F7) || addr2==0x3F6)
         {
+                ideboard=0;
                 return readide(addr2);
         }
         if ((addr2>=0x3F0) && (addr2<=0x3F7)) return readfdc(addr);

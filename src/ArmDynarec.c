@@ -1,6 +1,11 @@
 #include "rpcemu.h"
 
 #ifdef DYNAREC
+
+#if defined WIN32 || defined _WIN32 || defined _WIN32
+#include <windows.h>
+#endif
+
 unsigned long readmeml(unsigned long a);
 //void writememl(unsigned long a, unsigned long v);
 /*RPCemu v0.6 by Tom Walker
@@ -501,6 +506,10 @@ memmode=1;
             putc(readmemb(c),f);
         fclose(f);
 
+        f=fopen("ram21.dmp","wb");
+        for (c=0x2100000;c<0x21FFFFF;c++)
+            putc(readmemb(c),f);
+        fclose(f);
   /*      f=fopen("ram10.dmp","wb");
         for (c=0x10000000;c<0x10800000;c++)
             putc(readmemb(c),f);
@@ -1015,6 +1024,7 @@ void opSWI(unsigned long opcode)
         {
 #if defined WIN32 || defined _WIN32 || defined _WIN32
                 Sleep(armregs[0]/1000000);
+                armregs[15]&=~VFLAG;
 #else
                 struct timespec tm;
                 tm.tv_sec = 0;

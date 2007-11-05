@@ -18,17 +18,28 @@ AUDIOSTREAM *as;
 #define BUFFERLEN (4410>>1)
 //#define BUFFERLEN 11025
 
+int soundon=0;
+
 void initsound()
 {
+        if (soundon)
+        {
+                stop_audio_stream(as);
+                if (soundenabled) as=play_audio_stream(BUFFERLEN,16,1,44100,0,128);
+                else              as=play_audio_stream(BUFFERLEN,16,1,44100,255,128);
+        }
         install_sound(DIGI_AUTODETECT,MIDI_NONE,0);
-        as=play_audio_stream(BUFFERLEN,16,1,44100,255,128);
+        if (soundenabled) as=play_audio_stream(BUFFERLEN,16,1,44100,0,128);
+        else              as=play_audio_stream(BUFFERLEN,16,1,44100,255,128);
         samplefreq=44100;
+        soundon=1;
 }
 
 void closesound()
 {
         stop_audio_stream(as);
-        remove_sound();
+        as=play_audio_stream(BUFFERLEN,16,1,44100,0,128);
+//        remove_sound();
 }
 
 int getbufferlen()

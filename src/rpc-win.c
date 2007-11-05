@@ -62,7 +62,7 @@ void rpclog(const char *format, ...)
 {
    char buf[1024];
 //return;
-   if (!arclog) arclog=fopen("e:/devcpp/rpc/rlog.txt","wt");
+   if (!arclog) arclog=fopen("rlog.txt","wt");
    if (!arclog) return;
    va_list ap;
    va_start(ap, format);
@@ -340,16 +340,16 @@ infocus=0;
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
 //        timeBeginPeriod(1);
-        if (soundenabled)
-        {
+//        if (soundenabled)
+//        {
                 initsound();
 //                install_sound(DIGI_AUTODETECT,0,0);
 //                _beginthread(soundthread,0,NULL);
-        }
+/*        }
         else
         {
                 install_int_ex(sndupdate,BPS_TO_TIMER(10));
-        }
+        }*/
                 soundobject=CreateEvent(NULL, FALSE, FALSE, NULL);
                 soundthread=(HANDLE)_beginthread(_soundthread,0,NULL);
                 atexit(_closesoundthread);
