@@ -263,13 +263,18 @@ uint32_t readmemfl(uint32_t addr)
                                 }
                                 break;
                                 case 4:
+//                                        rpclog("Read podulew %08X\n",addr);
                                 return readpodulew((addr&0xC000)>>14,addr&0x3FFF);
+                                case 7:
+//                                        rpclog("Read podulew %08X\n",addr);
+                                return readpodulew(((addr&0xC000)>>14)+4,addr&0x3FFF);
                         }
                 }
                 return 0xFFFFFFFF;
                 break;
 
             case 0x08000000:
+//                return readeasi(addr);
             case 0x09000000:
             case 0x0A000000:
             case 0x0B000000:
@@ -277,7 +282,9 @@ uint32_t readmemfl(uint32_t addr)
             case 0x0D000000:
             case 0x0E000000:
             case 0x0F000000:
-                    return readeasi(addr);
+//                        rpclog("EASI readl %08X\n",addr);
+                return readpodulel((addr>>24)&7,addr&0xFFFFFF);
+
             case 0x10000000: /*SIMM 0 bank 0*/
             case 0x11000000:
             case 0x12000000:
@@ -434,13 +441,17 @@ uint32_t readmemfb(uint32_t addr)
                                    return read82c711(addr);
                                 break;
                                 case 4:
+//                                        rpclog("Read poduleb %08X\n",addr);
                                 return readpoduleb((addr&0xC000)>>14,addr&0x3FFF);
-                                break;
+                                case 7:
+//                                        rpclog("Read poduleb %08X\n",addr);
+                                return readpoduleb(((addr&0xC000)>>14)+4,addr&0x3FFF);
                         }
                 }
                 return 0xFFFFFFFF;
                 break;
                 case 0x08000000:
+//                    return readeasi(addr);
                 case 0x09000000:
                 case 0x0A000000:
                 case 0x0B000000:
@@ -448,7 +459,9 @@ uint32_t readmemfb(uint32_t addr)
                 case 0x0D000000:
                 case 0x0E000000:
                 case 0x0F000000:
-                    return readeasi(addr);
+//                        rpclog("EASI readb %08X\n",addr);
+                    return readpoduleb((addr>>24)&7,addr&0xFFFFFF);
+
                 case 0x10000000: /*SIMM 0 bank 0*/
                 case 0x11000000:
                 case 0x12000000:
@@ -626,6 +639,9 @@ void writememfl(uint32_t addr, uint32_t val)
                                 case 4:
                                 writepodulew((addr&0xC000)>>14,addr&0x3FFF,val>>16);
                                 break;
+                                case 7:
+                                writepodulew(((addr&0xC000)>>14)+4,addr&0x3FFF,val>>16);
+                                break;
                         }
                 }
                 if ((addr&0xC00000)==0x400000) /*VIDC20*/
@@ -635,7 +651,14 @@ void writememfl(uint32_t addr, uint32_t val)
                 }
                 break;
 
-                case 0x0C000000: /*???*/
+                case 0x09000000:
+                case 0x0A000000:
+                case 0x0B000000:
+                case 0x0C000000:
+                case 0x0D000000:
+                case 0x0E000000:
+                case 0x0F000000:
+                writepodulel((addr>>24)&7,addr&0xFFFFFF,val);
                 return;
 
                 case 0x10000000: /*SIMM 0 bank 0*/
@@ -847,9 +870,23 @@ void writememfb(uint32_t addr, uint8_t val)
                                 case 4:
                                 writepoduleb((addr&0xC000)>>14,addr&0x3FFF,val);
                                 break;
+                                case 7:
+                                writepoduleb(((addr&0xC000)>>14)+4,addr&0x3FFF,val);
+                                break;
                         }
                 }
                 break;
+                
+                case 0x09000000:
+                case 0x0A000000:
+                case 0x0B000000:
+                case 0x0C000000:
+                case 0x0D000000:
+                case 0x0E000000:
+                case 0x0F000000:
+                writepoduleb((addr>>24)&7,addr&0xFFFFFF,val);
+                return;
+
                 case 0x10000000: /*SIMM 0 bank 0*/
                 case 0x11000000:
                 case 0x12000000:

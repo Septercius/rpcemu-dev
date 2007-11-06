@@ -447,6 +447,7 @@ int standardkeys[][2]=
         {KEY_3_PAD,0x7A},{KEY_4_PAD,0x6B},{KEY_5_PAD,0x73},{KEY_6_PAD,0x74},
         {KEY_7_PAD,0x6C},{KEY_8_PAD,0x75},{KEY_9_PAD,0x7D},{KEY_NUMLOCK,0x77},
         {KEY_SCRLOCK,0x7E},{KEY_BACKSLASH2,0x5D},
+        {KEY_SEMICOLON,0x4C},
         {-1,-1}
 };
 

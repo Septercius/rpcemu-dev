@@ -235,7 +235,7 @@ void writeide(uint16_t addr, uint8_t val)
                 case 0x1F7: /*Command register*/
                 ide.command=val;
                 ide.board=ideboard;
-                rpclog("New IDE command - %02X %i %i %08X\n",ide.command,ide.drive,ide.board,PC-8);
+//                rpclog("New IDE command - %02X %i %i %08X\n",ide.command,ide.drive,ide.board,PC-8);
                 ide.error=0;
                 switch (val)
                 {

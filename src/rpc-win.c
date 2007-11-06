@@ -327,6 +327,7 @@ infocus=0;
 //        arclog=fopen("arclog.txt","wt");
         if (startrpcemu())
            return -1;
+        opendlls();
         if (cdromtype>2) WindowProcedure(ghwnd,WM_COMMAND,IDM_CDROM_DISABLED+cdromtype,0);
         CheckMenuItem(menu,IDM_CDROM_DISABLED+cdromtype,MF_CHECKED);
         
