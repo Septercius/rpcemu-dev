@@ -13,7 +13,9 @@ typedef struct
         uint8_t  (*readb)(struct podule *p, uint32_t addr);
         uint16_t (*readw)(struct podule *p, uint32_t addr);
         uint32_t (*readl)(struct podule *p, uint32_t addr);
+        int (*timercallback)(struct podule *p);
         int irq,fiq;
+        int msectimer;
 } podule;
 
 int addpodule(void (*writel)(podule *p, uint32_t addr, uint32_t val),
@@ -21,14 +23,7 @@ int addpodule(void (*writel)(podule *p, uint32_t addr, uint32_t val),
               void (*writeb)(podule *p, uint32_t addr, uint8_t val),
               uint32_t (*readl)(podule *p, uint32_t addr),
               uint16_t (*readw)(podule *p, uint32_t addr),
-              uint8_t  (*readb)(podule *p, uint32_t addr));
-
-typedef int (*AddPodule)(void (*writel)(podule *p, uint32_t addr, uint32_t val),
-              void (*writew)(podule *p, uint32_t addr, uint16_t val),
-              void (*writeb)(podule *p, uint32_t addr, uint8_t val),
-              uint32_t (*readl)(podule *p, uint32_t addr),
-              uint16_t (*readw)(podule *p, uint32_t addr),
-              uint8_t  (*readb)(podule *p, uint32_t addr));
+              uint8_t  (*readb)(podule *p, uint32_t addr),
+              int (*timercallback)(struct podule *p));
 
 
-//AddPodule addpodule;

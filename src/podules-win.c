@@ -21,7 +21,7 @@ void opendlls()
         char olddir[512],fn[512];
         podule tempp;
         struct al_ffblk ff;
-        int (*InitDll)(AddPodule);
+        int (*InitDll)();
         int finished;
         int dllnum=0;
         
@@ -53,15 +53,16 @@ void opendlls()
                         rpclog("Couldn't find InitDll in %s\n",ff.name);
                         goto nextdll;
                 }
-                InitDll(addpodule);
+                InitDll();
                 tempp.readb=GetProcAddress(hinstLib[dllnum],"readb");
                 tempp.readw=GetProcAddress(hinstLib[dllnum],"readw");
                 tempp.readl=GetProcAddress(hinstLib[dllnum],"readl");
                 tempp.writeb=GetProcAddress(hinstLib[dllnum],"writeb");
                 tempp.writew=GetProcAddress(hinstLib[dllnum],"writew");
                 tempp.writel=GetProcAddress(hinstLib[dllnum],"writel");
-                rpclog("%08X %08X %08X %08X %08X %08X\n",tempp.writel,tempp.writew,tempp.writeb,tempp.readl,tempp.readw,tempp.readb);
-                addpodule(tempp.writel,tempp.writew,tempp.writeb,tempp.readl,tempp.readw,tempp.readb);
+                tempp.timercallback=GetProcAddress(hinstLib[dllnum],"timercallback");
+                rpclog("%08X %08X %08X %08X %08X %08X %08X\n",tempp.writel,tempp.writew,tempp.writeb,tempp.readl,tempp.readw,tempp.readb,tempp.timercallback);
+                addpodule(tempp.writel,tempp.writew,tempp.writeb,tempp.readl,tempp.readw,tempp.readb,tempp.timercallback);
                 dllnum++;
                 
                 nextdll:

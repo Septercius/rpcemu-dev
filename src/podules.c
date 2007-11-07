@@ -15,7 +15,8 @@ void initpodules()
         int c;
         for (c=0;c<8;c++)
         {
-                podules[c].readw=podules[c].readb=podules[c].writew=podules[c].writeb=NULL;
+                podules[c].readl=podules[c].readw=podules[c].readb=podules[c].writel=podules[c].writew=podules[c].writeb=NULL;
+                podules[c].timercallback=NULL;
                 podules[c].irq=podules[c].fiq=0;
         }
         freepodule=0;
@@ -26,7 +27,8 @@ int addpodule(void (*writel)(podule *p, uint32_t addr, uint32_t val),
               void (*writeb)(podule *p, uint32_t addr, uint8_t val),
               uint32_t  (*readl)(podule *p, uint32_t addr),
               uint16_t (*readw)(podule *p, uint32_t addr),
-              uint8_t  (*readb)(podule *p, uint32_t addr))
+              uint8_t  (*readb)(podule *p, uint32_t addr),
+              int (*timercallback)(podule *p))
 {
         if (freepodule==8) return -1; /*All podules in use!*/
         podules[freepodule].readl=readl;
@@ -35,6 +37,7 @@ int addpodule(void (*writel)(podule *p, uint32_t addr, uint32_t val),
         podules[freepodule].writel=writel;
         podules[freepodule].writew=writew;
         podules[freepodule].writeb=writeb;
+        podules[freepodule].timercallback=timercallback;
         rpclog("Podule added at %i\n",freepodule);
         freepodule++;
 }
@@ -106,7 +109,7 @@ uint16_t readpodulew(int num, uint32_t addr)
                 if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
                 return temp;
         }
-        return 0xFFFFFFFF;
+        return 0xFFFF;
 }
 
 uint8_t readpoduleb(int num, uint32_t addr)
@@ -121,5 +124,23 @@ uint8_t readpoduleb(int num, uint32_t addr)
                 if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
                 return temp;
         }
-        return 0xFFFFFFFF;
+        return 0xFF;
+}
+
+void runpoduletimers(int t)
+{
+        int c,d;
+        for (c=2;c<8;c++)
+        {
+                if (podules[c].timercallback)
+                {
+                        podules[c].msectimer-=t;
+                        while (podules[c].msectimer<0)
+                        {
+                                d=podules[c].timercallback(&podules[c]);
+                                if (!d) break;
+                                podules[c].msectimer+=d;
+                        }
+                }
+        }
 }
