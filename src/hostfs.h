@@ -13,7 +13,6 @@
 #define ARCEM_SWI_HOSTFS    (ARCEM_SWI_CHUNK + 1)
 #define ARCEM_SWI_DEBUG     (ARCEM_SWI_CHUNK + 2)
 #define ARCEM_SWI_NANOSLEEP (ARCEM_SWI_CHUNK + 3)
-#define ARCEM_SWI_NETWORK   (ARCEM_SWI_CHUNK + 4)
 
 typedef uint32_t ARMword;
 typedef struct {

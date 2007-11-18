@@ -41,7 +41,6 @@ int inscounts[256];
 #include "arm.h"
 #include "cp15.h"
 #include "82c711.h"
-#include "network.h"
 
 /*unsigned long readmeml(unsigned long a)
 {
@@ -1033,21 +1032,6 @@ void opSWI(unsigned long opcode)
                 nanosleep(&tm, NULL);
                 armregs[15]&=~VFLAG;
 #endif
-        }
-        else if (templ == ARCEM_SWI_NETWORK)
-        {
-            networkswi(armregs[0], armregs[1], armregs[2], armregs[3], armregs[4], armregs[5], &armregs[0], &armregs[1]);
-        }
-        else if ((templ&0xFFFFF) == ARCEM_SWI_NANOSLEEP+2)
-        {
-            printf("Semihost message: ");
-            char ch;
-            do {
-                uint32_t addr = armregs[0]++;
-                ch = readmemb(addr);
-                if (ch) printf("%c",ch);
-            } while (ch);
-            printf("\n");
         }
 	else
 	{

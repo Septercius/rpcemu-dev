@@ -107,8 +107,6 @@ extern int model;
 extern int model2;
 extern int rammask;
 extern int stretchmode;
-extern const char *username;
-extern const char *ipaddress;
 
 extern uint32_t soundaddr[4];
 
