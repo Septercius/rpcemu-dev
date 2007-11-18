@@ -74,6 +74,7 @@ void gentimerirq(void)
 //                        rpclog("soundcount now %i %i\n",soundcount,soundlatch);
                 }
         }
+        runpoduletimers(2);
 }
 
 void timerairq(void)
@@ -382,6 +383,16 @@ void iomdvsync(int vsync)
 //                rpclog("Vsync low\n");
                 flyback=0;
         }
+}
+
+void iomdpoduleirq(int on)
+{
+    if (on) {
+        iomd.statb|=0x20;
+    } else {
+        iomd.statb&=~0x20;
+    }
+    updateirqs();
 }
 
 void dumpiomdregs()

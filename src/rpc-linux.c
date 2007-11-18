@@ -155,6 +155,8 @@ int main (void)
         if (startrpcemu())
            return -1;
 
+        initnetwork();
+
         install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate,BPS_TO_TIMER(refresh));
         if (soundenabled) initsound();

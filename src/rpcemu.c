@@ -35,6 +35,8 @@ int skipblits = 0;
 int rinscount = 0;
 int cyccount = 0;
 int timetolive = 0;
+const char *username = NULL;
+const char *ipaddress = NULL;
 
 void loadconfig();
 void saveconfig();
@@ -190,6 +192,8 @@ void loadconfig()
         p=(char *)get_config_string(NULL,"cdrom_iso",NULL);
         if (!p) strcpy(isoname,"");
         else    strcpy(isoname,p);
+        username=get_config_string(NULL,"username",NULL);
+        ipaddress=get_config_string(NULL,"ipaddress",NULL);
 }
 
 void saveconfig()

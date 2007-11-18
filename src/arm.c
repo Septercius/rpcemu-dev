@@ -65,6 +65,7 @@ int inscounts[256];
 #include "keyboard.h"
 #include "82c711.h"
 #include "ide.h"
+#include "network.h"
 
 int blockend;
 int r15diff;
@@ -4195,7 +4196,11 @@ void execarm(int cycs)
                                             armregs[15]&=~VFLAG;
 #endif
                                           }
-					  else
+                                        else if (templ == ARCEM_SWI_NETWORK)
+                                          {
+                                              networkswi(armregs[0], armregs[1], armregs[2], armregs[3], armregs[4], armregs[5], &armregs[0], &armregs[1]);
+                                          }
+					else
 					  {
                                                         realswi:
                                                         if (mousehack && templ==7 && armregs[0]==0x15 && readmemb(armregs[1])==0)
