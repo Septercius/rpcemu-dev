@@ -100,5 +100,5 @@ void initpodulerom(void)
                 filebase+=(len+3)&~3;
         }
         chdir(olddir);
-        addpodule(NULL,NULL,NULL,readeasi,readeasi,readeasi);
+        addpodule(NULL,NULL,NULL,readeasi,readeasi,readeasi,NULL);
 }

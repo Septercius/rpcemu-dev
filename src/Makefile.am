@@ -18,7 +18,8 @@ endif
 
 rpcemu_SOURCES = 82c711.c 82c711.h cdrom-iso.c cmos.c cmos.h cp15.c cp15.h \
 fpa.c hostfs.c hostfs.h ide.c ide.h iomd.c iomd.h keyboard.c keyboard.h mem.c \
-mem.h romload.c rpcemu.c sound.c sound.h vidc20.c vidc20.h
+mem.h romload.c rpcemu.c sound.c sound.h vidc20.c vidc20.h podules.c \
+podulerom.c icside.c
 
 if DYNAREC
 rpcemu_SOURCES += ArmDynarec.c ArmDynarecOps.h
@@ -46,7 +47,7 @@ rpcemu_LDADD += acorn.o -lcomdlg32 -lwinmm
 endif
 
 if OS_LINUX
-rpcemu_SOURCES += rpc-linux.c gui.c cdrom-linuxioctl.c network.c
+rpcemu_SOURCES += rpc-linux.c gui.c cdrom-linuxioctl.c
 endif
 
 if OS_MACOSX

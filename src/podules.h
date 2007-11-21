@@ -5,7 +5,7 @@ uint32_t  readpodulel(int num, uint32_t addr);
 uint16_t readpodulew(int num, uint32_t addr);
 uint8_t  readpoduleb(int num, uint32_t addr);
 
-typedef struct
+typedef struct podule
 {
         void (*writeb)(struct podule *p, uint32_t addr, uint8_t val);
         void (*writew)(struct podule *p, uint32_t addr, uint16_t val);
@@ -24,6 +24,6 @@ int addpodule(void (*writel)(podule *p, uint32_t addr, uint32_t val),
               uint32_t (*readl)(podule *p, uint32_t addr),
               uint16_t (*readw)(podule *p, uint32_t addr),
               uint8_t  (*readb)(podule *p, uint32_t addr),
-              int (*timercallback)(struct podule *p));
+              int (*timercallback)(podule *p));
 
 

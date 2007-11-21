@@ -15,7 +15,12 @@ void initpodules()
         int c;
         for (c=0;c<8;c++)
         {
-                podules[c].readl=podules[c].readw=podules[c].readb=podules[c].writel=podules[c].writew=podules[c].writeb=NULL;
+                podules[c].readl=NULL;
+                podules[c].readw=NULL;
+                podules[c].readb=NULL;
+                podules[c].writel=NULL;
+                podules[c].writew=NULL;
+                podules[c].writeb=NULL;
                 podules[c].timercallback=NULL;
                 podules[c].irq=podules[c].fiq=0;
         }
