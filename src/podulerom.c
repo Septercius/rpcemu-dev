@@ -2,14 +2,15 @@
 #include <allegro.h>
 #include "rpcemu.h"
 #include "podules.h"
+#include "podulerom.h"
 
 #define MAXROMS 16
 static char romfns[MAXROMS+1][256];
 
-char *podulerom = NULL;
-int poduleromsize = 0;
-int chunkbase;
-int filebase;
+static char *podulerom = NULL;
+static int poduleromsize = 0;
+static int chunkbase;
+static int filebase;
 
 static void makechunk(char type, int filebase, int size)
 {
@@ -27,17 +28,17 @@ static void makechunk(char type, int filebase, int size)
 const char description[] = "RPCEmu additional ROM";
 
 
-uint32_t readeasi(podule *p, uint32_t addr)
+uint8_t readpodulerom(podule *p, int easi, uint32_t addr)
 {
         rpclog("READ EASI %08X\n",addr);
-        if (poduleromsize>0)
+        if (easi && (poduleromsize>0))
         {
                 addr=(addr&0x00FFFFFF)>>2;
                 rpclog("Read %08X\n",podulerom[addr]);
                 if (addr<poduleromsize) return podulerom[addr];
-                return 0x0000000;
+                return 0x00;
         }
-        return 0xFFFFFFFF;
+        return 0xFF;
 }
 
 void initpodulerom(void)
@@ -100,5 +101,5 @@ void initpodulerom(void)
                 filebase+=(len+3)&~3;
         }
         chdir(olddir);
-        addpodule(NULL,NULL,NULL,readeasi,readeasi,readeasi,NULL);
+        addpodule(NULL,NULL,NULL,NULL,NULL,readpodulerom,NULL);
 }

@@ -17,6 +17,8 @@
 #include "romload.h"
 #include "cp15.h"
 #include "cdrom-iso.h"
+#include "podulerom.h"
+#include "podules.h"
 
 int cdromtype;
 unsigned char flaglookup[16][16];

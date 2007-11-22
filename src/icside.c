@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <allegro.h>
 #include "rpcemu.h"
 #include "podules.h"
 #include "ide.h"
@@ -6,7 +7,7 @@
 unsigned char icsrom[8192];
 int icspage;
 
-unsigned char icsreadb(podule *p, unsigned short addr)
+uint8_t icsreadb(podule *p, int easi, uint32_t addr)
 {
         int temp;
 //        rpclog("Read ICSB %04X\n",addr);
@@ -21,7 +22,7 @@ unsigned char icsreadb(podule *p, unsigned short addr)
         }
 }
 
-unsigned short icsreadw(podule *p, unsigned short addr)
+uint16_t icsreadw(podule *p, int easi, uint32_t addr)
 {
         if ((addr&0x3000)==0x3000)
         {
@@ -29,10 +30,10 @@ unsigned short icsreadw(podule *p, unsigned short addr)
                 ideboard=2;
                 return readidew();
         }
-        return icsreadb(p,addr);
+        return icsreadb(p,easi,addr);
 }
 
-void icswriteb(podule *p, unsigned long addr, unsigned char val)
+void icswriteb(podule *p, int easi, uint32_t addr, uint8_t val)
 {
 //        rpclog("Write ICSB %04X %02X\n",addr,val);
         switch (addr&0x3000)
@@ -45,7 +46,7 @@ void icswriteb(podule *p, unsigned long addr, unsigned char val)
         }
 }
 
-void icswritew(podule *p, unsigned long addr, unsigned short val)
+void icswritew(podule *p, int easi, uint32_t addr, uint16_t val)
 {
         if ((addr&0x3000)==0x3000)
         {
@@ -53,7 +54,7 @@ void icswritew(podule *p, unsigned long addr, unsigned short val)
                 ideboard=2;
                 return writeidew(val);
         }
-        icswriteb(p,addr,val);
+        icswriteb(p,easi,addr,val);
 }
 
 void initics()
