@@ -385,16 +385,6 @@ void iomdvsync(int vsync)
         }
 }
 
-void iomdpoduleirq(int on)
-{
-    if (on) {
-        iomd.statb|=0x20;
-    } else {
-        iomd.statb&=~0x20;
-    }
-    updateirqs();
-}
-
 void dumpiomdregs()
 {
         printf("IRQ STAT A %02X B %02X D %02X F %02X\n",iomd.stata,iomd.statb,iomd.statd,iomd.statf);

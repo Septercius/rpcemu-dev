@@ -22,8 +22,9 @@ typedef struct podule
 } podule;
 
 void initpodules();
+void rethinkpoduleints();
 
-int addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
+podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
               void (*writew)(podule *p, int easi, uint32_t addr, uint16_t val),
               void (*writeb)(podule *p, int easi, uint32_t addr, uint8_t val),
               uint32_t (*readl)(podule *p, int easi, uint32_t addr),

@@ -2391,16 +2391,31 @@ case "${host}" in
 	    OS="linux"
 	    { echo "$as_me:$LINENO: result: Linux" >&5
 echo "${ECHO_T}Linux" >&6; }
+
+cat >>confdefs.h <<\_ACEOF
+#define RPCEMU_LINUX
+_ACEOF
+
 	    ;;
     *mingw*)
 	    OS="win"
   	    { echo "$as_me:$LINENO: result: Windows" >&5
 echo "${ECHO_T}Windows" >&6; }
+
+cat >>confdefs.h <<\_ACEOF
+#define RPCEMU_WIN
+_ACEOF
+
 	    ;;
     *macosx*)
 	    OS="macosx"
   	    { echo "$as_me:$LINENO: result: Mac OS X" >&5
 echo "${ECHO_T}Mac OS X" >&6; }
+
+cat >>confdefs.h <<\_ACEOF
+#define RPCEMU_MACOSX
+_ACEOF
+
 	    ;;
     *)
 	    { { echo "$as_me:$LINENO: error: Unsupported host system." >&5

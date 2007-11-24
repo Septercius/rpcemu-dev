@@ -27,7 +27,7 @@ void initpodules()
         freepodule=0;
 }
   
-int addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
+podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
               void (*writew)(podule *p, int easi, uint32_t addr, uint16_t val),
               void (*writeb)(podule *p, int easi, uint32_t addr, uint8_t val),
               uint32_t  (*readl)(podule *p, int easi, uint32_t addr),
@@ -35,7 +35,7 @@ int addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
               uint8_t  (*readb)(podule *p, int easi, uint32_t addr),
               int (*timercallback)(podule *p))
 {
-        if (freepodule==8) return -1; /*All podules in use!*/
+        if (freepodule==8) return NULL; /*All podules in use!*/
         podules[freepodule].readl=readl;
         podules[freepodule].readw=readw;
         podules[freepodule].readb=readb;
@@ -45,7 +45,7 @@ int addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
         podules[freepodule].timercallback=timercallback;
         rpclog("Podule added at %i\n",freepodule);
         freepodule++;
-        return 0;
+        return &podules[freepodule-1];
 }
 
 void rethinkpoduleints()

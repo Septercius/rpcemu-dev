@@ -1,5 +1,7 @@
 #include "rpcemu.h"
 
+#include "config.h"
+
 #ifdef DYNAREC
 
 #if defined WIN32 || defined _WIN32 || defined _WIN32
@@ -41,6 +43,10 @@ int inscounts[256];
 #include "arm.h"
 #include "cp15.h"
 #include "82c711.h"
+
+#ifdef RPCEMU_LINUX
+#include "network-linux.h"
+#endif
 
 /*unsigned long readmeml(unsigned long a)
 {
@@ -1022,17 +1028,22 @@ void opSWI(unsigned long opcode)
 	}
         else if (templ == ARCEM_SWI_NANOSLEEP)
         {
-#if defined WIN32 || defined _WIN32 || defined _WIN32
+#ifdef RPCEMU_WIN
                 Sleep(armregs[0]/1000000);
-                armregs[15]&=~VFLAG;
 #else
                 struct timespec tm;
                 tm.tv_sec = 0;
                 tm.tv_nsec = armregs[0];
                 nanosleep(&tm, NULL);
-                armregs[15]&=~VFLAG;
 #endif
+                armregs[15]&=~VFLAG;
         }
+#ifdef RPCEMU_LINUX
+        else if (templ == ARCEM_SWI_NETWORK)
+        {
+            networkswi(armregs[0], armregs[1], armregs[2], armregs[3], armregs[4], armregs[5], &armregs[0], &armregs[1]);
+        }
+#endif
 	else
 	{
                 realswi:

@@ -49,14 +49,17 @@ case "${host}" in
     *linux*)
 	    OS="linux"
 	    AC_MSG_RESULT(Linux)
+            AC_DEFINE(RPCEMU_LINUX, [], [OS is Linux])
 	    ;;
     *mingw*)
 	    OS="win"
   	    AC_MSG_RESULT(Windows)
+            AC_DEFINE(RPCEMU_WIN, [], [OS is Windows])
 	    ;;
     *macosx*)
 	    OS="macosx"
   	    AC_MSG_RESULT([Mac OS X])
+            AC_DEFINE(RPCEMU_MACOSX, [], [OS is Mac OS X])
 	    ;;
     *)
 	    AC_MSG_ERROR([Unsupported host system.])

@@ -48,6 +48,15 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* OS is Linux */
+#undef RPCEMU_LINUX
+
+/* OS is Mac OS X */
+#undef RPCEMU_MACOSX
+
+/* OS is Windows */
+#undef RPCEMU_WIN
+
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
