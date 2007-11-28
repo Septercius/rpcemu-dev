@@ -1,0 +1,69 @@
+/* h.EYStructs */
+//  This program is free software; you can redistribute it and/or modify it 
+//  under the terms of version 2 of the GNU General Public License as 
+//  published by the Free Software Foundation;
+//
+//  This program is distributed in the hope that it will be useful, but WITHOUT 
+//  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+//  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for 
+//  more details.
+//
+//  You should have received a copy of the GNU General Public License along with
+//  this program; if not, write to the Free Software Foundation, Inc., 59 
+//  Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//  
+//  The full GNU General Public License is included in this distribution in the
+//  file called LICENSE.
+//
+//  The code in this file is (C) 2003 J Ballance as far as
+//  the above GPL permits
+
+#include "mbuf_c.h"
+#include "DCI.h"
+
+
+
+
+// frame claims have 2 types of filter.. frametype field of mac (adtype)
+//  and frame dest address filtering (addresslevel)
+
+// adtype values
+#define AdSpecific      1        // only frames equal to frame given
+#define AdSink          2        // all unclaimed non IEEE frames
+#define AdMonitor       3        // ALL non IEEE frames
+#define AdIeee          4        // IEEE frames (frame # <=1500)
+// addresslevel filtering types
+#define AlSpecific      0        // only frames with our h/w address
+#define AlNormal        1        // ours and broadcast frames
+#define AlMulticast     2        // multicast frames too
+#define AlPromiscuous   3        // dont address match
+// useful working value
+typedef enum {NotClaimed,ClaimIEEE,ClaimSpecific,ClaimBC,ClaimMC,ClaimMonitor,ClaimSink } ClaimType;
+// linked list of claimed frame types
+typedef struct {
+int   claimaddress;              // Receiver's address (for assembler access)
+int   pwp;                       // Receiver's PWP     (for assembler access)
+void* next;                      // pointer to next in list, or NULL if end
+void* last;                      // pointer to previous in list, or NULL if start
+unsigned int   frame:16,         // frame type/number claimed
+               adtype:16;        // claim address type
+int   addresslevel;              // addresslevel of claim
+int   errorlevel;                // error level
+char  flags;                     // nz if ensure_safe needed on mbuf
+char  unit;                      // unit this refers to
+char  spare[2];                  // spare
+} claimbuf;
+
+
+// workspace pointer.. holds allsorts..
+// first 3 (or 4 with the test area) entries MUST be there in that sequence
+typedef struct{           // structure holds pointer to any area passed to IRQ
+  void       *pwp;        // Module's PWP for C routine linkage
+  dci4_mbctl *mbctl;      // mbuf manager linkage
+  dib         base_dib;   // device info block
+  char dev_addr[20];
+  int flags;
+  claimbuf * claims; // linked list of all claims.
+} workspace;
+
+

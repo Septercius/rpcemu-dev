@@ -133,6 +133,31 @@ The sound code is multithreaded, hence performance may be different if you have 
 processors / a multicore processor / hyperthreading. Since I don't have a system with
 any of these I have been unable to test.
 
+Networking
+~~~~~~~~~~
+
+Currently networking is only supported on Linux. A TAP tunnel device is used to send
+packets between the emulator and the host system. Unfortunatly new tunnel devices can
+only be created by root, therefore RPCEmu must be run as root. However if run from sudo,
+or a username option is added to rpc.cfg then RPCEmu will drop root priviledges as soon
+as the tunnel has been created.
+
+The supplied !System and !Boot directories need to be merged with your System and boot
+sequence to provide the RISC OS driver.
+The tunnel needs two IP addresses, one for the Linux end and one for the RISC OS end.
+The Linux end is configured in the rpc.cfg file, and the default value is 172.31.0.1
+The other end must be configured with the RISC OS internet stack as normal, and the
+address has to be in the same network as the Linux end, e.g. 172.31.0.2, and the gateway
+must be the address of the Linux end.
+
+This should be enough for RISC OS to communicate with the host, but if you want it to
+be able to access the rest of the network/internet then you need to make sure the Linux
+machine is configured to forward the packets or do NAT. For example:
+
+echo "1" > /proc/sys/net/ipv4/ip_forward
+echo "1" > /proc/sys/net/ipv4/ip_dynaddr
+iptables -t nat -A POSTROUTING --source 172.31.0.0/16 -o eth0 -j MASQUERADE
+
 
 Other things :
 ~~~~~~~~~~~~~~

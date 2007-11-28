@@ -1,0 +1,120 @@
+// > h.DCI
+
+//  This program is free software; you can redistribute it and/or modify it 
+//  under the terms of version 2 of the GNU General Public License as 
+//  published by the Free Software Foundation;
+//
+//  This program is distributed in the hope that it will be useful, but WITHOUT 
+//  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+//  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for 
+//  more details.
+//
+//  You should have received a copy of the GNU General Public License along with
+//  this program; if not, write to the Free Software Foundation, Inc., 59 
+//  Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//  
+//  The full GNU General Public License is included in this distribution in the
+//  file called LICENSE.
+//
+//  The code in this file is (C) 2003 J Ballance and others as far as
+//  the above GPL permits
+
+//
+// definitions of structures for DCI4 spec interface
+
+// 0-7  pod slots
+// 8    nic slot
+// 16-31 pci slots
+// 128 parallel port
+// 129 serial port, (e.g.ppp)
+// 130 econet skt
+// 131 PCMCIA cards
+
+#ifndef __DCIh
+#define __DCIh
+
+typedef struct {
+   unsigned int   slotid:8,
+                  minor:8,
+                  pcmciaslot:5,  // must be zero if not pcmcia virt slot
+                  mbz:11;        // must be zero
+} slot;
+
+// dib structure is static ram somewhere.. persistant
+typedef struct {
+   unsigned int   dib_swibase;
+   char          *dib_name;
+   unsigned int   dib_unit;
+   unsigned char *dib_address;
+   char          *dib_module;
+   char          *dib_location;
+   slot           dib_slot;
+   unsigned int   dib_inquire;
+} dib;
+
+// chaindib struct to be allocated from rma.. receiver will deallocate
+typedef struct  {
+   void        *chd_next;
+   dib         *chd_dib;
+}chaindib ;
+
+typedef struct {
+// general information
+unsigned char st_interface_type;
+unsigned char st_link_status;
+unsigned char st_link_polarity;
+unsigned char st_blank1;
+unsigned long st_link_failures;
+unsigned long st_network_collisions;
+// transmit statistics
+unsigned long st_collisions;
+unsigned long st_excess_collisions;
+unsigned long st_heartbeat_failures;
+unsigned long st_not_listening;
+/*unsigned long st_net_error;                    // not in current version
+*/unsigned long st_tx_frames;
+unsigned long st_tx_bytes;
+unsigned long st_tx_general_errors;
+unsigned char st_last_dest_addr[8];
+// receive statistics
+unsigned long st_crc_failures;
+unsigned long st_frame_alignment_errors;
+unsigned long st_dropped_frames;
+unsigned long st_runt_frames;
+unsigned long st_overlong_frames;
+unsigned long st_jabbers;
+unsigned long st_late_events;
+unsigned long st_unwanted_frames;
+unsigned long st_rx_frames;
+unsigned long st_rx_bytes;
+unsigned long st_rx_general_errors;
+unsigned char st_last_src_addr[8];
+unsigned long multicast;
+}eystatsset;
+
+
+typedef struct                                 // in first mbuf of any rx packet
+{                                              // 1 chain per packet
+    void          *rx_ptr;                     // do not touch in driver
+    unsigned int   rx_tag;                     // driver sets to zero
+    unsigned char  rx_src_addr[6], _spad[2];   // h/w srce addr of frame
+    unsigned char  rx_dst_addr[6], _dpad[2];   // h/w dest addr of frame
+    unsigned int   rx_frame_type;              // frame type (len in IEE802.3)
+    unsigned int   rx_error_level;             // driver error or null
+} rx_hdr;
+
+typedef struct                                 // in first mbuf of any tx packet
+{                                              // contains 16 byte pkt header
+    unsigned char  tx_dst_addr[6];             // h/w dest addr of frame
+    unsigned char  tx_src_addr[6];             // h/w srce addr of frame
+    unsigned int   tx_frame_type:16,           // frame type (len in IEE802.3)
+                   tx_len:16;                  // frame length?
+    unsigned int   unit:8,                     // unit to tx on
+                   flags:8,                    // flags, not transmitted
+                                               // 0x02 = my mbufs
+                                               // 0x80 = 'ensured safe'
+                   len:16;                     // total pkt kength, incl.header
+} tx_hdr;
+
+
+#endif

@@ -1,0 +1,13 @@
+Notes
+-----
+
+This is a DCI4 driver for the RPCEmu emulator. The code is based on Castle's EtherY driver, but with the hardware specific bits removed. The driver name (EtherRPCEm and rpcem) and SWI chunk have been allocated for use with RPCEmu.
+
+Original EtherY notes below:
+ 
+This version is released here under the terms of version 2 of the GNU Public License - a copy of which is included in this archive .
+
+It represents a snapshot of the current state of the sources to Castle's EtherY driver, and no warranty is given that it will build to completion at this stage.
+
+Please note that the error number chunk, driver name (EtherY and ey) and swi chunk are allocated to Castle. Those wishing to adapt and use this software on ethernet cards other than Castle's should obtain their own allocation. Please contact allocate@pinesoft.demon.co.uk.  
+

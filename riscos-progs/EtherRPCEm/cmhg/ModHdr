@@ -1,0 +1,36 @@
+# cmhg.ModHdr
+
+# free software; you can redistribute it and/or modify it 
+# under the terms of version 2 of the GNU General Public License as 
+# published by the Free Software Foundation;
+# 
+# This program is distributed in the hope that it will be useful, but WITHOUT 
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for 
+# more details.
+# 
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc., 59 
+# Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# 
+# The full GNU General Public License is included in this distribution in the
+# file called LICENSE.
+# 
+
+help-string:  EtherRPCEm 1.00 © Alex Waugh and John Ballance/Castle
+
+title-string: EtherRPCEm
+
+initialisation-code: initialise
+
+finalisation-code: finalise
+
+service-call-handler: service_call 0x9b 0x9f 0xa2
+
+swi-chunk-base-number: 0x58CC0
+
+swi-decoding-table: EtherRPCEm, DCIVersion, Inquire, GetNetworkMTU, SetNetworkMTU, Transmit, Filter, Stats, Multicastreq
+
+swi-handler-code: swi_handler
+
+
