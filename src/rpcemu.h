@@ -14,6 +14,7 @@
 #endif
 
 #if defined WIN32 || defined _WIN32 || defined _WIN32
+        #define RPCEMU_WIN
 	#ifdef _MSC_VER // Microsoft Visual Studio
                 #ifdef _DEBUG
                     #define INLINING _inline
