@@ -74,9 +74,11 @@ void loadhd(int d, char *fn)
                         if (!hdfile[d])
                         {
                                 hdfile[d]=fopen(fn,"wb");
+                                if (!hdfile[d]) fatal("Cannot create file %s", fn);
                                 putc(0,hdfile[d]);
                                 fclose(hdfile[d]);
                                 hdfile[d]=fopen64(fn,"rb+");
+                                if (!hdfile[d]) fatal("Cannot open file %s", fn);
                         }
                 }
                 switch (d)
