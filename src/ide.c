@@ -805,6 +805,17 @@ void atapicommand()
 //                        rpclog("Medium not present!\n");
 //                }
                 break;
+                case 0x03: /*Read sense - used by ROS 4+*/
+                /*Will return 18 bytes of 0*/
+                memset(idebufferb,0,512);
+                ide.packetstatus=3;
+                ide.cylinder=18;
+                ide.secount=2;
+                ide.pos=0;
+                idecallback=60;
+                ide.packlen=18;
+                break;
+
                 case 0xBB: /*Set CD speed*/
                 ide.packetstatus=2;
                 idecallback=50;
@@ -1182,12 +1193,23 @@ void atapicommand()
                 idecallback=50;
                 break;
 
+                case 0xAD: /*???*/
                 default:
+                ide.atastat[0]=0x41;    /*CHECK CONDITION*/
+                ide.error=(5 <<4)|4;    /*Illegal command*/
+                if (ide.discchanged) ide.error|=8;
+                ide.discchanged=0;
+                ide.asc=0x20;
+                ide.packetstatus=0x80;
+                idecallback=50;
+                break;
+                
+/*                default:
                 rpclog("Bad ATAPI command %02X\n",idebufferb[0]);
                 rpclog("Packet data :\n");
                 for (c=0;c<12;c++)
                     rpclog("%02X\n",idebufferb[c]);
-                exit(-1);
+                exit(-1);*/
         }
 }
 
