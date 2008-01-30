@@ -156,8 +156,8 @@ void initcodeblocks()
         addbyte(0x8B); addbyte(0x0C); addbyte(0x8D); addlong(vraddrl); /*MOV vraddrl(,%ecx,4),%ecx*/
         addbyte(0xC3); /*RET*/
         /*.samepage*/
-//        addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
-//        addbyte(0x75); addbyte(8-(codeblockpos+1)); /*JNZ backup*/
+        addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
+        addbyte(0x75); addbyte(/*8-(codeblockpos+1)*/-46); /*JNZ backup*/
         addbyte(0x8B); addbyte(0x14); addbyte(0x39); /*MOVL (%ecx,%edi),%edx*/
         addbyte(0xC3); /*RET*/
 
