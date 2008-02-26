@@ -238,10 +238,20 @@ void opADDregS(unsigned long opcode)
 void opADCreg(unsigned long opcode)
 {
 #ifdef STRONGARM
-	if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
+	if (((opcode&0xE000090)==0x000090)) /*UMLAL*/
 	{
-                error("Bad opcode %08X\n",opcode);
-                exit(-1);
+                uint64_t mula,mulb,mulres;
+                uint32_t addr,addr2;
+                addr=armregs[MULRN];
+                addr2=armregs[MULRD];
+                mula=(uint64_t)(uint32_t)armregs[MULRS];
+                mulb=(uint64_t)(uint32_t)armregs[MULRM];
+                mulres=mula*mulb;
+                armregs[MULRN]=mulres&0xFFFFFFFF;
+                armregs[MULRD]=mulres>>32;
+                if ((armregs[MULRN]+addr)<armregs[MULRN]) armregs[MULRD]++;
+                armregs[MULRN]+=addr;
+                armregs[MULRD]+=addr2;
         }
         else
         {
@@ -268,10 +278,23 @@ void opADCreg(unsigned long opcode)
 void opADCregS(unsigned long opcode)
 {
 #ifdef STRONGARM
-	if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
+	if (((opcode&0xE000090)==0x000090)) /*UMLALS*/
 	{
-                error("Bad opcode %08X\n",opcode);
-                exit(-1);
+                uint64_t mula,mulb,mulres;
+                uint32_t addr,addr2;
+                addr=armregs[MULRN];
+                addr2=armregs[MULRD];
+                mula=(uint64_t)(uint32_t)armregs[MULRS];
+                mulb=(uint64_t)(uint32_t)armregs[MULRM];
+                mulres=mula*mulb;
+                armregs[MULRN]=mulres&0xFFFFFFFF;
+                armregs[MULRD]=mulres>>32;
+                if ((armregs[MULRN]+addr)<armregs[MULRN]) armregs[MULRD]++;
+                armregs[MULRN]+=addr;
+                armregs[MULRD]+=addr2;
+                armregs[cpsr]&=~0xC0000000;
+                if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
+                if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
         }
         else
         {
@@ -332,10 +355,17 @@ void opSBCreg(unsigned long opcode)
 void opSBCregS(unsigned long opcode)
 {
 #ifdef STRONGARM
-	if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
+	if (((opcode&0xE000090)==0x000090)) /*SMULLS*/
 	{
-                error("Bad opcode %08X\n",opcode);
-                exit(-1);
+                int64_t mula,mulb,mulres;
+                mula=(int64_t)(int32_t)armregs[MULRS];
+                mulb=(int64_t)(int32_t)armregs[MULRM];
+                mulres=mula*mulb;
+                armregs[MULRN]=mulres&0xFFFFFFFF;
+                armregs[MULRD]=mulres>>32;
+                armregs[cpsr]&=~0xC0000000;
+                if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
+                if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
         }
         else
         {
@@ -401,10 +431,23 @@ void opRSCreg(unsigned long opcode)
 void opRSCregS(unsigned long opcode)
 {
 #ifdef STRONGARM
-	if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
+	if (((opcode&0xE000090)==0x000090)) /*SMLALS*/
 	{
-                error("Bad opcode %08X\n",opcode);
-                exit(-1);
+                int64_t mula,mulb,mulres;
+                uint32_t addr,addr2;
+                addr=armregs[MULRN];
+                addr2=armregs[MULRD];
+                mula=(int64_t)(int32_t)armregs[MULRS];
+                mulb=(int64_t)(int32_t)armregs[MULRM];
+                mulres=mula*mulb;
+                armregs[MULRN]=mulres&0xFFFFFFFF;
+                armregs[MULRD]=mulres>>32;
+                if ((armregs[MULRN]+addr)<armregs[MULRN]) armregs[MULRD]++;
+                armregs[MULRN]+=addr;
+                armregs[MULRD]+=addr2;
+                armregs[cpsr]&=~0xC0000000;
+                if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
+                if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
         }
         else
         {

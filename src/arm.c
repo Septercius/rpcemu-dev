@@ -1908,10 +1908,20 @@ void execarm(int cycs)
                                 
                                         case 0x0A: /*ADC reg*/
                                 #ifdef STRONGARM
-					if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
+					if (((opcode&0xE000090)==0x000090)) /*UMLAL*/
 					{
-                                                error("Bad opcode %08X\n",opcode);
-                                                exit(-1);
+                                                uint64_t mula,mulb,mulres;
+                                                uint32_t addr,addr2;
+                                                addr=armregs[MULRN];
+                                                addr2=armregs[MULRD];
+                                                mula=(uint64_t)(uint32_t)armregs[MULRS];
+                                                mulb=(uint64_t)(uint32_t)armregs[MULRM];
+                                                mulres=mula*mulb;
+                                                armregs[MULRN]=mulres&0xFFFFFFFF;
+                                                armregs[MULRD]=mulres>>32;
+                                                if ((armregs[MULRN]+addr)<armregs[MULRN]) armregs[MULRD]++;
+                                                armregs[MULRN]+=addr;
+                                                armregs[MULRD]+=addr2;
                                         }
                                         else
                                         {
@@ -1936,10 +1946,23 @@ void execarm(int cycs)
                                         break;
                                         case 0x0B: /*ADCS reg*/
                                 #ifdef STRONGARM
-					if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
+					if (((opcode&0xE000090)==0x000090)) /*UMLALS*/
 					{
-                                                error("Bad opcode %08X\n",opcode);
-                                                exit(-1);
+                                                uint64_t mula,mulb,mulres;
+                                                uint32_t addr,addr2;
+                                                addr=armregs[MULRN];
+                                                addr2=armregs[MULRD];
+                                                mula=(uint64_t)(uint32_t)armregs[MULRS];
+                                                mulb=(uint64_t)(uint32_t)armregs[MULRM];
+                                                mulres=mula*mulb;
+                                                armregs[MULRN]=mulres&0xFFFFFFFF;
+                                                armregs[MULRD]=mulres>>32;
+                                                if ((armregs[MULRN]+addr)<armregs[MULRN]) armregs[MULRD]++;
+                                                armregs[MULRN]+=addr;
+                                                armregs[MULRD]+=addr2;
+                                                armregs[cpsr]&=~0xC0000000;
+                                                if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
+                                                if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
                                         }
                                         else
                                         {
@@ -1997,10 +2020,17 @@ void execarm(int cycs)
                                         break;
                                         case 0x0D: /*SBCS reg*/
                                 #ifdef STRONGARM
-					if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
+					if (((opcode&0xE000090)==0x000090)) /*SMULLS*/
 					{
-                                                error("Bad opcode %08X\n",opcode);
-                                                exit(-1);
+                                                int64_t mula,mulb,mulres;
+                                                mula=(int64_t)(int32_t)armregs[MULRS];
+                                                mulb=(int64_t)(int32_t)armregs[MULRM];
+                                                mulres=mula*mulb;
+                                                armregs[MULRN]=mulres&0xFFFFFFFF;
+                                                armregs[MULRD]=mulres>>32;
+                                                armregs[cpsr]&=~0xC0000000;
+                                                if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
+                                                if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
                                         }
                                         else
                                         {
@@ -2063,8 +2093,20 @@ void execarm(int cycs)
                                 #ifdef STRONGARM
 					if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
 					{
-                                                error("Bad opcode %08X\n",opcode);
-                                                exit(-1);
+                                                int64_t mula,mulb,mulres;
+                                                addr=armregs[MULRN];
+                                                addr2=armregs[MULRD];
+                                                mula=(int64_t)(int32_t)armregs[MULRS];
+                                                mulb=(int64_t)(int32_t)armregs[MULRM];
+                                                mulres=mula*mulb;
+                                                armregs[MULRN]=mulres&0xFFFFFFFF;
+                                                armregs[MULRD]=mulres>>32;
+                                                if ((armregs[MULRN]+addr)<armregs[MULRN]) armregs[MULRD]++;
+                                                armregs[MULRN]+=addr;
+                                                armregs[MULRD]+=addr2;
+                                                armregs[cpsr]&=~0xC0000000;
+                                                if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
+                                                if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
                                         }
                                         else
                                         {
