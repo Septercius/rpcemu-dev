@@ -55,15 +55,18 @@ void initpodulerom(void)
 
         getcwd(olddir,sizeof(olddir));
         append_filename(fn,exname,"poduleroms",sizeof(fn));
-        if (chdir(fn) == 0) 
+        if (chdir(fn)) return;
+        finished=al_findfirst("*.*",&ff,FA_ALL&~FA_DIREC);
+        while (!finished && file<MAXROMS)
         {
-                finished=al_findfirst("*.*",&ff,FA_ALL&~FA_DIREC);
-                while (!finished && file<MAXROMS)
-                {
-                        strcpy(romfns[file++],ff.name);
-                        finished = al_findnext(&ff);
-                }
-                al_findclose(&ff);
+                strcpy(romfns[file++],ff.name);
+                finished = al_findnext(&ff);
+        }
+        al_findclose(&ff);
+        if (file==0)
+        {
+                chdir(olddir);
+                return;
         }
 
         chunkbase = 0x10;
@@ -98,5 +101,5 @@ void initpodulerom(void)
                 filebase+=(len+3)&~3;
         }
         chdir(olddir);
-        addpodule(NULL,NULL,NULL,NULL,NULL,readpodulerom,NULL);
+        addpodule(NULL,NULL,NULL,NULL,NULL,readpodulerom,NULL,NULL);
 }

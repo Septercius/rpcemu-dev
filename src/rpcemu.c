@@ -63,6 +63,7 @@ void resetrpc()
         reseti2c();
         resetide();
         reset82c711();
+        resetpodules();
 }
 
 int startrpcemu()
@@ -113,7 +114,7 @@ int startrpcemu()
            iso_open(isoname);
         initpodules();
         initpodulerom();
-        initics();
+        //initics();
 //        iso_open("e:/au_cd8.iso");
 //        cdromtype=CDROM_ISO;
         return 0;

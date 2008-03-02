@@ -1,6 +1,8 @@
 /*RPCemu v0.6 by Tom Walker
   IDE emulation*/
 
+void callbackide(void);
+
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
@@ -172,7 +174,8 @@ void writeidew(uint16_t val)
         {
                 ide.pos=0;
                 ide.atastat[ide.board]=0x80;
-                idecallback=1000;
+                idecallback=0;
+                callbackide();
         }
 }
 
@@ -428,7 +431,8 @@ uint16_t readidew(void)
                                                 }
                                         }
                                         ide.atastat[ide.board]=0x80;
-                                        idecallback=200;
+                                        idecallback=0;
+                                        callbackide();
                                 }
                         }
                 }

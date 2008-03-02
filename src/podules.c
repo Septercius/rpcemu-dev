@@ -33,7 +33,8 @@ podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t va
               uint32_t  (*readl)(podule *p, int easi, uint32_t addr),
               uint16_t (*readw)(podule *p, int easi, uint32_t addr),
               uint8_t  (*readb)(podule *p, int easi, uint32_t addr),
-              int (*timercallback)(podule *p))
+              int (*timercallback)(podule *p),
+              void (*reset)(podule *p))
 {
         if (freepodule==8) return NULL; /*All podules in use!*/
         podules[freepodule].readl=readl;
@@ -43,6 +44,7 @@ podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t va
         podules[freepodule].writew=writew;
         podules[freepodule].writeb=writeb;
         podules[freepodule].timercallback=timercallback;
+        podules[freepodule].reset=reset;
         rpclog("Podule added at %i\n",freepodule);
         freepodule++;
         return &podules[freepodule-1];
@@ -136,17 +138,35 @@ uint8_t readpoduleb(int num, int easi, uint32_t addr)
 void runpoduletimers(int t)
 {
         int c,d;
-        for (c=2;c<8;c++)
+        for (c=1;c<8;c++)
         {
-                if (podules[c].timercallback)
+                if (podules[c].timercallback && podules[c].msectimer)
                 {
                         podules[c].msectimer-=t;
-                        while (podules[c].msectimer<0)
+                        while (podules[c].msectimer<=0)
                         {
                                 d=podules[c].timercallback(&podules[c]);
-                                if (!d) break;
+                                if (!d)
+                                {
+                                        podules[c].msectimer=0;
+                                        break;
+                                }
                                 podules[c].msectimer+=d;
                         }
+                }
+        }
+}
+
+void resetpodules()
+{
+        int c;
+        rpclog("Reset podules!\n");
+        for (c=0;c<8;c++)
+        {
+                if (podules[c].reset)
+                {
+                        rpclog("Resetting podule %i\n",c);
+                        podules[c].reset(&podules[c]);
                 }
         }
 }

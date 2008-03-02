@@ -11,6 +11,7 @@ typedef struct
         uint16_t (*readw)(void *p, int easi, uint32_t addr);
         uint32_t (*readl)(void *p, int easi, uint32_t addr);
         int (*timercallback)(void *p);
+        void (*reset)();
         int irq,fiq;
         int msectimer;
 } podule;

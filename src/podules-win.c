@@ -61,8 +61,9 @@ void opendlls()
                 tempp.writew=GetProcAddress(hinstLib[dllnum],"writew");
                 tempp.writel=GetProcAddress(hinstLib[dllnum],"writel");
                 tempp.timercallback=GetProcAddress(hinstLib[dllnum],"timercallback");
-                rpclog("%08X %08X %08X %08X %08X %08X %08X\n",tempp.writel,tempp.writew,tempp.writeb,tempp.readl,tempp.readw,tempp.readb,tempp.timercallback);
-                addpodule(tempp.writel,tempp.writew,tempp.writeb,tempp.readl,tempp.readw,tempp.readb,tempp.timercallback);
+                tempp.reset=GetProcAddress(hinstLib[dllnum],"reset");
+                rpclog("%08X %08X %08X %08X %08X %08X %08X %08X\n",tempp.writel,tempp.writew,tempp.writeb,tempp.readl,tempp.readw,tempp.readb,tempp.timercallback,tempp.reset);
+                addpodule(tempp.writel,tempp.writew,tempp.writeb,tempp.readl,tempp.readw,tempp.readb,tempp.timercallback,tempp.reset);
                 dllnum++;
                 
                 nextdll:

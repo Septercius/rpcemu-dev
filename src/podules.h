@@ -17,6 +17,7 @@ typedef struct podule
         uint16_t (*readw)(struct podule *p, int easi, uint32_t addr);
         uint32_t (*readl)(struct podule *p, int easi, uint32_t addr);
         int (*timercallback)(struct podule *p);
+        void (*reset)(struct podule *p);
         int irq,fiq;
         int msectimer;
 } podule;
@@ -30,7 +31,8 @@ podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t va
               uint32_t (*readl)(podule *p, int easi, uint32_t addr),
               uint16_t (*readw)(podule *p, int easi, uint32_t addr),
               uint8_t  (*readb)(podule *p, int easi, uint32_t addr),
-              int (*timercallback)(podule *p));
+              int (*timercallback)(podule *p),
+              void (*reset)(podule *p));
 
 
 #endif
