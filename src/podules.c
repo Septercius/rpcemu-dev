@@ -45,7 +45,7 @@ podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t va
         podules[freepodule].writeb=writeb;
         podules[freepodule].timercallback=timercallback;
         podules[freepodule].reset=reset;
-        rpclog("Podule added at %i\n",freepodule);
+//        rpclog("Podule added at %i\n",freepodule);
         freepodule++;
         return &podules[freepodule-1];
 }
@@ -57,7 +57,11 @@ void rethinkpoduleints()
         iomd.statf&=~0x40; /*0x40 is FIQ*/
         for (c=0;c<8;c++)
         {
-                if (podules[c].irq) iomd.statb|=0x20;
+                if (podules[c].irq)
+                {
+//                        rpclog("Podule IRQ! %02X\n",iomd.maskb);
+                        iomd.statb|=0x20;
+                }
                 if (podules[c].fiq)
                 {
                         iomd.statb|=1;
@@ -124,6 +128,7 @@ uint8_t readpoduleb(int num, int easi, uint32_t addr)
 {
         int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
         uint8_t temp;
+//        rpclog("READ PODULE %i %08X %02X %i\n",num,addr,temp,easi);
         if (podules[num].readb)
         {
                 temp=podules[num].readb(&podules[num], easi, addr);
@@ -143,15 +148,22 @@ void runpoduletimers(int t)
                 if (podules[c].timercallback && podules[c].msectimer)
                 {
                         podules[c].msectimer-=t;
-                        while (podules[c].msectimer<=0)
+                        d=1;
+                        while (podules[c].msectimer<=0 && d)
                         {
+                                int oldirq=podules[c].irq,oldfiq=podules[c].fiq;
+//                                rpclog("Callback! podule %i  %i %i  ",c,podules[c].irq,podules[c].fiq);
                                 d=podules[c].timercallback(&podules[c]);
                                 if (!d)
                                 {
                                         podules[c].msectimer=0;
-                                        break;
                                 }
-                                podules[c].msectimer+=d;
+                                else podules[c].msectimer+=d;
+                                if (oldirq!=podules[c].irq || oldfiq!=podules[c].fiq)
+                                {
+//                                        rpclog("Now rethinking podule ints...\n");
+                                        rethinkpoduleints();
+                                }
                         }
                 }
         }
@@ -160,12 +172,12 @@ void runpoduletimers(int t)
 void resetpodules()
 {
         int c;
-        rpclog("Reset podules!\n");
+//        rpclog("Reset podules!\n");
         for (c=0;c<8;c++)
         {
                 if (podules[c].reset)
                 {
-                        rpclog("Resetting podule %i\n",c);
+//                        rpclog("Resetting podule %i\n",c);
                         podules[c].reset(&podules[c]);
                 }
         }
