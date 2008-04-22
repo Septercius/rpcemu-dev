@@ -70,6 +70,6 @@ void initics()
         }
         fread(icsrom,8192,1,f);
         fclose(f);
-        addpodule(NULL,icswritew,icswriteb,NULL,icsreadw,icsreadb,NULL);
+        addpodule(NULL,icswritew,icswriteb,NULL,icsreadw,icsreadb,NULL,NULL);
 //        rpclog("ICS Initialised!\n");
 }
