@@ -50,6 +50,11 @@ BEGIN
                         MENUITEM "&Empty",IDM_CDROM_EMPTY
                         MENUITEM "&ISO image...",IDM_CDROM_ISO
                 END
+                POPUP "&Mouse"
+                BEGIN
+                        MENUITEM "&Follow Windows mouse",IDM_MOUSE_FOL
+                        MENUITEM "&Capture",IDM_MOUSE_CAP
+                END
         END
 END
 

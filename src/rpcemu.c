@@ -136,11 +136,14 @@ void execrpcemu()
 //				poll_keyboard();
 //				poll_mouse();
                 pollmouse();
-                pollkeyboard();
 //                sleep(0);
                 doosmouse();
 //                cmostick();
         }
+//                pollmouse();
+//                sleep(0);
+//                doosmouse();
+                pollkeyboard();
 }
 
 void endrpcemu()
@@ -195,6 +198,7 @@ void loadconfig()
         p=(char *)get_config_string(NULL,"cdrom_iso",NULL);
         if (!p) strcpy(isoname,"");
         else    strcpy(isoname,p);
+        mousehackon=get_config_int(NULL,"mouse_following",1);
         username=get_config_string(NULL,"username",NULL);
         ipaddress=get_config_string(NULL,"ipaddress",NULL);
 }
@@ -223,4 +227,5 @@ void saveconfig()
         set_config_int(NULL,"cdrom_enabled",cdromenabled);
         set_config_int(NULL,"cdrom_type",cdromtype);
         set_config_string(NULL,"cdrom_iso",isoname);
+        set_config_int(NULL,"mouse_following",mousehackon);
 }

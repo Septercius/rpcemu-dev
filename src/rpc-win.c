@@ -333,6 +333,9 @@ infocus=0;
         
         CheckMenuItem(menu,IDM_STRETCH,(stretchmode)?MF_CHECKED:MF_UNCHECKED);
         CheckMenuItem(menu,IDM_BLITOPT,(skipblits)?MF_CHECKED:MF_UNCHECKED);
+        
+        if (mousehackon) CheckMenuItem(menu,IDM_MOUSE_FOL,MF_CHECKED);
+        else             CheckMenuItem(menu,IDM_MOUSE_CAP,MF_CHECKED);
 //        iso_open();
 //        ioctl_close();
 //        ioctl_gettoc();
@@ -366,7 +369,8 @@ infocus=1;
                 }
                 if (updatemips)
                 {
-                        sprintf(s,"RPCemu v0.7 - %f MIPS %f %i %f %i - %s",mips,tlbsec,ins,flushsec,vsyncints,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
+                        if (mousehack) sprintf(s,"RPCemu v0.7 - %f MIPS %f %i %f %i",mips,tlbsec,ins,flushsec,vsyncints);
+                        else           sprintf(s,"RPCemu v0.7 - %f MIPS %f %i %f %i - %s",mips,tlbsec,ins,flushsec,vsyncints,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
                         SetWindowText(ghwnd, s);
                         updatemips=0;
                 }
@@ -375,7 +379,7 @@ infocus=1;
                         togglefullscreen(0);
                         mousecapture=0;
                 }
-                if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && mousecapture)
+                if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && mousecapture && !mousehackon)
                 {
                         ClipCursor(&oldclip);
                         mousecapture=0;
@@ -727,6 +731,21 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         cdromtype=IDM_CDROM_ISO-IDM_CDROM_DISABLED;
                         CheckMenuItem(hmenu,IDM_CDROM_DISABLED+cdromtype,MF_CHECKED);
                         return 0;
+                        case IDM_MOUSE_FOL:
+                        CheckMenuItem(hmenu,IDM_MOUSE_FOL,MF_CHECKED);
+                        CheckMenuItem(hmenu,IDM_MOUSE_CAP,MF_UNCHECKED);
+                        mousehackon=1;
+                        if (mousecapture)
+                        {
+                                ClipCursor(&oldclip);
+                                mousecapture=0;
+                        }
+                        return 0;
+                        case IDM_MOUSE_CAP:
+                        CheckMenuItem(hmenu,IDM_MOUSE_FOL,MF_UNCHECKED);
+                        CheckMenuItem(hmenu,IDM_MOUSE_CAP,MF_CHECKED);
+                        mousehackon=0;
+                        return 0;
 //                        case IDM_CDROM_G:
 //                        atapi->exit();
 //                        ioctl_open();
@@ -770,7 +789,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 }
                 break;
                 case WM_LBUTTONUP:
-                if (!mousecapture && !fullscreen)
+                if (!mousecapture && !fullscreen && !mousehackon)
                 {
                         GetClipCursor(&oldclip);
                         GetWindowRect(hwnd,&arcclip);

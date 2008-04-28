@@ -85,8 +85,9 @@
 #else
 #define mousehackena 0
 #endif
-#define mousehack (mousehackena&&mousehackon)
+#define mousehack (/*mousehackena&&*/mousehackon && !fullscreen)
 
+extern int fullscreen;
 /*This enables abort checking after every LDR/STR/LDM/STM instruction in the
   recompiler. Disabling this makes the recompiler check after every block
   instead - this doesn't appear to break RISC OS, but you never know...*/

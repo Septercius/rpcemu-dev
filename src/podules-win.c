@@ -24,6 +24,7 @@ void opendlls()
         int (*InitDll)();
         int finished;
         int dllnum=0;
+        int i;
         
         atexit(closedlls);
         for (dllnum=0;dllnum<8;dllnum++) hinstLib[dllnum]=NULL;
@@ -62,8 +63,10 @@ void opendlls()
                 tempp.writel=GetProcAddress(hinstLib[dllnum],"writel");
                 tempp.timercallback=GetProcAddress(hinstLib[dllnum],"timercallback");
                 tempp.reset=GetProcAddress(hinstLib[dllnum],"reset");
+                i=(GetProcAddress(hinstLib[dllnum],"broken")!=NULL);
+                rpclog("Podule is %s\n",(i)?"broken":"normal");
                 rpclog("%08X %08X %08X %08X %08X %08X %08X %08X\n",tempp.writel,tempp.writew,tempp.writeb,tempp.readl,tempp.readw,tempp.readb,tempp.timercallback,tempp.reset);
-                addpodule(tempp.writel,tempp.writew,tempp.writeb,tempp.readl,tempp.readw,tempp.readb,tempp.timercallback,tempp.reset);
+                addpodule(tempp.writel,tempp.writew,tempp.writeb,tempp.readl,tempp.readw,tempp.readb,tempp.timercallback,tempp.reset,i);
                 dllnum++;
                 
                 nextdll:

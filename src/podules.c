@@ -34,7 +34,8 @@ podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t va
               uint16_t (*readw)(podule *p, int easi, uint32_t addr),
               uint8_t  (*readb)(podule *p, int easi, uint32_t addr),
               int (*timercallback)(podule *p),
-              void (*reset)(podule *p))
+              void (*reset)(podule *p),
+              int broken)
 {
         if (freepodule==8) return NULL; /*All podules in use!*/
         podules[freepodule].readl=readl;
@@ -45,6 +46,7 @@ podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t va
         podules[freepodule].writeb=writeb;
         podules[freepodule].timercallback=timercallback;
         podules[freepodule].reset=reset;
+        podules[freepodule].broken=broken;
 //        rpclog("Podule added at %i\n",freepodule);
         freepodule++;
         return &podules[freepodule-1];
@@ -79,11 +81,14 @@ void writepodulel(int num, int easi, uint32_t addr, uint32_t val)
         if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
 }
 
-void writepodulew(int num, int easi, uint32_t addr, uint16_t val)
+void writepodulew(int num, int easi, uint32_t addr, uint32_t val)
 {
         int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
         if (podules[num].writew)
-           podules[num].writew(&podules[num], easi,addr,val);
+        {
+                if (podules[num].broken) podules[num].writel(&podules[num], easi,addr,val);
+                else                     podules[num].writew(&podules[num], easi,addr,val>>16);
+        }
         if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
 }
 
@@ -110,14 +115,15 @@ uint32_t readpodulel(int num, int easi, uint32_t addr)
         return 0xFFFFFFFF;
 }
 
-uint16_t readpodulew(int num, int easi, uint32_t addr)
+uint32_t readpodulew(int num, int easi, uint32_t addr)
 {
         int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
-        uint16_t temp;
+        uint32_t temp;
         if (podules[num].readw)
         {
 //                if (num==2) rpclog("READ PODULEw 2 %08X\n",addr);
-                temp=podules[num].readw(&podules[num],easi, addr);
+                if (podules[num].broken) temp=podules[num].readl(&podules[num],easi, addr);
+                else                     temp=podules[num].readw(&podules[num],easi, addr);
                 if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
                 return temp;
         }
