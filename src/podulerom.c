@@ -30,7 +30,7 @@ const char description[] = "RPCEmu additional ROM";
 
 uint8_t readpodulerom(podule *p, int easi, uint32_t addr)
 {
-        rpclog("READ EASI %08X\n",addr);
+        rpclog("READ EASI %i %08X\n",easi,addr);
         if (easi && (poduleromsize>0))
         {
                 addr=(addr&0x00FFFFFF)>>2;
@@ -101,5 +101,5 @@ void initpodulerom(void)
                 filebase+=(len+3)&~3;
         }
         chdir(olddir);
-        addpodule(NULL,NULL,NULL,NULL,NULL,readpodulerom,NULL,NULL);
+        addpodule(NULL,NULL,NULL,NULL,NULL,readpodulerom,NULL,NULL,0);
 }
