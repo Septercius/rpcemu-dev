@@ -373,7 +373,7 @@ void initnetwork(void)
         sa.sa_handler = sig_io;
         sigaction(SIGIO, &sa, NULL);
 
-        poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+        poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0);
         if (poduleinfo == NULL) printf("No free podule for networking\n");
     }
 }
