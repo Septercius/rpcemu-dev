@@ -95,6 +95,7 @@ static FILE *open_file[MAX_OPEN_FILES + 1]; /* array subscript 0 is never used *
 
 static unsigned char *buffer = NULL;
 static size_t buffer_size = 0;
+//#define dbug_hostfs rpclog
 #ifdef NDEBUG
 INLINING void dbug_hostfs(const char *format, ...) {}
 #else
@@ -245,6 +246,7 @@ path_construct(const char *old_path, char *new_path, size_t len,
     /* File has load and exec addresses */
     sprintf(new_suffix, ",%x-%x", (unsigned int)load, (unsigned int)exec);
   }
+  //rpclog("path_construct : %s\n",new_suffix);
 }
 
 /**
@@ -255,7 +257,7 @@ path_construct(const char *old_path, char *new_path, size_t len,
 static void
 name_host_to_riscos(const char *object_name, size_t len, char *riscos_name)
 {
-//        char *s=riscos_name,*s2=object_name;
+        char *s=riscos_name,*s2=object_name;
   assert(object_name);
   assert(riscos_name);
 
@@ -267,6 +269,9 @@ name_host_to_riscos(const char *object_name, size_t len, char *riscos_name)
     case '/':
       *riscos_name++ = '.';
       break;
+    case 32:
+      *riscos_name++ = 160;
+      break;
     default:
       *riscos_name++ = *object_name;
       break;
@@ -275,7 +280,7 @@ name_host_to_riscos(const char *object_name, size_t len, char *riscos_name)
   }
 
   *riscos_name = '\0';
-//  rpclog("Name host to ROS : %s -> %s\n",s2,s);
+  //rpclog("Name host to ROS : %s -> %s\n",s2,s);
 }
 
 /**
@@ -337,7 +342,7 @@ hostfs_read_object_info(const char *host_pathname,
   /* Find where the leafname starts */
   slash = strrchr(host_pathname, '/');
   assert(slash); /* A '/' should always be present */
-//  rpclog("host_pathname %s %s\n",host_pathname,HOSTFS_ROOT);
+  //rpclog("host_pathname %s %s\n",host_pathname,HOSTFS_ROOT);
 
   /* Search for a filetype or load-exec after a comma */
   comma = strrchr(slash + 1, ',');
@@ -482,7 +487,7 @@ hostfs_path_scan(const char *host_dir_path,
     /* A match has been found - exit the function early */
     strcpy(host_name, entry->d_name);
     closedir(d);
-//    rpclog("Found match for %s - %s\n",host_dir_path,host_name);
+    //rpclog("Found match for %s - %s\n",host_dir_path,host_name);
     return;
   }
 
@@ -522,9 +527,10 @@ hostfs_path_process(const char *ro_path,
   /* Initialise working Host component */
   component = &component_name[0];
   *component = '\0';
-//  rpclog("Process path %s\n",ro_path);
+  //rpclog("Process path %s\n",ro_path);
 
   while (*ro_path) {
+                //rpclog("%i %c\n",*ro_path,*ro_path);
     switch (*ro_path) {
     case '$':
       strcat(host_pathname, HOSTFS_ROOT);
@@ -576,7 +582,7 @@ hostfs_path_process(const char *ro_path,
       break;
     }
 
-//    rpclog("Component now %s\n",component_name);
+    //rpclog("Component now %s\n",component_name);
     ro_path++;
   }
 
@@ -624,6 +630,7 @@ riscos_path_to_host(const char *path, char *host_path)
   assert(path);
   assert(host_path);
 
+        //rpclog("path_to_host %s %s\n",path,host_path);
   hostfs_path_process(path, 0, host_path, ro_leaf, &object_info);
 
   if (object_info.type == OBJECT_TYPE_NOT_FOUND) {
