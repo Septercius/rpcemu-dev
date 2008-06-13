@@ -55,7 +55,7 @@ void loadcmos()
 
         fread(cmosram,256,1,cmosf);
         fclose(cmosf);
-/*        cmosgettime();*/
+        cmosgettime();
 //        memset(cmosram,0,256);
 }
 
@@ -88,6 +88,29 @@ unsigned char cmosgetbyte()
 
 void cmosgettime()
 {
+#if defined WIN32 || defined _WIN32 || defined _WIN32
+        int c,d;
+        GetLocalTime(&systemtime);
+        c=systemtime.wMilliseconds/10;
+        d=c%10;
+        c/=10;
+        cmosram[1]=d|(c<<4);
+        d=systemtime.wSecond%10;
+        c=systemtime.wSecond/10;
+        cmosram[2]=d|(c<<4);
+        d=systemtime.wMinute%10;
+        c=systemtime.wMinute/10;
+        cmosram[3]=d|(c<<4);
+        d=systemtime.wHour%10;
+        c=systemtime.wHour/10;
+        cmosram[4]=d|(c<<4);
+        d=systemtime.wDay%10;
+        c=systemtime.wDay/10;
+        cmosram[5]=d|(c<<4);
+        d=systemtime.wMonth%10;
+        c=systemtime.wMonth/10;
+        cmosram[6]=d|(c<<4);
+#endif
 }
 
 void cmostick()
