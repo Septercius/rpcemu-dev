@@ -18,6 +18,9 @@ static int currentbuffer=1;
 static int oldsx = 0,oldsy = 0;
 static int drawcode = 0;
 
+// Don't resize the window to smaller than this.
+const int MIN_X_SIZE = 320;
+const int MIN_Y_SIZE = 256;
 
 /* This state is written by the main thread. The display thread should not read it. */
 struct vidc_state {
@@ -290,6 +293,8 @@ void resizedisplay(int x, int y)
         else
         {
                 set_gfx_mode(GFX_AUTODETECT_WINDOWED,x,y,0,0);
+		if (x < MIN_X_SIZE) x = MIN_X_SIZE;
+		if (y < MIN_Y_SIZE) y = MIN_Y_SIZE;
                 updatewindowsize(x,y);
                 bs=create_video_bitmap(x,y);
                 b=create_video_bitmap(x,y);
