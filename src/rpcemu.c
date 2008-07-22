@@ -92,8 +92,8 @@ int startrpcemu()
 //printf("About to init video...\n");
         initvideo();
 //printf("Video inited!\n");
-        initsound();
         loadconfig();
+        initsound();
         reallocmem(rammask+1);
         initcodeblocks();
         iso_init();

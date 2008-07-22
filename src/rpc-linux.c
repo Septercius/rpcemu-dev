@@ -14,12 +14,61 @@
 int mousecapture=0;
 float mips;
 int updatemips=0;
+int quited=0;
+pthread_t sound_thread;
+pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t sound_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static uint32_t mipscount;
 float mipstotal;
 
+void *_soundthread(void *p)
+{
+	int c;
+
+        if (pthread_mutex_lock(&sound_mutex))
+	{
+		fatal("Cannot lock mutex");
+	}
+	while (!quited)
+	{
+                if (pthread_cond_wait(&sound_cond, &sound_mutex))
+		{
+			fatal("pthread_cond_wait failed");
+		}
+		if (!quited)
+		{
+			do {
+				c = updatesoundbuffer();
+			} while(c);
+		}
+	}
+        pthread_mutex_unlock(&sound_mutex);
+
+	return NULL;
+}
+
 void wakeupsoundthread()
 {
+    if (pthread_cond_signal(&sound_cond))
+    {
+        fatal("Couldn't signal vidc thread");
+    }
+}
+
+void closesoundthread()
+{
+	wakeupsoundthread();
+	pthread_join(sound_thread, NULL);
+}
+
+void startsoundthread(void)
+{
+    int r;
+    if (pthread_create(&sound_thread,NULL,_soundthread,NULL))
+    {
+        fatal("Couldn't create vidc thread");
+    }
 }
 
 static void domips(void)
@@ -86,8 +135,6 @@ void updatewindowsize(uint32_t x, uint32_t y)
 void releasemousecapture()
 {
 }
-
-int quited=0;
 
 #ifdef VIDC_THREAD
 pthread_t thread;
@@ -183,6 +230,7 @@ int main (int argc, char ** argv)
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate,BPS_TO_TIMER(refresh));
+	startsoundthread();
         if (soundenabled) initsound();
         infocus=1;
         mousehackon=1;
