@@ -43,15 +43,6 @@ const char *ipaddress = NULL;
 void loadconfig();
 void saveconfig();
 
-void fatal(const char *format, ...)
-{
-   va_list ap;
-   va_start(ap, format);
-   error(format, ap);
-   va_end(ap);
-   abort();
-}
-
 void resetrpc()
 {
         memset(ram,0,rammask+1);
@@ -81,11 +72,7 @@ int startrpcemu()
         }
         initmem();
 //printf("Mem inited...\n");
-        if (loadroms())
-        {
-                error("RISC OS ROMs missing!");
-                return -1;
-        }
+	loadroms();
 //printf("ROMs loaded!\n");
         resetarm();
         resetfpa();

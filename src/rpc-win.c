@@ -56,6 +56,18 @@ void error(const char *format, ...)
    va_end(ap);
    MessageBox(NULL,buf,"RPCemu error",MB_OK);;
 }
+void fatal(const char *format, ...)
+{
+   char buf[256];
+
+   va_list ap;
+   va_start(ap, format);
+   vsprintf(buf, format, ap);
+   va_end(ap);
+   MessageBox(NULL,buf,"RPCemu error",MB_OK);;
+
+   abort();
+}
 
 FILE *arclog;
 void rpclog(const char *format, ...)

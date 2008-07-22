@@ -44,6 +44,18 @@ void error(const char *format, ...)
    vfprintf(stderr, format, ap);
    va_end(ap);
 }
+void fatal(const char *format, ...)
+{
+   char buf[256];
+
+   va_list ap;
+   va_start(ap, format);
+   fprintf(stderr, "RPCemu error: ");
+   vfprintf(stderr, format, ap);
+   va_end(ap);
+
+   abort();
+}
 
 FILE *arclog;
 void rpclog(const char *format, ...)

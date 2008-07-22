@@ -9,7 +9,8 @@
 #define MAXROMS 16
 static char romfns[MAXROMS+1][256];
 
-int loadroms(void)
+// Load the ROM images, call fatal() on error.
+void loadroms(void)
 {
         FILE *f;
         int finished=0;
@@ -19,16 +20,23 @@ int loadroms(void)
         struct al_ffblk ff;
         char olddir[512],fn[512];
         char *ext;
+	const char *wildcard = "*.*";
+	const char *dirname = "roms";
 
         getcwd(olddir,sizeof(olddir));
-        append_filename(fn,exname,"roms",sizeof(fn));
-        if (chdir(fn)) fatal("Cannot find roms directory %s",fn);
-        finished=al_findfirst("*.*",&ff,0xFFFF&~FA_DIREC);
+        append_filename(fn,exname,dirname,sizeof(fn));
+        if (chdir(fn))
+	{
+		error("Cannot find roms directory %s",dirname);
+		abort();
+	}
+        finished=al_findfirst(wildcard,&ff,0xFFFF&~FA_DIREC);
         if (finished)
-        {
-                chdir(olddir);
-                return -1;
-        }
+	{
+		error("Cannot find any file in roms directory '%s' matching '%s'",
+		      dirname, wildcard);
+		abort();
+	}
         while (!finished && file<MAXROMS)
         {
                 ext=get_extension(ff.name);
@@ -41,11 +49,7 @@ int loadroms(void)
                 finished = al_findnext(&ff);
         }
         al_findclose(&ff);
-        if (file==0)
-        {
-                chdir(olddir);
-                return -1;
-        }
+        if (file==0) fatal("Could not load roms from directory '%s'", dirname);
 //printf("Loading file...\n");
         for (c=0;c<file;c++)
         {
@@ -101,6 +105,4 @@ int loadroms(void)
            rom[0x14824>>2]=0xE3A06008; /*MOV R6,#8 - 8 megs*/
 
 //        initpodulerom();
-
-        return 0;
 }

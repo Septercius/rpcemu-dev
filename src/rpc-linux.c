@@ -42,6 +42,23 @@ void error(const char *format, ...)
    va_end(ap);
 }
 
+// Similar to error() but aborts the program. 
+//
+// Because of varargs it's not straightforward to just call error()
+// from here.  So some code is duplicated.
+//
+void fatal(const char *format, ...)
+{
+   va_list ap;
+   va_start(ap, format);
+   fprintf(stderr, "RPCemu error: ");
+   vfprintf(stderr, format, ap);
+   fprintf(stderr,"\n");
+   va_end(ap);
+
+   abort();
+}
+
 FILE *arclog;
 void rpclog(const char *format, ...)
 {
@@ -141,8 +158,14 @@ void close_button_handler(void)
 END_OF_FUNCTION(close_button_handler)
 
 
-int main (void) 
+int main (int argc, char ** argv) 
 { 
+	if (argc != 1)
+	{
+		fprintf(stderr, "No command line options supported.\n");
+		return 1;
+	}
+
         infocus=1;
         allegro_init();
 
