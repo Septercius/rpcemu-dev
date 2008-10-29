@@ -20,6 +20,7 @@ uint8_t icsreadb(podule *p, int easi, uint32_t addr)
                 ideboard=2;
                 return readide(((addr>>2)&7)+0x1F0);
         }*/
+	return 0;
 }
 
 uint16_t icsreadw(podule *p, int easi, uint32_t addr)
@@ -31,6 +32,7 @@ uint16_t icsreadw(podule *p, int easi, uint32_t addr)
                 return readidew();
         }
         return icsreadb(p,easi,addr);*/
+	return 0;
 }
 
 void icswriteb(podule *p, int easi, uint32_t addr, uint8_t val)
