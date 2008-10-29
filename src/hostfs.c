@@ -257,7 +257,6 @@ path_construct(const char *old_path, char *new_path, size_t len,
 static void
 name_host_to_riscos(const char *object_name, size_t len, char *riscos_name)
 {
-        char *s=riscos_name,*s2=object_name;
   assert(object_name);
   assert(riscos_name);
 

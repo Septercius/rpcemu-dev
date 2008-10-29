@@ -115,7 +115,6 @@ void loadhd(int d, char *fn)
 
 void resetide(void)
 {
-        int c;
         idebufferb=(unsigned char *)idebuffer;
         if (hdfile[0]) fclose(hdfile[0]);
         if (hdfile[1]) fclose(hdfile[1]);
@@ -791,7 +790,7 @@ void atapicommand()
         int c;
         int len;
         int msf;
-        int blocks=95932;
+        //int blocks=95932;
         int pos=0;
 //        rpclog("New ATAPI command %02X\n",idebufferb[0]);
                 msf=idebufferb[1]&2;

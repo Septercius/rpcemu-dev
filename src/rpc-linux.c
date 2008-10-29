@@ -65,7 +65,6 @@ void closesoundthread()
 
 void startsoundthread(void)
 {
-    int r;
     if (pthread_create(&sound_thread,NULL,_soundthread,NULL))
     {
         fatal("Couldn't create vidc thread");

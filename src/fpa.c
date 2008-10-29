@@ -75,7 +75,7 @@ double convert80to64(uint32_t *temp)
 
 void convert64to80(uint32_t *temp, double tf)
 {
-        int tempi,len;
+        int tempi;
         double *tf2=(double *)&temp[4];
         *tf2=tf;
         temp[0]=temp[5]&0x80000000;
