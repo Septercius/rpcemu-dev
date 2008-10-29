@@ -1,0 +1,12 @@
+# use glob syntax
+syntax: glob
+
+*.o
+.deps
+autom4te.cache
+config.h
+config.log
+config.status
+Makefile
+rpcemu
+stamp-h1
