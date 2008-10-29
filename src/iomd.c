@@ -10,6 +10,7 @@
 #include "iomd.h"
 #include "arm.h"
 #include "cmos.h"
+#include "podules.h"
 
 //#define OLDTIMER
 

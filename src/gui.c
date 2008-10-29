@@ -8,6 +8,8 @@
 #include "ide.h"
 #include "cdrom-iso.h"
 
+extern void ioctl_init(void);
+
 DIALOG configuregui[];
 int menuexit(void)
 {

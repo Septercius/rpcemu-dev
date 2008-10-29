@@ -1,4 +1,5 @@
 #include "rpcemu.h"
+#include "mem.h"
 
 #ifndef DYNAREC
 void initcodeblocks()

@@ -9,6 +9,7 @@
 #include "sound.h"
 #include "vidc20.h"
 #include "gui.h"
+#include "network-linux.h"
 
 
 int mousecapture=0;

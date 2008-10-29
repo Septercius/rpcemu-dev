@@ -65,4 +65,6 @@ extern int mmu,memmode;
 
 extern int pcisrom;
 
+extern void cacheclearpage(uint32_t a);
+
 #endif //__MEM__

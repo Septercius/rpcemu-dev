@@ -36,5 +36,7 @@ podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t va
               void (*reset)(podule *p),
               int broken);
 
+void runpoduletimers(int t);
+void resetpodules(void);
 
 #endif
