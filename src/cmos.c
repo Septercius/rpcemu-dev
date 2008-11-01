@@ -7,6 +7,7 @@
 #endif
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "rpcemu.h"
 
 #if defined WIN32 || defined _WIN32 || defined _WIN32
@@ -34,6 +35,8 @@ int i2ctransmit=-1;
 #define CMOS_RECIEVEADDR     1
 #define CMOS_RECIEVEDATA     2
 #define CMOS_SENDDATA        3
+
+#define BIN2BCD(val)	((((val) / 10) << 4) | ((val) % 10))
 
 unsigned char cmosaddr;
 unsigned char cmosram[256];
@@ -110,6 +113,16 @@ void cmosgettime()
         d=systemtime.wMonth%10;
         c=systemtime.wMonth/10;
         cmosram[6]=d|(c<<4);
+#else
+	time_t now = time(NULL);
+	const struct tm *t = gmtime(&now);
+
+	cmosram[1] = 0;
+	cmosram[2] = BIN2BCD(t->tm_sec);
+	cmosram[3] = BIN2BCD(t->tm_min);
+	cmosram[4] = BIN2BCD(t->tm_hour);
+	cmosram[5] = (((t->tm_year + 1900) & 3) << 6) | BIN2BCD(t->tm_mday);
+	cmosram[6] = (t->tm_wday << 5) | BIN2BCD(t->tm_mon + 1);
 #endif
 }
 
