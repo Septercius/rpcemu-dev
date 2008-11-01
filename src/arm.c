@@ -616,7 +616,7 @@ int loadrom()
         else if (checkneg(res))             armregs[cpsr]|=NFLAG;
         if (res<op1)                        armregs[cpsr]|=CFLAG;
         if ((op1^res)&(op2^res)&0x80000000) armregs[cpsr]|=VFLAG;*/
-        unsigned long temp=0;
+        uint32_t temp=0;
         if (!res)                           temp=ZFLAG;
         else if (checkneg(res))             temp=NFLAG;
         if (res<op1)                        temp|=CFLAG;
@@ -631,7 +631,7 @@ static inline void setsub(uint32_t op1, uint32_t op2, uint32_t res)
         else if (checkneg(res))             armregs[cpsr]|=NFLAG;
         if (res<=op1)                       armregs[cpsr]|=CFLAG;
         if ((op1^op2)&(op1^res)&0x80000000) armregs[cpsr]|=VFLAG;*/
-        unsigned long temp=0;
+        uint32_t temp=0;
         if (!res)                           temp=ZFLAG;
         else if (checkneg(res))             temp=NFLAG;
         if (res<=op1)                       temp|=CFLAG;
