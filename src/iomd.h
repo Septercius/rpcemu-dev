@@ -14,7 +14,9 @@ struct iomd
         unsigned char keydat;
         unsigned char msdat;
         int mousex,mousey;
-} iomd;
+};
+
+extern struct iomd iomd;
 
 extern  void gentimerirq(void);
 extern  int delaygenirqleft, delaygenirq;

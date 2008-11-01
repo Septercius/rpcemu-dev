@@ -16,6 +16,8 @@ void callbackide(void);
 #include "ide.h"
 #include "arm.h"
 
+ATAPI *atapi;
+
 void callreadcd();
 int skip512[4];
 int cdromenabled=1;

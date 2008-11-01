@@ -14,6 +14,8 @@
 
 //#define OLDTIMER
 
+struct iomd iomd;
+
 int fdccallback = 0;
 int motoron = 0;
 
