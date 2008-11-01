@@ -25,7 +25,7 @@
 int mcalls;
 int xs,ys;
 
-int mousecapture;
+extern int mousecapture;
 int mousehackon = 1;
 int kbdenable=0,kbdreset;
 unsigned char kbdstat;

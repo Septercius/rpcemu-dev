@@ -9,6 +9,9 @@
 
 #define UNDEFINED  11
 #define undefined() exception(UNDEFINED,8,4)
+
+extern int times8000;
+
 double fparegs[8] = {0.0}; /*No C variable type for 80-bit floating point, so use 64*/
 uint32_t fpsr = 0, fpcr = 0;
 
@@ -55,7 +58,7 @@ INLINING void setsubf(double op1, double op2)
         if (op1>=op2) armregs[cpsr]|=CFLAG;
 //        if ((op1^op2)&(op1^res)&0x80000000) armregs[cpsr]|=VFLAG;
 }
-int times8000;
+
 double fconstants[8]={0.0,1.0,2.0,3.0,4.0,5.0,0.5,10.0};
 
 double convert80to64(uint32_t *temp)
