@@ -140,8 +140,8 @@ void updatewindowsize(uint32_t x, uint32_t y)
 //        rpclog("Updatewindowsize %i %i %i\n",x,y,ins);
         GetWindowRect(ghwnd,&r);
         MoveWindow(ghwnd,r.left,r.top,
-                     x+(GetSystemMetrics(SM_CXFIXEDFRAME)*2)+2,
-                     y+(GetSystemMetrics(SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION)+3,
+                     x+(GetSystemMetrics(SM_CXFIXEDFRAME)*2),
+                     y+(GetSystemMetrics(SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION),
                      TRUE);
         if (mousecapture)
         {
@@ -316,8 +316,9 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         ghwnd = CreateWindowEx (
            0,                   /* Extended possibilites for variation */
            szClassName,         /* Classname */
-           "RPCemu v0.7",       /* Title Text */
-           WS_OVERLAPPEDWINDOW, /* default window */
+           "RPCemu v0.7",       /* Title Text */           
+/*           WS_OVERLAPPEDWINDOW,*/ /* default window */           
+           WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX, /* overlapped window with no sizeing frame */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
            64+(GetSystemMetrics(SM_CXFIXEDFRAME)*2),/* The programs width */
