@@ -30,7 +30,7 @@ static int mcalls;
 
 static int kbdenable, kbdreset;
 static unsigned char kbdstat;
-static unsigned char kbdpacket[3];
+static unsigned char kbdpacket[8];
 static int kbdpacketsize, kbdpacketpos;
 static unsigned char kbdcommand;
 static int keys2[128];
@@ -527,6 +527,16 @@ void pollkeyboard(void)
                                 kbdpacket[1] = temp;
                                 kbdpacketsize = 2;
                         }
+                } else if (c == KEY_PAUSE) {
+                        kbdpacket[0] = 0xe1;
+                        kbdpacket[1] = 0x14;
+                        kbdpacket[2] = 0x77;
+                        kbdpacket[3] = 0xe1;
+                        kbdpacket[4] = 0xf0;
+                        kbdpacket[5] = 0x14;
+                        kbdpacket[6] = 0xf0;
+                        kbdpacket[7] = 0x77;
+                        kbdpacketsize = 8;
                 } else {
                         /* unhandled key */
                         continue;
