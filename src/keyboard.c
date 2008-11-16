@@ -494,65 +494,48 @@ static int findextkey(int c)
         return -1;
 }
 
-void pollkeyboard()
+void pollkeyboard(void)
 {
         int c;
-        int temp;
-        for (c=0;c<128;c++)
-        {
-//				if (c==KEY_X) c++;
-                if (key[c]!=keys2[c])
-                {
-                        keys2[c]=key[c];
-                        temp=findkey(c);
-//                        rpclog("Found key %i %s\n",c,(keys2[c])?"down":"up");
-//                        printf("Found key %i %02X\n",c,temp);
-                        if (temp!=-1)
-                        {
-                                if (!keys2[c])
-                                {
-                                        kbdpacket[0]=0xF0;
-                                        kbdpacket[1]=temp;
-                                        kbdpacketsize=2;
-                                }
-                                else
-                                {
-                                        kbdpacket[0]=temp;
-                                        kbdpacketsize=1;
-                                }
-                                kbdpacketpos=0;
-                                kcallback=20;
-                                kbdcommand=0xFE;
-//                                rpclog("Sending packet %02X %02X %i\n",kbdpacket[0],kbdpacket[1],kbdpacketsize);
-                                return;
-                        }
-                        else
-                        {
-                                temp=findextkey(c);
-//                                printf("Found extended key %i %02X %02X\n",c,temp,kbdtemp);
-                                if (temp!=-1)
-                                {
-                                        if (!keys2[c])
-                                        {
-                                                kbdpacket[0]=kbdtemp;
-                                                kbdpacket[1]=0xF0;
-                                                kbdpacket[2]=temp;
-                                                kbdpacketsize=3;
-                                        }
-                                        else
-                                        {
-                                                kbdpacket[0]=kbdtemp;
-                                                kbdpacket[1]=temp;
-                                                kbdpacketsize=2;
-                                        }
-                                        kbdpacketpos=0;
-                                        kcallback=20;
-                                        kbdcommand=0xFE;
-//                                        rpclog("Sending packet %02X %02X %02X %i\n",kbdpacket[0],kbdpacket[1],kbdpacket[2],kbdpacketsize);
-                                        return;
-                                }
-                        }
+
+        for (c = 0; c < 128; c++) {
+                int temp;
+
+                if (key[c] == keys2[c]) {
+                        /* no change in state */
+                        continue;
                 }
+
+                keys2[c] = key[c];
+                if ((temp = findkey(c)) != -1) {
+                        if (!keys2[c]) {
+                                kbdpacket[0] = 0xF0;
+                                kbdpacket[1] = temp;
+                                kbdpacketsize = 2;
+                        } else {
+                                kbdpacket[0] = temp;
+                                kbdpacketsize = 1;
+                        }
+                } else if ((temp = findextkey(c)) != -1) {
+                        if (!keys2[c]) {
+                                kbdpacket[0] = kbdtemp;
+                                kbdpacket[1] = 0xF0;
+                                kbdpacket[2] = temp;
+                                kbdpacketsize = 3;
+                        } else {
+                                kbdpacket[0] = kbdtemp;
+                                kbdpacket[1] = temp;
+                                kbdpacketsize = 2;
+                        }
+                } else {
+                        /* unhandled key */
+                        continue;
+                }
+
+                kbdpacketpos = 0;
+                kcallback = 20;
+                kbdcommand = 0xFE;
+                return;
         }
 }
 
