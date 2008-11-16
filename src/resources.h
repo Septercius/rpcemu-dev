@@ -24,6 +24,9 @@
 #define IDM_CDROM_EMPTY    40061
 #define IDM_CDROM_ISO      40062
 #define IDM_CDROM_REAL     40063
+#define IDM_MOUSE_FOL      40064
+#define IDM_MOUSE_CAP      40065
+
 
 #define RadioButton1  1000
 #define RadioButton2  1001
