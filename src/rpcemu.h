@@ -150,16 +150,15 @@ extern int cdromtype;
 
 
 
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32 || defined _MSC_VER
-	#ifdef _MSC_VER
-	/*How do you do this in MSVC?*/
-	//register uint32_t armptr __asm esi;
-	#else
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_
+        #ifdef __GNUC__
 	register uint32_t armptr asm("esi");
 	#endif
 #endif
 #ifdef __amd64__
+        #ifdef __GNUC__
 	register uint32_t *armptr asm("r15");
+        #endif
 #endif
 
 
