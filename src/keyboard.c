@@ -44,8 +44,6 @@ static int mousepoll;
 static int msincommand;
 static int justsent;
 
-static unsigned char kbdtemp;
-
 static int point;
 
 static int calculateparity(unsigned char v)
@@ -457,12 +455,11 @@ static const int standardkeys[][2]=
 
 static int findkey(int c)
 {
-        int d=0;
-        while (1)
-        {
-                if (standardkeys[d][0]==c || standardkeys[d][0]==-1)
-                {
-                        return standardkeys[d][1];
+        int d = 0;
+
+        while (standardkeys[d][0] != -1) {
+                if (standardkeys[d][0] == c) {
+                        return d;
                 }
                 d++;
         }
@@ -481,13 +478,11 @@ static const int extendedkeys[][3]=
 
 static int findextkey(int c)
 {
-        int d=0;
-        while (1)
-        {
-                if (extendedkeys[d][0]==c || extendedkeys[d][0]==-1)
-                {
-                        kbdtemp=extendedkeys[d][1];
-                        return extendedkeys[d][2];
+        int d = 0;
+
+        while (extendedkeys[d][0] != -1) {
+                if (extendedkeys[d][0] == c) {
+                        return d;
                 }
                 d++;
         }
@@ -499,7 +494,7 @@ void pollkeyboard(void)
         int c;
 
         for (c = 0; c < 128; c++) {
-                int temp;
+                int idx;
 
                 if (key[c] == keys2[c]) {
                         /* no change in state */
@@ -507,24 +502,24 @@ void pollkeyboard(void)
                 }
 
                 keys2[c] = key[c];
-                if ((temp = findkey(c)) != -1) {
+                if ((idx = findkey(c)) != -1) {
                         if (!keys2[c]) {
                                 kbdpacket[0] = 0xF0;
-                                kbdpacket[1] = temp;
+                                kbdpacket[1] = standardkeys[idx][1];
                                 kbdpacketsize = 2;
                         } else {
-                                kbdpacket[0] = temp;
+                                kbdpacket[0] = standardkeys[idx][1];
                                 kbdpacketsize = 1;
                         }
-                } else if ((temp = findextkey(c)) != -1) {
+                } else if ((idx = findextkey(c)) != -1) {
                         if (!keys2[c]) {
-                                kbdpacket[0] = kbdtemp;
+                                kbdpacket[0] = extendedkeys[idx][1];
                                 kbdpacket[1] = 0xF0;
-                                kbdpacket[2] = temp;
+                                kbdpacket[2] = extendedkeys[idx][2];
                                 kbdpacketsize = 3;
                         } else {
-                                kbdpacket[0] = kbdtemp;
-                                kbdpacket[1] = temp;
+                                kbdpacket[0] = extendedkeys[idx][1];
+                                kbdpacket[1] = extendedkeys[idx][2];
                                 kbdpacketsize = 2;
                         }
                 } else if (c == KEY_PAUSE) {
