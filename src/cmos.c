@@ -13,8 +13,6 @@
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 SYSTEMTIME systemtime;
 #endif
-uint32_t output;
-//unsigned long *armregs[16];
 int cmosstate=0;
 int i2cstate=0;
 int lastdata;
@@ -316,8 +314,6 @@ void cmosi2cchange(int nuclock, int nudata)
                         i2cdata=nudata=i2cbyte&128;
                         i2cbyte<<=1;
                         i2cpos++;
-//                        printf("Transmitting bit %i %02X %08X\n",i2cdata,i2cbyte,armregs[3]);
-//                        if (output) //logfile("Transfering bit at %07X %i %02X\n",(*armregs[15]-8)&0x3FFFFFC,i2cpos,cmosaddr);
                         if (i2cpos==8)
                         {
                                 i2cstate=I2C_TRANSACKNOWLEDGE;
