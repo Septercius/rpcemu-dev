@@ -24,6 +24,8 @@ static AUDIOSTREAM *as;
 #define BUFFERLEN (4410>>1)
 //#define BUFFERLEN 11025
 
+//static FILE *sndfile; // used for debugging
+
 void initsound()
 {
         if (soundon)
@@ -135,12 +137,10 @@ void updatesoundirq()
 //        fwrite(bigsoundbuffer,len<<2,1,sndfile);
 }
 
-static FILE *sndfile;
 int updatesoundbuffer()
 {
         unsigned short *p;
         int c;
-	static int cnt = 0;
 
         if (!soundenabled)
         {

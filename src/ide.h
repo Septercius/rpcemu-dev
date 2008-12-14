@@ -25,7 +25,7 @@ typedef struct ATAPI
         void (*exit)();
 } ATAPI;
 
-ATAPI *atapi;
+extern ATAPI *atapi;
 
 void atapi_discchanged();
 

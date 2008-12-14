@@ -7,13 +7,12 @@
 #endif
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "rpcemu.h"
 
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 SYSTEMTIME systemtime;
 #endif
-uint32_t output;
-//unsigned long *armregs[16];
 int cmosstate=0;
 int i2cstate=0;
 int lastdata;
@@ -34,6 +33,8 @@ int i2ctransmit=-1;
 #define CMOS_RECIEVEADDR     1
 #define CMOS_RECIEVEDATA     2
 #define CMOS_SENDDATA        3
+
+#define BIN2BCD(val)	((((val) / 10) << 4) | ((val) % 10))
 
 unsigned char cmosaddr;
 unsigned char cmosram[256];
@@ -110,6 +111,16 @@ void cmosgettime()
         d=systemtime.wMonth%10;
         c=systemtime.wMonth/10;
         cmosram[6]=d|(c<<4);
+#else
+	time_t now = time(NULL);
+	const struct tm *t = gmtime(&now);
+
+	cmosram[1] = 0;
+	cmosram[2] = BIN2BCD(t->tm_sec);
+	cmosram[3] = BIN2BCD(t->tm_min);
+	cmosram[4] = BIN2BCD(t->tm_hour);
+	cmosram[5] = (((t->tm_year + 1900) & 3) << 6) | BIN2BCD(t->tm_mday);
+	cmosram[6] = (t->tm_wday << 5) | BIN2BCD(t->tm_mon + 1);
 #endif
 }
 
@@ -303,8 +314,6 @@ void cmosi2cchange(int nuclock, int nudata)
                         i2cdata=nudata=i2cbyte&128;
                         i2cbyte<<=1;
                         i2cpos++;
-//                        printf("Transmitting bit %i %02X %08X\n",i2cdata,i2cbyte,armregs[3]);
-//                        if (output) //logfile("Transfering bit at %07X %i %02X\n",(*armregs[15]-8)&0x3FFFFFC,i2cpos,cmosaddr);
                         if (i2cpos==8)
                         {
                                 i2cstate=I2C_TRANSACKNOWLEDGE;

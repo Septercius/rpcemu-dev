@@ -22,26 +22,31 @@
 #include "iomd.h"
 #include "arm.h"
 
-int mcalls;
-int xs,ys;
+extern int mousecapture;
 
-int mousecapture;
 int mousehackon = 1;
-int kbdenable=0,kbdreset;
-unsigned char kbdstat;
-unsigned char kbdpacket[3]={0,0,0};
-int kbdpacketsize=0,kbdpacketpos=0;
-unsigned char kbdcommand;
-int keys2[128];
 
-int msenable=0,msreset;
-unsigned char msstat,mscommand;
-unsigned char mspacket[3]={0,0,0};
-int mspacketpos=0;
-unsigned char lastcommand;
-int mousepoll=0;
+static int mcalls;
 
-int calculateparity(unsigned char v)
+static int kbdenable, kbdreset;
+static unsigned char kbdstat;
+static unsigned char kbdpacket[8];
+static int kbdpacketsize, kbdpacketpos;
+static unsigned char kbdcommand;
+static int keys2[128];
+
+static int msenable, msreset;
+static unsigned char msstat, mscommand;
+static unsigned char mspacket[3];
+static int mspacketpos;
+static int mousepoll;
+
+static int msincommand;
+static int justsent;
+
+static int point;
+
+static int calculateparity(unsigned char v)
 {
         int c,d=0;
         for (c=0;c<8;c++)
@@ -100,7 +105,7 @@ void writekbdenable(int v)
         else   kbdstat&=~8;
 }
 
-void keyboardsend(unsigned char v)
+static void keyboardsend(unsigned char v)
 {
 //        rpclog("Keyboard send %02X\n",v);
         iomd.keydat=v;
@@ -189,8 +194,6 @@ void writemsenable(int v)
         else   msstat&=~8;
 }
 
-int msincommand=0;
-int justsent=0;
 void writems(unsigned char v)
 {
 //        printf("Write mouse %02X %08X  %02X\n",v,PC,msincommand);
@@ -289,7 +292,7 @@ unsigned char readmousedata(void)
         return temp;
 }
 
-void mousesend(unsigned char v)
+static void mousesend(unsigned char v)
 {
         iomd.msdat=v;
         iomd.statd|=1;
@@ -381,10 +384,9 @@ void mscallback(void)
         }
 }
 
-unsigned char oldmouseb=0;
-
 void pollmouse()
 {
+        static unsigned char oldmouseb = 0;
         int x,y;
         unsigned char mouseb=mouse_b&7;
         if (mousehack)
@@ -422,7 +424,7 @@ void pollmouse()
         mspacketpos=0;
 }
 
-int standardkeys[][2]=
+static const int standardkeys[][2]=
 {
         {KEY_A,0x1C},{KEY_B,0x32},{KEY_C,0x21},{KEY_D,0x23},
         {KEY_E,0x24},{KEY_F,0x2B},{KEY_G,0x34},{KEY_H,0x33},
@@ -451,23 +453,20 @@ int standardkeys[][2]=
         {-1,-1}
 };
 
-int findkey(int c)
+static int findkey(int c)
 {
-        int d=0;
-        while (1)
-        {
-                if (standardkeys[d][0]==c || standardkeys[d][0]==-1)
-                {
-                        return standardkeys[d][1];
+        int d = 0;
+
+        while (standardkeys[d][0] != -1) {
+                if (standardkeys[d][0] == c) {
+                        return d;
                 }
                 d++;
         }
         return -1;
 }
 
-unsigned char kbdtemp;
-
-int extendedkeys[][3]=
+static const int extendedkeys[][3]=
 {
         {KEY_INSERT,0xE0,0x70},{KEY_HOME,0xE0,0x6C},{KEY_PGUP,0xE0,0x7D},
         {KEY_DEL,0xE0,0x71},{KEY_END, 0xE0,0x69},{KEY_PGDN,0xE0,0x7A},
@@ -477,80 +476,71 @@ int extendedkeys[][3]=
         {-1,-1,-1}
 };
 
-int findextkey(int c)
+static int findextkey(int c)
 {
-        int d=0;
-        while (1)
-        {
-                if (extendedkeys[d][0]==c || extendedkeys[d][0]==-1)
-                {
-                        kbdtemp=extendedkeys[d][1];
-                        return extendedkeys[d][2];
+        int d = 0;
+
+        while (extendedkeys[d][0] != -1) {
+                if (extendedkeys[d][0] == c) {
+                        return d;
                 }
                 d++;
         }
         return -1;
 }
 
-void pollkeyboard()
+void pollkeyboard(void)
 {
         int c;
-        int temp;
-        for (c=0;c<128;c++)
-        {
-//				if (c==KEY_X) c++;
-                if (key[c]!=keys2[c])
-                {
-                        keys2[c]=key[c];
-                        temp=findkey(c);
-//                        rpclog("Found key %i %s\n",c,(keys2[c])?"down":"up");
-//                        printf("Found key %i %02X\n",c,temp);
-                        if (temp!=-1)
-                        {
-                                if (!keys2[c])
-                                {
-                                        kbdpacket[0]=0xF0;
-                                        kbdpacket[1]=temp;
-                                        kbdpacketsize=2;
-                                }
-                                else
-                                {
-                                        kbdpacket[0]=temp;
-                                        kbdpacketsize=1;
-                                }
-                                kbdpacketpos=0;
-                                kcallback=20;
-                                kbdcommand=0xFE;
-//                                rpclog("Sending packet %02X %02X %i\n",kbdpacket[0],kbdpacket[1],kbdpacketsize);
-                                return;
-                        }
-                        else
-                        {
-                                temp=findextkey(c);
-//                                printf("Found extended key %i %02X %02X\n",c,temp,kbdtemp);
-                                if (temp!=-1)
-                                {
-                                        if (!keys2[c])
-                                        {
-                                                kbdpacket[0]=kbdtemp;
-                                                kbdpacket[1]=0xF0;
-                                                kbdpacket[2]=temp;
-                                                kbdpacketsize=3;
-                                        }
-                                        else
-                                        {
-                                                kbdpacket[0]=kbdtemp;
-                                                kbdpacket[1]=temp;
-                                                kbdpacketsize=2;
-                                        }
-                                        kbdpacketpos=0;
-                                        kcallback=20;
-                                        kbdcommand=0xFE;
-//                                        rpclog("Sending packet %02X %02X %02X %i\n",kbdpacket[0],kbdpacket[1],kbdpacket[2],kbdpacketsize);
-                                        return;
-                                }
-                        }
+
+        for (c = 0; c < 128; c++) {
+                int idx;
+
+                if (key[c] == keys2[c]) {
+                        /* no change in state */
+                        continue;
                 }
+
+                keys2[c] = key[c];
+                if ((idx = findkey(c)) != -1) {
+                        if (!keys2[c]) {
+                                kbdpacket[0] = 0xF0;
+                                kbdpacket[1] = standardkeys[idx][1];
+                                kbdpacketsize = 2;
+                        } else {
+                                kbdpacket[0] = standardkeys[idx][1];
+                                kbdpacketsize = 1;
+                        }
+                } else if ((idx = findextkey(c)) != -1) {
+                        if (!keys2[c]) {
+                                kbdpacket[0] = extendedkeys[idx][1];
+                                kbdpacket[1] = 0xF0;
+                                kbdpacket[2] = extendedkeys[idx][2];
+                                kbdpacketsize = 3;
+                        } else {
+                                kbdpacket[0] = extendedkeys[idx][1];
+                                kbdpacket[1] = extendedkeys[idx][2];
+                                kbdpacketsize = 2;
+                        }
+                } else if (c == KEY_PAUSE) {
+                        kbdpacket[0] = 0xe1;
+                        kbdpacket[1] = 0x14;
+                        kbdpacket[2] = 0x77;
+                        kbdpacket[3] = 0xe1;
+                        kbdpacket[4] = 0xf0;
+                        kbdpacket[5] = 0x14;
+                        kbdpacket[6] = 0xf0;
+                        kbdpacket[7] = 0x77;
+                        kbdpacketsize = 8;
+                } else {
+                        /* unhandled key */
+                        continue;
+                }
+
+                kbdpacketpos = 0;
+                kcallback = 20;
+                kbdcommand = 0xFE;
+                return;
         }
 }
 
@@ -643,7 +633,6 @@ void getunbufmouse(uint32_t a)
         writememb(a+4,(osx>>8)&0xFF);
 }
 
-int point=0;
 void getmousepos(int *x, int *y)
 {
         int osx;
@@ -699,11 +688,4 @@ void setmouseparams(uint32_t a)
         mb=readmemb(a+7)|(readmemb(a+8)<<8);
 //        printf("Mouse params %04X %04X %04X %04X\n",ml,mr,mt,mb);
 //        fputs(bigs,olog);
-}
-
-void resetmouse()
-{
-        ml=mt=0;
-        mr=0x4FF;
-        mb=0x3FF;
 }

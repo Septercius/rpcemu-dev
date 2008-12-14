@@ -332,7 +332,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         uint32_t fld;
         uint32_t sldaddr,sld; //,taddr;
         uint32_t oa=addr;
-        int temp,temp2,temp3;
+        int temp,temp2 = 0,temp3 = 0;
         prntrans=0;
         if ((addr&~0xFFF)==0xF03B7000) { rpclog("Translate %08X!\n",addr); prntrans=1; }
         armirq&=~0x40;

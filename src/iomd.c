@@ -10,8 +10,11 @@
 #include "iomd.h"
 #include "arm.h"
 #include "cmos.h"
+#include "podules.h"
 
 //#define OLDTIMER
+
+struct iomd iomd;
 
 int fdccallback = 0;
 int motoron = 0;

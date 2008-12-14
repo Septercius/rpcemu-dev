@@ -9,6 +9,7 @@
 #include "sound.h"
 #include "vidc20.h"
 #include "gui.h"
+#include "network-linux.h"
 
 
 int mousecapture=0;
@@ -64,7 +65,6 @@ void closesoundthread()
 
 void startsoundthread(void)
 {
-    int r;
     if (pthread_create(&sound_thread,NULL,_soundthread,NULL))
     {
         fatal("Couldn't create vidc thread");

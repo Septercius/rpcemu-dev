@@ -101,7 +101,7 @@ void resetcodeblocks()
 }
 
 //#if 0
-void cacheclearpage(unsigned long a)
+void cacheclearpage(uint32_t a)
 {
         int c,d;
         if (!codeblockpresent[a&0xFFFF]) return;
