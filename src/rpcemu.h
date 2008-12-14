@@ -30,6 +30,7 @@
         	#else
         		#define INLINING inline
         	#endif
+                #define sleep(x) Sleep(x)
 	#endif
 
 #else
