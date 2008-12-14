@@ -79,7 +79,6 @@ uint32_t rotatelookup[4096];
 uint32_t inscount;
 //static unsigned char cmosram[256];
 int armirq=0;
-uint32_t output=0;
 int cpsr;
 uint32_t *pcpsr;
 unsigned char *pcpsrb;

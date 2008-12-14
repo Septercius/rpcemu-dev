@@ -13,6 +13,7 @@
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 SYSTEMTIME systemtime;
 #endif
+uint32_t output;
 int cmosstate=0;
 int i2cstate=0;
 int lastdata;
