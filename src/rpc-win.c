@@ -24,6 +24,9 @@ int mcalls=0;
 #include "cmos.h"
 #include "cp15.h"
 #include "82c711.h"
+#include "podules-win.h"
+#include "cdrom-iso.h"
+#include "cdrom-ioctl.h"
 
 int soundenabled=0;
 int mousecapture=0;

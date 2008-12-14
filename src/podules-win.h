@@ -1,3 +1,6 @@
+#ifndef PODULES_WIN_H
+#define PODULES_WIN_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -16,6 +19,11 @@ typedef struct
         int msectimer;
 } podule;
               
+
+extern void opendlls(void);
+
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* ! PODULES_WIN_H */

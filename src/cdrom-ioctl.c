@@ -5,6 +5,7 @@
 #include "ddk/ntddcdrm.h"
 #include "rpcemu.h"
 #include "ide.h"
+#include "arm.h"
 
 ATAPI ioctl_atapi;
 
@@ -22,7 +23,7 @@ void ioctl_playaudio(uint32_t pos, uint32_t len)
 {
         uint32_t addr=pos+150;
         CDROM_PLAY_AUDIO_MSF msf;
-        int size;
+        long size;
         msf.StartingF=(uint8_t)(addr%75); addr/=75;
         msf.StartingS=(uint8_t)(addr%60); addr/=60;
         msf.StartingM=(uint8_t)(addr);
@@ -37,7 +38,7 @@ void ioctl_playaudio(uint32_t pos, uint32_t len)
 
 void ioctl_seek(uint32_t pos)
 {
-        int size;
+        long size;
         rpclog("%08X ",pos);
         pos+=150;
         CDROM_SEEK_AUDIO_MSF msf;
@@ -52,7 +53,7 @@ void ioctl_seek(uint32_t pos)
 
 int ioctl_ready()
 {
-        int size;
+        long size;
         int temp;
         CDROM_TOC ltoc;
         ioctl_open(0);
@@ -78,7 +79,7 @@ uint8_t ioctl_getcurrentsubchannel(uint8_t *b, int msf)
 {
 	CDROM_SUB_Q_DATA_FORMAT insub;
 	SUB_Q_CHANNEL_DATA sub;
-	int size;
+	long size;
 	int pos=0;
 	int c;
 	uint32_t temp;
@@ -112,7 +113,7 @@ uint8_t ioctl_getcurrentsubchannel(uint8_t *b, int msf)
 
 void ioctl_eject()
 {
-        int size;
+        long size;
         ioctl_open(0);
         DeviceIoControl(hIOCTL,IOCTL_STORAGE_EJECT_MEDIA,NULL,0,NULL,0,&size,NULL);
         ioctl_close();
@@ -120,7 +121,7 @@ void ioctl_eject()
 
 void ioctl_load()
 {
-        int size;
+        long size;
         ioctl_open(0);
         DeviceIoControl(hIOCTL,IOCTL_STORAGE_LOAD_MEDIA,NULL,0,NULL,0,&size,NULL);
         ioctl_close();
@@ -128,7 +129,7 @@ void ioctl_load()
 
 void ioctl_pause()
 {
-        int size;
+        long size;
         ioctl_open(0);
         DeviceIoControl(hIOCTL,IOCTL_CDROM_PAUSE_AUDIO,NULL,0,NULL,0,&size,NULL);
         ioctl_close();
@@ -136,7 +137,7 @@ void ioctl_pause()
 
 void ioctl_resume()
 {
-        int size;
+        long size;
         ioctl_open(0);
         DeviceIoControl(hIOCTL,IOCTL_CDROM_RESUME_AUDIO,NULL,0,NULL,0,&size,NULL);
         ioctl_close();
@@ -145,8 +146,8 @@ void ioctl_resume()
 void ioctl_readsector(uint8_t *b, int sector)
 {
         LARGE_INTEGER pos;
-        int size;
-        int c;
+        long size;
+
         pos.QuadPart=sector*2048;
         ioctl_open(0);
         SetFilePointer(hIOCTL,pos.LowPart,&pos.HighPart,FILE_BEGIN);
@@ -157,7 +158,7 @@ void ioctl_readsector(uint8_t *b, int sector)
 int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
 {
         int len=4;
-        int size;
+        long size;
         int c,d;
         uint32_t temp;
         ioctl_open(0);
@@ -214,7 +215,7 @@ int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
 
 void ioctl_stop()
 {
-        int size;
+        long size;
         ioctl_open(0);
         DeviceIoControl(hIOCTL,IOCTL_CDROM_STOP_AUDIO,NULL,0,NULL,0,&size,NULL);
         ioctl_close();
