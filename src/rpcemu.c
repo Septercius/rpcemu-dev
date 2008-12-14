@@ -21,6 +21,7 @@
 #include "podules.h"
 
 int cdromtype;
+unsigned char flaglookup[16][16];
 
 char discname[2][260]={"boot.adf","notboot.adf"};
 char exname[512] = {0};

@@ -88,7 +88,6 @@ int prefabort;
 static void refillpipeline2(void);
 //static char bigs[256];
 //static FILE *olog;
-unsigned char flaglookup[16][16];
 uint32_t rotatelookup[4096];
 //int timetolive = 0;
 uint32_t inscount;
