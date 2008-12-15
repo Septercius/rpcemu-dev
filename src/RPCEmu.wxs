@@ -1,0 +1,108 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2003/01/wi'>
+  <Product Name='RPCEmu' Id='947731FD-A567-4788-906F-3F6489F3450D'
+    Language='1033' Codepage='1252' Version='0.8.0' Manufacturer='Various'>
+
+    <Package Id='8407D737-6348-48FF-BEF3-BB769F322084' Keywords='Installer'
+      Description="RPCEmu 0.8.0 Installer"
+      Comments='RPCEmu is an open source project' Manufacturer='Various'
+      InstallerVersion='100' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
+
+    <Media Id='1' Cabinet='Sample.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
+    <Property Id='DiskPrompt' Value="RPCEmu 0.8.0 Installation [1]" />
+
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+	  <Directory Id='ProgramFilesFolder' Name='PFiles'>
+	    <Directory Id='INSTALLDIR' Name='RPCEmu'>
+
+	  	  <Component Id='MainExecutable' Guid='629C3CDA-A189-49B6-B191-00EE03DB810F'>
+		    <File Id='RPCEmuEXE' Name='rpcemu.exe' LongName='rpcemu.exe' DiskId='1'
+			  Source='..\rpcemu.exe' Vital='yes'>
+			  <Shortcut Id="startmenurpcemu" Directory="ProgramMenuDir" Name="RPCEmu" 
+			    LongName="RPCEmu" WorkingDirectory='INSTALLDIR' Icon="rpcemu.exe" IconIndex="0" />
+<!--			  <Shortcut Id="desktoprpcemu" Directory="DesktopFolder" Name="rpcemu"
+			    LongName="rcpemu" WorkingDirectory='INSTALLDIR' Icon="rpcemu.exe" IconIndex="0" />-->
+		    </File>
+		    <File Id='RPCEmuEXEd' Name='rpcemud.exe' LongName='rpcemud.exe' DiskId='1'
+			  Source='..\rpcemud.exe' Vital='yes'>
+			  <Shortcut Id="startmenurpcemud" Directory="ProgramMenuDir" Name="RPCEmu-d" 
+			    LongName="RPCEmu-dynarec" WorkingDirectory='INSTALLDIR' Icon="rpcemud.exe" IconIndex="0" />
+<!--			  <Shortcut Id="desktoprpcemud" Directory="DesktopFolder" Name="rpcemud"
+			    LongName="rcpemud" WorkingDirectory='INSTALLDIR' Icon="rpcemud.exe" IconIndex="0" />-->
+		    </File>
+		    <File Id='cmosram' Name='cmos.ram' DiskId='1' Source='..\cmos.ram' Vital='yes' />
+		    <File Id='allegro' Name='alleg42.dll' DiskId='1' Source='C:\Windows\System32\alleg42.dll' Vital='yes' />
+		    <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
+			<Shortcut Id="startmenudir" Directory="ProgramMenuDir" Name="rpcemudi" 
+			    LongName="Shortcut to RPCEmu Directory" WorkingDirectory='INSTALLDIR' />
+		  </Component>
+
+	      <Directory Id='roms' Name='roms'>
+	  	    <Component Id='RomsDirectory' Guid='B3BB53E6-7F2B-47C9-AFE1-6971908F601D'>
+              <CreateFolder Directory="roms" />
+			</Component>
+		  </Directory>
+
+ 	      <Directory Id='poduleroms' Name='podulero' LongName="poduleroms">
+	  	    <Component Id='PoduleromsDirectory' Guid='8BF55C3B-E68D-4A64-A5BF-278D0E848DEF'>
+              <File Id='hostfs' Name='hostfs' LongName='hostfs,ffa' DiskId='1' Source='..\riscos-progs\HostFS\hostfs,ffa' Vital='yes' />
+              <File Id='hostfsfiler' Name='hostfsfi' LongName='hostfsfiler,ffa' DiskId='1' Source='..\riscos-progs\HostFS\hostfsfiler,ffa' Vital='yes' />
+			</Component>
+		  </Directory>
+		  
+		  <Directory Id='podules' Name='podules'>
+	  	    <Component Id='PodulesDirectory' Guid='486E7436-F85D-4C39-8358-9F6A88234C94'>
+              <CreateFolder Directory="podules" />
+			</Component>
+		  </Directory>
+		  
+	      <Directory Id='hostfs' Name='hostfs'>
+	  	    <Component Id='HostfsDirectory' Guid='8E58FAB7-781D-4439-B33E-144F84E2F697'>
+			  <CreateFolder Directory="hostfs">
+			  	<Shortcut Id="startmenuhostfs" Directory="ProgramMenuDir" Name="hostfs" 
+			    LongName="Shortcut to HostFS" WorkingDirectory='INSTALLDIR' />
+			  </CreateFolder>
+			</Component>
+		  </Directory>
+		  
+<!--
+          <Component Id='HelperLibrary' Guid='1BC0F2F1-7ECA-40BF-8D78-4CE6369F709C'>
+		    <File Id='HelperDLL' Name='Helper.dll' DiskId='1' Source='Helper.dll' Vital='yes' />
+		  </Component>
+-->
+
+<!--		  
+		  <Component Id='Manual' Guid='64D6A0E4-CB25-41E9-904C-D18B681F8168'>
+		    <File Id='Manual' Name='Manual.pdf' DiskId='1' Source='Manual.pdf'>
+			<Shortcut Id="startmenuManual" Directory="ProgramMenuDir" Name="Manual" LongName="Instruction Manual" />
+		    </File>
+		  </Component>
+-->
+		  
+	    </Directory>
+      </Directory>
+
+      <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
+        <Directory Id="ProgramMenuDir" Name='RPCEmu' />
+      </Directory>
+
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+
+    <Feature Id='Complete' Level='1'>
+      <ComponentRef Id='MainExecutable' />
+      <ComponentRef Id='RomsDirectory' />
+      <ComponentRef Id='PoduleromsDirectory' />
+      <ComponentRef Id='PodulesDirectory' />
+      <ComponentRef Id='HostfsDirectory' />
+<!--
+      <ComponentRef Id='HelperLibrary' />
+      <ComponentRef Id='Manual' />
+-->
+	  </Feature>
+
+    <Icon Id="rpcemu.exe" SourceFile="..\rpcemu.exe" />
+    <Icon Id="rpcemud.exe" SourceFile="..\rpcemud.exe" />
+
+  </Product>
+</Wix>
