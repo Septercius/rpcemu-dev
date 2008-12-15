@@ -1,0 +1,58 @@
+CC = gcc
+CFLAGS = -O3 -Wall -mtune=i686
+LIBS = -lalleg -lcomdlg32
+
+//DYNAREC=1
+
+ifdef DYNAREC
+	CFLAGS += -D DYNAREC
+	EXE = ../rpcemud.exe
+else
+	EXE = ../rpcemu.exe
+endif
+
+all: config.h $(EXE)
+
+OBJS =	82c711.o    \
+	arm.o       \
+	ArmDynarec.o \
+	cdrom-ioctl.o \
+	cdrom-iso.o \
+	cmos.o      \
+	codegen_amd64.o \
+	codegen_null.o \
+	codegen_x86.o \
+	cp15.o      \
+	fpa.o       \
+	gui.o	      \
+	hostfs.o    \
+	ide.o	      \
+	iomd.o      \
+	keyboard.o  \
+	mem.o       \
+	podulerom.o \
+	podules.o   \
+	podules-win.o \
+	rpcemu.o    \
+	rpc-win.o   \
+	romload.o   \
+	sound.o     \
+	vidc20.o    \
+	acorn.o
+
+$(EXE): $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $+ $(LIBS)
+
+acorn.o:
+	windres -O COFF acorn.rc acorn.o
+	
+config.h: config.h.mingw
+	copy /B config.h.mingw config.h
+	
+clean:
+	del *.o
+	del config.h
+
+installer:
+	candle.exe RPCEmu.wxs
+	light.exe RPCEmu.wixobj
