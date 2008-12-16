@@ -18,13 +18,13 @@ void callbackide(void);
 
 ATAPI *atapi;
 
-void callreadcd();
-int skip512[4];
+static void callreadcd();
+static int skip512[4];
 int cdromenabled=1;
-void atapicommand();
+static void atapicommand();
 int timetolive;
 int dumpedread=0;
-struct
+static struct
 {
         unsigned char atastat[4];
         unsigned char error,status;
@@ -42,32 +42,32 @@ struct
 } ide;
 
 int ideboard;
-int idereset=0;
-unsigned short idebuffer[65536];
-unsigned char *idebufferb;
-FILE *hdfile[4]={NULL,NULL};
+static int idereset;
+static unsigned short idebuffer[65536];
+static unsigned char *idebufferb;
+static FILE *hdfile[4];
 //FILE *cdrom=NULL;
-void closeide0(void)
+static void closeide0(void)
 {
         fclose(hdfile[0]);
 }
 
-void closeide1(void)
+static void closeide1(void)
 {
         fclose(hdfile[1]);
 }
 
-void closeide2(void)
+static void closeide2(void)
 {
         fclose(hdfile[2]);
 }
 
-void closeide3(void)
+static void closeide3(void)
 {
         fclose(hdfile[3]);
 }
 
-void loadhd(int d, char *fn)
+static void loadhd(int d, const char *fn)
 {
         if (!hdfile[d])
         {
@@ -766,7 +766,7 @@ void callbackide(void)
 unsigned char atapibuffer[256];
 int atapilen;
 
-void atapi_notready()
+static void atapi_notready()
 {
         /*Medium not present is 02/3A/--*/
         /*cylprecomp is error number*/
@@ -786,8 +786,8 @@ void atapi_discchanged()
 }
 /*Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
   Not that it means anything*/
-int cdromspeed=706;
-void atapicommand()
+static int cdromspeed = 706;
+static void atapicommand()
 {
         int c;
         int len;
@@ -1218,7 +1218,7 @@ void atapicommand()
         }
 }
 
-void callreadcd()
+static void callreadcd()
 {
         iomd.statb&=~2;
         updateirqs();
