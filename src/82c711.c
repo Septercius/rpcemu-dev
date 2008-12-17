@@ -6,17 +6,19 @@
 #include <stdint.h>
 
 #include "rpcemu.h"
+#include "82c711.h"
 #include "vidc20.h"
 #include "iomd.h"
 #include "ide.h"
 #include "arm.h"
 
-void fdcsend(uint8_t val);
-int configmode=0;
-uint8_t configregs[16];
-int configreg;
+static void fdcsend(uint8_t val);
 
-struct
+static int configmode = 0;
+static uint8_t configregs[16];
+static int configreg;
+
+static struct
 {
         uint8_t dor;
         int reset;
@@ -34,12 +36,14 @@ struct
         int oldpos;
 } fdc;
 
-uint8_t disc[2][2][80][10][1024];
-int discdensity[2];
-int discsectors[2];
-int discchanged[2];
+static uint8_t disc[2][2][80][10][1024];
+static int discdensity[2];
+static int discsectors[2];
+static int discchanged[2];
 
-void loadadf(char *fn, int drive)
+static uint8_t scratch, linectrl;
+
+void loadadf(const char *fn, int drive)
 {
         FILE *f=fopen(fn,"rb");
         int h,t,s,b;
@@ -75,7 +79,7 @@ void loadadf(char *fn, int drive)
         fclose(f);
 }
 
-void saveadf(char *fn, int drive)
+void saveadf(const char *fn, int drive)
 {
         FILE *f;
         int h,t,s,b;
@@ -101,7 +105,6 @@ void saveadf(char *fn, int drive)
         fclose(f);
 }
 
-uint8_t scratch,linectrl;
 void reset82c711()
 {
         configregs[0xA]=0;
@@ -111,7 +114,7 @@ void reset82c711()
         fdccallback=0;
 }
 
-void writefdc(uint32_t addr, uint32_t val)
+static void writefdc(uint32_t addr, uint32_t val)
 {
         if (configmode==2)
         {
@@ -298,9 +301,9 @@ void writefdc(uint32_t addr, uint32_t val)
         }
 }
 
-unsigned char printstat;
 void write82c711(uint32_t addr, uint32_t val)
 {
+	static unsigned char printstat = 0;
         uint32_t addr2;
         addr2=(addr>>2)&0x3FF;
         if (configmode!=2)
@@ -345,7 +348,7 @@ void write82c711(uint32_t addr, uint32_t val)
         }
 }
 
-uint8_t readfdc(uint32_t addr)
+static uint8_t readfdc(uint32_t addr)
 {
         if (configmode==2 && ((addr>>2)&0x3FF)==0x3F1)
         {
@@ -375,7 +378,7 @@ uint8_t readfdc(uint32_t addr)
         return 0;
 }
 
-void fdcsend(uint8_t val)
+static void fdcsend(uint8_t val)
 {
 //        printf("New FDC data %02X %02X %i %i\n",val,fdc.command,fdc.incommand,fdc.commandpos);
         fdc.data=val;
@@ -384,14 +387,14 @@ void fdcsend(uint8_t val)
         updateirqs();
 }
 
-void fdcsend2(uint8_t val)
+static void fdcsend2(uint8_t val)
 {
 //        printf("NO INT - New FDC data %02X %02X %i %i\n",val,fdc.command,fdc.incommand,fdc.commandpos);
         fdc.data=val;
         fdc.status=0xD0;
 }
 
-void fdcsenddata(uint8_t val)
+static void fdcsenddata(uint8_t val)
 {
 //        printf("New FDC DMA data %02X %02X %i %i  %i %i %i\n",val,fdc.command,fdc.incommand,fdc.commandpos,fdc.side,fdc.track,fdc.sector);
         fdc.dmadat=val;
@@ -399,9 +402,10 @@ void fdcsenddata(uint8_t val)
         updateirqs();
 //        timetolive=50;
 }
-uint32_t lastaddr2;
+
 uint8_t read82c711(uint32_t addr)
 {
+        static uint32_t lastaddr2 = 0;
         uint32_t addr2;
         //FILE *dumpf;
         //int c;
