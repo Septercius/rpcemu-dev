@@ -91,11 +91,18 @@ static void loadhd(int d, const char *fn)
 
 void resetide(void)
 {
+        int d;
+
         idebufferb=(unsigned char *)idebuffer;
-        if (hdfile[0]) fclose(hdfile[0]);
-        if (hdfile[1]) fclose(hdfile[1]);
-        if (hdfile[2]) fclose(hdfile[2]);
-        if (hdfile[3]) fclose(hdfile[3]);
+
+        /* Close hard disk image files (if previously open) */
+        for (d = 0; d < 4; d++) {
+                if (hdfile[d]) {
+                        fclose(hdfile[d]);
+                        hdfile[d] = NULL;
+                }
+        }
+
         ide.atastat[0]=ide.atastat[2]=0x40;
         idecallback=0;
         loadhd(0,"hd4.hdf");
