@@ -47,25 +47,6 @@ static unsigned short idebuffer[65536];
 static unsigned char *idebufferb;
 static FILE *hdfile[4];
 //FILE *cdrom=NULL;
-static void closeide0(void)
-{
-        fclose(hdfile[0]);
-}
-
-static void closeide1(void)
-{
-        fclose(hdfile[1]);
-}
-
-static void closeide2(void)
-{
-        fclose(hdfile[2]);
-}
-
-static void closeide3(void)
-{
-        fclose(hdfile[3]);
-}
 
 static void loadhd(int d, const char *fn)
 {
@@ -84,13 +65,6 @@ static void loadhd(int d, const char *fn)
                                 hdfile[d]=fopen64(fn,"rb+");
                                 if (!hdfile[d]) fatal("Cannot open file %s", fn);
                         }
-                }
-                switch (d)
-                {
-                        case 0: atexit(closeide0); break;
-                        case 1: atexit(closeide1); break;
-                        case 2: atexit(closeide2); break;
-                        case 3: atexit(closeide3); break;
                 }
         }
         fseek(hdfile[d],0xFC1,SEEK_SET);
