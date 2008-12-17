@@ -1219,23 +1219,3 @@ static void callreadcd()
                 ide.packlen=2048;
         output=1;
 }
-
-void filecoresectorop()
-{
-        int c,d;
-        uint32_t temp[256];
-        fseek(hdfile[(armregs[2]>>29)&1],((armregs[2]&0x1FFFFFFF)<<9)+512,SEEK_SET);
-        for (c=armregs[4];c>0;c-=512)
-        {
-                fread(temp,512,1,hdfile[(armregs[2]>>29)&1]);
-                for (d=0;d<((c>=512)?512:c);d+=4)
-                    writememl(armregs[3]+d,temp[d>>2]);
-//                temp=getc(hdfile[0]);
-//                writememb(armregs[3],temp);
-                armregs[3]+=d;
-        }
-//        armregs[3]+=armregs[4];
-        armregs[2]+=armregs[4];
-        armregs[4]=0;
-}
-
