@@ -10,27 +10,28 @@
 
 extern void ioctl_init(void);
 
-DIALOG configuregui[];
-int menuexit(void)
+static DIALOG configuregui[];
+
+static int menuexit(void)
 {
         quited=1;
         return D_CLOSE;
 }
 
-int menureset(void)
+static int menureset(void)
 {
         resetrpc();
         return D_CLOSE;
 }
 
-MENU filemenu[]=
+static MENU filemenu[]=
 {
         {"&Reset",menureset,NULL,0,NULL},
         {"E&xit",menuexit,NULL,0,NULL},
         {NULL,NULL,NULL,0,NULL}
 };
 
-int menuld0(void)
+static int menuld0(void)
 {
         char fn[260];
         int ret;//,c;
@@ -46,7 +47,7 @@ int menuld0(void)
         return D_EXIT;
 }
 
-int menuld1(void)
+static int menuld1(void)
 {
         char fn[260];
         int ret;//,c;
@@ -62,14 +63,14 @@ int menuld1(void)
         return D_EXIT;
 }
 
-MENU discmenu[]=
+static MENU discmenu[]=
 {
         {"Load drive :&0...",menuld0,NULL,0,NULL},
         {"Load drive :&1...",menuld1,NULL,0,NULL},
         {NULL,NULL,NULL,0,NULL}
 };
 
-int cddisabled()
+static int cddisabled(void)
 {
 	int res;
 	if (cdromenabled)
@@ -84,7 +85,7 @@ int cddisabled()
 	return D_CLOSE;
 }
 
-int cdempty()
+static int cdempty(void)
 {
 	int res;
 	if (!cdromenabled)
@@ -105,7 +106,7 @@ int cdempty()
 
 char isoname[512]="";
 
-int cdisoimage()
+static int cdisoimage(void)
 {
         char fn[260];
         int ret,res;
@@ -131,8 +132,9 @@ int cdisoimage()
 		        }
         return D_EXIT;
 }
+
 #if defined linux || defined __linux
-int cdioctl()
+static int cdioctl(void)
 {
 	int res;
 	if (!cdromenabled)
@@ -150,7 +152,8 @@ int cdioctl()
 	return D_CLOSE;
 }
 #endif
-MENU cdmenu[]=
+
+static MENU cdmenu[]=
 {
 	{"&Disabled",cddisabled,NULL,0,NULL},
 	{"&Empty",cdempty,NULL,0,NULL},
@@ -161,38 +164,39 @@ MENU cdmenu[]=
 	{NULL,NULL,NULL,0,NULL}
 };
 
-MENU settingsmenu[];
+static MENU settingsmenu[];
 
-int menufullscreen(void)
+static int menufullscreen(void)
 {
         togglefullscreen(!fullscreen);
         settingsmenu[1].flags=(fullscreen)?D_SELECTED:0;
         return D_CLOSE;
 }
 
-int menualt(void)
+static int menualt(void)
 {
         stretchmode^=1;
         settingsmenu[2].flags=(stretchmode)?D_SELECTED:0;
         return D_CLOSE;
 }
 
-int menublt(void)
+static int menublt(void)
 {
         skipblits^=1;
         settingsmenu[3].flags=(skipblits)?D_SELECTED:0;
         return D_CLOSE;
 }
 
-int menumouse(void)
+static int menumouse(void)
 {
         mousehackon^=1;
         settingsmenu[4].flags=(mousehackon)?D_SELECTED:0;
         return D_CLOSE;
 }
 
-char hzstring[20];
-int menusettings(void)
+static char hzstring[20];
+
+static int menusettings(void)
 {
         int c,d;
         int changed=0;
@@ -242,7 +246,7 @@ int menusettings(void)
         return D_CLOSE;
 }
 
-int hzcallback(void *dp3, int d2)
+static int hzcallback(void *dp3, int d2)
 {
         sprintf(hzstring,"%ihz",(d2*5)+20);
         configuregui[21].dp=hzstring;
@@ -252,7 +256,7 @@ int hzcallback(void *dp3, int d2)
         return 0;
 }
 
-MENU settingsmenu[]=
+static MENU settingsmenu[]=
 {
         {"&Settings...",menusettings,NULL,0,NULL},
         {"&Fullscreen mode",menufullscreen,NULL,0,NULL},
@@ -263,7 +267,7 @@ MENU settingsmenu[]=
         {NULL,NULL,NULL,0,NULL}
 };
 
-MENU mainmenu[]=
+static MENU mainmenu[]=
 {
         {"&File",NULL,filemenu,0,NULL},
         {"&Disc",NULL,discmenu,0,NULL},
@@ -273,7 +277,7 @@ MENU mainmenu[]=
 
 #define CY 0
 #define CX 0
-DIALOG configuregui[]=
+static DIALOG configuregui[]=
 {
         {d_shadow_box_proc, CX,CY-8, 160,176,0,0xFFFFFFFF,0,0,     0,0,0,0,0},
         
@@ -318,7 +322,7 @@ DIALOG configuregui[]=
         {0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL}
 };
 
-DIALOG rpcemugui[]=
+static DIALOG rpcemugui[]=
 {
         {d_menu_proc,  0,   0,   0,  0, 15,0,0,0,     0,0,mainmenu,NULL,NULL},
 	{d_yield_proc,  0,   0,   0,  0, 15,0,0,0,     0,0,NULL,NULL,NULL},
