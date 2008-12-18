@@ -279,45 +279,45 @@ static MENU mainmenu[]=
 #define CX 0
 static DIALOG configuregui[]=
 {
-        {d_shadow_box_proc, CX,CY-8, 160,176,0,0xFFFFFFFF,0,0,     0,0,0,0,0},
+        {d_shadow_box_proc, CX,CY-8, 160,176,0,-1,0,0,     0,0,0,0,0},
         
-        {d_button_proc,CX+8,CY+144,64, 16, 0,0xFFFFFFFF,0,D_EXIT,0,0,"OK",0,0},
-        {d_button_proc,CX+88,CY+144,64, 16, 0,0xFFFFFFFF,0,D_EXIT,0,0,"Cancel",0,0},
+        {d_button_proc,CX+8,CY+144,64, 16, 0,-1,0,D_EXIT,0,0,"OK",0,0},
+        {d_button_proc,CX+88,CY+144,64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0},
 
-        {d_text_proc,CX+8,CY-4,40,8,0,0xFFFFFFFF,0,0,0,0,"CPU :",0,0},
+        {d_text_proc,CX+8,CY-4,40,8,0,-1,0,0,0,0,"CPU :",0,0},
 #ifdef DYNAREC
-        {d_radio_proc,CX+8,CY+4,64,16,0,0xFFFFFFFF,0,D_DISABLED, 0 ,0,"ARM7500",0,0},
-        {d_radio_proc,CX+8,CY+4+16,64,16,0,0xFFFFFFFF,0,D_DISABLED, 0 ,0,"ARM610",0,0},
-        {d_radio_proc,CX+8,CY+4+32,64,16,0,0xFFFFFFFF,0,D_DISABLED, 0 ,0,"ARM710",0,0},
-        {d_radio_proc,CX+8,CY+4+48,64,16,0,0xFFFFFFFF,0,D_DISABLED, 0 ,0,"SA110",0,0},
+        {d_radio_proc,CX+8,CY+4,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM7500",0,0},
+        {d_radio_proc,CX+8,CY+4+16,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM610",0,0},
+        {d_radio_proc,CX+8,CY+4+32,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM710",0,0},
+        {d_radio_proc,CX+8,CY+4+48,64,16,0,-1,0,D_DISABLED, 0 ,0,"SA110",0,0},
 #else
-        {d_radio_proc,CX+8,CY+4,64,16,0,0xFFFFFFFF,0,0, 0 ,0,"ARM7500",0,0},
-        {d_radio_proc,CX+8,CY+4+16,64,16,0,0xFFFFFFFF,0,0, 0 ,0,"ARM610",0,0},
-        {d_radio_proc,CX+8,CY+4+32,64,16,0,0xFFFFFFFF,0,0, 0 ,0,"ARM710",0,0},
-        {d_radio_proc,CX+8,CY+4+48,64,16,0,0xFFFFFFFF,0,0, 0 ,0,"SA110",0,0},
+        {d_radio_proc,CX+8,CY+4,64,16,0,-1,0,0, 0 ,0,"ARM7500",0,0},
+        {d_radio_proc,CX+8,CY+4+16,64,16,0,-1,0,0, 0 ,0,"ARM610",0,0},
+        {d_radio_proc,CX+8,CY+4+32,64,16,0,-1,0,0, 0 ,0,"ARM710",0,0},
+        {d_radio_proc,CX+8,CY+4+48,64,16,0,-1,0,0, 0 ,0,"SA110",0,0},
 #endif
-        {d_text_proc,CX+88,CY-4,40,8,0,0xFFFFFFFF,0,0,0,0,"RAM :",0,0},
-        {d_radio_proc,CX+88,CY+4,64,16,0,0xFFFFFFFF,0,0, 1, 0,"4mb",0,0},
-        {d_radio_proc,CX+88,CY+4+16,64,16,0,0xFFFFFFFF,0,0, 1, 0,"8mb",0,0},
-        {d_radio_proc,CX+88,CY+4+32,64,16,0,0xFFFFFFFF,0,0, 1, 0,"16mb",0,0},
-        {d_radio_proc,CX+88,CY+4+48,64,16,0,0xFFFFFFFF,0,0, 1, 0,"32mb",0,0},
-        {d_radio_proc,CX+88,CY+4+64,64,16,0,0xFFFFFFFF,0,0, 1, 0,"64mb",0,0},
-        {d_radio_proc,CX+88,CY+4+80,64,16,0,0xFFFFFFFF,0,0, 1, 0,"128mb",0,0},
+        {d_text_proc,CX+88,CY-4,40,8,0,-1,0,0,0,0,"RAM :",0,0},
+        {d_radio_proc,CX+88,CY+4,64,16,0,-1,0,0, 1, 0,"4mb",0,0},
+        {d_radio_proc,CX+88,CY+4+16,64,16,0,-1,0,0, 1, 0,"8mb",0,0},
+        {d_radio_proc,CX+88,CY+4+32,64,16,0,-1,0,0, 1, 0,"16mb",0,0},
+        {d_radio_proc,CX+88,CY+4+48,64,16,0,-1,0,0, 1, 0,"32mb",0,0},
+        {d_radio_proc,CX+88,CY+4+64,64,16,0,-1,0,0, 1, 0,"64mb",0,0},
+        {d_radio_proc,CX+88,CY+4+80,64,16,0,-1,0,0, 1, 0,"128mb",0,0},
         
-        {d_text_proc,CX+8,CY+4+72,40,8,0,0xFFFFFFFF,0,0,0,0,"VRAM :",0,0},
+        {d_text_proc,CX+8,CY+4+72,40,8,0,-1,0,0,0,0,"VRAM :",0,0},
 #ifdef DYNAREC
-        {d_radio_proc,CX+8,CY+4+80,64,16,0,0xFFFFFFFF,0,D_DISABLED, 2, 0,"None",0,0},
-        {d_radio_proc,CX+8,CY+4+96,64,16,0,0xFFFFFFFF,0,D_DISABLED, 2, 0,"2mb",0,0},
+        {d_radio_proc,CX+8,CY+4+80,64,16,0,-1,0,D_DISABLED, 2, 0,"None",0,0},
+        {d_radio_proc,CX+8,CY+4+96,64,16,0,-1,0,D_DISABLED, 2, 0,"2mb",0,0},
 #else
-        {d_radio_proc,CX+8,CY+4+80,64,16,0,0xFFFFFFFF,0,0, 2, 0,"None",0,0},
-        {d_radio_proc,CX+8,CY+4+96,64,16,0,0xFFFFFFFF,0,0, 2, 0,"2mb",0,0},
+        {d_radio_proc,CX+8,CY+4+80,64,16,0,-1,0,0, 2, 0,"None",0,0},
+        {d_radio_proc,CX+8,CY+4+96,64,16,0,-1,0,0, 2, 0,"2mb",0,0},
 #endif
         
-        {d_check_proc,CX+88,CY+4+96,64,16,0,0xFFFFFFFF,0,D_DISABLED,1,0,  "Sound",0,0},
+        {d_check_proc,CX+88,CY+4+96,64,16,0,-1,0,D_DISABLED,1,0,  "Sound",0,0},
         
-        {d_text_proc,CX+8,CY+4+112,40,8,0,0xFFFFFFFF,0,0,0,0,"Refresh rate :",0,0},
-        {d_slider_proc,CX+8,CY+4+120,104,16,0,0xFFFFFFFF,0,0,80/5,0,NULL,hzcallback,0},
-        {d_text_proc,CX+112,CY+4+120+4+1,40,8,0,0xFFFFFFFF,0,0,0,0,NULL,0,0},
+        {d_text_proc,CX+8,CY+4+112,40,8,0,-1,0,0,0,0,"Refresh rate :",0,0},
+        {d_slider_proc,CX+8,CY+4+120,104,16,0,-1,0,0,80/5,0,NULL,hzcallback,0},
+        {d_text_proc,CX+112,CY+4+120+4+1,40,8,0,-1,0,0,0,0,NULL,0,0},
         
         {0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL}
 };
