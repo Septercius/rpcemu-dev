@@ -23,7 +23,7 @@ int kcallback = 0, mcallback = 0;
 int idecallback = 0;
 uint32_t cinit = 0;
 
-int sndon=0;
+static int sndon = 0;
 static int flyback=0;
 
 void updateirqs(void)
@@ -42,9 +42,10 @@ void clockcmosproc()
         cmostick();
 }
 
-int clockcmos=0;
-void gentimerirq(void)
+static void gentimerirq(void)
 {
+        static int clockcmos = 0;
+
         if (!infocus) return;
         clockcmos++;
         if (clockcmos==5)
@@ -80,13 +81,13 @@ void gentimerirq(void)
         runpoduletimers(2);
 }
 
-void timerairq(void)
+static void timerairq(void)
 {
         iomd.stata|=0x20;
         updateirqs();
 }
 
-void settimera(int latch)
+static void settimera(int latch)
 {
         latch++;
         #ifdef OLDTIMER
@@ -103,7 +104,7 @@ void timerbirq(void)
         updateirqs();
 }
 
-void settimerb(int latch)
+static void settimerb(int latch)
 {
         latch++;
         #ifdef OLDTIMER
@@ -114,10 +115,11 @@ void settimerb(int latch)
         #endif
 }
 
-int nextbuf;
-int readinc=0;
+
 void writeiomd(uint32_t addr, uint32_t val)
 {
+        static int readinc = 0;
+
         switch (addr&0x1FC)
         {
                 case 0: /*Control*/
@@ -190,7 +192,6 @@ void writeiomd(uint32_t addr, uint32_t val)
                 iomd.state&=~0x10;
                 updateirqs();
                 soundaddr[(addr>>2)&3]=val;
-                nextbuf=1;
 //                rpclog("Buffer A start %08X len %08X\nBuffer B start %08X len %08X\n",soundaddr[0],(soundaddr[1]-soundaddr[0])&0xFFC,soundaddr[2],(soundaddr[3]-soundaddr[2])&0xFFC);
                 return;
                 case 0x190: /*Sound DMA control*/

@@ -18,7 +18,6 @@ struct iomd
 
 extern struct iomd iomd;
 
-extern  void gentimerirq(void);
 extern  int delaygenirqleft, delaygenirq;
 
 extern  int i2cclock,i2cdata;
