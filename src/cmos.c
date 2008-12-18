@@ -9,17 +9,19 @@
 #include <string.h>
 #include <time.h>
 #include "rpcemu.h"
+#include "cmos.h"
 
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 SYSTEMTIME systemtime;
 #endif
 uint32_t output;
-int cmosstate=0;
-int i2cstate=0;
-int lastdata;
-unsigned char i2cbyte;
-int i2cclock=1,i2cdata=1,i2cpos;
-int i2ctransmit=-1;
+static int cmosstate = 0;
+static int i2cstate = 0;
+static int lastdata;
+static unsigned char i2cbyte;
+int i2cclock=1,i2cdata=1;
+static int i2cpos;
+static int i2ctransmit = -1;
 
 #define CMOS 1
 #define ARM -1
@@ -37,12 +39,12 @@ int i2ctransmit=-1;
 
 #define BIN2BCD(val)	((((val) / 10) << 4) | ((val) % 10))
 
-unsigned char cmosaddr;
-unsigned char cmosram[256];
+static unsigned char cmosaddr;
+static unsigned char cmosram[256];
 static int cmosrw;
 static FILE *cmosf;
 
-void cmosgettime();
+static void cmosgettime(void);
 
 void loadcmos()
 {
@@ -72,13 +74,13 @@ void savecmos()
         fclose(cmosf);
 }
 
-void cmosstop()
+static void cmosstop(void)
 {
         cmosstate=CMOS_IDLE;
         i2ctransmit=ARM;
 }
 
-void cmosnextbyte()
+static void cmosnextbyte(void)
 {
         i2cbyte=cmosram[((cmosaddr++))&0xFF];
 }
@@ -88,7 +90,7 @@ unsigned char cmosgetbyte()
         return cmosram[cmosaddr++];
 }
 
-void cmosgettime()
+static void cmosgettime(void)
 {
 #if defined WIN32 || defined _WIN32 || defined _WIN32
         int c,d;
@@ -171,7 +173,7 @@ void cmostick()
 #endif
 }
 
-void cmoswrite(unsigned char byte)
+static void cmoswrite(unsigned char byte)
 {
   //        char s[80];
         switch (cmosstate)
