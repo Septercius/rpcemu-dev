@@ -10,16 +10,17 @@ int icache = 0;
 #define TLBCACHESIZE 256
 int mmucount=0;
 int pcisrom = 0;
-uint32_t tlbcache[0x100000] = {0}, tlbcache2[TLBCACHESIZE] = {0};
+uint32_t tlbcache[0x100000] = {0};
+static uint32_t tlbcache2[TLBCACHESIZE];
 unsigned long *vraddrl = 0;
 uint32_t vraddrls[1024] = {0}, vraddrphys[1024] = {0};
 unsigned long *vwaddrl = 0;
 uint32_t vwaddrls[1024] = {0}, vwaddrphys[1024] = {0};
-int tlbcachepos = 0;
+static int tlbcachepos = 0;
 int tlbs = 0, flushes = 0;
-uint32_t pccache = 0, readcache , writecache = 0;
+uint32_t pccache = 0;
 uint32_t opcode = 0;
-struct cp15
+static struct cp15
 {
         uint32_t tlbbase,dacr;
         uint32_t far,fsr,ctrl;
@@ -50,10 +51,10 @@ void resetcp15(void)
         memset(vwaddrls,0xFF,1024*sizeof(uint32_t));
 }
 
-int translations=0;
-uint32_t lastcache;
+static int translations;
+static uint32_t lastcache;
 static uint32_t *tlbram;
-uint32_t tlbrammask;
+static uint32_t tlbrammask;
 
 #define CRm (opcode&0xF)
 #define OPC2 ((opcode>>5)&7)
@@ -158,7 +159,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 //                resetcodeblocks();
 //                rpclog("TLB flush %08X %08X %07X %i %i %08X\n",addr,val,PC,ins,translations,lastcache);
                 clearmemcache();
-                pccache=readcache=writecache=0xFFFFFFFF;
+                pccache = 0xFFFFFFFF;
                 blockend=1;
                 memset(raddrl,0xFF,1024);
 //                for (c=0;c<256;c++)
@@ -216,7 +217,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 }*/
                 if ((CRm&1) && !(OPC2)) resetcodeblocks();
 //                rpclog("Cache invalidate %08X\n",PC);
-                pccache=readcache=writecache=0xFFFFFFFF;
+                pccache = 0xFFFFFFFF;
 //                blockend=1;
                 memset(raddrl,0xFF,1024);
 //                for (c=0;c<256;c++)
@@ -278,7 +279,7 @@ uint32_t readcp15(uint32_t addr)
                         if (output) rpclog("PERMISSIONS FAULT! %08X %07X %08X %08X %08X %08X %i %03X %08X %08X %08X %08X\n",addr,PC,opcode,oldpc,oldpc2,oldpc3,p,cp15.ctrl&0x300,fld,sld,armregs[16],cp15.dacr);  \
                         return 0xFFFFFFFF
 
-int checkpermissions(int p, int fsr, int rw, uint32_t addr, uint32_t fld, uint32_t sld, int prefetch)
+static int checkpermissions(int p, int fsr, int rw, uint32_t addr, uint32_t fld, uint32_t sld, int prefetch)
 {
         switch (p)
         {
@@ -310,7 +311,7 @@ int checkpermissions(int p, int fsr, int rw, uint32_t addr, uint32_t fld, uint32
         return 0;
 }
 
-int checkdomain(uint32_t addr, int domain, int type, int prefetch)
+static int checkdomain(uint32_t addr, int domain, int type, int prefetch)
 {
         int temp=cp15.dacr>>(domain<<1);
         if (!(temp&3))
@@ -325,7 +326,9 @@ int checkdomain(uint32_t addr, int domain, int type, int prefetch)
         }
         return temp&3;
 }
-int prntrans=0;
+
+static int prntrans;
+
 uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 {
         uint32_t vaddr=((addr>>18)&~3)|cp15.tlbbase;
