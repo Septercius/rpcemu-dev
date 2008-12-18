@@ -42,13 +42,14 @@ static int i2ctransmit = -1;
 static unsigned char cmosaddr;
 static unsigned char cmosram[256];
 static int cmosrw;
-static FILE *cmosf;
 
 static void cmosgettime(void);
 
 void loadcmos()
 {
         char fn[512];
+        FILE *cmosf;
+
         append_filename(fn,exname,"cmos.ram",511);
         cmosf=fopen(fn,"rb");
 
@@ -66,6 +67,8 @@ void loadcmos()
 void savecmos()
 {
         char fn[512];
+        FILE *cmosf;
+
         append_filename(fn,exname,"cmos.ram",511);
         cmosf=fopen("cmos.ram","wb");
 //        for (c=0;c<256;c++)
