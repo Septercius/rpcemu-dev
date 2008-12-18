@@ -9,6 +9,7 @@
 #include "codegen_x86.h"
 #include "mem.h"
 #include "arm.h"
+#include "cp15.h"
 
 #ifdef __linux__
 #include <sys/mman.h>
@@ -45,7 +46,7 @@ int tempinscount = 0;
 int bigflagtest=0;
 int codeblockpos = 0;
 
-#define addbyte(a)         rcodeblock[blockpoint2][codeblockpos++]=(uint8_t)(a)
+#define addbyte(a)         rcodeblock[blockpoint2][codeblockpos]=(uint8_t)(a),codeblockpos++
 #define addlong(a)         *((unsigned long *)&rcodeblock[blockpoint2][codeblockpos])=(unsigned long)a; \
                            codeblockpos+=4
 
@@ -891,7 +892,7 @@ int recompile(uint32_t opcode, uint32_t *pcpsr)
         int c,d;
         int first=0;
         uint32_t templ;
-        uint32_t *tempp;
+
         switch ((opcode>>20)&0xFF)
         {
                 case 0x00: /*AND reg*/

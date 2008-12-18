@@ -6,6 +6,8 @@ extern uint32_t readcp15(uint32_t addr);
 extern void resetcp15(void);
 extern uint32_t *getpccache(uint32_t addr);
 extern uint32_t translateaddress2(uint32_t addr, int rw, int prefetch);
+extern int isvalidforfastread(uint32_t addr);
+extern int isvalidforfastwrite(uint32_t addr);
 extern int flushes;
 extern int tlbs;
 extern int icache;

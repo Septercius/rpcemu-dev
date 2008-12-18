@@ -59,6 +59,8 @@ int inscounts[256];
         }
 }*/
 
+extern void removeblock(void); /* in codegen_*.c */
+	
 int r15diff;
 //static int r11check=0;
 static int oldmode;
