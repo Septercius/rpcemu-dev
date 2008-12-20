@@ -417,9 +417,9 @@ void dumpregs()
 {
 /*}*/
 #if 1
-        FILE *f;//,*ff;
+//        FILE *f;//,*ff;
         char s[1024];
-        int c;//,d,e;
+//        int c;//,d,e;
         //uint32_t templ;
 /*        for (c=0;c<0x100;c++)
         {
@@ -507,15 +507,18 @@ memmode=1;
         for (c=0x8000;c<0x70000;c++)
             putc(readmemb(c),f);
         fclose(f);*/
+/*
         f=fopen("ram0.dmp","wb");
         for (c=0x0000;c<0x8000;c++)
             putc(readmemb(c),f);
         fclose(f);
-
+*/
+/*
         f=fopen("ram21.dmp","wb");
         for (c=0x2100000;c<0x21FFFFF;c++)
             putc(readmemb(c),f);
         fclose(f);
+*/
   /*      f=fopen("ram10.dmp","wb");
         for (c=0x10000000;c<0x10800000;c++)
             putc(readmemb(c),f);
@@ -544,10 +547,12 @@ memmode=1;
                 putc(templ>>24,f);
         }
         fclose(f);*/
+/*
         f=fopen("rambsd.dmp","wb");
         for (c=0x3D9000;c<0x3DF000;c++)
             putc(readmemb(c),f);
         fclose(f);
+*/
 /*        f=fopen("ram0.dmp","wb");
         ff=fopen("ram02.dmp","wb");
         for (c=0;c<0x800;c+=4)
