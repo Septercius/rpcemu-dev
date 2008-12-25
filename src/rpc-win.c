@@ -13,6 +13,7 @@ int mcalls=0;
 #include <process.h>
 #include <commctrl.h>
 #include "rpcemu.h"
+#include "config.h"
 #include "resources.h"
 #include "vidc20.h"
 #include "keyboard.h"
@@ -319,7 +320,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         ghwnd = CreateWindowEx (
            0,                   /* Extended possibilites for variation */
            szClassName,         /* Classname */
-           "RPCemu v0.7",       /* Title Text */           
+           "RPCemu v" VERSION,      /* Title Text */
 /*           WS_OVERLAPPEDWINDOW,*/ /* default window */           
            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX, /* overlapped window with no sizeing frame */
            CW_USEDEFAULT,       /* Windows decides the position */
@@ -385,8 +386,8 @@ infocus=1;
                 }
                 if (updatemips)
                 {
-                        if (mousehack) sprintf(s,"RPCemu v0.7 - %f MIPS %f %i %f %i",mips,tlbsec,ins,flushsec,vsyncints);
-                        else           sprintf(s,"RPCemu v0.7 - %f MIPS %f %i %f %i - %s",mips,tlbsec,ins,flushsec,vsyncints,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
+                        if (mousehack) sprintf(s, "RPCemu v" VERSION " - %f MIPS %f %i %f %i",mips,tlbsec,ins,flushsec,vsyncints);
+                        else           sprintf(s, "RPCemu v" VERSION " - %f MIPS %f %i %f %i - %s",mips,tlbsec,ins,flushsec,vsyncints,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
                         SetWindowText(ghwnd, s);
                         updatemips=0;
                 }
