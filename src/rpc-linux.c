@@ -2,6 +2,8 @@
   Main loop
   Not just for Linux - works as a Win32 console app as well*/
 
+#include "config.h"
+
 #include <allegro.h>
 #include <pthread.h>
 #include "rpcemu.h"
@@ -215,6 +217,8 @@ int main (int argc, char ** argv)
 
         infocus=1;
         allegro_init();
+
+        set_window_title("RPCEmu v" VERSION);
 
 	LOCK_FUNCTION(close_button_handler);
 	set_close_button_callback(close_button_handler);
