@@ -9,6 +9,12 @@
 #define MAXROMS 16
 static char romfns[MAXROMS+1][256];
 
+/* Website with help on finding romimages */
+#define ROM_WEB_SITE "http://www.marutan.net/rpcemuspoon"
+
+#define ROM_WEB_SITE_STRING "For information on how to acquire ROM images please visit\n" ROM_WEB_SITE
+
+
 // Load the ROM images, call fatal() on error.
 void loadroms(void)
 {
@@ -27,14 +33,15 @@ void loadroms(void)
         append_filename(fn,exname,dirname,sizeof(fn));
         if (chdir(fn))
 	{
-		error("Cannot find roms directory %s",dirname);
+		error("Cannot find roms directory '%s'", dirname);
 		abort();
 	}
         finished=al_findfirst(wildcard,&ff,0xFFFF&~FA_DIREC);
         if (finished)
 	{
-		error("Cannot find any file in roms directory '%s' matching '%s'",
-		      dirname, wildcard);
+		error("Cannot find any file in roms directory '%s' matching '%s'\n"
+		      ROM_WEB_SITE_STRING,
+                      dirname, wildcard);
 		abort();
 	}
         while (!finished && file<MAXROMS)
@@ -49,7 +56,11 @@ void loadroms(void)
                 finished = al_findnext(&ff);
         }
         al_findclose(&ff);
-        if (file==0) fatal("Could not load roms from directory '%s'", dirname);
+        if (file==0) {
+          fatal("Could not load roms from directory '%s'\n"
+                ROM_WEB_SITE_STRING,
+                dirname);
+        }
 //printf("Loading file...\n");
         for (c=0;c<file;c++)
         {
