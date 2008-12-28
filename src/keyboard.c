@@ -547,21 +547,24 @@ void pollkeyboard(void)
                 keys2[c] = key[c];
                 if ((idx = findkey(c)) != -1) {
                         if (!keys2[c]) {
+                                /* key-up modifier */
                                 ps2_queue(&kbdqueue, 0xF0);
-                                ps2_queue(&kbdqueue, standardkeys[idx][1]);
-                        } else {
-                                ps2_queue(&kbdqueue, standardkeys[idx][1]);
                         }
+                        /* 1-byte scan code */
+                        ps2_queue(&kbdqueue, standardkeys[idx][1]);
+
                 } else if ((idx = findextkey(c)) != -1) {
+                        /* first of 2-byte scan code  */
+                        ps2_queue(&kbdqueue, extendedkeys[idx][1]);
                         if (!keys2[c]) {
-                                ps2_queue(&kbdqueue, extendedkeys[idx][1]);
+                                /* key-up modifier */
                                 ps2_queue(&kbdqueue, 0xF0);
-                                ps2_queue(&kbdqueue, extendedkeys[idx][2]);
-                        } else {
-                                ps2_queue(&kbdqueue, extendedkeys[idx][1]);
-                                ps2_queue(&kbdqueue, extendedkeys[idx][2]);
                         }
+                        /* second of 2-byte scan code  */
+                        ps2_queue(&kbdqueue, extendedkeys[idx][2]);
+
                 } else if (c == KEY_PAUSE) {
+                        /* Break has 8-byte key-down code, and no key-up */
                         ps2_queue(&kbdqueue, 0xe1);
                         ps2_queue(&kbdqueue, 0x14);
                         ps2_queue(&kbdqueue, 0x77);
