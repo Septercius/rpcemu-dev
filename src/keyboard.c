@@ -22,6 +22,13 @@
 #include "iomd.h"
 #include "arm.h"
 
+#define PS2_QUEUE_SIZE 256
+
+typedef struct {
+        uint8_t data[PS2_QUEUE_SIZE];
+        int rptr, wptr, count;
+} PS2Queue;
+
 extern int mousecapture;
 
 int mousehackon = 1;
@@ -30,10 +37,9 @@ static int mcalls;
 
 static int kbdenable, kbdreset;
 static unsigned char kbdstat;
-static unsigned char kbdpacket[8];
-static int kbdpacketsize, kbdpacketpos;
 static unsigned char kbdcommand;
 static int keys2[128];
+static PS2Queue kbdqueue;
 
 static int msenable, msreset;
 static unsigned char msstat, mscommand;
@@ -45,6 +51,19 @@ static int msincommand;
 static int justsent;
 
 static int point;
+
+static void
+ps2_queue(PS2Queue *q, unsigned char b)
+{
+        if (q->count >= PS2_QUEUE_SIZE) {
+                return;
+        }
+        q->data[q->wptr] = b;
+        if (++q->wptr == PS2_QUEUE_SIZE) {
+                q->wptr = 0;
+        }
+        q->count++;
+}
 
 static int calculateparity(unsigned char v)
 {
@@ -64,12 +83,34 @@ void resetkeyboard(void)
         kcallback=0;
         kbdreset=0;
         kbdstat=0;
+        kbdqueue.rptr = 0;
+        kbdqueue.wptr = 0;
+        kbdqueue.count = 0;
         msenable=0;
         mcallback=0;
         msreset=0;
         msstat=0;
         for (c=0;c<128;c++)
             keys2[c]=0;
+}
+
+static uint8_t
+ps2_read_data(PS2Queue *q)
+{
+        uint8_t val;
+
+        if (q->count == 0) {
+                int index = q->rptr - 1;
+                if (index < 0)
+                        index = PS2_QUEUE_SIZE - 1;
+                val = q->data[index];
+        } else {
+                val = q->data[q->rptr];
+                if (++q->rptr == PS2_QUEUE_SIZE)
+                        q->rptr = 0;
+                q->count--;
+        }
+        return val;
 }
 
 void writekbd(uint8_t v)
@@ -118,6 +159,8 @@ static void keyboardsend(unsigned char v)
 
 void keycallback(void)
 {
+        PS2Queue *q = &kbdqueue;
+
         if (kbdreset==1)
         {
                 iomd.statb|=0x40;
@@ -148,9 +191,9 @@ void keycallback(void)
                 break;
                 case 0xFE:
   //                      rpclog("Send key dataFE %i %02X\n",kbdpacketpos,kbdpacket[kbdpacketpos]);
-                keyboardsend(kbdpacket[kbdpacketpos++]);
+                keyboardsend(ps2_read_data(q));
                 kcallback=0;
-                if (kbdpacketpos>=kbdpacketsize)
+                if (q->count == 0)
                    kbdcommand=0;
 /*                {
                         kcallback=0;
@@ -504,40 +547,34 @@ void pollkeyboard(void)
                 keys2[c] = key[c];
                 if ((idx = findkey(c)) != -1) {
                         if (!keys2[c]) {
-                                kbdpacket[0] = 0xF0;
-                                kbdpacket[1] = standardkeys[idx][1];
-                                kbdpacketsize = 2;
+                                ps2_queue(&kbdqueue, 0xF0);
+                                ps2_queue(&kbdqueue, standardkeys[idx][1]);
                         } else {
-                                kbdpacket[0] = standardkeys[idx][1];
-                                kbdpacketsize = 1;
+                                ps2_queue(&kbdqueue, standardkeys[idx][1]);
                         }
                 } else if ((idx = findextkey(c)) != -1) {
                         if (!keys2[c]) {
-                                kbdpacket[0] = extendedkeys[idx][1];
-                                kbdpacket[1] = 0xF0;
-                                kbdpacket[2] = extendedkeys[idx][2];
-                                kbdpacketsize = 3;
+                                ps2_queue(&kbdqueue, extendedkeys[idx][1]);
+                                ps2_queue(&kbdqueue, 0xF0);
+                                ps2_queue(&kbdqueue, extendedkeys[idx][2]);
                         } else {
-                                kbdpacket[0] = extendedkeys[idx][1];
-                                kbdpacket[1] = extendedkeys[idx][2];
-                                kbdpacketsize = 2;
+                                ps2_queue(&kbdqueue, extendedkeys[idx][1]);
+                                ps2_queue(&kbdqueue, extendedkeys[idx][2]);
                         }
                 } else if (c == KEY_PAUSE) {
-                        kbdpacket[0] = 0xe1;
-                        kbdpacket[1] = 0x14;
-                        kbdpacket[2] = 0x77;
-                        kbdpacket[3] = 0xe1;
-                        kbdpacket[4] = 0xf0;
-                        kbdpacket[5] = 0x14;
-                        kbdpacket[6] = 0xf0;
-                        kbdpacket[7] = 0x77;
-                        kbdpacketsize = 8;
+                        ps2_queue(&kbdqueue, 0xe1);
+                        ps2_queue(&kbdqueue, 0x14);
+                        ps2_queue(&kbdqueue, 0x77);
+                        ps2_queue(&kbdqueue, 0xe1);
+                        ps2_queue(&kbdqueue, 0xf0);
+                        ps2_queue(&kbdqueue, 0x14);
+                        ps2_queue(&kbdqueue, 0xf0);
+                        ps2_queue(&kbdqueue, 0x77);
                 } else {
                         /* unhandled key */
                         continue;
                 }
 
-                kbdpacketpos = 0;
                 kcallback = 20;
                 kbdcommand = 0xFE;
                 return;
