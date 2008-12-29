@@ -55,4 +55,4 @@ clean:
 
 installer:
 	candle.exe RPCEmu.wxs
-	light.exe RPCEmu.wixobj
+	light.exe -out rpcemu-win32-installer-x.x.x.msi RPCEmu.wixobj
