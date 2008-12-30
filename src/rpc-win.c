@@ -5,7 +5,6 @@
   Since I'm the only maintainer of this file, it's a complete mess.*/
 
 //int ins;
-int mcalls=0;
 #include <stdio.h>
 #include <stdint.h>
 #include <allegro.h>
@@ -31,12 +30,12 @@ int mcalls=0;
 
 int soundenabled=0;
 int mousecapture=0;
-float mips = 0.0f, mhz = 0.0f, tlbsec = 0.0f, flushsec = 0.0f;
-int updatemips=0;
-int vsyncints=0;
+static float mips = 0.0f, mhz = 0.0f, tlbsec = 0.0f, flushsec = 0.0f;
+static int updatemips=0;
+static int vsyncints=0;
 
 
-void domips(void)
+static void domips(void)
 {
         mips=(float)inscount/1000000.0f;
         inscount=0;
@@ -73,7 +72,7 @@ void fatal(const char *format, ...)
    abort();
 }
 
-FILE *arclog;
+static FILE *arclog;
 void rpclog(const char *format, ...)
 {
    char buf[1024];
@@ -89,8 +88,8 @@ void rpclog(const char *format, ...)
 }
 
 int drawscre=0;
-int dosnd;
-void sndupdate(void)
+
+static void sndupdate(void)
 {
         int nextlen;
         float temp;
@@ -105,22 +104,25 @@ void sndupdate(void)
         install_int_ex(sndupdate,MSEC_TO_TIMER(nextlen));
 }
 
-void vblupdate(void)
+static void vblupdate(void)
 {
         drawscre++;
 }
 
 /*  Declare Windows procedure  */
-LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
+static LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
 RECT oldclip,arcclip;
 
 /*  Make the class name into a global variable  */
-char szClassName[ ] = "WindowsApp";
-HWND ghwnd;
-HMENU menu;
+static char szClassName[ ] = "WindowsApp";
+static HWND ghwnd;
+static HMENU menu;
 int infocus;
 
-void initmenu()
+/**
+ * Fill in menu with CDROM links based on real windows drives
+ */
+static void initmenu(void)
 {
         int c;
         HMENU m;
@@ -159,7 +161,7 @@ void updatewindowsize(uint32_t x, uint32_t y)
         }
 }
 
-void releasemousecapture(void)
+static void releasemousecapture(void)
 {
         if (mousecapture)
         {
@@ -173,8 +175,9 @@ int quited=0;
 /*Ignore _ALL_ this for now. It doesn't work very well, and doesn't even get
   started at the moment*/
 /*Plus, it's just all been made obsolete! See sound.c*/
-int quitblitter=0;
-int blitrunning=0,vidrunning=0,soundrunning=0;
+static int quitblitter=0;
+static int blitrunning=0,soundrunning=0;
+/* static int vidrunning=0 */
 static HANDLE waitobject,soundobject;
 static CRITICAL_SECTION vidcmutex;
 
@@ -206,7 +209,7 @@ void vidcendthread(void)
 #endif
 }
 
-void _soundthread(PVOID pvoid)
+static void _soundthread(PVOID pvoid)
 {
         int c;
 //        timeBeginPeriod(1);
@@ -227,7 +230,7 @@ void _soundthread(PVOID pvoid)
         soundrunning=0;
 }
 
-void _closesoundthread(void)
+static void _closesoundthread(void)
 {
         if (soundrunning)
         {
@@ -280,7 +283,7 @@ void vidcreleasemutex(void)
 }
 
 
-HINSTANCE hinstance;
+static HINSTANCE hinstance;
 /*You can start paying attention again now*/
 int WINAPI WinMain (HINSTANCE hThisInstance,
                     HINSTANCE hPrevInstance,
@@ -314,8 +317,13 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         /* Register the window class, and if it fails quit the program */
         if (!RegisterClassEx (&wincl))
            return 0;
+
+        /* Load Menu from resources file */
         menu=LoadMenu(hThisInstance,TEXT("MainMenu"));
+
+        /* Add in CDROM links to the settings menu dynamically */
         initmenu();
+
         /* The class is registered, let's create the program*/
         ghwnd = CreateWindowEx (
            0,                   /* Extended possibilites for variation */
@@ -650,7 +658,7 @@ BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPara
         return FALSE;
 }
 
-LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
         HMENU hmenu;
         switch (message)                  /* handle the messages */
