@@ -17,17 +17,17 @@
 	    <Directory Id='INSTALLDIR' Name='RPCEmu'>
 
 	  	  <Component Id='MainExecutable' Guid='629C3CDA-A189-49B6-B191-00EE03DB810F'>
-		    <File Id='RPCEmuEXE' Name='rpcemu.exe' LongName='rpcemu.exe' DiskId='1'
-			  Source='..\rpcemu.exe' Vital='yes'>
+		    <File Id='RPCEmuEXE' Name='rpcemu.exe' LongName='RPCEmu-Interpreter.exe' DiskId='1'
+			  Source='..\RPCEmu-Interpreter.exe' Vital='yes'>
 			  <Shortcut Id="startmenurpcemu" Directory="ProgramMenuDir" Name="RPCEmu" 
-			    LongName="RPCEmu" WorkingDirectory='INSTALLDIR' Icon="rpcemu.exe" IconIndex="0" />
+			    LongName="RPCEmu Interpreter" WorkingDirectory='INSTALLDIR' Icon="rpcemu.exe" IconIndex="0" />
 <!--			  <Shortcut Id="desktoprpcemu" Directory="DesktopFolder" Name="rpcemu"
 			    LongName="rcpemu" WorkingDirectory='INSTALLDIR' Icon="rpcemu.exe" IconIndex="0" />-->
 		    </File>
-		    <File Id='RPCEmuEXEd' Name='rpcemud.exe' LongName='rpcemud.exe' DiskId='1'
-			  Source='..\rpcemud.exe' Vital='yes'>
+		    <File Id='RPCEmuEXEd' Name='rpcemud.exe' LongName='RPCEmu-Recompiler.exe' DiskId='1'
+			  Source='..\RPCEmu-Recompiler.exe' Vital='yes'>
 			  <Shortcut Id="startmenurpcemud" Directory="ProgramMenuDir" Name="RPCEmu-d" 
-			    LongName="RPCEmu-dynarec" WorkingDirectory='INSTALLDIR' Icon="rpcemud.exe" IconIndex="0" />
+			    LongName="RPCEmu Recompiler" WorkingDirectory='INSTALLDIR' Icon="rpcemud.exe" IconIndex="0" />
 <!--			  <Shortcut Id="desktoprpcemud" Directory="DesktopFolder" Name="rpcemud"
 			    LongName="rcpemud" WorkingDirectory='INSTALLDIR' Icon="rpcemud.exe" IconIndex="0" />-->
 		    </File>
@@ -102,8 +102,8 @@
 -->
 	  </Feature>
 
-    <Icon Id="rpcemu.exe" SourceFile="..\rpcemu.exe" />
-    <Icon Id="rpcemud.exe" SourceFile="..\rpcemud.exe" />
+    <Icon Id="rpcemu.exe" SourceFile="..\RPCEmu-Interpreter.exe" />
+    <Icon Id="rpcemud.exe" SourceFile="..\RPCEmu-Recompiler.exe" />
 
   </Product>
 </Wix>

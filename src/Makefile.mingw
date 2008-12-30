@@ -8,9 +8,9 @@ LIBS = -lalleg -lcomdlg32
 
 ifdef DYNAREC
 	CFLAGS += -D DYNAREC
-	EXE = ../rpcemud.exe
+	EXE = ../RPCEmu-Recompiler.exe
 else
-	EXE = ../rpcemu.exe
+	EXE = ../RPCEmu-Interpreter.exe
 endif
 
 all: config.h $(EXE)
