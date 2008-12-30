@@ -108,14 +108,18 @@ void resetide(void)
         loadhd(0,"hd4.hdf");
         if (cdromenabled)
         {
+                /* Hard disk images for ICS IDE disabled
                 loadhd(2,"hd5.hdf");
                 loadhd(3,"hd6.hdf");
+                */
         }
         else
         {
                 loadhd(1,"hd5.hdf");
+                /* Hard disk images for ICS IDE disabled
                 loadhd(2,"hd6.hdf");
                 loadhd(3,"hd7.hdf");
+                */
         }
 }
 
