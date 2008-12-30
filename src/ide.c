@@ -27,7 +27,7 @@ int dumpedread=0;
 static struct
 {
         unsigned char atastat[4];
-        unsigned char error,status;
+        unsigned char error;
         int secount,sector,cylinder,head,drive,cylprecomp;
         unsigned char command;
         unsigned char fdisk;
