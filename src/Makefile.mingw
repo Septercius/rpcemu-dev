@@ -1,5 +1,7 @@
 CC = gcc
 CFLAGS = -O3 -Wall -mtune=i686
+LD = $(CC)
+LDFLAGS = -mwindows
 LIBS = -lalleg -lcomdlg32
 
 //DYNAREC=1
@@ -41,7 +43,7 @@ OBJS =	82c711.o    \
 	acorn.o
 
 $(EXE): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $+ $(LIBS)
+	$(LD) $(LDFLAGS) -o $@ $+ $(LIBS)
 
 acorn.o:
 	windres -O COFF acorn.rc acorn.o
