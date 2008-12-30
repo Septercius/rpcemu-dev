@@ -39,8 +39,8 @@ void loadroms(void)
         finished=al_findfirst(wildcard,&ff,0xFFFF&~FA_DIREC);
         if (finished)
 	{
-		error("Cannot find any file in roms directory '%s' matching '%s'\n"
-		      ROM_WEB_SITE_STRING,
+		error("Cannot find any file in roms directory '%s' matching '%s'\n\n"
+		      ROM_WEB_SITE_STRING "\n",
                       dirname, wildcard);
 		abort();
 	}
@@ -57,8 +57,8 @@ void loadroms(void)
         }
         al_findclose(&ff);
         if (file==0) {
-          fatal("Could not load roms from directory '%s'\n"
-                ROM_WEB_SITE_STRING,
+          fatal("Could not load roms from directory '%s'\n\n"
+                ROM_WEB_SITE_STRING "\n",
                 dirname);
         }
 //printf("Loading file...\n");
