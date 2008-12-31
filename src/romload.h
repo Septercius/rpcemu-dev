@@ -1,8 +1,6 @@
-#ifndef __ROMLOAD__
-#define __ROMLOAD__
+#ifndef ROMLOAD_H
+#define ROMLOAD_H
 
-#include <stdint.h>
+void loadroms(void);
 
-int loadroms(void);
-
-#endif //__ROMLOAD__
+#endif /* ROMLOAD_H */

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "rpcemu.h"
 #include "mem.h"
+#include "romload.h"
 
 #define MAXROMS 16
 static char romfns[MAXROMS+1][256];
