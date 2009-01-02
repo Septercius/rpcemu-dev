@@ -19,11 +19,11 @@ static int oldsx = 0,oldsy = 0;
 static int drawcode = 0;
 
 // Don't resize the window to smaller than this.
-const int MIN_X_SIZE = 320;
-const int MIN_Y_SIZE = 256;
+static const int MIN_X_SIZE = 320;
+static const int MIN_Y_SIZE = 256;
 
 /* This state is written by the main thread. The display thread should not read it. */
-struct vidc_state {
+static struct vidc_state {
         uint32_t vidcpal[0x104];
         int palindex;
         uint32_t hdsr,hcsr,hder;
@@ -63,8 +63,8 @@ static struct cached_state {
 
 /* Two dirty buffers, so one can be written to by the main thread
    while the display thread is reading the other */
-uint8_t dirtybuffer1[512*4];
-uint8_t dirtybuffer2[512*4];
+static uint8_t dirtybuffer1[512*4];
+static uint8_t dirtybuffer2[512*4];
 
 /* Dirty buffer currently in use by main thread */
 uint8_t *dirtybuffer = dirtybuffer1;
@@ -235,7 +235,7 @@ static const int fullresolutions[][2]=
         {-1,-1}
 };
 
-void resizedisplay(int x, int y)
+static void resizedisplay(int x, int y)
 {
         int c;
 //        rpclog("Change mode to %ix%i\n",x,y);
@@ -531,8 +531,8 @@ void vidcthread()
         int drawit=0;
         int x = 0;
         int y = 0;
-        unsigned char *ramp;
-        unsigned short *ramw;
+        const unsigned char *ramp;
+        const unsigned short *ramw;
         int addr;
         int yl=-1,yh=-1;
         static int oldcursorheight;
