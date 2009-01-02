@@ -1,5 +1,5 @@
-#ifndef __MEM__
-#define __MEM__
+#ifndef MEM_H
+#define MEM_H
 
 #include <stdint.h>
 
@@ -17,7 +17,6 @@ extern uint32_t *raddrl2[256];
 
 extern unsigned long *vraddrl;
 extern uint32_t vraddrls[1024],vraddrphys[1024];
-extern int vraddrlpos;
 //#define readmeml(a) readmemfl(a)
 
 #define readmeml(a) ((vraddrl[(a)>>12]&1)?readmemfl(a):*(uint32_t *)(/*(int32_t)*/(a)+(vraddrl[(a)>>12])))
@@ -39,7 +38,6 @@ extern uint32_t *waddrbl2;
 
 extern unsigned long *vwaddrl;
 extern uint32_t vwaddrls[1024],vwaddrphys[1024];
-extern int vwaddrlpos;
 
 //uint8_t pagedirty[0x1000];
 //#define writememb(a,v) writememfb(a,v)
@@ -67,4 +65,4 @@ extern int pcisrom;
 
 extern void cacheclearpage(uint32_t a);
 
-#endif //__MEM__
+#endif /* MEM_H */

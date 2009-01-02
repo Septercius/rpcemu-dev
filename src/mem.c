@@ -1,7 +1,6 @@
 /*RPCemu v0.6 by Tom Walker
   Memory handling*/
 #include "rpcemu.h"
-#include "hostfs.h"
 #include "vidc20.h"
 #include "mem.h"
 #include "iomd.h"
@@ -9,7 +8,6 @@
 #include "arm.h"
 #include "cp15.h"
 #include "82c711.h"
-#include "romload.h"
 #include "podules.h"
 
 int timetolive;
@@ -59,7 +57,8 @@ void clearmemcache()
         readmemcache=0xFFFFFFFF;
 }
 
-int vraddrlpos,vwaddrlpos;
+static int vraddrlpos, vwaddrlpos;
+
 void initmem(void)
 {
         int c;
@@ -125,7 +124,7 @@ void resetmem(void)
                        vwaddrphys[vwaddrlpos]=p; \
                        vwaddrlpos=(vwaddrlpos+1)&1023;*/
 
-int bank;
+static int bank;
 
 uint32_t readmemfl(uint32_t addr)
 {
