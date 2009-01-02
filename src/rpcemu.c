@@ -40,8 +40,8 @@ int timetolive = 0;
 const char *username = NULL;
 const char *ipaddress = NULL;
 
-void loadconfig();
-void saveconfig();
+static void loadconfig(void);
+static void saveconfig(void);
 
 void resetrpc()
 {
@@ -147,13 +147,14 @@ void endrpcemu()
         saveconfig();
 }
 
-void loadconfig()
+static void loadconfig(void)
 {
         char fn[512];
-        char *p;
+        const char *p;
+
         append_filename(fn,exname,"rpc.cfg",511);
         set_config_file(fn);
-        p=(char *)get_config_string(NULL,"mem_size",NULL);
+        p = get_config_string(NULL,"mem_size",NULL);
         if (!p)                    rammask=0x7FFFFF;
         else if (!strcmp(p,"4"))   rammask=0x1FFFFF;
         else if (!strcmp(p,"8"))   rammask=0x3FFFFF;
@@ -165,11 +166,11 @@ void loadconfig()
         model=3;           /*SA1100*/
         vrammask=0x7FFFFF; /*2mb VRAM*/
         #else
-        p=(char *)get_config_string(NULL,"vram_size",NULL);
+        p = get_config_string(NULL,"vram_size",NULL);
         if (!p) vrammask=0x7FFFFF;
         else if (!strcmp(p,"0"))        vrammask=0;
         else                       vrammask=0x7FFFFF;
-        p=(char *)get_config_string(NULL,"cpu_type",NULL);
+        p = get_config_string(NULL,"cpu_type",NULL);
         if (!p) model=2;
         else if (!strcmp(p,"ARM610")) model=1;
         else if (!strcmp(p,"ARM7500")) model=0;
@@ -182,7 +183,7 @@ void loadconfig()
         skipblits=get_config_int(NULL,"blit_optimisation",0);
         cdromenabled=get_config_int(NULL,"cdrom_enabled",0);
         cdromtype=get_config_int(NULL,"cdrom_type",0);
-        p=(char *)get_config_string(NULL,"cdrom_iso",NULL);
+        p = get_config_string(NULL,"cdrom_iso",NULL);
         if (!p) strcpy(isoname,"");
         else    strcpy(isoname,p);
         mousehackon=get_config_int(NULL,"mouse_following",1);
@@ -190,7 +191,7 @@ void loadconfig()
         ipaddress=get_config_string(NULL,"ipaddress",NULL);
 }
 
-void saveconfig()
+static void saveconfig(void)
 {
         char s[256];
         sprintf(s,"%i",((rammask+1)>>20)<<1);
