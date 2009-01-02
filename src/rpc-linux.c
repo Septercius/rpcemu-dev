@@ -15,17 +15,17 @@
 
 
 int mousecapture=0;
-float mips;
-int updatemips=0;
+static float mips;
+static int updatemips = 0;
 int quited=0;
-pthread_t sound_thread;
-pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t sound_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_t sound_thread;
+static pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t sound_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static uint32_t mipscount;
-float mipstotal;
+static float mipstotal;
 
-void *_soundthread(void *p)
+static void *_soundthread(void *p)
 {
 	int c;
 
@@ -65,7 +65,7 @@ void closesoundthread()
 	pthread_join(sound_thread, NULL);
 }
 
-void startsoundthread(void)
+static void startsoundthread(void)
 {
     if (pthread_create(&sound_thread,NULL,_soundthread,NULL))
     {
@@ -110,7 +110,7 @@ void fatal(const char *format, ...)
    abort();
 }
 
-FILE *arclog;
+static FILE *arclog;
 void rpclog(const char *format, ...)
 {
    char buf[256];
