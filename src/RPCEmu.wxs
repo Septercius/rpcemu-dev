@@ -32,6 +32,7 @@
 			    LongName="rcpemud" WorkingDirectory='INSTALLDIR' Icon="rpcemud.exe" IconIndex="0" />-->
 		    </File>
 		    <File Id='cmosram' Name='cmos.ram' DiskId='1' Source='..\cmos.ram' Vital='yes' />
+		    <File Id='rpccfg' Name='rpc.cfg' DiskId='1' Source='..\rpc.cfg' Vital='yes' />
 		    <File Id='allegro' Name='alleg42.dll' DiskId='1' Source='C:\Windows\System32\alleg42.dll' Vital='yes' />
 		    <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
 			<Shortcut Id="startmenudir" Directory="ProgramMenuDir" Name="rpcemudi" 
