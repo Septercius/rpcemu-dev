@@ -232,7 +232,6 @@ void writeiomd(uint32_t addr, uint32_t val)
         }
 }
 
-int keytemp=0;
 uint32_t readiomd(uint32_t addr)
 {
         switch (addr&0x1FC)
