@@ -28,7 +28,6 @@ char exname[512] = {0};
 
 int vrammask = 0;
 int model = 0;
-int model2 = 0;
 int rammask = 0;
 int stretchmode = 0;
 int infocus = 0;

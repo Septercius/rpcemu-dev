@@ -107,7 +107,6 @@ extern int mousehackon;
 /*Config*/
 extern int vrammask;
 extern int model;
-extern int model2;
 extern int rammask;
 extern int stretchmode;
 extern const char *username;

@@ -525,7 +525,6 @@ int selectiso(HWND hwnd)
         return 0;
 }
 
-int model2;
 int _mask;
 int vrammask2;
 int soundenabled2;
@@ -534,6 +533,7 @@ int chngram=0;
 
 BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
+        static int model2 = 0;
         HWND h;
         int c;
         int cpu;
