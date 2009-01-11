@@ -85,7 +85,7 @@ static void settimera(int latch)
         #endif
 }
 
-void timerbirq(void)
+static void timerbirq(void)
 {
         iomd.stata|=0x40;
         updateirqs();
