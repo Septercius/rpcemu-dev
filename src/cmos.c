@@ -101,10 +101,6 @@ static void cmosgettime(void)
 	cmosram[6] = (t->tm_wday << 5) | BIN2BCD(t->tm_mon + 1);
 }
 
-void cmostick()
-{
-}
-
 static void cmoswrite(unsigned char byte)
 {
   //        char s[80];

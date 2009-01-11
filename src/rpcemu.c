@@ -125,7 +125,6 @@ void execrpcemu()
                 pollmouse();
 //                sleep(0);
                 doosmouse();
-//                cmostick();
         }
 //                pollmouse();
 //                sleep(0);

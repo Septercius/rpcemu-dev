@@ -39,20 +39,11 @@ void updateirqs(void)
 
 void clockcmosproc()
 {
-        cmostick();
 }
 
 static void gentimerirq(void)
 {
-        static int clockcmos = 0;
-
         if (!infocus) return;
-        clockcmos++;
-        if (clockcmos==5)
-        {
-                cmostick();
-                clockcmos=0;
-        }
 //        rpclog("IRQ %i\n",inscount);
         iomd.t0c-=4000;//10000;
         while (iomd.t0c<0 && iomd.t0l)
