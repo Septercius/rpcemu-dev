@@ -37,10 +37,6 @@ void updateirqs(void)
 //        if (!(irq&3)) armirq&=~3;
 }
 
-void clockcmosproc()
-{
-}
-
 static void gentimerirq(void)
 {
         if (!infocus) return;
@@ -338,8 +334,6 @@ void resetiomd(void)
         iomd.t0c=iomd.t1c=iomd.t0l=iomd.t1l=0xFFFF;
         #ifndef OLDTIMER
         install_int_ex(gentimerirq,BPS_TO_TIMER(500));
-        #else
-        install_int_ex(clockcmosproc,BPS_TO_TIMER(100));
         #endif
 }
 
