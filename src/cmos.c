@@ -2,18 +2,12 @@
   I2C + CMOS RAM emulation*/
 #include <stdint.h>
 #include <allegro.h>
-#if defined WIN32 || defined _WIN32 || defined _WIN32
-#include <winalleg.h>
-#endif
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include "rpcemu.h"
 #include "cmos.h"
 
-#if defined WIN32 || defined _WIN32 || defined _WIN32
-SYSTEMTIME systemtime;
-#endif
 uint32_t output;
 static int cmosstate = 0;
 static int i2cstate = 0;
@@ -60,8 +54,9 @@ void loadcmos()
 
         fread(cmosram,256,1,cmosf);
         fclose(cmosf);
-        cmosgettime();
-//        memset(cmosram,0,256);
+
+        /* Clear the bytes that correspond to registers (i.e. not NVRAM) */
+        memset(cmosram, 0, 16);
 }
 
 void savecmos()
@@ -95,29 +90,6 @@ unsigned char cmosgetbyte()
 
 static void cmosgettime(void)
 {
-#if defined WIN32 || defined _WIN32 || defined _WIN32
-        int c,d;
-        GetLocalTime(&systemtime);
-        c=systemtime.wMilliseconds/10;
-        d=c%10;
-        c/=10;
-        cmosram[1]=d|(c<<4);
-        d=systemtime.wSecond%10;
-        c=systemtime.wSecond/10;
-        cmosram[2]=d|(c<<4);
-        d=systemtime.wMinute%10;
-        c=systemtime.wMinute/10;
-        cmosram[3]=d|(c<<4);
-        d=systemtime.wHour%10;
-        c=systemtime.wHour/10;
-        cmosram[4]=d|(c<<4);
-        d=systemtime.wDay%10;
-        c=systemtime.wDay/10;
-        cmosram[5]=d|(c<<4);
-        d=systemtime.wMonth%10;
-        c=systemtime.wMonth/10;
-        cmosram[6]=d|(c<<4);
-#else
 	time_t now = time(NULL);
 	const struct tm *t = gmtime(&now);
 
@@ -127,53 +99,10 @@ static void cmosgettime(void)
 	cmosram[4] = BIN2BCD(t->tm_hour);
 	cmosram[5] = (((t->tm_year + 1900) & 3) << 6) | BIN2BCD(t->tm_mday);
 	cmosram[6] = (t->tm_wday << 5) | BIN2BCD(t->tm_mon + 1);
-#endif
 }
 
 void cmostick()
 {
-#if defined WIN32 || defined _WIN32 || defined _WIN32
-        int c,d;
-        systemtime.wMilliseconds++;
-        if (systemtime.wMilliseconds>=100)
-        {
-                systemtime.wMilliseconds-=100;
-                systemtime.wSecond++;
-                if (systemtime.wSecond>=60)
-                {
-                        systemtime.wSecond-=60;
-                        systemtime.wMinute++;
-                        if (systemtime.wMinute>=60)
-                        {
-                                systemtime.wHour++;
-                                if (systemtime.wMinute>=24)
-                                {
-                                        systemtime.wHour=0;
-                                        systemtime.wDay++;
-                                }
-                        }
-                }
-        }
-        c=systemtime.wMilliseconds/10;
-        d=c%10;
-        c/=10;
-        cmosram[1]=d|(c<<4);
-        d=systemtime.wSecond%10;
-        c=systemtime.wSecond/10;
-        cmosram[2]=d|(c<<4);
-        d=systemtime.wMinute%10;
-        c=systemtime.wMinute/10;
-        cmosram[3]=d|(c<<4);
-        d=systemtime.wHour%10;
-        c=systemtime.wHour/10;
-        cmosram[4]=d|(c<<4);
-        d=systemtime.wDay%10;
-        c=systemtime.wDay/10;
-        cmosram[5]=d|(c<<4);
-        d=systemtime.wMonth%10;
-        c=systemtime.wMonth/10;
-        cmosram[6]=d|(c<<4);
-#endif
 }
 
 static void cmoswrite(unsigned char byte)
@@ -187,7 +116,12 @@ static void cmoswrite(unsigned char byte)
                 {
                         cmosstate=CMOS_SENDDATA;
                         i2ctransmit=CMOS;
-//                        if (cmosaddr<0x10) cmosgettime();
+						
+                        /* If reading the clock, resync the 
+                           byte variables with the current time */
+                        if (cmosaddr < 0x10)
+                                cmosgettime();
+
 /*                        if (!olog) olog=fopen("olog.txt","wt");*/
 //                        rpclog("%02X",cmosram[cmosaddr]);
 //                        timetolive=5000;
