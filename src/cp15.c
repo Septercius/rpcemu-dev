@@ -36,7 +36,7 @@ void resetcp15(void)
         int c;
         prog32=1;
         mmu=0;
-        memset(tlbcache,0xFF,0x100000*4);
+        memset(tlbcache, 0xff, 0x100000 * sizeof(uint32_t));
         for (c=0;c<TLBCACHESIZE;c++)
             tlbcache2[c]=0xFFFFFFFF;
         tlbcachepos=0;
@@ -124,7 +124,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                                 vwaddrphys[c]=0xFFFFFFFF;
                         }
                 }
-//                memset(raddrl,0xFF,1024);
+//                memset(raddrl, 0xff, 256 * sizeof(uint32_t));
 //                resetcodeblocks();
 //                for (c=0;c<256;c++)
 //                    raddrl[c]=0xFFFFFFFF;
@@ -161,7 +161,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 clearmemcache();
                 pccache = 0xFFFFFFFF;
                 blockend=1;
-                memset(raddrl,0xFF,1024);
+                memset(raddrl, 0xff, 256 * sizeof(uint32_t));
                 waddrl=0xFFFFFFFF;
                 for (c=0;c<TLBCACHESIZE;c++)
                 {
@@ -186,7 +186,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                                 vwaddrphys[c]=0xFFFFFFFF;
                         }
                 }
-                memset(tlbcache2,0xFF,TLBCACHESIZE*4);
+                memset(tlbcache2, 0xff, TLBCACHESIZE * sizeof(uint32_t));
                 flushes++;
                 tlbcachepos=0;
 /*                if (!translations) return;
@@ -215,7 +215,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 //                rpclog("Cache invalidate %08X\n",PC);
                 pccache = 0xFFFFFFFF;
 //                blockend=1;
-                memset(raddrl,0xFF,1024);
+                memset(raddrl, 0xff, 256 * sizeof(uint32_t));
                 waddrl=0xFFFFFFFF;
                 return;
         }
