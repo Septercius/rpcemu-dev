@@ -61,7 +61,6 @@ static int vraddrlpos, vwaddrlpos;
 
 void initmem(void)
 {
-        int c;
         ram=(uint32_t *)malloc(2*1024*1024);
         ram2=(uint32_t *)malloc(2*1024*1024);
         rom=(uint32_t *)malloc(ROMSIZE);
@@ -72,8 +71,7 @@ void initmem(void)
         vramb=(unsigned char *)vram;
         memset(ram,0,2*1024*1024);
         memset(ram2,0,2*1024*1024);
-        for (c=0;c<256;c++)
-            raddrl[c]=0xFFFFFFFF;
+        memset(raddrl, 0xff, 256 * sizeof(uint32_t));
         waddrl=0xFFFFFFFF;
         vraddrlpos=vwaddrlpos=0;
 //printf("Init RAM %p\n",ram);

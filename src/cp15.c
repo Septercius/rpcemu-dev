@@ -33,15 +33,12 @@ void getcp15fsr()
 
 void resetcp15(void)
 {
-        int c;
         prog32=1;
         mmu=0;
         memset(tlbcache, 0xff, 0x100000 * sizeof(uint32_t));
-        for (c=0;c<TLBCACHESIZE;c++)
-            tlbcache2[c]=0xFFFFFFFF;
+        memset(tlbcache2, 0xff, TLBCACHESIZE * sizeof(uint32_t));
         tlbcachepos=0;
-        for (c=0;c<256;c++)
-            raddrl[c]=0xFFFFFFFF;
+        memset(raddrl, 0xff, 256 * sizeof(uint32_t));
         waddrl=0xFFFFFFFF;
         if (!vraddrl) vraddrl=malloc(0x100000*sizeof(uint32_t *));
         memset(vraddrl,0xFF,0x100000*sizeof(uint32_t *));
@@ -79,8 +76,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 }*/
                 if (mmu!=(int)(val&1))
                 {
-                        for (c=0;c<256;c++)
-                            raddrl[c]=0xFFFFFFFF;
+                        memset(raddrl, 0xff, 256 * sizeof(uint32_t));
                         waddrl=0xFFFFFFFF;
                         resetcodeblocks();
                         for (c=0;c<1024;c++)
