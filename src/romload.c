@@ -92,6 +92,20 @@ void loadroms(void)
                 pos+=len;
         }
         chdir(olddir);
+
+        /* Reject ROMs that are not sensible sizes
+         * Allow 2MB (RISC OS 3.50)
+         *       4MB (RISC OS 3.60 -> Half way through Select)
+         *       6MB (Later Select)
+         *       8MB (Current maximum)
+         */
+        if (pos != (2 * 1024 * 1024) && pos != (4 * 1024 * 1024)
+            && pos != (6 * 1024 * 1024) && pos != (8 * 1024 * 1024))
+        {
+                error("ROM Image of unsupported size: expecting 2MB, 4MB, 6MB or 8MB, got %d bytes", pos);
+                exit(EXIT_FAILURE);
+        }
+
 #ifdef _RPCEMU_BIG_ENDIAN /*Byte swap*/
 #error It's defined...
 //printf("Byte swapping...\n");
