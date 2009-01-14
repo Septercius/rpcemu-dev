@@ -162,8 +162,6 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 pccache = 0xFFFFFFFF;
                 blockend=1;
                 memset(raddrl,0xFF,1024);
-//                for (c=0;c<256;c++)
-//                    raddrl[c]=0xFFFFFFFF;
                 waddrl=0xFFFFFFFF;
                 for (c=0;c<TLBCACHESIZE;c++)
                 {
@@ -189,8 +187,6 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                         }
                 }
                 memset(tlbcache2,0xFF,TLBCACHESIZE*4);
-//                for (c=0;c<64;c++)
-//                    tlbcache2[c]=0xFFFFFFFF;
                 flushes++;
                 tlbcachepos=0;
 /*                if (!translations) return;
@@ -220,8 +216,6 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 pccache = 0xFFFFFFFF;
 //                blockend=1;
                 memset(raddrl,0xFF,1024);
-//                for (c=0;c<256;c++)
-//                    raddrl[c]=0xFFFFFFFF;
                 waddrl=0xFFFFFFFF;
                 return;
         }
