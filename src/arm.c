@@ -561,49 +561,6 @@ memmode=1;
 
 #define dumpregs()
 
-int loadrom()
-{
-        FILE *f;
-//        int c;
-        memset(ram,0,4*1024*1024);
-        #ifdef ALTSET
-        f=fopen("rom1","rb");
-        if (!f) return -2;
-        fread(rom,0x100000,1,f);
-        fclose(f);
-        f=fopen("rom2","rb");
-        if (!f) return -2;
-        fread(&rom[0x40000],0x100000,1,f);
-        fclose(f);
-        f=fopen("rom3","rb");
-        if (!f) return -2;
-        fread(&rom[0x80000],0x100000,1,f);
-        fclose(f);
-        f=fopen("rom4","rb");
-        if (!f) return -2;
-        fread(&rom[0xC0000],0x100000,1,f);
-        fclose(f);
-        #else
-        f=fopen("ic24.rom","rb");
-        if (!f) return -2;
-        fread(rom,0x100000,1,f);
-        fclose(f);
-        f=fopen("ic25.rom","rb");
-        if (!f) return -2;
-        fread(&rom[0x40000],0x100000,1,f);
-        fclose(f);
-        f=fopen("ic26.rom","rb");
-        if (!f) return -2;
-        fread(&rom[0x80000],0x100000,1,f);
-        fclose(f);
-        f=fopen("ic27.rom","rb");
-        if (!f) return -2;
-        fread(&rom[0xC0000],0x100000,1,f);
-        fclose(f);
-        #endif
-        return 0;
-}
-
 #define checkneg(v) (v&0x80000000)
 #define checkpos(v) !(v&0x80000000)
 
