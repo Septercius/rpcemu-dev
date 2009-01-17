@@ -681,8 +681,6 @@ static inline void setzn(uint32_t op)
         if (checkneg((op))) templ=NFLAG; \
         *pcpsr=((*pcpsr)&0x3FFFFFFF)|(templ);
         
-static char err2[512];
-
 uint32_t shift3(uint32_t opcode)
 {
         uint32_t shiftmode=opcode&0x60;//(opcode>>5)&3;
@@ -798,8 +796,7 @@ unsigned shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint3
                         return (rm>>shiftamount)|(rm<<(32-shiftamount));
 
                         default:
-                        sprintf(err2,"Shift2 mode %i amount %i\n",shiftmode,shiftamount);
-                        error("%s",err2);
+                        error("Shift2 mode %u amount %u\n", shiftmode, shiftamount);
                         dumpregs();
                         exit(-1);
                 }
