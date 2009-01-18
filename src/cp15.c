@@ -227,11 +227,10 @@ uint32_t readcp15(uint32_t addr)
                 case 0: /*ARM ID*/
                 switch (model)
                 {
-                        case 0: return 0x41007100; /*ARM7500*/
+                        case 0: return 0x41027100; /*ARM7500*/
                         case 1: return 0x41560610; /*ARM610*/
-                        case 2: return 0x41567100; /*ARM710*/
+                        case 2: return 0x41007100; /*ARM710*/
                         case 3: /*if (PC>0x10000000) output=1; */return 0x4401A102; /*SA110*/
-//                      case 3: return 0x4456A100; /*StrongARM*/
                 }
                 break;
                 case 1: /*Control*/
