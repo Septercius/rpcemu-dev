@@ -1,6 +1,7 @@
 /*RPCemu v0.6 by Tom Walker
   ROM loader*/
 #include <stdint.h>
+#include <stdlib.h>
 #include <allegro.h>
 #include <stdio.h>
 #include "rpcemu.h"
@@ -8,90 +9,122 @@
 #include "romload.h"
 
 #define MAXROMS 16
-static char romfns[MAXROMS+1][256];
 
 /* Website with help on finding romimages */
 #define ROM_WEB_SITE "http://www.marutan.net/rpcemuspoon"
 
 #define ROM_WEB_SITE_STRING "For information on how to acquire ROM images please visit\n" ROM_WEB_SITE
 
+/* qsort comparison function for alphabetical sorting of
+   C char *pointers. From the qsort() manpage */
+static int cmpstringp(const void *p1, const void *p2)
+{
+        /* The actual arguments to this function are "pointers to
+           pointers to char", so assign to variables of this type.
+           Then we dereference as we pass them to strcmp(). */
+
+        const char * const *pstr1 = p1;
+        const char * const *pstr2 = p2;
+
+        return strcmp(*pstr1, *pstr2);
+}
 
 // Load the ROM images, call fatal() on error.
 void loadroms(void)
 {
-        FILE *f;
-        int finished=0;
-        int file=0;
-        int c,d,e;
-        int len,pos=0;
+        int finished;
+        int number_of_files = 0;
+        int c;
+        int pos = 0;
         struct al_ffblk ff;
         char olddir[512],fn[512];
         char *ext;
-	const char *wildcard = "*.*";
-	const char *dirname = "roms";
+        const char *wildcard = "*.*";
+        const char *dirname = "roms";
+        char *romfilenames[MAXROMS];
 
-        getcwd(olddir,sizeof(olddir));
+        /* Store current directory to return to later */
+        if (getcwd(olddir, sizeof(olddir)) == NULL) {
+                error("getcwd() failed: %s", strerror(errno));
+                exit(EXIT_FAILURE);
+        }
+
+        /* Change into roms directory */
         append_filename(fn,exname,dirname,sizeof(fn));
         if (chdir(fn))
-	{
-		error("Cannot find roms directory '%s'", dirname);
-		abort();
-	}
-        finished=al_findfirst(wildcard,&ff,0xFFFF&~FA_DIREC);
+        {
+                error("Cannot find roms directory '%s': %s", fn,
+                      strerror(errno));
+                exit(EXIT_FAILURE);
+        }
 
-        while (!finished && file<MAXROMS)
+        /* Scan directory for ROM files */
+        finished=al_findfirst(wildcard,&ff,0xFFFF&~FA_DIREC);
+        while (!finished && number_of_files < MAXROMS)
         {
                 ext=get_extension(ff.name);
-//				printf("Found rom %s\n",ff.name);
                 if (stricmp(ext,"txt"))
                 {
-                        strcpy(romfns[file],ff.name);
-                        file++;
+                        romfilenames[number_of_files] = strdup(ff.name);
+                        number_of_files++;
                 }
                 finished = al_findnext(&ff);
         }
         al_findclose(&ff);
-        if (file==0) {
-          error("Could not load roms from directory '%s'\n\n"
-                ROM_WEB_SITE_STRING "\n",
-                dirname);
-          exit(EXIT_SUCCESS);
+
+        /* Empty directory? or only .txt files? */
+        if (number_of_files == 0) {
+                error("Could not load ROM files from directory '%s'\n\n"
+                      ROM_WEB_SITE_STRING "\n",
+                      dirname);
+                exit(EXIT_FAILURE);
         }
-//printf("Loading file...\n");
-        for (c=0;c<file;c++)
-        {
-                for (d=0;d<file;d++)
-                {
-                        if (c>d)
-                        {
-                                e=0;
-                                while (romfns[c][e]==romfns[d][e] && romfns[c][e])
-                                      e++;
-                                if (romfns[c][e]<romfns[d][e])
-                                {
-                                        memcpy(romfns[16],romfns[c],256);
-                                        memcpy(romfns[c],romfns[d],256);
-                                        memcpy(romfns[d],romfns[16],256);
-                                }
-                        }
+
+        /* Sort filenames into alphabetical order */
+        qsort(romfilenames, number_of_files, sizeof(char *), cmpstringp);
+
+        /* Load files */
+        for (c = 0; c < number_of_files; c++) {
+                FILE *f;
+                int len;
+
+                f = fopen(romfilenames[c], "rb");
+                if (f == NULL) {
+                        error("Can't open ROM file '%s': %s", romfilenames[c],
+                              strerror(errno));
+                        exit(EXIT_FAILURE);
                 }
-        }
-//printf("Really loading files...\n");
-        for (c=0;c<file;c++)
-        {
-                f=fopen(romfns[c],"rb");
-                //printf("Loading %s\n",romfns[c]);
-                if (f==NULL) fatal("Can't open rom file %s",romfns[c]);
-                fseek(f,-1,SEEK_END);
-                len=ftell(f)+1;
-                if (pos + len > ROMSIZE) fatal("ROM files larger than 8MB");
-//printf("Reading %i bytes\n",len);
-                fseek(f,0,SEEK_SET);
-                fread(&romb[pos],len,1,f);
+
+                /* Calculate file size */
+                fseek(f, 0, SEEK_END);
+                len = ftell(f);
+
+                if (pos + len > ROMSIZE) {
+                        error("ROM files larger than 8MB");
+                        exit(EXIT_FAILURE);
+                }
+
+                /* Read file data */
+                rewind(f);
+                if (fread(&romb[pos], len, 1, f) != 1) {
+                        error("Error reading from ROM file '%s': %s",
+                              romfilenames[c], strerror(errno));
+                        exit(EXIT_FAILURE);
+                }
+
                 fclose(f);
-                pos+=len;
+                pos += len;
+
+                /* Free up filename allocated earlier */
+                free(romfilenames[c]);
         }
-        chdir(olddir);
+
+        /* Return to initial directory */
+        if (chdir(olddir)) {
+                error("Cannot return to previous directory '%s': %s", olddir,
+                      strerror(errno));
+                exit(EXIT_FAILURE);
+        }
 
         /* Reject ROMs that are not sensible sizes
          * Allow 2MB (RISC OS 3.50)
@@ -107,7 +140,7 @@ void loadroms(void)
         }
 
 #ifdef _RPCEMU_BIG_ENDIAN /*Byte swap*/
-#error It's defined...
+#error "It's defined..."
 //printf("Byte swapping...\n");
 		for (c=0;c<0x800000;c+=4)
 		{
