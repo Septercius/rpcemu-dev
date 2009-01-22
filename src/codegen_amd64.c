@@ -30,7 +30,8 @@ int tempinscount;
 
 int codeblockpos;
 
-#define addbyte(a)         rcodeblock[blockpoint2][codeblockpos++]=a
+#define addbyte(a)         rcodeblock[blockpoint2][codeblockpos]=(a), \
+                           codeblockpos++
 #define addlong(a)         *((unsigned long *)&rcodeblock[blockpoint2][codeblockpos])=a; \
                            codeblockpos+=4
 
@@ -51,7 +52,9 @@ void initcodeblocks()
 //        memset(codeblockcount,0,0x1000);
         blockpoint=0;
         for (c=0;c<BLOCKS;c++) blocks[c]=0xFFFFFFFF;
-        for (c=0;c<BLOCKS;c++) codeblockaddr[c]=&rcodeblock[c][4];
+        for (c=0;c<BLOCKS;c++) {
+                codeblockaddr[c] = (unsigned long) &rcodeblock[c][4];
+        }
 
 #ifdef __linux__
 	/* Set memory pages containing rcodeblock[]s executable -
@@ -162,7 +165,7 @@ addbyte(0); addbyte(0); addbyte(0);
         addbyte(0x08);
 	addbyte(0x49); /*MOVQ armregs,%r15*/
 	addbyte(0xBF);
-	addlong(&armregs[0]);
+	addlong((unsigned long) &armregs[0]);
 	addlong(((uint64_t)(&armregs[0]))>>32);
 //	printf("New block %08X %08X %08X\n",blocknum,l,codeblockpc[blocknum]);
 }
@@ -229,7 +232,7 @@ void generateupdateinscount()
                 addbyte(0x83); /*ADD tempinscount,inscount*/
                 addbyte(0x04);
 		addbyte(0x25);
-                addlong(&inscount);
+                addlong((unsigned long) &inscount);
                 addbyte(tempinscount);
                 tempinscount=0;
         }
@@ -276,7 +279,7 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
                 addbyte(0x83); /*ADDL $c,rinscount*/
                 addbyte(0x04);
 		addbyte(0x25);
-                addlong(&rinscount);
+                addlong((unsigned long) &rinscount);
                 addbyte(c);
         }
         else
@@ -284,14 +287,14 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
                 addbyte(0x81); /*ADDL $c,rinscount*/
                 addbyte(0x04);
 		addbyte(0x25);
-                addlong(&rinscount);
+                addlong((unsigned long) &rinscount);
                 addlong(c);
         }
 
         addbyte(0xFF); /*DECL linecyc*/
         addbyte(0x0C);
 	addbyte(0x25);
-        addlong(&linecyc);
+        addlong((unsigned long) &linecyc);
 addbyte(0xC3); /*RET*/
         
         addbyte(0x79); /*JNS +1*/
@@ -300,7 +303,7 @@ addbyte(0xC3); /*RET*/
         addbyte(0xF6); /*TESTB $0xFF,armirq*/
         addbyte(0x04);
 	addbyte(0x25);
-        addlong(&armirq);
+        addlong((unsigned long) &armirq);
         addbyte(0xFF);
         addbyte(0x75); /*JNZ*/
         addbyte(-11);
@@ -308,7 +311,7 @@ addbyte(0xC3); /*RET*/
         addbyte(0x8B); /*MOVL armregs[15],%eax*/
 	addbyte(0x04);
 	addbyte(0x25);
-        addlong(&armregs[15]);
+        addlong((unsigned long) &armregs[15]);
         addbyte(0x83); /*SUBL $8,%eax*/
         addbyte(0xE8);
         addbyte(0x08);
@@ -326,18 +329,18 @@ addbyte(0xC3); /*RET*/
 	addbyte(0x67); /*CMPL codeblockpc[%edx],%eax*/
         addbyte(0x3B);
         addbyte(0x82);
-        addlong(codeblockpc);
+        addlong((unsigned long) codeblockpc);
         addbyte(0x74); /*JZ +1*/
         addbyte(1);
         addbyte(0xC3); /*RET*/
         addbyte(0x8B); /*MOVL codeblocknum[%rdx],%eax*/
         addbyte(0x82);
-        addlong(codeblocknum);
+        addlong((unsigned long) codeblocknum);
 	addbyte(0x48); /*MOVL codeblockaddr[%eax*4],%rax*/
         addbyte(0x8B);
         addbyte(0x04);
         addbyte(0xC5);
-        addlong(codeblockaddr);
+        addlong((unsigned long) codeblockaddr);
         addbyte(0xFF); /*JMP *%rax*/
         addbyte(0xE0);
         codeinscount[blocknum]=c;
