@@ -803,7 +803,7 @@ shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
 }
 //#endif
 
-INLINING unsigned shift4(unsigned opcode)
+static inline unsigned shift4(unsigned opcode)
 {
         unsigned shiftmode=opcode&0x60;
         unsigned shiftamount=(opcode&0x10)?(armregs[(opcode>>8)&15]&0xFF):((opcode>>7)&31);
@@ -872,7 +872,7 @@ INLINING unsigned shift_ldrstr2(unsigned opcode)
         }
 }
 #endif
-INLINING unsigned rotate(unsigned data)
+static inline unsigned rotate(unsigned data)
 {
         uint32_t rotval;
         rotval=rotatelookup[data&4095];
@@ -988,7 +988,8 @@ uint32_t andbefore,andmid,andafter,andpc;
 
 #define INARMC
 #include "ArmDynarecOps.h"
-void opSWI(uint32_t opcode)
+
+static void opSWI(uint32_t opcode)
 {
 	inscount++; rinscount++;
         templ=opcode&0xDFFFF;
@@ -1069,13 +1070,13 @@ unsigned long startpc;
         }
 }*/
 
-void badopcode(uint32_t opcode)
+static void badopcode(uint32_t opcode)
 {
         bad_opcode(opcode);
         exit(-1);
 }
 
-unsigned char validforskip[64]=
+static const unsigned char validforskip[64]=
 {
         1,        1,        1,        1,        1,       1,        1,       1,
         1,        1,        1,        1,        1,       1,        1,       1,
@@ -1089,7 +1090,8 @@ unsigned char validforskip[64]=
 };
 
 int codeblockpos;
-OpFn opcodes[256]=
+
+static const OpFn opcodes[256]=
 {
 	opANDreg, opANDregS,opEORreg, opEORregS,opSUBreg,opSUBregS,opRSBreg,opRSBregS,   //00
 	opADDreg, opADDregS,opADCreg, opADCregS,opSBCreg,opSBCregS,opRSCreg,opRSCregS,   //08
