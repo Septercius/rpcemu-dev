@@ -988,7 +988,7 @@ uint32_t andbefore,andmid,andafter,andpc;
 
 #define INARMC
 #include "ArmDynarecOps.h"
-void opSWI(unsigned long opcode)
+void opSWI(uint32_t opcode)
 {
 	inscount++; rinscount++;
         templ=opcode&0xDFFFF;
@@ -1069,7 +1069,7 @@ unsigned long startpc;
         }
 }*/
 
-void badopcode(unsigned long opcode)
+void badopcode(uint32_t opcode)
 {
         bad_opcode(opcode);
         exit(-1);

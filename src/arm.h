@@ -1,7 +1,7 @@
 #ifndef __ARM__
 #define __ARM__
 
-typedef void (*OpFn)(unsigned long opcode);
+typedef void (*OpFn)(uint32_t opcode);
 
 extern void updatemode(uint32_t m);
 extern void resetcodeblocks();
