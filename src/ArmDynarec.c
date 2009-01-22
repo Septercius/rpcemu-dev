@@ -29,7 +29,7 @@ int blockend;
 #include <stdint.h>
 #include <time.h>
 
-int inscounts[256];
+static int inscounts[256];
 //#include <allegro.h>
 
 #include "rpcemu.h"
@@ -61,7 +61,7 @@ int inscounts[256];
 
 extern void removeblock(void); /* in codegen_*.c */
 	
-int r15diff;
+static int r15diff;
 //static int r11check=0;
 static int oldmode;
 static int fdci=0;
@@ -86,7 +86,7 @@ uint32_t *pcpsr;
 unsigned char *pcpsrb;
 
 uint32_t *usrregs[16],userregs[17],superregs[17],fiqregs[17],irqregs[17],abortregs[17],undefregs[17],systemregs[17];
-uint32_t spsr[16];
+static uint32_t spsr[16];
 uint32_t armregs[18];
 uint32_t mode;
 int databort;
@@ -331,7 +331,8 @@ void updatemode(uint32_t m)
         pcpsrb=((unsigned char *)pcpsr)+3;
 }
 
-int stmlookup[256];
+static int stmlookup[256];
+
 //#define countbits(c) countbitstable[c]
 int countbitstable[65536];
 void resetarm(void)
@@ -679,7 +680,7 @@ INLINING void setzn(uint32_t op)
         if (checkneg((op))) templ=NFLAG; \
         *pcpsr=((*pcpsr)&0x3FFFFFFF)|(templ);
         
-uint32_t shift3(uint32_t opcode)
+static uint32_t shift3(uint32_t opcode)
 {
         uint32_t shiftmode=opcode&0x60;//(opcode>>5)&3;
         uint32_t shiftamount=(opcode>>7)&31;
@@ -766,7 +767,8 @@ uint32_t shift3(uint32_t opcode)
 //#define shift_ldrstr(o) ((o&0xFF0)?shift_ldrstr2(o):armregs[RM])
 
 //#if 0
-unsigned shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
+static unsigned
+shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
 {
                 switch (shiftmode)
                 {
