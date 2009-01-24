@@ -660,24 +660,20 @@ INLINING void setadc(uint32_t op1, uint32_t op2, uint32_t res)
         else if (checkneg(res))            armregs[cpsr]|=NFLAG;
 }
 
-#if 0
-INLINING void setzn(uint32_t op)
+static inline void setzn(uint32_t op)
 {
-/*        armregs[cpsr]&=0x3FFFFFFF;
-        if (!op)               armregs[cpsr]|=ZFLAG;
-        else if (checkneg(op)) armregs[cpsr]|=NFLAG;*/
-        unsigned long temp=0;
-        if (!op)               temp=ZFLAG;
-        else if (checkneg(op)) temp=NFLAG;
-        *pcpsr=((*pcpsr)&0x3FFFFFFF)|(temp);
-}
-#endif
+        uint32_t flags;
 
-#define setzn(op) templ=0; \
-        if (!(op))               templ=ZFLAG; \
-        if (checkneg((op))) templ=NFLAG; \
-        *pcpsr=((*pcpsr)&0x3FFFFFFF)|(templ);
-        
+        if (op == 0) {
+                flags = ZFLAG;
+        } else if (checkneg(op)) {
+                flags = NFLAG;
+        } else {
+                flags = 0;
+        }
+        *pcpsr = flags | ((*pcpsr) & 0x3fffffff);
+}
+
 static uint32_t shift3(uint32_t opcode)
 {
         uint32_t shiftmode=opcode&0x60;//(opcode>>5)&3;
