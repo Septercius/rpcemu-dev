@@ -66,6 +66,10 @@ void loadroms(void)
                 if (stricmp(ext,"txt"))
                 {
                         romfilenames[number_of_files] = strdup(ff.name);
+                        if (romfilenames[number_of_files] == NULL) {
+                                error("Out of memory in loadroms()");
+                                exit(EXIT_FAILURE);
+                        }
                         number_of_files++;
                 }
                 finished = al_findnext(&ff);
