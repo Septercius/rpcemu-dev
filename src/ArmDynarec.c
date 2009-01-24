@@ -1151,7 +1151,6 @@ int linecyc=0;
 
 int hasldrb[BLOCKS];
 //int output=0;
-static int callcount = 0;
 
 void execarm(int cycs)
 {
@@ -1176,15 +1175,7 @@ void execarm(int cycs)
                         oldpc2=oldpc;
                         oldpc=PC;
                         if (output) rpclog("PC now %07X\n",PC);
-                        if (PC==0x397F4E0)
-                        {
-                                callcount++;
-                                rpclog("Call 397F4E0 %i\n",callcount);
-                                if (callcount==2)
-                                {
-                                        callcount=0;
-                                }
-                        }*/
+                        */
 /*                        if (armregs[15]==0x838282F7) *///output=1;
 //                        if (PC==0x38203BC) rpclog("Hit 38203BC\n");
 //                        /*if (output) */rpclog("New block - %08X %i %08X %08X %08X\n",PC,ins,iomd.t0c,iomd.t1c,armregs[6]);
