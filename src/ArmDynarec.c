@@ -63,7 +63,6 @@ extern void removeblock(void); /* in codegen_*.c */
 	
 static int r15diff;
 //static int r11check=0;
-static int oldmode;
 static int fdci=0;
 //static int out2=0;
 //static int r8match=0;
@@ -178,8 +177,7 @@ static void refillpipeline(void)
 void updatemode(uint32_t m)
 {
         uint32_t c,om=mode;
-        oldmode=mode;
-//        if (output) rpclog("Switch from mode %i to %i %07X\n",oldmode,m,PC);
+
 //        if (PC==0x8E30) output=1;
 //      if (output) rpclog("Update mode to %s mode %i %08X\n",(m&0x10)?"32-bit":"26-bit",m&15,PC);
 //      timetolive=1000;
@@ -892,7 +890,6 @@ static const int ldrlookup[4]={0,8,16,24};
 #define ldrresult(v,a) ((v>>ldrlookup[addr&3])|(v<<(32-ldrlookup[addr&3])))
 
 #define undefined() exception(UNDEFINED,8,4)
-int hitu=0;
 
 static void refillpipeline2()
 {
@@ -1154,7 +1151,8 @@ int linecyc=0;
 
 int hasldrb[BLOCKS];
 //int output=0;
-int callcount=0;
+static int callcount = 0;
+
 void execarm(int cycs)
 {
         //int target;

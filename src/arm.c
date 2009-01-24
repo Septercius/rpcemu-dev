@@ -74,7 +74,6 @@ static int inscounts[256];
 int blockend;
 static int r15diff;
 //static int r11check=0;
-static int oldmode;
 static int fdci=0;
 //static int out2=0;
 //static int r8match=0;
@@ -94,8 +93,8 @@ uint32_t inscount;
 //static unsigned char cmosram[256];
 int armirq=0;
 int cpsr;
-uint32_t *pcpsr;
-unsigned char *pcpsrb;
+static uint32_t *pcpsr;
+static unsigned char *pcpsrb;
 
 uint32_t *usrregs[16],userregs[17],superregs[17],fiqregs[17],irqregs[17],abortregs[17],undefregs[17],systemregs[17];
 static uint32_t spsr[16];
@@ -198,8 +197,7 @@ static void refillpipeline(void)
 void updatemode(uint32_t m)
 {
         uint32_t c,om=mode;
-        oldmode=mode;
-//        if (output) rpclog("Switch from mode %i to %i %07X\n",oldmode,m,PC);
+
 //        if (PC==0x8E30) output=1;
 //      if (output) rpclog("Update mode to %s mode %i %08X\n",(m&0x10)?"32-bit":"26-bit",m&15,PC);
 //      timetolive=1000;
@@ -355,6 +353,7 @@ static int stmlookup[256];
 
 #define countbits(c) countbitstable[c]
 int countbitstable[65536];
+
 void resetarm(void)
 {
         int c,d,exec = 0,data;
@@ -565,7 +564,7 @@ memmode=1;
 #define checkneg(v) (v&0x80000000)
 #define checkpos(v) !(v&0x80000000)
 
-/*static inline */void setadd(uint32_t op1, uint32_t op2, uint32_t res)
+static inline void setadd(uint32_t op1, uint32_t op2, uint32_t res)
 {
 /*        armregs[cpsr]&=0xFFFFFFF;
         if (!res)                           armregs[cpsr]|=ZFLAG;
@@ -595,7 +594,7 @@ static inline void setsub(uint32_t op1, uint32_t op2, uint32_t res)
         *pcpsr=((*pcpsr)&0xFFFFFFF)|(temp);
 }
 
-/*static inline */void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
+static inline void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
 {
         armregs[cpsr]&=0xFFFFFFF;
         if (!res)                           armregs[cpsr]|=ZFLAG;
@@ -608,7 +607,7 @@ static inline void setsub(uint32_t op1, uint32_t op2, uint32_t res)
             armregs[cpsr]|=VFLAG;
 }
 
-/*static inline */void setadc(uint32_t op1, uint32_t op2, uint32_t res)
+static inline void setadc(uint32_t op1, uint32_t op2, uint32_t res)
 {
         armregs[cpsr]&=0xFFFFFFF;
         if ((checkneg(op1) && checkneg(op2)) ||
@@ -851,7 +850,6 @@ static const int ldrlookup[4]={0,8,16,24};
 #define ldrresult(v,a) ((v>>ldrlookup[addr&3])|(v<<(32-ldrlookup[addr&3])))
 
 #define undefined() exception(UNDEFINED,8,4)
-int hitu=0;
 
 static void refillpipeline2()
 {
