@@ -25,10 +25,10 @@ static void makechunk(char type, int filebase, int size)
         podulerom[chunkbase++]=(filebase&0xFF000000)>>24;
 }
 
-const char description[] = "RPCEmu additional ROM";
+static const char description[] = "RPCEmu additional ROM";
 
 
-uint8_t readpodulerom(podule *p, int easi, uint32_t addr)
+static uint8_t readpodulerom(podule *p, int easi, uint32_t addr)
 {
         rpclog("READ EASI %i %08X\n",easi,addr);
         if (easi && (poduleromsize>0))

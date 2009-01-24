@@ -7,8 +7,8 @@
   1 is for additional IDE interface
   2-3 are free
   4-7 are not implemented (yet)*/
-podule podules[8];
-int freepodule;
+static podule podules[8];
+static int freepodule;
 
 void initpodules()
 {

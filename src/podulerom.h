@@ -6,6 +6,4 @@
 
 void initpodulerom(void);
 
-uint8_t readpodulerom(podule *p, int easi, uint32_t addr);
-
 #endif
