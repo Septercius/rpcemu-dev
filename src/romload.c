@@ -63,7 +63,8 @@ void loadroms(void)
         while (!finished && number_of_files < MAXROMS)
         {
                 ext=get_extension(ff.name);
-                if (stricmp(ext,"txt"))
+                /* Skip files with a .txt extension or starting with '.' */
+                if (stricmp(ext,"txt") && ff.name[0] != '.')
                 {
                         romfilenames[number_of_files] = strdup(ff.name);
                         if (romfilenames[number_of_files] == NULL) {
