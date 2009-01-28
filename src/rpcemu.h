@@ -48,6 +48,8 @@
 
 #ifdef __MACH__
 #define fseeko64(_a, _b, _c) fseek(_a, (long)_b, _c)
+#define fopen64(_a, _b) fopen(_a, _b)
+#define off64_t off_t
 #endif
 
 #if defined _BIG_ENDIAN || defined __BIG_ENDIAN__
