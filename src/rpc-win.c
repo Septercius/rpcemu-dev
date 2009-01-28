@@ -111,7 +111,7 @@ static void vblupdate(void)
 
 /*  Declare Windows procedure  */
 static LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
-RECT oldclip,arcclip;
+static RECT oldclip, arcclip;
 
 /*  Make the class name into a global variable  */
 static char szClassName[ ] = "WindowsApp";
@@ -453,7 +453,7 @@ infocus=1;
         return messages.wParam;
 }
 
-void changedisc(HWND hwnd, int drive)
+static void changedisc(HWND hwnd, int drive)
 {
         char fn[512];
         char start[512];
@@ -489,7 +489,7 @@ void changedisc(HWND hwnd, int drive)
 }
 
 char isoname[512];
-int selectiso(HWND hwnd)
+static int selectiso(HWND hwnd)
 {
         char fn[512];
         char start[512];
@@ -525,13 +525,13 @@ int selectiso(HWND hwnd)
         return 0;
 }
 
-int _mask;
-int vrammask2;
-int soundenabled2;
-int refresh2;
-int chngram=0;
+static int _mask;
+static int vrammask2;
+static int soundenabled2;
+static int refresh2;
+static int chngram = 0;
 
-BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
         static int model2 = 0;
         HWND h;
