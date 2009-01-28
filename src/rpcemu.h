@@ -124,7 +124,6 @@ extern void rpclog(const char *format, ...);
 extern void updatewindowsize(uint32_t x, uint32_t y);
 extern void wakeupsoundthread();
 extern void updateirqs(void);
-extern int quited;
 
 extern char exname[512];
 extern int timetolive;
@@ -134,6 +133,9 @@ extern int startrpcemu();
 extern void execrpcemu();
 extern void endrpcemu();
 extern void resetrpc();
+extern int mousecapture;
+extern int drawscre;
+extern int quited;
 
 /*Generic*/
 extern int lastinscount;

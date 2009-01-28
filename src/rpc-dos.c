@@ -10,10 +10,7 @@
 #include "iomd.h"
 #include "gui.h"
 
-int quited=0;
 
-
-int mousecapture=0;
 float mips;
 int updatemips=0;
 
@@ -70,8 +67,6 @@ if (!arclog) arclog=fopen("rpclog.txt","wt");
    fputs(buf,arclog);
    fflush(arclog);
 }
-
-int drawscre=0;
 
 int infocus;
 

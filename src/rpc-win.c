@@ -29,7 +29,6 @@
 #include "cdrom-ioctl.h"
 
 int soundenabled=0;
-int mousecapture=0;
 static float mips = 0.0f, mhz = 0.0f, tlbsec = 0.0f, flushsec = 0.0f;
 static int updatemips=0;
 static int vsyncints=0;
@@ -86,8 +85,6 @@ void rpclog(const char *format, ...)
    fputs(buf,arclog);
    fflush(arclog);
 }
-
-int drawscre=0;
 
 static void sndupdate(void)
 {
@@ -169,8 +166,6 @@ static void releasemousecapture(void)
                 mousecapture=0;
         }
 }
-
-int quited=0;
 
 /*Ignore _ALL_ this for now. It doesn't work very well, and doesn't even get
   started at the moment*/

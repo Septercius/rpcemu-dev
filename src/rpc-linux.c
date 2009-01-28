@@ -14,10 +14,8 @@
 #include "network-linux.h"
 
 
-int mousecapture=0;
 static float mips;
 static int updatemips = 0;
-int quited=0;
 static pthread_t sound_thread;
 static pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t sound_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -122,8 +120,6 @@ if (!arclog) arclog=fopen("rpclog.txt","wt");
    va_end(ap);
    fputs(buf,arclog);
 }
-
-int drawscre=0;
 
 void vblupdate()
 {

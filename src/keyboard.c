@@ -29,8 +29,6 @@ typedef struct {
         int rptr, wptr, count;
 } PS2Queue;
 
-extern int mousecapture;
-
 int mousehackon = 1;
 
 static int mcalls;

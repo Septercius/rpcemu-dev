@@ -40,6 +40,5 @@ extern void iomdvsync(int vsync);
 extern char HOSTFS_ROOT[512];
 
 extern char discname[2][260];
-extern int drawscre;
 
 #endif //__IOMD__
