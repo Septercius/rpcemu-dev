@@ -2407,6 +2407,16 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 	    ;;
+    *apple*)
+            OS="macosx"
+            { echo "$as_me:$LINENO: result: Mac OS X" >&5
+echo "${ECHO_T}Mac OS X" >&6; }
+
+cat >>confdefs.h <<\_ACEOF
+#define RPC_MACOSX
+_ACEOF
+
+            ;;
     *macosx*)
 	    OS="macosx"
   	    { echo "$as_me:$LINENO: result: Mac OS X" >&5

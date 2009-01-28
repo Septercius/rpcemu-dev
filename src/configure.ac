@@ -56,6 +56,11 @@ case "${host}" in
   	    AC_MSG_RESULT(Windows)
             AC_DEFINE(RPCEMU_WIN, [], [OS is Windows])
 	    ;;
+    *apple*)
+            OS="macosx"
+            AC_MSG_RESULT([Mac OS X])
+            AC_DEFINE(RPC_MACOSX, [], [OS is Mac OS X])
+            ;;
     *macosx*)
 	    OS="macosx"
   	    AC_MSG_RESULT([Mac OS X])
