@@ -121,7 +121,7 @@ if (!arclog) arclog=fopen("rpclog.txt","wt");
    fputs(buf,arclog);
 }
 
-void vblupdate()
+static void vblupdate(void)
 {
         if (infocus) drawscre++;
 }
@@ -135,9 +135,9 @@ void releasemousecapture()
 }
 
 #ifdef VIDC_THREAD
-pthread_t thread;
-pthread_cond_t vidccond = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t vidcmutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_t thread;
+static pthread_cond_t vidccond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t vidcmutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void *vidcthreadrunner(void *threadid)
 {
@@ -196,7 +196,7 @@ void vidcreleasemutex(void)
 #endif
 }
 
-void close_button_handler(void)
+static void close_button_handler(void)
 {
   quited = TRUE;
 }
