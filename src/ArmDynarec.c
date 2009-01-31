@@ -582,25 +582,7 @@ memmode=1;
 }
 
 #define dumpregs()
-unsigned char readmemfbr()
-{
-        return readmemb(armregs[0]);
-}
 
-unsigned long readmemflr()
-{
-        return readmeml(armregs[0]);
-}
-
-void writememfbr()
-{
-        writememb(armregs[0],armregs[1]);
-}
-
-void writememflr()
-{
-        writememl(armregs[0],armregs[1]);
-}
 #define checkneg(v) (v&0x80000000)
 #define checkpos(v) !(v&0x80000000)
 
@@ -977,7 +959,6 @@ void exception(int mmode, uint32_t address, int diff)
                 refillpipeline();
         }
 }
-uint32_t andbefore,andmid,andafter,andpc;
 
 #define INARMC
 #include "ArmDynarecOps.h"
@@ -1126,12 +1107,6 @@ static const OpFn opcodes[256]=
 	opSWI,	  opSWI,    opSWI,    opSWI,	opSWI,	  opSWI,    opSWI,    opSWI,     //F0
 	opSWI,	  opSWI,    opSWI,    opSWI,	opSWI,	  opSWI,    opSWI,    opSWI      //F8
 };
-
-void testit()
-{
-//opSWI(0x12345678);
-        //asm("addl $4,0x12345678;");
-}
 
 int linecyc=0;
 #ifdef __amd64__
@@ -1422,7 +1397,6 @@ void execarm(int cycs)
                                                         dumpregs();
                                                         exit(-1);
                                                 }*/
-//                                                rpclog("%08X %08X %08X %08X\n",andbefore,andmid,andafter,andpc);
         /*                                        if (abortaddr==abortaddr2 && PC==abortaddr && PC==0x40008C10)
                                                 {
                                                         rpclog("Once...\n");
