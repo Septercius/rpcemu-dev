@@ -1052,7 +1052,7 @@ static void opSWI(uint32_t opcode)
                 exception(SUPERVISOR,0xC,4);
         }
 }
-unsigned long startpc;
+
 /*void writememl(unsigned long a, unsigned long v)
 {
         if (vraddrl[(a)>>12]&3)
@@ -1257,7 +1257,6 @@ void execarm(int cycs)
                                         /*if (output) */
 //                                        if (PC>=0x6F000 && PC<0x70000) { rpclog("Calling block 0 %07X\n",PC); }
 //rpclog("Calling block 0 %07X\n",PC);
-startpc=armregs[15];
                                         templ=codeblocknum[hash];
 //rpclog("Calling block 0 %i %07X\n",templ,PC);
                                         gen_func=(void *)(&rcodeblock[templ][BLOCKSTART]);
