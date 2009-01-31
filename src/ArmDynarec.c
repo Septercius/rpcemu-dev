@@ -78,13 +78,14 @@ static void refillpipeline2(void);
 //static FILE *olog;
 uint32_t rotatelookup[4096];
 uint32_t inscount;
-//static unsigned char cmosram[256];
 int armirq=0;
 int cpsr;
 uint32_t *pcpsr;
 unsigned char *pcpsrb;
 
-uint32_t *usrregs[16],userregs[17],superregs[17],fiqregs[17],irqregs[17],abortregs[17],undefregs[17],systemregs[17];
+uint32_t *usrregs[16];
+static uint32_t userregs[17], superregs[17], fiqregs[17], irqregs[17];
+static uint32_t abortregs[17], undefregs[17], systemregs[17];
 static uint32_t spsr[16];
 uint32_t armregs[18];
 uint32_t mode;
