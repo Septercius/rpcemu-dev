@@ -3,12 +3,13 @@
 #include "ide.h"
 #include "cdrom-iso.h"
 
-ATAPI iso_atapi;
+static ATAPI iso_atapi;
 
-int iso_discchanged=0;
-FILE *iso_file;
-int iso_empty=0;
-int iso_ready()
+static int iso_discchanged = 0;
+static FILE *iso_file;
+static int iso_empty = 0;
+
+static int iso_ready(void)
 {
         if (iso_empty) return 0;
         if (iso_discchanged)
@@ -20,14 +21,14 @@ int iso_ready()
         return 1;
 }
 
-void iso_readsector(uint8_t *b, int sector)
+static void iso_readsector(uint8_t *b, int sector)
 {
         if (iso_empty) return;
         fseek(iso_file,sector*2048,SEEK_SET);
         fread(b,2048,1,iso_file);
 }
 
-int iso_readtoc(unsigned char *b, unsigned char starttrack, int msf)
+static int iso_readtoc(unsigned char *b, unsigned char starttrack, int msf)
 {
         int len=4;
         int blocks;
@@ -76,21 +77,21 @@ int iso_readtoc(unsigned char *b, unsigned char starttrack, int msf)
         return len;
 }
 
-uint8_t iso_getcurrentsubchannel(uint8_t *b, int msf)
+static uint8_t iso_getcurrentsubchannel(uint8_t *b, int msf)
 {
         memset(b,0,2048);
         return 0;
 }
 
-void iso_playaudio(uint32_t pos, uint32_t len)
+static void iso_playaudio(uint32_t pos, uint32_t len)
 {
 }
 
-void iso_seek(uint32_t pos)
+static void iso_seek(uint32_t pos)
 {
 }
 
-void iso_null()
+static void iso_null(void)
 {
 }
 
@@ -108,7 +109,7 @@ void iso_close()
         if (iso_file) fclose(iso_file);
 }
 
-void iso_exit()
+static void iso_exit(void)
 {
         if (iso_file) fclose(iso_file);
 }
@@ -119,7 +120,7 @@ void iso_init()
         atapi=&iso_atapi;
 }
 
-ATAPI iso_atapi=
+static ATAPI iso_atapi=
 {
         iso_ready,
         iso_readtoc,
