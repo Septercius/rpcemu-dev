@@ -6,18 +6,19 @@
 #include "rpcemu.h"
 #include "ide.h"
 
-ATAPI ioctl_atapi;
+static ATAPI ioctl_atapi;
 
-int ioctl_discchanged=0;
-int ioctl_empty=0;
-int ioctl_ready()
+static int ioctl_discchanged = 0;
+static int ioctl_empty = 0;
+
+static int ioctl_ready(void)
 {
 	int cdrom=open("/dev/cdrom",O_RDONLY|O_NONBLOCK);
         if (cdrom<=0) return 0;
 	return 1;
 }
 
-void ioctl_readsector(uint8_t *b, int sector)
+static void ioctl_readsector(uint8_t *b, int sector)
 {
 	int cdrom=open("/dev/cdrom",O_RDONLY|O_NONBLOCK);
         if (cdrom<=0) return;
@@ -27,7 +28,7 @@ void ioctl_readsector(uint8_t *b, int sector)
 }
 
 /*I'm not sure how to achieve this properly, so the TOC is faked*/
-int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
+static int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
 {
         int len=4;
         int blocks;
@@ -77,21 +78,21 @@ int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
         return len;
 }
 
-uint8_t ioctl_getcurrentsubchannel(uint8_t *b, int msf)
+static uint8_t ioctl_getcurrentsubchannel(uint8_t *b, int msf)
 {
         memset(b,0,2048);
         return 0;
 }
 
-void ioctl_playaudio(uint32_t pos, uint32_t len)
+static void ioctl_playaudio(uint32_t pos, uint32_t len)
 {
 }
 
-void ioctl_seek(uint32_t pos)
+static void ioctl_seek(uint32_t pos)
 {
 }
 
-void ioctl_null()
+static void ioctl_null(void)
 {
 }
 
@@ -107,7 +108,7 @@ void ioctl_close()
 {
 }
 
-void ioctl_exit()
+static void ioctl_exit(void)
 {
 }
 
@@ -117,7 +118,7 @@ void ioctl_init()
         atapi=&ioctl_atapi;
 }
 
-ATAPI ioctl_atapi=
+static ATAPI ioctl_atapi=
 {
         ioctl_ready,
         ioctl_readtoc,
