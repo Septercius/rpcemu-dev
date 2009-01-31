@@ -39,37 +39,95 @@ static int cmosrw;
 
 static void cmosgettime(void);
 
-void loadcmos()
+static void
+cmos_update_checksum(void)
+{
+	unsigned checksum = 0;
+	int i;
+
+	/* Loop through all but one address of the NVRAM. The checksum will go
+	   at the last address */
+	for (i = 0; i < 239; i++) {
+		/* RISC OS uses addresses that are offset by 0x40 */
+		int offset = i + 0x40;
+
+		/* Wrap round the address, skipping addresses 0 .. 15 which
+		   are time and config registers */
+		if (offset > 255) {
+			offset -= 240;
+		}
+
+		checksum += (unsigned) cmosram[offset];
+	}
+
+	/* Checksum goes at last address (offset by 0x40 for RISC OS) */
+	cmosram[0x3f] = (checksum + 1) & 0xff;
+}
+
+void loadcmos(void)
 {
         char fn[512];
         FILE *cmosf;
+        time_t now = time(NULL);
+        const struct tm *t = gmtime(&now);
 
-        append_filename(fn,exname,"cmos.ram",511);
-        cmosf=fopen(fn,"rb");
+        /* Append "cmos.ram" to the given executable path */
+        append_filename(fn, exname, "cmos.ram", sizeof(fn) - 1);
+        cmosf = fopen(fn, "rb");
 
-	if (!cmosf) {
-          fprintf(stderr, "Could not open CMOS file '%s': %s\n", fn, strerror(errno));
-	  exit(EXIT_FAILURE);
+        if (cmosf) {
+                /* File open suceeded, load CMOS data */
+                if (fread(cmosram, 1, 256, cmosf) != 256) {
+                        error("Unable to read from CMOS file '%s', %s", fn,
+                              strerror(errno));
+                        exit(EXIT_FAILURE);
+                }
+                fclose(cmosf);
+        } else {
+                /* Report failure and initialise the array */
+                fprintf(stderr, "Could not open CMOS file '%s': %s\n", fn, 
+                        strerror(errno));
+                memset(cmosram, 0, 256);
+
+                /* The year should be stored too, otherwise RISC OS refuses to
+                 * read any time from the CMOS/RTC chip!
+                 */
+                /* The standard C time functionality subtracts 1900 from the year */
+                cmosram[0xc0] = (t->tm_year + 1900) % 100;
+                cmosram[0xc1] = (t->tm_year + 1900) / 100;
+
+                // What about also initialising some parts to sensible defaults?
+                // eg default bootfs, number of IDE discs, floppy etc....
         }
 
-        fread(cmosram,256,1,cmosf);
-        fclose(cmosf);
+        /* Update the checksum used by RISC OS, as updating values above will
+           probably have invalidated it */
+        cmos_update_checksum();
 
         /* Clear the bytes that correspond to registers (i.e. not NVRAM) */
         memset(cmosram, 0, 16);
 }
 
-void savecmos()
+void savecmos(void)
 {
         char fn[512];
         FILE *cmosf;
 
-        append_filename(fn,exname,"cmos.ram",511);
-        cmosf=fopen("cmos.ram","wb");
-//        for (c=0;c<256;c++)
-//            putc(cmosram[(c-0x40)&0xFF],cmosf);
-        fwrite(cmosram,256,1,cmosf);
-        fclose(cmosf);
+        append_filename(fn, exname, "cmos.ram", sizeof(fn) - 1);
+        cmosf = fopen(fn, "wb");
+
+        if (cmosf) {
+                if(fwrite(cmosram, 256, 1, cmosf) != 1) {
+                        error("Unable to write CMOS file '%s': %s", fn,
+                              strerror(errno));
+                        exit(EXIT_FAILURE);
+                        // TODO does it have to be fatal?
+                }
+                fclose(cmosf);
+        } else {
+                fprintf(stderr, "Could not open CMOS file '%s' for writing: %s\n", fn,
+                        strerror(errno));
+        }
 }
 
 static void cmosstop(void)
@@ -83,7 +141,7 @@ static void cmosnextbyte(void)
         i2cbyte=cmosram[((cmosaddr++))&0xFF];
 }
 
-unsigned char cmosgetbyte()
+unsigned char cmosgetbyte(void)
 {
         return cmosram[cmosaddr++];
 }
