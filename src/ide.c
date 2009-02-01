@@ -46,7 +46,6 @@ static int idereset;
 static unsigned short idebuffer[65536];
 static unsigned char *idebufferb;
 static FILE *hdfile[4];
-//FILE *cdrom=NULL;
 
 static inline void
 ide_irq_raise(void)
@@ -900,8 +899,6 @@ static void atapicommand()
 //                rpclog("Read at %08X %08X\n",ide.cdpos,ide.cdpos*2048);
                 atapi->readsector(idebufferb,ide.cdpos);
 
-//                fseek(cdrom,ide.cdpos*2048,SEEK_SET);
-//                fread(idebufferb,2048,1,cdrom);
                 ide.cdpos++;
                 ide.cdlen--;
                 if (ide.cdlen>=0) ide.packetstatus=6;
@@ -1178,9 +1175,7 @@ static void callreadcd()
         ide.atastat[0]=0x80;
         
                 atapi->readsector(idebufferb,ide.cdpos);
-                
-//                fseek(cdrom,ide.cdpos*2048,SEEK_SET);
-//        fread(idebufferb,2048,1,cdrom);
+
                 ide.cdpos++;
                 ide.cdlen--;
                 ide.packetstatus=6;
