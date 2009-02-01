@@ -949,26 +949,6 @@ static void atapicommand()
                   byte 2 is media type*/
                 idebufferb[2]=1; /*120mm data CD-ROM*/
                 pos=8;
-                #if 0
-                /*&01 - Read error recovery*/
-                idebufferb[pos++]=0x01; /*Page code*/
-                idebufferb[pos++]=6; /*Page length*/
-                idebufferb[pos++]=0; /*Error recovery parameters*/
-                idebufferb[pos++]=3; /*Read retry count*/
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=0; /*Reserved*/
-                /*&01 - Read error recovery*/
-                idebufferb[pos++]=0x01; /*Page code*/
-                idebufferb[pos++]=6; /*Page length*/
-                idebufferb[pos++]=0; /*Error recovery parameters*/
-                idebufferb[pos++]=3; /*Read retry count*/
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=0; /*Reserved*/
-                #endif
                 /*&01 - Read error recovery*/
                 idebufferb[pos++]=0x01; /*Page code*/
                 idebufferb[pos++]=6; /*Page length*/
