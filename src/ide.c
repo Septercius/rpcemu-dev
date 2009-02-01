@@ -23,7 +23,7 @@ static int skip512[4];
 int cdromenabled=1;
 static void atapicommand();
 int timetolive;
-int dumpedread=0;
+
 static struct
 {
         unsigned char atastat[4];
@@ -339,15 +339,6 @@ uint8_t readide(uint16_t addr)
                         timetolive=20000;
                 }*/
 //                rpclog("Read data %08X ",ide.pos);
-/*                if (!dumpedread)
-                {
-                        f=fopen("ram212.dmp","wb");
-                        for (c=0x2127800;c<0x2127C00;c++)
-                        {
-                                putc(readmemb(c),f);
-                        }
-                        fclose(f);
-                }*/
                 temp=idebufferb[ide.pos++];
 //                rpclog("%04X\n",temp);
                 if (ide.pos>=512)
@@ -742,8 +733,6 @@ void callbackide(void)
   interface defined in ide.h.
   There are a couple of bugs in the CD audio handling.
   */
-unsigned char atapibuffer[256];
-int atapilen;
 
 static void atapi_notready()
 {
