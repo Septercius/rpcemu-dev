@@ -85,8 +85,6 @@ static int cycles;
 int prefabort;
 //static void refillpipeline(void);
 static void refillpipeline2(void);
-//static char bigs[256];
-//static FILE *olog;
 uint32_t rotatelookup[4096];
 //int timetolive = 0;
 uint32_t inscount;
@@ -376,8 +374,6 @@ void resetarm(void)
                 }
         }
         r15mask=0x3FFFFFC;
-//        if (!olog)
-//           olog=fopen("armlog.txt","wt");
         pccache=0xFFFFFFFF;
         updatemode(SUPERVISOR);
         cpsr=15;
@@ -2559,9 +2555,6 @@ void execarm(int cycs)
                                                         templ=armregs[15]&0x3FFFFFC;
                                                         armregs[15]=((GETADDR(RN)^rotate2(opcode))&0xFC000003)|templ;
                                                 if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-//                                                        if (!olog) olog=fopen("armlog.txt","wt");
-//                                                        sprintf(s,"TEQP %08X %i\n",armregs[15],getline());
-//                                                        fputs(s,olog);
                                                 }
                                                 else
                                                 {
@@ -3474,12 +3467,6 @@ void execarm(int cycs)
                                         }
                                         LOADREG(RD,templ2);
                                         //cycles-=3;
-/*                                        if (RD==7)
-                                        {
-                                                if (!olog) olog=fopen("armlog.txt","wt");
-                                                sprintf(s,"LDRB R7 %02X,%07X\n",armregs[7],PC);
-                                                fputs(s,olog);
-                                        }*/
                                         break;
 //#if 0
                                         case 0x46: /*STRB RD,[RN],-#*/

@@ -734,5 +734,4 @@ void setmouseparams(uint32_t a)
         mr=readmemb(a+5)|(readmemb(a+6)<<8);
         mb=readmemb(a+7)|(readmemb(a+8)<<8);
 //        printf("Mouse params %04X %04X %04X %04X\n",ml,mr,mt,mb);
-//        fputs(bigs,olog);
 }

@@ -74,8 +74,6 @@ static int cycles;
 int prefabort;
 //static void refillpipeline(void);
 static void refillpipeline2(void);
-//static char bigs[256];
-//static FILE *olog;
 uint32_t rotatelookup[4096];
 uint32_t inscount;
 int armirq=0;
@@ -356,8 +354,6 @@ void resetarm(void)
                 }
         }
         r15mask=0x3FFFFFC;
-//        if (!olog)
-//           olog=fopen("armlog.txt","wt");
         pccache=0xFFFFFFFF;
         updatemode(SUPERVISOR);
         cpsr=15;

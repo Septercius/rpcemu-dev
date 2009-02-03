@@ -161,7 +161,6 @@ static void cmosgettime(void)
 
 static void cmoswrite(unsigned char byte)
 {
-  //        char s[80];
         switch (cmosstate)
         {
                 case CMOS_IDLE:
@@ -176,10 +175,8 @@ static void cmoswrite(unsigned char byte)
                         if (cmosaddr < 0x10)
                                 cmosgettime();
 
-/*                        if (!olog) olog=fopen("olog.txt","wt");*/
 //                        rpclog("%02X",cmosram[cmosaddr]);
 //                        timetolive=5000;
-/*                        fputs(s,olog);*/
                         i2cbyte=cmosram[((cmosaddr++))&0xFF];
 //printf("CMOS - %02X from %02X\n",i2cbyte,cmosaddr-1);
 //                        log("Transmitter now CMOS\n");
@@ -205,8 +202,6 @@ static void cmoswrite(unsigned char byte)
                 case CMOS_RECIEVEDATA:
 //                printf("CMOS write %02X %02X\n",cmosaddr,byte);
 //                log("%02X now %02X\n",cmosaddr,byte);
-//                        sprintf(s,"Write CMOS %02X - %02X\n",cmosaddr,byte);
-//                        fputs(s,olog);
                 cmosram[((cmosaddr++))&0xFF]=byte;
                 break;
 
