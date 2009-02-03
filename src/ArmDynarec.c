@@ -445,34 +445,26 @@ void dumpregs(void)
 #define checkneg(v) (v&0x80000000)
 #define checkpos(v) !(v&0x80000000)
 
-INLINING void setadd(uint32_t op1, uint32_t op2, uint32_t res)
+static inline void setadd(uint32_t op1, uint32_t op2, uint32_t result)
 {
-/*        armregs[cpsr]&=0xFFFFFFF;
-        if (!res)                           armregs[cpsr]|=ZFLAG;
-        else if (checkneg(res))             armregs[cpsr]|=NFLAG;
-        if (res<op1)                        armregs[cpsr]|=CFLAG;
-        if ((op1^res)&(op2^res)&0x80000000) armregs[cpsr]|=VFLAG;*/
-        unsigned long temp=0;
-        if (!res)                           temp=ZFLAG;
-        else if (checkneg(res))             temp=NFLAG;
-        if (res<op1)                        temp|=CFLAG;
-        if ((op1^res)&(op2^res)&0x80000000) temp|=VFLAG;
-        *pcpsr=((*pcpsr)&0xFFFFFFF)|(temp);
+        uint32_t flags = 0;
+
+        if (result == 0)                                  flags = ZFLAG;
+        else if (checkneg(result))                        flags = NFLAG;
+        if (result < op1)                                 flags |= CFLAG;
+        if ((op1 ^ result) & (op2 ^ result) & 0x80000000) flags |= VFLAG;
+        *pcpsr = ((*pcpsr) & 0x0fffffff) | flags;
 }
 
-INLINING void setsub(uint32_t op1, uint32_t op2, uint32_t res)
+static inline void setsub(uint32_t op1, uint32_t op2, uint32_t result)
 {
-/*        armregs[cpsr]&=0xFFFFFFF;
-        if (!res)                           armregs[cpsr]|=ZFLAG;
-        else if (checkneg(res))             armregs[cpsr]|=NFLAG;
-        if (res<=op1)                       armregs[cpsr]|=CFLAG;
-        if ((op1^op2)&(op1^res)&0x80000000) armregs[cpsr]|=VFLAG;*/
-        unsigned long temp=0;
-        if (!res)                           temp=ZFLAG;
-        else if (checkneg(res))             temp=NFLAG;
-        if (res<=op1)                       temp|=CFLAG;
-        if ((op1^op2)&(op1^res)&0x80000000) temp|=VFLAG;
-        *pcpsr=((*pcpsr)&0xFFFFFFF)|(temp);
+        uint32_t flags = 0;
+
+        if (result == 0)                               flags = ZFLAG;
+        else if (checkneg(result))                     flags = NFLAG;
+        if (result <= op1)                             flags |= CFLAG;
+        if ((op1 ^ op2) & (op1 ^ result) & 0x80000000) flags |= VFLAG;
+        *pcpsr = ((*pcpsr) & 0x0fffffff) | flags;
 }
 
 INLINING void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
