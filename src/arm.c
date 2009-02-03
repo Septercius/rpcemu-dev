@@ -157,8 +157,6 @@ static const int modepritablew[3][6]=
         {0,1,1,1,1,0}
 };
 
-//static int osmode=0;
-
 uint32_t pccache,*pccache2;
 
 #ifdef PREFETCH
