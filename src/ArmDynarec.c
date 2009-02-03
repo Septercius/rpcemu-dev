@@ -413,173 +413,31 @@ void resetarm(void)
 int indumpregs=0;
 int insnum[256];
 
-void dumpregs()
+void dumpregs(void)
 {
-/*}*/
-#if 1
-//        FILE *f;//,*ff;
         char s[1024];
-//        int c;//,d,e;
-        //uint32_t templ;
-/*        for (c=0;c<0x100;c++)
-        {
-                rpclog("Opcode %02X : %09i\n",c,inscounts[c]);
-                insnum[c]=c;
-        }
-        for (c=0;c<0x100;c++)
-        {
-                for (d=0;d<0x100;d++)
-                {
-                        if (c>d)
-                        {
-                                if (inscounts[c]<inscounts[d])
-                                {
-                                        templ=inscounts[c];
-                                        inscounts[c]=inscounts[d];
-                                        inscounts[d]=templ;
-                                        e=insnum[d];
-                                        insnum[d]=insnum[c];
-                                        insnum[c]=e;
-                                }
-                        }
-                }
-        }
-        rpclog("\nOrdered :\n");
-        for (c=0;c<0x100;c++)
-            rpclog("Opcode %02X : %09i\n",insnum[c],inscounts[c]);*/
-//        return;
+
         if (indumpregs) return;
         indumpregs=1;
-//        f=fopen("ram.dmp","wb");
-        sprintf(s,"R 0=%08X R 4=%08X R 8=%08X R12=%08X\nR 1=%08X R 5=%08X R 9=%08X R13=%08X\nR 2=%08X R 6=%08X R10=%08X R14=%08X\nR 3=%08X R 7=%08X R11=%08X R15=%08X\n%u %s\n%08X %08X %08X",armregs[0],armregs[4],armregs[8],armregs[12],armregs[1],armregs[5],armregs[9],armregs[13],armregs[2],armregs[6],armregs[10],armregs[14],armregs[3],armregs[7],armregs[11],armregs[15],ins,(mmu)?"MMU enabled":"MMU disabled",oldpc,oldpc2,oldpc3);
-//        error("%s",s);
+
+        sprintf(s, "R 0=%08X R 4=%08X R 8=%08X R12=%08X\n"
+                   "R 1=%08X R 5=%08X R 9=%08X R13=%08X\n"
+                   "R 2=%08X R 6=%08X R10=%08X R14=%08X\n"
+                   "R 3=%08X R 7=%08X R11=%08X R15=%08X\n"
+                   "%u %s\n"
+                   "%08X %08X %08X",
+                   armregs[0], armregs[4], armregs[8], armregs[12],
+                   armregs[1], armregs[5], armregs[9], armregs[13],
+                   armregs[2], armregs[6], armregs[10], armregs[14],
+                   armregs[3], armregs[7], armregs[11], armregs[15],
+                   ins, (mmu) ? "MMU enabled" : "MMU disabled",
+                   oldpc, oldpc2, oldpc3);
         rpclog("%s",s);
         printf("%s",s);
-//        error("PC =%07X ins=%i R12f=%08X CPSR=%08X\n",PC,ins,fiqregs[12],armregs[16]);
-//        fwrite(ram,0x400000,1,f);
-//        fclose(f);
-memmode=1;
-/*        f=fopen("kernel.dmp","wb");
-        for (c=0xC0000000;c<0xC0200000;c+=4096)
-        {
-                armirq=0;
-                pccache2=getpccache(c);
-//                rpclog("pccache %08X\n",pccache2);
-                if (pccache2!=NULL)
-                {
-//                        rpclog("Writing\n");
-                        fwrite(&pccache2[c>>2],4096,1,f);
-                }
-        }
-        fclose(f);
-        f=fopen("bsdkernel.dmp","wb");
-        for (c=0xF0000000;c<0xF0800000;c+=4096)
-        {
-                armirq=0;
-                pccache2=getpccache(c);
-//                rpclog("pccache %08X\n",pccache2);
-                if (pccache2!=NULL)
-                {
-//                        rpclog("Writing\n");
-                        fwrite(&pccache2[c>>2],4096,1,f);
-                }
-                else
-                {
-                        for (d=0;d<4096;d++)
-                            putc(0xFF,f);
-                }
-        }
-        fclose(f);
-        f=fopen("prog.dmp","wb");
-        for (c=0x40000000;c<0x40200000;c+=4096)
-        {
-                armirq=0;
-                pccache2=getpccache(c);
-//                rpclog("pccache %08X\n",pccache2);
-                if (pccache2!=NULL)
-                {
-//                        rpclog("Writing\n");
-                        fwrite(&pccache2[c>>2],4096,1,f);
-                }
-        }
-        fclose(f);
-        f=fopen("ram.dmp","wb");
-        for (c=0x8000;c<0x70000;c++)
-            putc(readmemb(c),f);
-        fclose(f);*/
-/*
-        f=fopen("ram0.dmp","wb");
-        for (c=0x0000;c<0x8000;c++)
-            putc(readmemb(c),f);
-        fclose(f);
-*/
-/*
-        f=fopen("ram21.dmp","wb");
-        for (c=0x2100000;c<0x21FFFFF;c++)
-            putc(readmemb(c),f);
-        fclose(f);
-*/
-  /*      f=fopen("ram10.dmp","wb");
-        for (c=0x10000000;c<0x10800000;c++)
-            putc(readmemb(c),f);
-        fclose(f);*/
-/*        f=fopen("bsdk.dmp","wb");
-        for (c=0xF0000000;c<0xF0800000;c++)
-            putc(readmemb(c),f);
-        fclose(f);*/
-/*        f=fopen("ram31.dmp","wb");
-        for (c=(PC-0x1000);c<(PC+0x1000);c+=4)
-        {
-                templ=readmeml(c);
-                putc(templ,f);
-                putc(templ>>8,f);
-                putc(templ>>16,f);
-                putc(templ>>24,f);
-        }
-        fclose(f);
-        f=fopen("ram32.dmp","wb");
-        for (c=(PC&~0x3FF);c<((PC&~0x3FF)+0x400);c+=4)
-        {
-                templ=pccache2[c>>2];
-                putc(templ,f);
-                putc(templ>>8,f);
-                putc(templ>>16,f);
-                putc(templ>>24,f);
-        }
-        fclose(f);*/
-/*
-        f=fopen("rambsd.dmp","wb");
-        for (c=0x3D9000;c<0x3DF000;c++)
-            putc(readmemb(c),f);
-        fclose(f);
-*/
-/*        f=fopen("ram0.dmp","wb");
-        ff=fopen("ram02.dmp","wb");
-        for (c=0;c<0x800;c+=4)
-        {
-                templ=readmeml(c);
-                putc(templ,f);
-                putc(templ>>8,f);
-                putc(templ>>16,f);
-                putc(templ>>24,f);
-                putc(readmemb(c),ff);
-                putc(readmemb(c+1),ff);
-                putc(readmemb(c+2),ff);
-                putc(readmemb(c+3),ff);
-        }
-        fclose(ff);
-        fclose(f);
-        f=fopen("program.dmp","wb");
-        armirq=0;
-//        databort=0;
-        for (c=0;c<0x40000;c++)
-        {
-                putc(readmemb(c+0x8000),f);
-//                if (databort) break;
-        }
-        fclose(f);*/
+
+        memmode=1;
+
         indumpregs=0;
-#endif
 }
 
 #define dumpregs()
