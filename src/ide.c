@@ -777,7 +777,6 @@ static void atapicommand()
         int c;
         int len;
         int msf;
-        //int blocks=95932;
         int pos=0;
 //        rpclog("New ATAPI command %02X\n",idebufferb[0]);
                 msf=idebufferb[1]&2;
@@ -823,58 +822,6 @@ static void atapicommand()
                         exit(-1);
                 }
                 len=atapi->readtoc(idebufferb,idebufferb[6],msf);
-#if 0
-                len=4;
-                if (idebufferb[6]>1 && idebufferb[6]!=0xAA)
-                {
-                        rpclog("Read bad track %02X in read TOC\n",idebufferb[6]);
-                        rpclog("Packet data :\n");
-                        for (c=0;c<12;c++)
-                            rpclog("%02X ",idebufferb[c]);
-                        rpclog("\n");
-                        exit(-1);
-                }
-
-        if (idebufferb[6] <= 1) {
-          idebufferb[len++] = 0; // Reserved
-          idebufferb[len++] = 0x14; // ADR, control
-          idebufferb[len++] = 1; // Track number
-          idebufferb[len++] = 0; // Reserved
-
-          // Start address
-          if (msf) {
-            idebufferb[len++] = 0; // reserved
-            idebufferb[len++] = 0; // minute
-            idebufferb[len++] = 2; // second
-            idebufferb[len++] = 0; // frame
-          } else {
-            idebufferb[len++] = 0;
-            idebufferb[len++] = 0;
-            idebufferb[len++] = 0;
-            idebufferb[len++] = 0; // logical sector 0
-          }
-        }
-
-                idebufferb[2]=idebufferb[3]=1; /*First and last track numbers*/
-        idebufferb[len++] = 0; // Reserved
-        idebufferb[len++] = 0x16; // ADR, control
-        idebufferb[len++] = 0xaa; // Track number
-        idebufferb[len++] = 0; // Reserved
-
-        if (msf) {
-          idebufferb[len++] = 0; // reserved
-          idebufferb[len++] = (uint8_t)(((blocks + 150) / 75) / 60); // minute
-          idebufferb[len++] = (uint8_t)(((blocks + 150) / 75) % 60); // second
-          idebufferb[len++] = (uint8_t)((blocks + 150) % 75); // frame;
-        } else {
-          idebufferb[len++] = (uint8_t)((blocks >> 24) & 0xff);
-          idebufferb[len++] = (uint8_t)((blocks >> 16) & 0xff);
-          idebufferb[len++] = (uint8_t)((blocks >> 8) & 0xff);
-          idebufferb[len++] = (uint8_t)((blocks >> 0) & 0xff);
-        }
-        idebufferb[0] = (uint8_t)(((len-2) >> 8) & 0xff);
-        idebufferb[1] = (uint8_t)((len-2) & 0xff);
-#endif
   /*      rpclog("ATAPI buffer len %i\n",len);
         for (c=0;c<len;c++) rpclog("%02X ",idebufferb[c]);
         rpclog("\n");*/
