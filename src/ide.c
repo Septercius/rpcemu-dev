@@ -85,6 +85,39 @@ ide_padstr(char *str, const char *src, int len)
 	}
 }
 
+/**
+ * Fill in idebuffer with the output of the "IDENTIFY DEVICE" command
+ */
+static void
+ide_identify(void)
+{
+	memset(idebuffer, 0, 512);
+
+	//idebuffer[1] = 101; /* Cylinders */
+	idebuffer[1] = 65535; /* Cylinders */
+	idebuffer[3] = 16;  /* Heads */
+	idebuffer[6] = 63;  /* Sectors */
+	ide_padstr((char *) (idebuffer + 10), "", 20); /* Serial Number */
+	ide_padstr((char *) (idebuffer + 23), "v1.0", 8); /* Firmware */
+	ide_padstr((char *) (idebuffer + 27), "RPCEmuHD", 40); /* Model */
+	idebuffer[50] = 0x4000; /* Capabilities */
+}
+
+/**
+ * Fill in idebuffer with the output of the "IDENTIFY PACKET DEVICE" command
+ */
+static void
+ide_atapi_identify(void)
+{
+	memset(idebuffer, 0, 512);
+
+	idebuffer[0] = 0x8000 | (5<<8) | 0x80; /* ATAPI device, CD-ROM drive, removable media */
+	ide_padstr((char *) (idebuffer + 10), "", 20); /* Serial Number */
+	ide_padstr((char *) (idebuffer + 23), "v1.0", 8); /* Firmware */
+	ide_padstr((char *) (idebuffer + 27), "RPCEmuCD", 40); /* Model */
+	idebuffer[49] = 0x200; /* LBA supported */
+}
+
 static void loadhd(int d, const char *fn)
 {
         if (!hdfile[d])
@@ -585,12 +618,7 @@ void callbackide(void)
                 case 0xA1:
                 if (ide.drive && !ide.board && cdromenabled)
                 {
-                        memset(idebuffer,0,512);
-                        idebuffer[0]=0x8000|(5<<8)|0x80; /*ATAPI device, CD-ROM drive, removable media*/
-                        ide_padstr((char *) (idebuffer + 10), "", 20); /* Serial Number */
-                        ide_padstr((char *) (idebuffer + 23), "v1.0", 8); /* Firmware */
-                        ide_padstr((char *) (idebuffer + 27), "RPCEmuCD", 40); /* Model */
-                        idebuffer[49]=0x200; /*LBA supported*/
+                        ide_atapi_identify();
                         ide.pos=0;
                         ide.error=0;
                         ide.atastat[ide.board]=0x08;
@@ -618,15 +646,7 @@ void callbackide(void)
                         ide_irq_raise();
                         return;
                 }
-                memset(idebuffer,0,512);
-//                idebuffer[1]=101; /*Cylinders*/
-                idebuffer[1]=65535; /*Cylinders*/
-                idebuffer[3]=16;  /*Heads*/
-                idebuffer[6]=63;  /*Sectors*/
-                ide_padstr((char *) (idebuffer + 10), "", 20); /* Serial Number */
-                ide_padstr((char *) (idebuffer + 23), "v1.0", 8); /* Firmware */
-                ide_padstr((char *) (idebuffer + 27), "RPCEmuHD", 40); /* Model */
-                idebuffer[50]=0x4000; /*Capabilities*/
+                ide_identify();
                 ide.pos=0;
                 ide.atastat[ide.board]=0x08;
 //                rpclog("ID callback\n");
