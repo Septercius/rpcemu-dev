@@ -61,6 +61,30 @@ ide_irq_lower(void)
 	updateirqs();
 }
 
+/**
+ * Copy a string into a buffer, padding with spaces, and placing characters as
+ * if they were packed into 16-bit values, stored little-endian.
+ *
+ * @param str Destination buffer
+ * @param src Source string
+ * @param len Length of destination buffer to fill in. Strings shorter than
+ *            this length will be padded with spaces.
+ */
+static void
+ide_padstr(char *str, const char *src, int len)
+{
+	int i, v;
+
+	for (i = 0; i < len; i++) {
+		if (*src != '\0') {
+			v = *src++;
+		} else {
+			v = ' ';
+		}
+		str[i ^ 1] = v;
+	}
+}
+
 static void loadhd(int d, const char *fn)
 {
         if (!hdfile[d])
@@ -563,22 +587,9 @@ void callbackide(void)
                 {
                         memset(idebuffer,0,512);
                         idebuffer[0]=0x8000|(5<<8)|0x80; /*ATAPI device, CD-ROM drive, removable media*/
-                        for (addr=10;addr<20;addr++)
-                            idebuffer[addr]=0x2020;
-                        for (addr=23;addr<47;addr++)
-                            idebuffer[addr]=0x2020;
-                        idebufferb[46^1]='v'; /*Firmware version*/
-                        idebufferb[47^1]='1';
-                        idebufferb[48^1]='.';
-                        idebufferb[49^1]='0';
-                        idebufferb[54^1]='R'; /*Drive model*/
-                        idebufferb[55^1]='P';
-                        idebufferb[56^1]='C';
-                        idebufferb[57^1]='E';
-                        idebufferb[58^1]='m';
-                        idebufferb[59^1]='u';
-                        idebufferb[60^1]='C';
-                        idebufferb[61^1]='D';
+                        ide_padstr((char *) (idebuffer + 10), "", 20); /* Serial Number */
+                        ide_padstr((char *) (idebuffer + 23), "v1.0", 8); /* Firmware */
+                        ide_padstr((char *) (idebuffer + 27), "RPCEmuCD", 40); /* Model */
                         idebuffer[49]=0x200; /*LBA supported*/
                         ide.pos=0;
                         ide.error=0;
@@ -612,22 +623,9 @@ void callbackide(void)
                 idebuffer[1]=65535; /*Cylinders*/
                 idebuffer[3]=16;  /*Heads*/
                 idebuffer[6]=63;  /*Sectors*/
-                for (addr=10;addr<20;addr++)
-                    idebuffer[addr]=0x2020;
-                for (addr=23;addr<47;addr++)
-                    idebuffer[addr]=0x2020;
-                idebufferb[46^1]='v'; /*Firmware version*/
-                idebufferb[47^1]='1';
-                idebufferb[48^1]='.';
-                idebufferb[49^1]='0';
-                idebufferb[54^1]='R'; /*Drive model*/
-                idebufferb[55^1]='P';
-                idebufferb[56^1]='C';
-                idebufferb[57^1]='E';
-                idebufferb[58^1]='m';
-                idebufferb[59^1]='u';
-                idebufferb[60^1]='H';
-                idebufferb[61^1]='D';
+                ide_padstr((char *) (idebuffer + 10), "", 20); /* Serial Number */
+                ide_padstr((char *) (idebuffer + 23), "v1.0", 8); /* Firmware */
+                ide_padstr((char *) (idebuffer + 27), "RPCEmuHD", 40); /* Model */
                 idebuffer[50]=0x4000; /*Capabilities*/
                 ide.pos=0;
                 ide.atastat[ide.board]=0x08;
