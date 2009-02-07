@@ -6,20 +6,20 @@
 #include "rpcemu.h"
 #include "ide.h"
 #include "arm.h"
+#include "cdrom-ioctl.h"
 
-ATAPI ioctl_atapi;
+static ATAPI ioctl_atapi;
 
-int ioctl_inited=0;
-char ioctl_path[8];
-void ioctl_close();
-HANDLE hIOCTL;
-CDROM_TOC toc;
-int tocvalid=0;
+static int ioctl_inited = 0;
+static char ioctl_path[8];
+static void ioctl_close(void);
+static HANDLE hIOCTL;
+static CDROM_TOC toc;
+static int tocvalid = 0;
+
 #define MSFtoLBA(m,s,f)  (((((m*60)+s)*75)+f)-150)
 
-int ioctl_open(char d);
-
-void ioctl_playaudio(uint32_t pos, uint32_t len)
+static void ioctl_playaudio(uint32_t pos, uint32_t len)
 {
         uint32_t addr=pos+150;
         CDROM_PLAY_AUDIO_MSF msf;
@@ -36,7 +36,7 @@ void ioctl_playaudio(uint32_t pos, uint32_t len)
         ioctl_close();
 }
 
-void ioctl_seek(uint32_t pos)
+static void ioctl_seek(uint32_t pos)
 {
         long size;
         rpclog("%08X ",pos);
@@ -51,7 +51,7 @@ void ioctl_seek(uint32_t pos)
         ioctl_close();
 }
 
-int ioctl_ready()
+static int ioctl_ready(void)
 {
         long size;
         int temp;
@@ -75,7 +75,7 @@ int ioctl_ready()
 //        return (temp)?1:0;
 }
 
-uint8_t ioctl_getcurrentsubchannel(uint8_t *b, int msf)
+static uint8_t ioctl_getcurrentsubchannel(uint8_t *b, int msf)
 {
 	CDROM_SUB_Q_DATA_FORMAT insub;
 	SUB_Q_CHANNEL_DATA sub;
@@ -111,7 +111,7 @@ uint8_t ioctl_getcurrentsubchannel(uint8_t *b, int msf)
         return sub.CurrentPosition.Header.AudioStatus;
 }
 
-void ioctl_eject()
+static void ioctl_eject(void)
 {
         long size;
         ioctl_open(0);
@@ -119,7 +119,7 @@ void ioctl_eject()
         ioctl_close();
 }
 
-void ioctl_load()
+static void ioctl_load(void)
 {
         long size;
         ioctl_open(0);
@@ -127,7 +127,7 @@ void ioctl_load()
         ioctl_close();
 }
 
-void ioctl_pause()
+static void ioctl_pause(void)
 {
         long size;
         ioctl_open(0);
@@ -135,7 +135,7 @@ void ioctl_pause()
         ioctl_close();
 }
 
-void ioctl_resume()
+static void ioctl_resume(void)
 {
         long size;
         ioctl_open(0);
@@ -143,7 +143,7 @@ void ioctl_resume()
         ioctl_close();
 }
 
-void ioctl_readsector(uint8_t *b, int sector)
+static void ioctl_readsector(uint8_t *b, int sector)
 {
         LARGE_INTEGER pos;
         long size;
@@ -155,7 +155,7 @@ void ioctl_readsector(uint8_t *b, int sector)
         ioctl_close();
 }
 
-int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
+static int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
 {
         int len=4;
         long size;
@@ -213,7 +213,7 @@ int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
         return len;
 }
 
-void ioctl_stop()
+static void ioctl_stop(void)
 {
         long size;
         ioctl_open(0);
@@ -243,18 +243,18 @@ int ioctl_open(char d)
         return 0;
 }
 
-void ioctl_close()
+static void ioctl_close(void)
 {
         CloseHandle(hIOCTL);
 }
 
-void ioctl_exit()
+static void ioctl_exit(void)
 {
         ioctl_inited=0;
         tocvalid=0;
 }
 
-ATAPI ioctl_atapi=
+static ATAPI ioctl_atapi=
 {
         ioctl_ready,
         ioctl_readtoc,
