@@ -86,6 +86,29 @@ ide_padstr(char *str, const char *src, int len)
 }
 
 /**
+ * Copy a string into a buffer, padding with spaces. Does not add string
+ * terminator.
+ *
+ * @param buf      Destination buffer
+ * @param buf_size Size of destination buffer to fill in. Strings shorter than
+ *                 this length will be padded with spaces.
+ * @param src      Source string
+ */
+static void
+ide_padstr8(uint8_t *buf, int buf_size, const char *src)
+{
+	int i;
+
+	for (i = 0; i < buf_size; i++) {
+		if (*src != '\0') {
+			buf[i] = *src++;
+		} else {
+			buf[i] = ' ';
+		}
+	}
+}
+
+/**
  * Fill in idebuffer with the output of the "IDENTIFY DEVICE" command
  */
 static void
@@ -1043,45 +1066,18 @@ static void atapicommand()
                 break;
                 
                 case 0x12: /*Inquiry*/
-                pos=0;
-                idebufferb[pos++]=5; /*CD-ROM*/
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=31;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]='R';
-                idebufferb[pos++]='P';
-                idebufferb[pos++]='C';
-                idebufferb[pos++]='e';
-                idebufferb[pos++]='m';
-                idebufferb[pos++]='u';
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]='R';
-                idebufferb[pos++]='P';
-                idebufferb[pos++]='C';
-                idebufferb[pos++]='e';
-                idebufferb[pos++]='m';
-                idebufferb[pos++]='u';
-                idebufferb[pos++]='C';
-                idebufferb[pos++]='D';
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                idebufferb[pos++]=0;
-                
+                idebufferb[0] = 5; /*CD-ROM*/
+                idebufferb[1] = 0;
+                idebufferb[2] = 0;
+                idebufferb[3] = 0;
+                idebufferb[4] = 31;
+                idebufferb[5] = 0;
+                idebufferb[6] = 0;
+                idebufferb[7] = 0;
+                ide_padstr8(idebufferb + 8, 8, "RPCEmu"); /* Vendor */
+                ide_padstr8(idebufferb + 16, 16, "RPCEmuCD"); /* Product */
+                ide_padstr8(idebufferb + 32, 4, "v1.0"); /* Revision */
+
                 len=36;
                 ide.packetstatus=3;
                 ide.cylinder=len;
