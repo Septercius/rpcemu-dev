@@ -10,7 +10,6 @@
 #include "iomd.h"
 
 int fullscreen=0;
-int readflash = 0;
 static BITMAP *b = NULL,*bs = NULL,*bs2 = NULL,*bs3=NULL,*bs4=NULL;
 #ifdef HARDWAREBLIT                
 static int currentbuffer=1;

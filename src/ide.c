@@ -554,7 +554,6 @@ void callbackide(void)
                 return;
                 case 0x20: /*Read sectors*/
 //                rpclog("Read sector %i %i %i\n",ide.hpc[ide.drive],ide.spt[ide.drive],skip512[ide.drive]);
-                readflash=1;
                 addr = (((((off64_t) ide.cylinder * ide.hpc[ide.drive|ide.board]) +  ide.head) * ide.spt[ide.drive|ide.board]) + (ide.sector - 1) + skip512[ide.drive|ide.board]) * 512;
 //                rpclog("Read %i %i %i %08X\n",ide.cylinder,ide.head,ide.sector,addr);
                 /*                if (ide.cylinder || ide.head)
@@ -573,7 +572,6 @@ void callbackide(void)
                 }
                 return;
                 case 0x30: /*Write sector*/
-                readflash=2;
                 addr = (((((off64_t) ide.cylinder * ide.hpc[ide.drive|ide.board]) +  ide.head) * ide.spt[ide.drive|ide.board]) + (ide.sector - 1) + skip512[ide.drive|ide.board]) * 512;
 //                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
                 fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);

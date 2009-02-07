@@ -21,7 +21,6 @@ extern void vidcreleasemutex(void);
 extern int refresh;
 extern int skipblits;
 extern int fullscreen;
-extern int readflash;
 
 
 extern uint8_t *dirtybuffer;

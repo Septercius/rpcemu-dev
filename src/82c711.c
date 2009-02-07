@@ -183,7 +183,6 @@ static void writefdc(uint32_t addr, uint32_t val)
                                         fdc.side=fdc.parameters[2];
                                         fdc.sector=fdc.parameters[3];
 //                                        rpclog("Write data %i %i %i\n",fdc.side,fdc.track,fdc.sector);
-                                        readflash=8;
                                         discchanged[fdc.st0&1]=1;
                                         break;
                                         case 0x46: /*Read data - MFM*/
@@ -195,7 +194,6 @@ static void writefdc(uint32_t addr, uint32_t val)
                                         fdc.side=fdc.parameters[2];
                                         fdc.sector=fdc.parameters[3];
 //                                        printf("Read data %i %i %i\n",fdc.side,fdc.track,fdc.sector);
-                                        readflash=1;
                                         break;
                                         case 0x4A: /*Read ID - MFM*/
                                         fdc.commandpos=0;
