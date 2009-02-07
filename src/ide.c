@@ -555,7 +555,7 @@ void callbackide(void)
                 case 0x20: /*Read sectors*/
 //                rpclog("Read sector %i %i %i\n",ide.hpc[ide.drive],ide.spt[ide.drive],skip512[ide.drive]);
                 readflash=1;
-                addr=(off64_t)((((((uint64_t)ide.cylinder*(uint64_t)ide.hpc[ide.drive|ide.board])+(uint64_t)ide.head)*(uint64_t)ide.spt[ide.drive|ide.board])+((uint64_t)ide.sector-1)+(uint64_t)skip512[ide.drive|ide.board])*(uint64_t)512);
+                addr = (((((off64_t) ide.cylinder * ide.hpc[ide.drive|ide.board]) +  ide.head) * ide.spt[ide.drive|ide.board]) + (ide.sector - 1) + skip512[ide.drive|ide.board]) * 512;
 //                rpclog("Read %i %i %i %08X\n",ide.cylinder,ide.head,ide.sector,addr);
                 /*                if (ide.cylinder || ide.head)
                 {
@@ -574,8 +574,7 @@ void callbackide(void)
                 return;
                 case 0x30: /*Write sector*/
                 readflash=2;
-                addr=(off64_t)((((((uint64_t)ide.cylinder*(uint64_t)ide.hpc[ide.drive|ide.board])+(uint64_t)ide.head)*(uint64_t)ide.spt[ide.drive|ide.board])+((uint64_t)ide.sector-1)+(uint64_t)skip512[ide.drive|ide.board])*(uint64_t)512);
-//                addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+(ide.sector-1)+skip512[ide.drive])*512;
+                addr = (((((off64_t) ide.cylinder * ide.hpc[ide.drive|ide.board]) +  ide.head) * ide.spt[ide.drive|ide.board]) + (ide.sector - 1) + skip512[ide.drive|ide.board]) * 512;
 //                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
                 fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);
                 fwrite(idebuffer,512,1,hdfile[ide.drive|ide.board]);
@@ -613,8 +612,7 @@ void callbackide(void)
                 }
                 return;
                 case 0x50: /*Format track*/
-                addr=(off64_t)((((((uint64_t)ide.cylinder*(uint64_t)ide.hpc[ide.drive|ide.board])+(uint64_t)ide.head)*(uint64_t)ide.spt[ide.drive|ide.board])+((uint64_t)ide.sector-1)+(uint64_t)skip512[ide.drive|ide.board])*(uint64_t)512);
-//                addr=((((ide.cylinder*ide.hpc[ide.drive])+ide.head)*ide.spt[ide.drive])+skip512[ide.drive])*512;
+                addr = (((((off64_t) ide.cylinder * ide.hpc[ide.drive|ide.board]) +  ide.head) * ide.spt[ide.drive|ide.board]) + (ide.sector - 1) + skip512[ide.drive|ide.board]) * 512;
 //                rpclog("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
                 fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);
                 memset(idebufferb,0,512);
