@@ -59,7 +59,7 @@ case "${host}" in
     *apple*)
             OS="macosx"
             AC_MSG_RESULT([Mac OS X])
-            AC_DEFINE(RPC_MACOSX, [], [OS is Mac OS X])
+            AC_DEFINE(RPCEMU_MACOSX, [], [OS is Mac OS X])
             ;;
     *macosx*)
 	    OS="macosx"

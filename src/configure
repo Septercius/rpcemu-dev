@@ -2413,7 +2413,7 @@ _ACEOF
 echo "${ECHO_T}Mac OS X" >&6; }
 
 cat >>confdefs.h <<\_ACEOF
-#define RPC_MACOSX
+#define RPCEMU_MACOSX
 _ACEOF
 
             ;;
