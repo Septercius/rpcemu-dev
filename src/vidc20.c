@@ -248,35 +248,65 @@ static void resizedisplay(int x, int y)
         freebitmaps();
         if (fullscreen)
         {
+                int full_x, full_y; /* resolution we're going to try to use for full screen */
                 c=0;
-                tryagain:
-                while (fullresolutions[c][0]!=-1)
+
+                if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN, x, y, 0, 0) == 0)
                 {
-                        if (fullresolutions[c][0]>=x && fullresolutions[c][1]>=y)
-                           break;
-                        c++;
+                        /* Successfully set the screen size to the emulated mode size */
+                        full_x = x;
+                        full_y = y;
                 }
-                if (fullresolutions[c][0]==-1) c--;
-//                rpclog("Trying %ix%i\n",fullresolutions[c][0],fullresolutions[c][1]);
-                if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,fullresolutions[c][0],fullresolutions[c][1],0,0))
+                else
                 {
-                        if (fullresolutions[c+1][0]==-1) /*Reached the end of resolutions, go for something safe*/
+                        /* Try looping through a series of progressively larger 'common'
+                           modes to find one that the host OS accepts and that the emulated
+                           mode will fit inside */
+tryagain:
+                        while (fullresolutions[c][0]!=-1)
                         {
-//                                rpclog("Failed - falling back on 640x480\n");
-                                set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,640,480,0,0);
+                                if (fullresolutions[c][0]>=x && fullresolutions[c][1]>=y) {
+                                        break;
+                                }
+                                c++;
+                        }
+
+                        if (fullresolutions[c][0]==-1)
+                        {
+                                c--;
+                        }
+
+                        // rpclog("Trying %ix%i\n",fullresolutions[c][0],fullresolutions[c][1]);
+                        if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN, fullresolutions[c][0], fullresolutions[c][1], 0, 0))
+                        {
+                                /* Failed to set desired mode */
+                                if (fullresolutions[c+1][0]==-1) /* Reached the end of resolutions, go for something safe */
+                                {
+                                        /* Ran out of possible host modes to try - falling back on 640x480 */
+                                        set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,640,480,0,0);
+                                        full_x = fullresolutions[c][0];
+                                        full_y = fullresolutions[c][1];
+                                }
+                                else
+                                {
+                                        /* Try the next largest host mode */
+                                        c++;
+                                        goto tryagain;
+                                }
                         }
                         else
                         {
-                                c++;
-                                goto tryagain;
+                                /* Successfully set mode */
+                                full_x = fullresolutions[c][0];
+                                full_y = fullresolutions[c][1];
                         }
                 }
 #ifdef HARDWAREBLIT                
 //                rpclog("Mode set\n");
-                bs=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
-                bs2=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
-                bs3=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
-                bs4=create_video_bitmap(fullresolutions[c][0],fullresolutions[c][1]);
+                bs = create_video_bitmap(full_x,  full_y);
+                bs2 = create_video_bitmap(full_x, full_y);
+                bs3 = create_video_bitmap(full_x, full_y);
+                bs4 = create_video_bitmap(full_x, full_y);
 //                rpclog("%08X %08X\n",bs,bs2);
                 clear(bs);
                 clear(bs2);
