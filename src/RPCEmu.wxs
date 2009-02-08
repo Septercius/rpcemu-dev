@@ -36,28 +36,28 @@
 		    <File Id='RPCEmuEXE' Name='rpcemu.exe' LongName='RPCEmu-Interpreter.exe' DiskId='1'
 			  Source='..\RPCEmu-Interpreter.exe' Vital='yes'>
 			  <Shortcut Id="startmenurpcemu" Directory="ProgramMenuDir" Name="RPCEmu" 
-			    LongName="RPCEmu Interpreter" WorkingDirectory='INSTALLDIR' Icon="rpcemu.exe" IconIndex="0" />
+			    LongName="RPCEmu Interpreter" WorkingDirectory='RPCEMUPRODUCTDIR' Icon="rpcemu.exe" IconIndex="0" />
 <!--			  <Shortcut Id="desktoprpcemu" Directory="DesktopFolder" Name="rpcemu"
-			    LongName="rcpemu" WorkingDirectory='INSTALLDIR' Icon="rpcemu.exe" IconIndex="0" />-->
+			    LongName="rcpemu" WorkingDirectory='RPCEMUPRODUCTDIR' Icon="rpcemu.exe" IconIndex="0" />-->
 		    </File>
 		    <File Id='RPCEmuEXEd' Name='rpcemud.exe' LongName='RPCEmu-Recompiler.exe' DiskId='1'
 			  Source='..\RPCEmu-Recompiler.exe' Vital='yes'>
 			  <Shortcut Id="startmenurpcemud" Directory="ProgramMenuDir" Name="RPCEmu-d" 
-			    LongName="RPCEmu Recompiler" WorkingDirectory='INSTALLDIR' Icon="rpcemud.exe" IconIndex="0" />
+			    LongName="RPCEmu Recompiler" WorkingDirectory='RPCEMUPRODUCTDIR' Icon="rpcemud.exe" IconIndex="0" />
 <!--			  <Shortcut Id="desktoprpcemud" Directory="DesktopFolder" Name="rpcemud"
-			    LongName="rcpemud" WorkingDirectory='INSTALLDIR' Icon="rpcemud.exe" IconIndex="0" />-->
+			    LongName="rcpemud" WorkingDirectory='RPCEMUPRODUCTDIR' Icon="rpcemud.exe" IconIndex="0" />-->
 		    </File>
 		    <File Id='cmosram' Name='cmos.ram' DiskId='1' Source='..\cmos.ram' Vital='yes' />
 		    <File Id='rpccfg' Name='rpc.cfg' DiskId='1' Source='..\rpc.cfg' Vital='yes' />
 		    <File Id='copying' Name='COPYING' DiskId='1' Source='COPYING' Vital='yes' />
 		    <File Id='readme' Name='readme.txt' DiskId='1' Source='..\readme.spoon.txt' Vital='yes'>
 			   <Shortcut Id="readme" Directory="ProgramMenuDir" Name="Readme"
-			    LongName="Readme" WorkingDirectory='INSTALLDIR' IconIndex="0" />
+			    LongName="Readme" WorkingDirectory='RPCEMUPRODUCTDIR' IconIndex="0" />
 		    </File>
 		    <File Id='allegro' Name='alleg42.dll' DiskId='1' Source='C:\Windows\System32\alleg42.dll' Vital='yes' />
 		    <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
 			<Shortcut Id="startmenudir" Directory="ProgramMenuDir" Name="rpcemudi" 
-			    LongName="Shortcut to RPCEmu Directory" WorkingDirectory='INSTALLDIR' />
+			    LongName="Shortcut to RPCEmu Directory" WorkingDirectory='RPCEMUPRODUCTDIR' />
 
 		  </Component>
 
@@ -84,7 +84,7 @@
 	  	    <Component Id='HostfsDirectory' Guid='8E58FAB7-781D-4439-B33E-144F84E2F697'>
 			  <CreateFolder Directory="hostfs">
 			  	<Shortcut Id="startmenuhostfs" Directory="ProgramMenuDir" Name="hostfs" 
-			    LongName="Shortcut to HostFS" WorkingDirectory='INSTALLDIR' />
+			    LongName="Shortcut to HostFS" WorkingDirectory='RPCEMUPRODUCTDIR' />
 			  </CreateFolder>
 			</Component>
 		  </Directory>
