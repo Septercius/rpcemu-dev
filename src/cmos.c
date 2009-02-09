@@ -40,6 +40,23 @@ static int cmosrw;
 static void cmosgettime(void);
 
 static void
+cmos_update_settings(void)
+{
+	time_t now = time(NULL);
+	const struct tm *t = gmtime(&now);
+
+	/* The year should be stored too, otherwise RISC OS refuses to
+	 * read any time from the CMOS/RTC chip!
+	 */
+	/* The standard C time functionality subtracts 1900 from the year */
+	cmosram[0xc0] = (t->tm_year + 1900) % 100;
+	cmosram[0xc1] = (t->tm_year + 1900) / 100;
+
+	// What about also initialising some parts to sensible defaults?
+	// eg default bootfs, number of IDE discs, floppy etc....
+}
+
+static void
 cmos_update_checksum(void)
 {
 	unsigned checksum = 0;
@@ -68,8 +85,6 @@ void loadcmos(void)
 {
         char fn[512];
         FILE *cmosf;
-        time_t now = time(NULL);
-        const struct tm *t = gmtime(&now);
 
         /* Append "cmos.ram" to the given executable path */
         append_filename(fn, exname, "cmos.ram", sizeof(fn) - 1);
@@ -88,17 +103,10 @@ void loadcmos(void)
                 fprintf(stderr, "Could not open CMOS file '%s': %s\n", fn, 
                         strerror(errno));
                 memset(cmosram, 0, 256);
-
-                /* The year should be stored too, otherwise RISC OS refuses to
-                 * read any time from the CMOS/RTC chip!
-                 */
-                /* The standard C time functionality subtracts 1900 from the year */
-                cmosram[0xc0] = (t->tm_year + 1900) % 100;
-                cmosram[0xc1] = (t->tm_year + 1900) / 100;
-
-                // What about also initialising some parts to sensible defaults?
-                // eg default bootfs, number of IDE discs, floppy etc....
         }
+
+	/* Dynamically update CMOS settings */
+	cmos_update_settings();
 
         /* Update the checksum used by RISC OS, as updating values above will
            probably have invalidated it */
