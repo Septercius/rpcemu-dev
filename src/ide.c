@@ -261,9 +261,10 @@ void writeide(uint16_t addr, uint8_t val)
 {
 //        int c;
 //        rpclog("Write IDE %08X %02X %08X %08X\n",addr,val,PC-8,armregs[12]);
+
         switch (addr)
         {
-                case 0x1F0:
+        case 0x1F0: /* Data */
                 idebufferb[ide.pos++]=val;
                 if (ide.pos>=512)
                 {
@@ -272,22 +273,28 @@ void writeide(uint16_t addr, uint8_t val)
                         idecallback=1000;
                 }
                 return;
-                case 0x1F1:
+
+        case 0x1F1: /* Features */
                 ide.cylprecomp=val;
                 return;
-                case 0x1F2:
+
+        case 0x1F2: /* Sector count */
                 ide.secount=val;
                 return;
-                case 0x1F3:
+
+        case 0x1F3: /* Sector */
                 ide.sector=val;
                 return;
-                case 0x1F4:
+
+        case 0x1F4: /* Cylinder low */
                 ide.cylinder=(ide.cylinder&0xFF00)|val;
                 return;
-                case 0x1F5:
+
+        case 0x1F5: /* Cylinder high */
                 ide.cylinder=(ide.cylinder&0xFF)|(val<<8);
                 return;
-                case 0x1F6:
+
+        case 0x1F6: /* Drive/Head */
                 ide.head=val&0xF;
                 if (((val>>4)&1)!=ide.drive)
                 {
@@ -314,7 +321,8 @@ void writeide(uint16_t addr, uint8_t val)
                         ide.pos=0;
                         ide.atastat[ide.board]=0x40;
                 return;
-                case 0x1F7: /*Command register*/
+
+        case 0x1F7: /* Command register */
                 ide.command=val;
                 ide.board=ideboard;
 //                rpclog("New IDE command - %02X %i %i %08X\n",ide.command,ide.drive,ide.board,PC-8);
@@ -387,7 +395,8 @@ void writeide(uint16_t addr, uint8_t val)
                 dumpregs();
                 exit(-1);
                 return;
-                case 0x3F6:
+
+        case 0x3F6: /* Device control */
                 if ((ide.fdisk&4) && !(val&4))
                 {
                         idecallback=500;
@@ -409,9 +418,10 @@ uint8_t readide(uint16_t addr)
 //        FILE *f;
 //        int c;
 //        if (output==1) rpclog("Read IDE %08X %08X %08X\n",addr,PC-8,armregs[9]);
+
         switch (addr)
         {
-                case 0x1F0:
+        case 0x1F0: /* Data */
 /*                if (ide.command==0xA1 && !ide.pos)
                 {
                         output=1;
@@ -427,30 +437,33 @@ uint8_t readide(uint16_t addr)
 //                        rpclog("End of transfer\n");
                 }
                 return temp;
-                case 0x1F1:
-//                rpclog("Read IDEerror %02X %02X\n",ide.atastat,ide.error);
+
+        case 0x1F1: /* Error */
                 return ide.error;
-                case 0x1F2:
+
+        case 0x1F2: /* Sector count */
                 return (uint8_t)ide.secount;
-                case 0x1F3:
+
+        case 0x1F3: /* Sector */
                 return (uint8_t)ide.sector;
-                case 0x1F4:
-//                        rpclog("Read cylinder low %02X\n",ide.cylinder&0xFF);
+
+        case 0x1F4: /* Cylinder low */
                 return (uint8_t)(ide.cylinder&0xFF);
-                case 0x1F5:
-//                        rpclog("Read cylinder high %02X\n",ide.cylinder>>8);
+
+        case 0x1F5: /* Cylinder high */
                 return (uint8_t)(ide.cylinder>>8);
-                case 0x1F6:
+
+        case 0x1F6: /* Drive/Head */
                 return (uint8_t)(ide.head|(ide.drive<<4));
-                case 0x1F7:
+
+        case 0x1F7: /* Status */
                 if (!ide.board)
                 {
                         ide_irq_lower();
                 }
-//                rpclog("Read ATAstat %02X\n",ide.atastat);
                 return ide.atastat[ide.board];
-                case 0x3F6:
-//                rpclog("Read ATAstat %02X\n",ide.atastat);
+
+        case 0x3F6: /* Alternate Status */
                 return ide.atastat[ide.board];
         }
         error("Bad IDE read %04X\n",addr);
