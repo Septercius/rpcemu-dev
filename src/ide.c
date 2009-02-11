@@ -31,6 +31,22 @@ void callbackide(void);
 #define WIN_SETIDLE1			0xE3
 #define WIN_IDENTIFY			0xEC /* Ask drive to identify itself */
 
+/* ATAPI Commands */
+#define GPCMD_INQUIRY			0x12
+#define GPCMD_MODE_SELECT_10		0x55
+#define GPCMD_MODE_SENSE_10		0x5a
+#define GPCMD_PAUSE_RESUME		0x4b
+#define GPCMD_READ_CD			0xbe
+#define GPCMD_READ_HEADER		0x44
+#define GPCMD_READ_SUBCHANNEL		0x42
+#define GPCMD_READ_TOC_PMA_ATIP		0x43
+#define GPCMD_REQUEST_SENSE		0x03
+#define GPCMD_SEEK			0x2b
+#define GPCMD_SEND_DVD_STRUCTURE	0xad
+#define GPCMD_SET_SPEED			0xbb
+#define GPCMD_START_STOP_UNIT		0x1b
+#define GPCMD_TEST_UNIT_READY		0x00
+
 ATAPI *atapi;
 
 static void callreadcd();
@@ -844,9 +860,10 @@ static void atapicommand()
         int pos=0;
 //        rpclog("New ATAPI command %02X\n",idebufferb[0]);
                 msf=idebufferb[1]&2;
+
         switch (idebufferb[0])
         {
-                case 0: /*Test unit ready*/
+        case GPCMD_TEST_UNIT_READY:
                 if (!atapi->ready()) { atapi_notready(); return; }
 //                if (atapi->ready())
 //                {
@@ -858,7 +875,8 @@ static void atapicommand()
 //                        rpclog("Medium not present!\n");
 //                }
                 break;
-                case 0x03: /*Read sense - used by ROS 4+*/
+
+        case GPCMD_REQUEST_SENSE: /* Used by ROS 4+ */
                 /*Will return 18 bytes of 0*/
                 memset(idebufferb,0,512);
                 ide.packetstatus=3;
@@ -869,12 +887,13 @@ static void atapicommand()
                 ide.packlen=18;
                 break;
 
-                case 0xBB: /*Set CD speed*/
+        case GPCMD_SET_SPEED:
                 ide.packetstatus=2;
                 idecallback=50;
 //                output=1;
                 break;
-                case 0x43: /*Read TOC*/
+
+        case GPCMD_READ_TOC_PMA_ATIP:
                 if (!atapi->ready()) { atapi_notready(); return; }
                 if (idebufferb[9]>>7)
                 {
@@ -910,7 +929,7 @@ static void atapicommand()
                     rpclog("%02X\n",idebufferb[c]);
                 exit(-1);
                 
-                case 0xBE: /*Read CD*/
+        case GPCMD_READ_CD:
                 if (!atapi->ready()) { atapi_notready(); return; }
 //                rpclog("Read CD : start LBA %02X%02X%02X%02X Length %02X%02X%02X Flags %02X\n",idebufferb[2],idebufferb[3],idebufferb[4],idebufferb[5],idebufferb[6],idebufferb[7],idebufferb[8],idebufferb[9]);
                 if (idebufferb[9]!=0x10)
@@ -939,7 +958,7 @@ static void atapicommand()
                 ide.packlen=2048;
                 return;
                 
-                case 0x44: /*Read Header*/
+        case GPCMD_READ_HEADER:
                 if (!atapi->ready()) { atapi_notready(); return; }
                 if (msf)
                 {
@@ -958,7 +977,7 @@ static void atapicommand()
                 ide.packlen=8;
                 return;
                 
-                case 0x5A: /*Mode Sense*/
+        case GPCMD_MODE_SENSE_10:
                 if (!atapi->ready()) { atapi_notready(); return; }
                 if (idebufferb[2]!=0x3F)
                 {
@@ -1023,7 +1042,7 @@ static void atapicommand()
 //        rpclog("Sending packet\n");
         return;
 
-                case 0x55: /*Mode select*/
+        case GPCMD_MODE_SELECT_10:
                 if (!atapi->ready()) { atapi_notready(); return; }
                 if (ide.packetstatus==5)
                 {
@@ -1053,7 +1072,7 @@ static void atapicommand()
                 }
                 return;
 
-                case 0xA5: /*Play audio (12)*/
+        case 0xA5: /*Play audio (12)*/
                 if (!atapi->ready()) { atapi_notready(); return; }
                 /*This is apparently deprecated in the ATAPI spec, and apparently
                   has been since 1995 (!). Hence I'm having to guess most of it*/
@@ -1064,7 +1083,7 @@ static void atapicommand()
                 idecallback=50;
                 break;
 
-                case 0x42: /*Read subchannel*/
+        case GPCMD_READ_SUBCHANNEL:
                 if (!atapi->ready()) { atapi_notready(); return; }
                 if (idebufferb[3]!=1)
                 {
@@ -1090,7 +1109,7 @@ static void atapicommand()
                 ide.packlen=len;
                 break;
 
-                case 0x1B: /*Start/stop unit*/
+        case GPCMD_START_STOP_UNIT:
                 if (idebufferb[4]!=2 && idebufferb[4]!=3 && idebufferb[4])
                 {
                         rpclog("Bad start/stop unit command\n");
@@ -1106,7 +1125,7 @@ static void atapicommand()
                 idecallback=50;
                 break;
                 
-                case 0x12: /*Inquiry*/
+        case GPCMD_INQUIRY:
                 idebufferb[0] = 5; /*CD-ROM*/
                 idebufferb[1] = 0;
                 idebufferb[2] = 0;
@@ -1128,7 +1147,7 @@ static void atapicommand()
                 ide.packlen=len;
                 break;
                 
-                case 0x4B: /*Pause/resume unit*/
+        case GPCMD_PAUSE_RESUME:
                 if (!atapi->ready()) { atapi_notready(); return; }
                 if (idebufferb[8]&1) atapi->resume();
                 else                 atapi->pause();
@@ -1136,7 +1155,7 @@ static void atapicommand()
                 idecallback=50;
                 break;
 
-                case 0x2B: /*Seek*/
+        case GPCMD_SEEK:
                 if (!atapi->ready()) { atapi_notready(); return; }
                 pos=(idebufferb[3]<<16)|(idebufferb[4]<<8)|idebufferb[5];
                 atapi->seek(pos);
@@ -1144,8 +1163,8 @@ static void atapicommand()
                 idecallback=50;
                 break;
 
-                case 0xAD: /*???*/
-                default:
+        case GPCMD_SEND_DVD_STRUCTURE:
+        default:
                 ide.atastat[0]=0x41;    /*CHECK CONDITION*/
                 ide.error=(5 <<4)|4;    /*Illegal command*/
                 if (ide.discchanged) ide.error|=8;
