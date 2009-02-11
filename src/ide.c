@@ -16,6 +16,21 @@ void callbackide(void);
 #include "ide.h"
 #include "arm.h"
 
+/* ATA Commands */
+#define WIN_SRST			0x08 /* ATAPI Device Reset */
+#define WIN_RECAL			0x10
+#define WIN_RESTORE			WIN_RECAL
+#define WIN_READ			0x20 /* 28-Bit Read */
+#define WIN_WRITE			0x30 /* 28-Bit Write */
+#define WIN_VERIFY			0x40 /* 28-Bit Verify */
+#define WIN_FORMAT			0x50
+#define WIN_SEEK			0x70
+#define WIN_SPECIFY			0x91 /* Initialize Drive Parameters */
+#define WIN_PACKETCMD			0xA0 /* Send a packet command. */
+#define WIN_PIDENTIFY			0xA1 /* Identify ATAPI device */
+#define WIN_SETIDLE1			0xE3
+#define WIN_IDENTIFY			0xEC /* Ask drive to identify itself */
+
 ATAPI *atapi;
 
 static void callreadcd();
@@ -223,7 +238,7 @@ void writeidew(uint16_t val)
 		val=(val>>8)|(val<<8);
 #endif
         idebuffer[ide.pos>>1]=val;
-//        if (ide.command==0xA0) rpclog("Write packet %i %02X %02X %08X %08X\n",ide.pos,idebufferb[ide.pos],idebufferb[ide.pos+1],idebuffer,idebufferb);
+//        if (ide.command == WIN_PACKETCMD) rpclog("Write packet %i %02X %02X %08X %08X\n",ide.pos,idebufferb[ide.pos],idebufferb[ide.pos+1],idebuffer,idebufferb);
         ide.pos+=2;
         if (ide.packetstatus==4)
         {
@@ -240,7 +255,7 @@ void writeidew(uint16_t val)
                 return;
         }
         else if (ide.packetstatus==5) return;
-        else if (ide.command==0xA0 && ide.pos>=0xC)
+        else if (ide.command == WIN_PACKETCMD && ide.pos>=0xC)
         {
                 ide.pos=0;
                 ide.atastat[ide.board]=0x80;
@@ -329,16 +344,18 @@ void writeide(uint16_t addr, uint8_t val)
                 ide.error=0;
                 switch (val)
                 {
-                        case 0x08: /*Device reset*/
+                case WIN_SRST: /* ATAPI Device Reset */
                         ide.atastat[ide.board]=0x40;
                         idecallback=100;
                         return;
-                        case 0x10: /*Restore*/
-                        case 0x70: /*Seek*/
+
+                case WIN_RESTORE:
+                case WIN_SEEK:
                         ide.atastat[ide.board]=0x40;
                         idecallback=100;
                         return;
-                        case 0x20: /*Read sector*/
+
+                case WIN_READ:
 /*                        if (ide.secount>1)
                         {
                                 error("Read %i sectors from sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
@@ -348,7 +365,8 @@ void writeide(uint16_t addr, uint8_t val)
                         ide.atastat[ide.board]=0x80;
                         idecallback=200;
                         return;
-                        case 0x30: /*Write sector*/
+
+                case WIN_WRITE:
 /*                        if (ide.secount>1)
                         {
                                 error("Write %i sectors to sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
@@ -358,32 +376,37 @@ void writeide(uint16_t addr, uint8_t val)
                         ide.atastat[ide.board]=0x08;
                         ide.pos=0;
                         return;
-                        case 0x40: /*Read verify*/
+
+                case WIN_VERIFY:
 //                        rpclog("Read verify %i sectors from sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
                         ide.atastat[ide.board]=0x80;
                         idecallback=200;
                         return;
-                        case 0x50:
+
+                case WIN_FORMAT:
 //                        rpclog("Format track %i head %i\n",ide.cylinder,ide.head);
                         ide.atastat[ide.board]=0x08;
 //                        idecallback=200;
                         ide.pos=0;
                         return;
-                        case 0x91: /*Set parameters*/
+
+                case WIN_SPECIFY: /* Initialize Drive Parameters */
                         ide.atastat[ide.board]=0x80;
                         idecallback=200;
                         return;
-                        case 0xA1: /*Identify packet device*/
-                        case 0xE3: /*Idle*/
-  //                      case 0x08: /*???*/
+
+                case WIN_PIDENTIFY: /* Identify Packet Device */
+                case WIN_SETIDLE1: /* Idle */
                         ide.atastat[ide.board]=0x80;
                         idecallback=200;
                         return;
-                        case 0xEC: /*Identify device*/
+
+                case WIN_IDENTIFY: /* Identify Device */
                         ide.atastat[ide.board]=0x80;
                         idecallback=200;
                         return;
-                        case 0xA0: /*Packet (ATAPI command)*/
+
+                case WIN_PACKETCMD: /* ATAPI Packet */
                         ide.packetstatus=0;
                         ide.atastat[ide.board]=0x80;
                         idecallback=30;
@@ -422,7 +445,7 @@ uint8_t readide(uint16_t addr)
         switch (addr)
         {
         case 0x1F0: /* Data */
-/*                if (ide.command==0xA1 && !ide.pos)
+/*                if (ide.command == WIN_PIDENTIFY && !ide.pos)
                 {
                         output=1;
                         timetolive=20000;
@@ -474,18 +497,18 @@ uint8_t readide(uint16_t addr)
 uint16_t readidew(void)
 {
         uint16_t temp;
-//        if (ide.command==0xA0) rpclog("Read data2 %08X %04X %07X\n",ide.pos,idebuffer[(ide.pos>>1)],PC);
+//        if (ide.command == WIN_PACKETCMD) rpclog("Read data2 %08X %04X %07X\n",ide.pos,idebuffer[(ide.pos>>1)],PC);
 //        if (output) rpclog("Read data2 %08X %02X%02X %07X\n",ide.pos,idebuffer[(ide.pos>>1)+1],idebuffer[(ide.pos>>1)],PC);
         temp=idebuffer[ide.pos>>1];
 	#ifdef _RPCEMU_BIG_ENDIAN
 		temp=(temp>>8)|(temp<<8);
 	#endif
         ide.pos+=2;
-        if ((ide.pos>=512 && ide.command!=0xA0) || (ide.command==0xA0 && ide.pos>=ide.packlen))
+        if ((ide.pos>=512 && ide.command != WIN_PACKETCMD) || (ide.command == WIN_PACKETCMD && ide.pos>=ide.packlen))
         {
 //                rpclog("Over! packlen %i %i\n",ide.packlen,ide.pos);
                 ide.pos=0;
-                if (ide.command==0xA0 && ide.packetstatus==6)
+                if (ide.command == WIN_PACKETCMD && ide.packetstatus==6)
                 {
                         callreadcd();
                 }
@@ -493,7 +516,7 @@ uint16_t readidew(void)
                 {
                         ide.atastat[ide.board]=0x40;
                         ide.packetstatus=0;
-                        if (ide.command==0x20)
+                        if (ide.command == WIN_READ)
                         {
                                 ide.secount--;
                                 if (ide.secount)
@@ -538,7 +561,7 @@ void callbackide(void)
         }
         switch (ide.command)
         {
-                case 0x08: /*Device reset*/
+        case WIN_SRST: /*ATAPI Device Reset */
                 ide.atastat[ide.board]=0x40;
                 ide.error=1; /*Device passed*/
                 if ((ide.drive|ide.board)!=1 || !cdromenabled)
@@ -556,8 +579,9 @@ void callbackide(void)
                         ide_irq_raise();
                 }
                 return;
-                case 0x10: /*Restore*/
-                case 0x70: /*Seek*/
+
+        case WIN_RESTORE:
+        case WIN_SEEK:
 //                rpclog("Restore callback\n");
                 ide.atastat[ide.board]=0x40;
                 if (!ide.board)
@@ -565,7 +589,8 @@ void callbackide(void)
                         ide_irq_raise();
                 }
                 return;
-                case 0x20: /*Read sectors*/
+
+        case WIN_READ:
 //                rpclog("Read sector %i %i %i\n",ide.hpc[ide.drive],ide.spt[ide.drive],skip512[ide.drive]);
                 addr = (((((off64_t) ide.cylinder * ide.hpc[ide.drive|ide.board]) +  ide.head) * ide.spt[ide.drive|ide.board]) + (ide.sector - 1) + skip512[ide.drive|ide.board]) * 512;
 //                rpclog("Read %i %i %i %08X\n",ide.cylinder,ide.head,ide.sector,addr);
@@ -584,7 +609,8 @@ void callbackide(void)
                         ide_irq_raise();
                 }
                 return;
-                case 0x30: /*Write sector*/
+
+        case WIN_WRITE:
                 addr = (((((off64_t) ide.cylinder * ide.hpc[ide.drive|ide.board]) +  ide.head) * ide.spt[ide.drive|ide.board]) + (ide.sector - 1) + skip512[ide.drive|ide.board]) * 512;
 //                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
                 fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);
@@ -613,7 +639,8 @@ void callbackide(void)
                 else
                    ide.atastat[ide.board]=0x40;
                 return;
-                case 0x40: /*Read verify*/
+
+        case WIN_VERIFY:
                 ide.pos=0;
                 ide.atastat[ide.board]=0x40;
 //                rpclog("Read verify callback %i %i %i offset %08X %i left\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount);
@@ -622,7 +649,8 @@ void callbackide(void)
                         ide_irq_raise();
                 }
                 return;
-                case 0x50: /*Format track*/
+
+        case WIN_FORMAT:
                 addr = (((((off64_t) ide.cylinder * ide.hpc[ide.drive|ide.board]) +  ide.head) * ide.spt[ide.drive|ide.board]) + (ide.sector - 1) + skip512[ide.drive|ide.board]) * 512;
 //                rpclog("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
                 fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);
@@ -637,7 +665,8 @@ void callbackide(void)
                         ide_irq_raise();
                 }
                 return;
-                case 0x91: /*Set parameters*/
+
+        case WIN_SPECIFY: /* Initialize Drive Parameters */
                 ide.spt[ide.drive|ide.board]=ide.secount;
                 ide.hpc[ide.drive|ide.board]=ide.head+1;
                 ide.atastat[ide.board]=0x40;
@@ -647,7 +676,8 @@ void callbackide(void)
                         ide_irq_raise();
                 }
                 return;
-                case 0xA1:
+
+        case WIN_PIDENTIFY: /* Identify Packet Device */
                 if (ide.drive && !ide.board && cdromenabled)
                 {
                         ide_atapi_identify();
@@ -658,7 +688,7 @@ void callbackide(void)
                         return;
                 }
 //                return;
-                case 0xE3:
+        case WIN_SETIDLE1: /* Idle */
                 ide.atastat[ide.board]=0x41;
                 ide.error=4;
                 if (!ide.board)
@@ -666,7 +696,8 @@ void callbackide(void)
                         ide_irq_raise();
                 }
                 return;
-                case 0xEC:
+
+        case WIN_IDENTIFY: /* Identify Device */
                 if (ide.drive && cdromenabled && !ide.board)
                 {
                         ide.secount=1;
@@ -687,7 +718,8 @@ void callbackide(void)
                         ide_irq_raise();
                 }
                 return;
-                case 0xA0: /*Packet*/
+
+        case WIN_PACKETCMD: /* ATAPI Packet */
 //                rpclog("Packet callback! %i\n",ide.packetstatus);
                 if (!ide.packetstatus)
                 {
