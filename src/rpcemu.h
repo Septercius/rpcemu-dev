@@ -139,6 +139,34 @@ extern int mousecapture;
 extern int drawscre;
 extern int quited;
 
+/* UNIMPLEMENTED requires variable argument macros
+   GCC extension or C99 */
+#if defined(_DEBUG) && (defined(__GNUC__) || __STDC_VERSION__ >= 199901L)
+  /**
+   * UNIMPLEMENTED
+   *
+   * Used to report sections of code that have not been implemented yet
+   *
+   * @param section Section code is missing from eg. "IOMD register" or
+   *                "HostFS filecore message"
+   * @param format  Section specific information
+   * @param ...     Section specific information variable arguments
+   */
+  #define UNIMPLEMENTED(section, format, args...) \
+    UNIMPLEMENTEDFL(__FILE__, __LINE__, (section), (format), ## args)
+
+  void UNIMPLEMENTEDFL(const char *file, unsigned line,
+                       const char *section, const char *format, ...);
+#else
+  /* This function has no corresponding body, the compiler
+     is clever enough to use it to swallow the arguments to
+     debugging calls */
+  void unimplemented_null(const char *section, const char *format, ...);
+
+  #define UNIMPLEMENTED 1?(void)0:(void)unimplemented_null
+
+#endif
+
 /*Generic*/
 extern int lastinscount;
 extern int infocus;

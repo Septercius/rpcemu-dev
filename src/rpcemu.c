@@ -1,6 +1,7 @@
 /*RPCemu v0.6 by Tom Walker
   Main loop
   Should be platform independent*/
+#include <assert.h>
 #include <stdint.h>
 #include <allegro.h>
 #include "rpcemu.h"
@@ -44,6 +45,43 @@ const char *ipaddress = NULL;
 
 static void loadconfig(void);
 static void saveconfig(void);
+
+#ifdef _DEBUG
+/**
+ * UNIMPLEMENTEDFL
+ *
+ * Used to report sections of code that have not been implemented yet.
+ * Do not use this function directly. Use the macro UNIMPLEMENTED() instead.
+ *
+ * @param file    File function is called from
+ * @param line    Line function is called from
+ * @param section Section code is missing from eg. "IOMD register" or
+ *                "HostFS filecore message"
+ * @param format  Section specific information
+ * @param ...     Section specific information variable arguments
+ */
+void UNIMPLEMENTEDFL(const char *file, unsigned line, const char *section,
+                     const char *format, ...)
+{
+	char buffer[1024];
+	va_list arg_list;
+
+	assert(file);
+	assert(section);
+	assert(format);
+
+	va_start(arg_list, format);
+	vsprintf(buffer, format, arg_list);
+	va_end(arg_list);
+
+	rpclog("UNIMPLEMENTED: %s: %s(%u): %s\n",
+	       section, file, line, buffer);
+
+	fprintf(stderr,
+	        "UNIMPLEMENTED: %s: %s(%u): %s\n",
+	        section, file, line, buffer);
+}
+#endif /* _DEBUG */
 
 void resetrpc()
 {
