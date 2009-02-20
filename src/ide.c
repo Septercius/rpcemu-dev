@@ -87,15 +87,19 @@ static FILE *hdfile[4];
 static inline void
 ide_irq_raise(void)
 {
-	iomd.statb |= 2;
-	updateirqs();
+	if (ide.board == 0) {
+		iomd.statb |= 2;
+		updateirqs();
+	}
 }
 
 static inline void
 ide_irq_lower(void)
 {
-	iomd.statb &= ~2;
-	updateirqs();
+	if (ide.board == 0) {
+		iomd.statb &= ~2;
+		updateirqs();
+	}
 }
 
 /**
@@ -269,10 +273,7 @@ void writeidew(uint16_t val)
                         ide.packetstatus=5;
                         idecallback=6;
 //                        rpclog("Packet over!\n");
-                        if (!ide.board)
-                        {
-                                ide_irq_lower();
-                        }
+                        ide_irq_lower();
                 }
                 return;
         }
@@ -349,10 +350,7 @@ void writeide(uint16_t addr, uint8_t val)
                         ide.packlen=0;
                         ide.cdlen=ide.cdpos=ide.pos=0;
                         memset(idebuffer,0,512);
-                        if (!ide.board)
-                        {
-                                ide_irq_lower();
-                        }
+                        ide_irq_lower();
                 }
                 ide.drive=(val>>4)&1;
                 ide.pos=0;
@@ -502,10 +500,7 @@ uint8_t readide(uint16_t addr)
                 return (uint8_t)(ide.head|(ide.drive<<4));
 
         case 0x1F7: /* Status */
-                if (!ide.board)
-                {
-                        ide_irq_lower();
-                }
+                ide_irq_lower();
                 return ide.atastat[ide.board];
 
         case 0x3F6: /* Alternate Status */
@@ -595,20 +590,14 @@ void callbackide(void)
                         ide.secount=ide.sector=1;
                         ide.cylinder=0xEB14;
                 }
-                if (!ide.board)
-                {
-                        ide_irq_raise();
-                }
+                ide_irq_raise();
                 return;
 
         case WIN_RESTORE:
         case WIN_SEEK:
 //                rpclog("Restore callback\n");
                 ide.atastat[ide.board] = READY_STAT;
-                if (!ide.board)
-                {
-                        ide_irq_raise();
-                }
+                ide_irq_raise();
                 return;
 
         case WIN_READ:
@@ -625,10 +614,7 @@ void callbackide(void)
                 ide.pos=0;
                 ide.atastat[ide.board] = DRQ_STAT;
 //                rpclog("Read sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
-                if (!ide.board)
-                {
-                        ide_irq_raise();
-                }
+                ide_irq_raise();
                 return;
 
         case WIN_WRITE:
@@ -636,10 +622,7 @@ void callbackide(void)
 //                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
                 fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);
                 fwrite(idebuffer,512,1,hdfile[ide.drive|ide.board]);
-                if (!ide.board)
-                {
-                        ide_irq_raise();
-                }
+                ide_irq_raise();
                 ide.secount--;
                 if (ide.secount)
                 {
@@ -665,10 +648,7 @@ void callbackide(void)
                 ide.pos=0;
                 ide.atastat[ide.board] = READY_STAT;
 //                rpclog("Read verify callback %i %i %i offset %08X %i left\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount);
-                if (!ide.board)
-                {
-                        ide_irq_raise();
-                }
+                ide_irq_raise();
                 return;
 
         case WIN_FORMAT:
@@ -681,10 +661,7 @@ void callbackide(void)
                         fwrite(idebuffer,512,1,hdfile[ide.drive|ide.board]);
                 }
                 ide.atastat[ide.board] = READY_STAT;
-                if (!ide.board)
-                {
-                        ide_irq_raise();
-                }
+                ide_irq_raise();
                 return;
 
         case WIN_SPECIFY: /* Initialize Drive Parameters */
@@ -692,10 +669,7 @@ void callbackide(void)
                 ide.hpc[ide.drive|ide.board]=ide.head+1;
                 ide.atastat[ide.board] = READY_STAT;
 //                rpclog("%i sectors per track, %i heads per cylinder\n",ide.spt,ide.hpc);
-                if (!ide.board)
-                {
-                        ide_irq_raise();
-                }
+                ide_irq_raise();
                 return;
 
         case WIN_PIDENTIFY: /* Identify Packet Device */
@@ -712,10 +686,7 @@ void callbackide(void)
         case WIN_SETIDLE1: /* Idle */
                 ide.atastat[ide.board] = READY_STAT | ERR_STAT;
                 ide.error=4;
-                if (!ide.board)
-                {
-                        ide_irq_raise();
-                }
+                ide_irq_raise();
                 return;
 
         case WIN_IDENTIFY: /* Identify Device */
@@ -734,10 +705,7 @@ void callbackide(void)
                 ide.pos=0;
                 ide.atastat[ide.board] = DRQ_STAT;
 //                rpclog("ID callback\n");
-                if (!ide.board)
-                {
-                        ide_irq_raise();
-                }
+                ide_irq_raise();
                 return;
 
         case WIN_PACKETCMD: /* ATAPI Packet */
@@ -747,10 +715,7 @@ void callbackide(void)
                         ide.pos=0;
                         ide.error=(uint8_t)((ide.secount&0xF8)|1);
                         ide.atastat[ide.board] = DRQ_STAT;
-                        if (!ide.board)
-                        {
-                                ide_irq_raise();
-                        }
+                        ide_irq_raise();
 //                        rpclog("Preparing to recieve packet max DRQ count %04X\n",ide.cylinder);
                 }
                 else if (ide.packetstatus==1)
@@ -769,10 +734,7 @@ void callbackide(void)
                 {
 //                        rpclog("packetstatus==2\n");
                         ide.atastat[ide.board] = READY_STAT;
-                        if (!ide.board)
-                        {
-                                ide_irq_raise();
-                        }
+                        ide_irq_raise();
 //                        if (output)
 //                        {
 //                                output=2;
@@ -783,20 +745,14 @@ void callbackide(void)
                 {
                         ide.atastat[ide.board] = DRQ_STAT;
 //                        rpclog("Recieve data packet!\n");
-                        if (!ide.board)
-                        {
-                                ide_irq_raise();
-                        }
+                        ide_irq_raise();
                         ide.packetstatus=0xFF;
                 }
                 else if (ide.packetstatus==4)
                 {
                         ide.atastat[ide.board] = DRQ_STAT;
 //                        rpclog("Send data packet!\n");
-                        if (!ide.board)
-                        {
-                                ide_irq_raise();
-                        }
+                        ide_irq_raise();
 //                        ide.packetstatus=5;
                         ide.pos=2;
                 }
@@ -809,19 +765,13 @@ void callbackide(void)
                 {
                         ide.atastat[ide.board] = DRQ_STAT;
 //                        rpclog("Recieve data packet 6!\n");
-                        if (!ide.board)
-                        {
-                                ide_irq_raise();
-                        }
+                        ide_irq_raise();
 //                        ide.packetstatus=0xFF;
                 }
                 else if (ide.packetstatus==0x80) /*Error callback*/
                 {
                         ide.atastat[ide.board] = READY_STAT | ERR_STAT;
-                        if (!ide.board)
-                        {
-                                ide_irq_raise();
-                        }
+                        ide_irq_raise();
                 }
                 return;
         }
