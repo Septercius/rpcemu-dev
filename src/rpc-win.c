@@ -528,7 +528,7 @@ static int chngram = 0;
 
 static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-        static int model2 = 0;
+        static CPUModel model2 = CPUModel_ARM7500;
         HWND h;
         int c;
         int cpu;
@@ -542,14 +542,34 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 h=GetDlgItem(hdlg,Text1);
                 sprintf(s,"%ihz",refresh);
                 SendMessage(h,WM_SETTEXT,0,(LPARAM)s);
+
+                /* Set Sound enabled */
                 h=GetDlgItem(hdlg,CheckBox1);
                 SendMessage(h,BM_SETCHECK,soundenabled,0);
-                if (model<2) cpu=model^1;
-                else         cpu=model;
+
+                /* Set CPU model */
+                /* The CPUModel list and Dialog items are in a different order */
+                switch (model) {
+                case CPUModel_ARM7500:
+                        cpu = 1; break;
+                case CPUModel_ARM610:
+                        cpu = 0; break;
+                case CPUModel_ARM710:
+                        cpu = 2; break;
+                case CPUModel_SA110:
+                        cpu = 3; break;
+                default:
+                        fprintf(stderr, "configdlgproc(): unknown CPU model %d\n", model);
+                        exit(EXIT_FAILURE);
+                }
                 h=GetDlgItem(hdlg,RadioButton1+cpu);
                 SendMessage(h,BM_SETCHECK,1,0);
+
+                /* Set VRAM */
                 h=GetDlgItem(hdlg,(vrammask)?RadioButton12:RadioButton11);
                 SendMessage(h,BM_SETCHECK,1,0);
+
+                /* Set RAM Size */
                 switch (rammask)
                 {
                         case 0x1FFFFF: h=GetDlgItem(hdlg,RadioButton5); break;
@@ -560,6 +580,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         case 0x3FFFFFF: h=GetDlgItem(hdlg,RadioButton10); break;
                 }
                 SendMessage(h,BM_SETCHECK,1,0);
+
                 model2=model;
                 vrammask2=vrammask;
                 soundenabled2=soundenabled;
@@ -590,9 +611,12 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         vrammask=vrammask2;
                         refresh=refresh2;
                         install_int_ex(vblupdate,BPS_TO_TIMER(refresh));
+
                         case IDCANCEL:
                         EndDialog(hdlg,0);
                         return TRUE;
+
+                        /* VRAM None */
                         case RadioButton11:
                         h=GetDlgItem(hdlg,RadioButton11);
                         SendMessage(h,BM_SETCHECK,1,0);
@@ -600,6 +624,8 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         SendMessage(h,BM_SETCHECK,0,0);
                         vrammask2=0;
                         return TRUE;
+
+                        /* VRAM 2MB */
                         case RadioButton12:
                         h=GetDlgItem(hdlg,RadioButton11);
                         SendMessage(h,BM_SETCHECK,0,0);
@@ -608,17 +634,51 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         vrammask2=0x7FFFFF;
                         return TRUE;
                         
-                        case RadioButton1: case RadioButton2: case RadioButton3: case RadioButton4:
-                        if (model<2) cpu=model2^1;
-                        else         cpu=model2;
-                        h=GetDlgItem(hdlg,RadioButton1+cpu);
-                        SendMessage(h,BM_SETCHECK,0,0);
-                        model2=LOWORD(wParam)-RadioButton1;
-                        if (model2<2) model2^=1;
-                        h=GetDlgItem(hdlg,LOWORD(wParam));
-                        SendMessage(h,BM_SETCHECK,1,0);
+                        /* CPU Type radio buttons */
+                        case RadioButton1:
+                        case RadioButton2:
+                        case RadioButton3:
+                        case RadioButton4:
+                        /* The model enum and the dialog IDs are in different orders */
+
+                        /* Clear previous CPU model choice */
+                        switch (model) {
+                        case CPUModel_ARM7500:
+                                cpu = 1; break;
+                        case CPUModel_ARM610:
+                                cpu = 0; break;
+                        case CPUModel_ARM710:
+                                cpu = 2; break;
+                        case CPUModel_SA110:
+                                cpu = 3; break;
+                        default:
+                                fprintf(stderr, "configdlgproc(): unknown CPU model %d\n", model);
+                                exit(EXIT_FAILURE);
+                        }
+
+                        h = GetDlgItem(hdlg, RadioButton1 + cpu);
+                        SendMessage(h, BM_SETCHECK, 0, 0);
+
+                        /* Set new CPU model */
+                        switch (LOWORD(wParam) - RadioButton1) {
+                        case 0:
+                                model2 = CPUModel_ARM610; break;
+                        case 1:
+                                model2 = CPUModel_ARM7500; break;
+                        case 2:
+                                model2 = CPUModel_ARM710; break;
+                        case 3:
+                                model2 = CPUModel_SA110; break;
+                        default:
+                                fprintf(stderr, "configdlgproc(): unknown dialog item for CPUModel %d\n", LOWORD(wParam) - RadioButton1);
+                                exit(EXIT_FAILURE);
+                        }
+
+                        h = GetDlgItem(hdlg, LOWORD(wParam));
+                        SendMessage(h, BM_SETCHECK, 1, 0);
                         return TRUE;
                         
+                        /* Memory selection radio buttons */
                         case RadioButton5: case RadioButton6: case RadioButton7:
                         case RadioButton8: case RadioButton9: case RadioButton10:
                         _mask=(0x200000<<(LOWORD(wParam)-RadioButton5))-1;
@@ -633,6 +693,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         else               chngram=0;
                         return TRUE;
                         
+                        /* Sound */
                         case CheckBox1:
                         soundenabled2^=1;
                         h=GetDlgItem(hdlg,LOWORD(wParam));

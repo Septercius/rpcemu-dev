@@ -10,6 +10,12 @@
 
 extern void ioctl_init(void);
 
+/* Indexes into the configuregui array */
+#define CONF_ARM7500 4
+#define CONF_ARM610  5
+#define CONF_ARM710  6
+#define CONF_SA110   7
+
 static DIALOG configuregui[];
 
 static int menuexit(void)
@@ -200,8 +206,30 @@ static int menusettings(void)
 {
         int c,d;
         int changed=0;
-        for (c=0;c<4;c++) configuregui[4+c].flags=0;
-        configuregui[4+model].flags=D_SELECTED;
+
+        configuregui[CONF_ARM7500].flags = 0;
+        configuregui[CONF_ARM610].flags = 0;
+        configuregui[CONF_ARM710].flags = 0;
+        configuregui[CONF_SA110].flags = 0;
+
+        switch (model) {
+        case CPUModel_ARM7500:
+                configuregui[CONF_ARM7500].flags = D_SELECTED;
+                break;
+        case CPUModel_ARM610:
+                configuregui[CONF_ARM610].flags = D_SELECTED;
+                break;
+        case CPUModel_ARM710:
+                configuregui[CONF_ARM710].flags = D_SELECTED;
+                break;
+        case CPUModel_SA110:
+                configuregui[CONF_SA110].flags = D_SELECTED;
+                break;
+        default:
+                fprintf(stderr, "Unknown CPU model %d\n", model);
+                exit(EXIT_FAILURE);
+        }
+
         for (c=0;c<6;c++) configuregui[9+c].flags=0;
         switch (rammask)
         {
@@ -227,9 +255,23 @@ static int menusettings(void)
         
         if (c==1)
         {
-                d=0;
-                for (c=0;c<4;c++) d=(configuregui[4+c].flags&D_SELECTED)?c:d;
-                if (model!=d) { model=d; changed=1; }
+                CPUModel selected_model = CPUModel_ARM7500;
+
+                if (configuregui[CONF_ARM7500].flags & D_SELECTED) {
+                        selected_model = CPUModel_ARM7500;
+                } else if (configuregui[CONF_ARM610].flags & D_SELECTED) {
+                        selected_model = CPUModel_ARM610;
+                } else if (configuregui[CONF_ARM710].flags & D_SELECTED) {
+                        selected_model = CPUModel_ARM710;
+                } else if (configuregui[CONF_SA110].flags & D_SELECTED) {
+                        selected_model = CPUModel_SA110;
+                }
+
+                if (model != selected_model) {
+                        model = selected_model;
+                        changed = 1;
+                }
+
                 d=0;
                 for (c=0;c<6;c++) d=(configuregui[9+c].flags&D_SELECTED)?c:d;
                 d=(0x200000<<d)-1;
@@ -286,15 +328,15 @@ static DIALOG configuregui[]=
 
         {d_text_proc,CX+8,CY-4,40,8,0,-1,0,0,0,0,"CPU :",0,0},
 #ifdef DYNAREC
-        {d_radio_proc,CX+8,CY+4,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM7500",0,0},
-        {d_radio_proc,CX+8,CY+4+16,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM610",0,0},
-        {d_radio_proc,CX+8,CY+4+32,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM710",0,0},
-        {d_radio_proc,CX+8,CY+4+48,64,16,0,-1,0,D_DISABLED, 0 ,0,"SA110",0,0},
+        {d_radio_proc,CX+8,CY+4,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM7500",0,0},   // 4
+        {d_radio_proc,CX+8,CY+4+16,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM610",0,0}, // 5
+        {d_radio_proc,CX+8,CY+4+32,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM710",0,0}, // 6
+        {d_radio_proc,CX+8,CY+4+48,64,16,0,-1,0,D_DISABLED, 0 ,0,"SA110",0,0},  // 7
 #else
-        {d_radio_proc,CX+8,CY+4,64,16,0,-1,0,0, 0 ,0,"ARM7500",0,0},
-        {d_radio_proc,CX+8,CY+4+16,64,16,0,-1,0,0, 0 ,0,"ARM610",0,0},
-        {d_radio_proc,CX+8,CY+4+32,64,16,0,-1,0,0, 0 ,0,"ARM710",0,0},
-        {d_radio_proc,CX+8,CY+4+48,64,16,0,-1,0,0, 0 ,0,"SA110",0,0},
+        {d_radio_proc,CX+8,CY+4,64,16,0,-1,0,0, 0 ,0,"ARM7500",0,0},   // 4
+        {d_radio_proc,CX+8,CY+4+16,64,16,0,-1,0,0, 0 ,0,"ARM610",0,0}, // 5
+        {d_radio_proc,CX+8,CY+4+32,64,16,0,-1,0,0, 0 ,0,"ARM710",0,0}, // 6
+        {d_radio_proc,CX+8,CY+4+48,64,16,0,-1,0,0, 0 ,0,"SA110",0,0},  // 7
 #endif
         {d_text_proc,CX+88,CY-4,40,8,0,-1,0,0,0,0,"RAM :",0,0},
         {d_radio_proc,CX+88,CY+4,64,16,0,-1,0,0, 1, 0,"4mb",0,0},

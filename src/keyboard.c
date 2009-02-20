@@ -445,7 +445,7 @@ void pollmouse()
 //        rpclog("Poll mouse %i %i %i %i\n",x,y,iomd.mousex,iomd.mousey);
         if (mousecapture) position_mouse(getxs()>>1,getys()>>1);
         mcalls++;
-        if (model) return;
+        if (model != CPUModel_ARM7500) return;
         if (!mousepoll) return;
         if (!x && !y && (mouseb==oldmouseb)) return;
         oldmouseb=mouseb;

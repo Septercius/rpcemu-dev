@@ -233,7 +233,8 @@ uint32_t readmemfl(uint32_t addr)
             case 0x01000000: /*Extension ROM*/
                 return 0;
             case 0x02000000: /*VRAM*/
-                if (!vrammask || !model) return 0xFFFFFFFF;
+                if (!vrammask || model == CPUModel_ARM7500)
+                  return 0xFFFFFFFF;
 //                rpclog("Read VRAM %08X %07X - %08X\n",addr,PC,vram[(addr&vrammask)>>2]);
 //              if (vram[(addr&vrammask)>>2]==0x6E756F66) output=1;
                 return vram[(addr&vrammask)>>2];
@@ -411,7 +412,8 @@ uint32_t readmemfb(uint32_t addr)
 #endif
                 return romb[addr&0x7FFFFF];
                 case 0x02000000: /*VRAM*/
-                if (!vrammask || !model) return 0xFF;
+                if (!vrammask || model == CPUModel_ARM7500)
+                  return 0xFF;
 #ifdef _RPCEMU_BIG_ENDIAN
 				addr^=3;
 #endif
@@ -522,7 +524,7 @@ void writememfl(uint32_t addr, uint32_t val)
                                 vwadd(addr2,&vram[((writememcache2&0x7FF000)-(long)(addr2&~0xFFF))>>2],0,writememcache2);
                                 break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
-                                if ((!vrammask || !model) && (addr&0x1FF00000)==0x10000000)
+                                if ((!vrammask || model == CPUModel_ARM7500) && (addr&0x1FF00000)==0x10000000)
                                    dirtybuffer[(addr&rammask)>>12]=2;
                                 case 0x11000000:
                                 case 0x12000000:
@@ -665,7 +667,7 @@ void writememfl(uint32_t addr, uint32_t val)
 //                   rpclog("Write %08X %08X\n",addr,val);
 //                printf("SIMM0 w %08X %08X %07X\n",addr,val,PC);
                 ram[(addr&rammask)>>2]=val;
-//                if (!model || (vrammask==0 && (addr&rammask)<0x100000))
+//                if (model == CPUModel_ARM7500 || (vrammask==0 && (addr&rammask)<0x100000))
 //                   dirtybuffer[(addr&rammask)>>12]=1;
 //                dirtybuffer[(addr&rammask)>>10]=1;
                 return;
@@ -725,7 +727,7 @@ void writememfb(uint32_t addr, uint8_t val)
                                 vwadd(addr2,&vram[((writemembcache2&0x7FF000)-(long)(addr2&~0xFFF))>>2],0,writemembcache2);
                                 break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
-                                if ((!vrammask || !model) && (addr&0x1FF00000)==0x10000000)
+                                if ((!vrammask || model == CPUModel_ARM7500) && (addr&0x1FF00000)==0x10000000)
                                    dirtybuffer[(addr&rammask)>>12]=2;
                                 case 0x11000000:
                                 case 0x12000000:
@@ -808,7 +810,7 @@ void writememfb(uint32_t addr, uint8_t val)
                         writemembcache2=addr&0xFFFFF000;
                         if ((addr&0x1F000000)==0x2000000)
                            dirtybuffer[(addr&vrammask)>>12]=2;
-                        if ((!vrammask || !model) && (addr&0x1FF00000)==0x10000000)
+                        if ((!vrammask || model == CPUModel_ARM7500) && (addr&0x1FF00000)==0x10000000)
                            dirtybuffer[(addr&rammask)>>12]=2;
                 }
                 #endif
@@ -892,7 +894,7 @@ void writememfb(uint32_t addr, uint8_t val)
 				addr^=3;
 #endif
                 ramb[addr&rammask]=val;
-//                if (!model || (vrammask==0 && (addr&rammask)<0x100000))
+//                if (model == CPUModel_ARM7500 || (vrammask==0 && (addr&rammask)<0x100000))
 //                   dirtybuffer[(addr&rammask)>>12]=1;
                 return;
                 case 0x14000000: /*SIMM 0 bank 1*/

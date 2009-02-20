@@ -148,7 +148,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 return;
                 case 8: /*Flush TLB (SA110)*/
                 if ((CRm&1) && !(OPC2)) resetcodeblocks();
-//                if (model==3) rpclog("TLB purge %08X %01X %i\n",val,opcode&0xF,(opcode>>5)&7);
+//                if (model == CPUModel_SA110) rpclog("TLB purge %08X %01X %i\n",val,opcode&0xF,(opcode>>5)&7);
                 case 6: /*Purge TLB*/
                 case 5: /*Flush TLB*/
 //                else if (!icache) resetcodeblocks();
@@ -227,10 +227,10 @@ uint32_t readcp15(uint32_t addr)
                 case 0: /*ARM ID*/
                 switch (model)
                 {
-                        case 0: return 0x41027100; /*ARM7500*/
-                        case 1: return 0x41560610; /*ARM610*/
-                        case 2: return 0x41007100; /*ARM710*/
-                        case 3: /*if (PC>0x10000000) output=1; */return 0x4401A102; /*SA110*/
+                        case CPUModel_ARM7500: return 0x41027100;
+                        case CPUModel_ARM610: return 0x41560610;
+                        case CPUModel_ARM710: return 0x41007100;
+                        case CPUModel_SA110: /*if (PC>0x10000000) output=1; */return 0x4401A102;
                 }
                 break;
                 case 1: /*Control*/

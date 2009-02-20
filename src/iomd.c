@@ -204,8 +204,10 @@ void writeiomd(uint32_t addr, uint32_t val)
 //                rpclog("Vidcur = %08X\n",val);
                 return;
                 case 0x1D4: /*Video DMA end*/
-                if (vrammask && model) iomd.vidend=(val+2048)&0x7FFFF0;
-                else                   iomd.vidend=(val+16)&0x7FFFF0;
+                if (vrammask && model != CPUModel_ARM7500)
+                        iomd.vidend = (val + 2048) & 0x7FFFF0;
+                else
+                        iomd.vidend = (val + 16) & 0x7FFFF0;
                 return;
                 case 0x1D8: /*Video DMA start*/
                 iomd.vidstart=val&0x7FFFFF;
@@ -273,10 +275,10 @@ uint32_t readiomd(uint32_t addr)
                 case 0x80: return iomd.romcr0; /*ROM control*/
                 case 0x84: return iomd.romcr1;
                 case 0x94: /*Chip ID registers*/
-                if (model==0) return 0x98; /*ARM7500*/
+                if (model == CPUModel_ARM7500) return 0x98; /*ARM7500*/
                 return 0xE7;               /*IOMD*/
                 case 0x98: /*Chip ID registers*/
-                if (model==0) return 0x5B; /*ARM7500*/
+                if (model == CPUModel_ARM7500) return 0x5B; /*ARM7500*/
                 return 0xD4;               /*IOMD*/
                 case 0x9C: return 0; /*Chip version*/
                 case 0xA0: /*rpclog("Read mousex %i\n",iomd.mousex);*/ return iomd.mousex;

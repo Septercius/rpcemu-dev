@@ -28,7 +28,7 @@ char discname[2][260]={"boot.adf","notboot.adf"};
 char exname[512] = {0};
 
 int vrammask = 0;
-int model = 0;
+CPUModel model = CPUModel_ARM7500;
 int rammask = 0;
 int stretchmode = 0;
 int infocus = 0;
@@ -202,7 +202,7 @@ static void loadconfig(void)
         else if (!strcmp(p,"128")) rammask=0x3FFFFFF;
         else                       rammask=0x7FFFFF;
         #ifdef DYNAREC
-        model=3;           /*SA1100*/
+        model = CPUModel_SA110;
         vrammask=0x7FFFFF; /*2mb VRAM*/
         #else
         p = get_config_string(NULL,"vram_size",NULL);
@@ -210,11 +210,11 @@ static void loadconfig(void)
         else if (!strcmp(p,"0"))        vrammask=0;
         else                       vrammask=0x7FFFFF;
         p = get_config_string(NULL,"cpu_type",NULL);
-        if (!p) model=2;
-        else if (!strcmp(p,"ARM610")) model=1;
-        else if (!strcmp(p,"ARM7500")) model=0;
-        else if (!strcmp(p,"SA110"))   model=3;
-        else                           model=2;
+        if (!p) model = CPUModel_ARM710;
+        else if (!strcmp(p, "ARM610"))  model = CPUModel_ARM610;
+        else if (!strcmp(p, "ARM7500")) model = CPUModel_ARM7500;
+        else if (!strcmp(p, "SA110"))   model = CPUModel_SA110;
+        else                            model = CPUModel_ARM710;
         #endif
         soundenabled=get_config_int(NULL,"sound_enabled",1);
         stretchmode=get_config_int(NULL,"stretch_mode",0);
@@ -238,10 +238,11 @@ static void saveconfig(void)
         #ifndef DYNAREC
         switch (model)
         {
-                case 1: sprintf(s,"ARM610"); break;
-                case 2: sprintf(s,"ARM710"); break;
-                case 3: sprintf(s,"SA110"); break;
-                default: sprintf(s,"ARM7500"); break;
+                case CPUModel_ARM610:  sprintf(s, "ARM610"); break;
+                case CPUModel_ARM710:  sprintf(s, "ARM710"); break;
+                case CPUModel_SA110:   sprintf(s, "SA110"); break;
+                case CPUModel_ARM7500: sprintf(s, "ARM7500"); break;
+                default: fprintf(stderr, "saveconfig(): unknown cpu model %d\n", model); break;
         }
         set_config_string(NULL,"cpu_type",s);
         if (vrammask) set_config_string(NULL,"vram_size","2");

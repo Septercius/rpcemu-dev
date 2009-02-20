@@ -105,10 +105,16 @@ extern int mousehackon;
 //#define PREFETCH
 
 
+typedef enum {
+	CPUModel_ARM7500,
+	CPUModel_ARM610,
+	CPUModel_ARM710,
+	CPUModel_SA110
+} CPUModel;
 
 /*Config*/
 extern int vrammask;
-extern int model;
+extern CPUModel model;
 extern int rammask;
 extern int stretchmode;
 extern const char *username;
