@@ -812,6 +812,8 @@ void exception(int mmode, uint32_t address, int diff)
 
 static void opSWI(uint32_t opcode)
 {
+	uint32_t templ;
+
 	inscount++; rinscount++;
         templ=opcode&0xDFFFF;
 //        if ((templ&~0x1F)==0x404C0) rpclog("MIDI SWI %05X at %07X\n",templ,PC);
