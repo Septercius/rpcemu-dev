@@ -182,6 +182,20 @@ ide_atapi_identify(void)
 	idebuffer[49] = 0x200; /* LBA supported */
 }
 
+/*
+ * Return the sector offset for the current register values
+ */
+static off64_t
+ide_get_sector(void)
+{
+	int heads = ide.hpc[ide.drive | ide.board];
+	int sectors = ide.spt[ide.drive | ide.board];
+	int skip = skip512[ide.drive | ide.board];
+
+	return ((((off64_t) ide.cylinder * heads) + ide.head) *
+	          sectors) + (ide.sector - 1) + skip;
+}
+
 static void loadhd(int d, const char *fn)
 {
         if (!hdfile[d])
@@ -602,7 +616,7 @@ void callbackide(void)
 
         case WIN_READ:
 //                rpclog("Read sector %i %i %i\n",ide.hpc[ide.drive],ide.spt[ide.drive],skip512[ide.drive]);
-                addr = (((((off64_t) ide.cylinder * ide.hpc[ide.drive|ide.board]) +  ide.head) * ide.spt[ide.drive|ide.board]) + (ide.sector - 1) + skip512[ide.drive|ide.board]) * 512;
+                addr = ide_get_sector() * 512;
 //                rpclog("Read %i %i %i %08X\n",ide.cylinder,ide.head,ide.sector,addr);
                 /*                if (ide.cylinder || ide.head)
                 {
@@ -618,7 +632,7 @@ void callbackide(void)
                 return;
 
         case WIN_WRITE:
-                addr = (((((off64_t) ide.cylinder * ide.hpc[ide.drive|ide.board]) +  ide.head) * ide.spt[ide.drive|ide.board]) + (ide.sector - 1) + skip512[ide.drive|ide.board]) * 512;
+                addr = ide_get_sector() * 512;
 //                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
                 fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);
                 fwrite(idebuffer,512,1,hdfile[ide.drive|ide.board]);
@@ -652,7 +666,7 @@ void callbackide(void)
                 return;
 
         case WIN_FORMAT:
-                addr = (((((off64_t) ide.cylinder * ide.hpc[ide.drive|ide.board]) +  ide.head) * ide.spt[ide.drive|ide.board]) + (ide.sector - 1) + skip512[ide.drive|ide.board]) * 512;
+                addr = ide_get_sector() * 512;
 //                rpclog("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
                 fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);
                 memset(idebufferb,0,512);
