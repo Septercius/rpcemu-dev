@@ -214,6 +214,8 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 memset(raddrl, 0xff, 256 * sizeof(uint32_t));
                 waddrl=0xFFFFFFFF;
                 return;
+                default:
+                UNIMPLEMENTED("CP15 Write", "Unknown register %u", addr & 15);
         }
 //        error("Bad write CP15 %08X %08X %07X\n",addr,val,PC);
 //        dumpregs();
@@ -245,6 +247,8 @@ uint32_t readcp15(uint32_t addr)
                 case 6: /*Fault address*/
                 //printf("Fault address read %08X\n",cp15.far);
                 return cp15.far;
+                default:
+                UNIMPLEMENTED("CP15 Read", "Unknown register %u", addr & 15);
         }
         error("Bad read CP15 %08X %07X\n",addr,PC);
         dumpregs();

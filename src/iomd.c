@@ -227,6 +227,8 @@ void writeiomd(uint32_t addr, uint32_t val)
                 iomd.maske=val;
                 return;
                 default:
+                UNIMPLEMENTED("IOMD Register write",
+                              "Unknown register 0x%x", addr & 0x1fc);
                 return;
                 error("Bad IOMD write register %03X %08X\n",addr&0x1FC,val);
                 dumpregs();
@@ -300,6 +302,10 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.state&iomd.maske;
                 case 0x1F8:
                 return iomd.maske;
+                default:
+                UNIMPLEMENTED("IOMD Register read",
+                              "Unknown register 0x%x", addr & 0x1fc);
+
         }
         return 0;
         printf("Bad IOMD read register %03X\n",addr&0x1FC);
