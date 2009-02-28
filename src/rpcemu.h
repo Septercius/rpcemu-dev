@@ -179,7 +179,6 @@ extern int infocus;
 
 /*FPA*/
 extern void resetfpa();
-extern void dumpfpa(void);
 extern void fpaopcode(uint32_t opcode);
 
 #define CDROM_ISO   0

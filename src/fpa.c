@@ -12,10 +12,10 @@
 
 extern int times8000;
 
-double fparegs[8] = {0.0}; /*No C variable type for 80-bit floating point, so use 64*/
-uint32_t fpsr = 0, fpcr = 0;
+static double fparegs[8] = {0.0}; /*No C variable type for 80-bit floating point, so use 64*/
+static uint32_t fpsr = 0, fpcr = 0;
 
-void dumpfpa(void)
+static void dumpfpa(void)
 {
         rpclog("\nF0=%f F1=%f F2=%f F3=%f\n",fparegs[0],fparegs[1],fparegs[2],fparegs[3]);
         rpclog("F4=%f F5=%f F6=%f F7=%f\n",fparegs[0],fparegs[1],fparegs[2],fparegs[3]);
@@ -50,7 +50,7 @@ void resetfpa()
 #define CFLAG 0x20000000
 #define VFLAG 0x10000000
 
-INLINING void setsubf(double op1, double op2)
+static inline void setsubf(double op1, double op2)
 {
         armregs[cpsr]&=0xFFFFFFF;
         if (op1==op2) armregs[cpsr]|=ZFLAG;
@@ -59,9 +59,9 @@ INLINING void setsubf(double op1, double op2)
 //        if ((op1^op2)&(op1^res)&0x80000000) armregs[cpsr]|=VFLAG;
 }
 
-double fconstants[8]={0.0,1.0,2.0,3.0,4.0,5.0,0.5,10.0};
+static const double fconstants[8]={0.0,1.0,2.0,3.0,4.0,5.0,0.5,10.0};
 
-double convert80to64(uint32_t *temp)
+static double convert80to64(uint32_t *temp)
 {
         int tempi,len;
         double *tf2=(double *)&temp[4];
@@ -76,7 +76,7 @@ double convert80to64(uint32_t *temp)
         return *tf2;
 }
 
-void convert64to80(uint32_t *temp, double tf)
+static void convert64to80(uint32_t *temp, double tf)
 {
         int tempi;
         double *tf2=(double *)&temp[4];
