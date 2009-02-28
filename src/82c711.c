@@ -403,10 +403,8 @@ static void fdcsenddata(uint8_t val)
 
 uint8_t read82c711(uint32_t addr)
 {
-        static uint32_t lastaddr2 = 0;
         uint32_t addr2;
         addr2=(addr>>2)&0x3FF;
-        lastaddr2=addr2;
         if (addr2==0x279) return 0x90;
         if ((addr2>=0x1F0 && addr2<=0x1F7) || addr2==0x3F6)
         {
