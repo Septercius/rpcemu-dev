@@ -91,18 +91,6 @@ void reallocmem(int ramsize)
 //        error("RAMsize now %08X RAMmask now %08X\n",ramsize,rammask);
 }
 
-void resetmem(void)
-{
-#ifdef LARGETLB
-        int c;
-        for (c=0;c<64;c++)
-            writememcache[c]=0xFFFFFFFF;
-#else
-        writememcache=0xFFFFFFFF;
-#endif
-        readmemcache=0xFFFFFFFF;
-}
-
 #define vradd(a,v,f,p) if (vraddrls[vraddrlpos]!=0xFFFFFFFF) vraddrl[vraddrls[vraddrlpos]]=0xFFFFFFFF; \
                        vraddrls[vraddrlpos]=a>>12; \
                        vraddrl[a>>12]=(unsigned long)(v);/*|(f);*/ \
