@@ -122,8 +122,6 @@ void resetmem(void)
                        vwaddrphys[vwaddrlpos]=p; \
                        vwaddrlpos=(vwaddrlpos+1)&1023;*/
 
-static int bank;
-
 uint32_t readmemfl(uint32_t addr)
 {
         uint32_t addr2;
@@ -242,7 +240,8 @@ uint32_t readmemfl(uint32_t addr)
             case 0x03000000: /*IO*/
                 if (!(addr&0xC00000))
                 {
-                        bank=(addr>>16)&7;
+                        uint32_t bank = (addr >> 16) & 7;
+
                         switch (bank)
                         {
                                 case 0:
@@ -421,7 +420,8 @@ uint32_t readmemfb(uint32_t addr)
                 case 0x03000000: /*IO*/
                 if (!(addr&0xC00000))
                 {
-                        bank=(addr>>16)&7;
+                        uint32_t bank = (addr >> 16) & 7;
+
                         switch (bank)
                         {
                                 case 0:
@@ -610,7 +610,8 @@ void writememfl(uint32_t addr, uint32_t val)
                 case 0x03000000: /*IO*/
                 if (!(addr&0xC00000))
                 {
-                        bank=(addr>>16)&7;
+                        uint32_t bank = (addr >> 16) & 7;
+
                         switch (bank)
                         {
                                 case 0:
@@ -836,7 +837,8 @@ void writememfb(uint32_t addr, uint8_t val)
                 case 0x03000000: /*IO*/
                 if (!(addr&0xC00000))
                 {
-                        bank=(addr>>16)&7;
+                        uint32_t bank = (addr >> 16) & 7;
+
                         switch (bank)
                         {
                                 case 0:
