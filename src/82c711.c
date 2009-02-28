@@ -118,7 +118,7 @@ static void writefdc(uint32_t addr, uint32_t val)
 {
         if (configmode==2)
         {
-                if (((addr>>2)&0x3FF)==0x3F0)
+                if (addr == 0x3F0)
                 {
                         configreg=val&15;
 //                        printf("Register CR%01X selected\n",configreg);
@@ -131,8 +131,8 @@ static void writefdc(uint32_t addr, uint32_t val)
                         return;
                 }
         }
-//        printf("FDC write %03X %08X %08X %08X\n",(addr>>2)&0x3FF,addr,val,PC);
-        switch ((addr>>2)&0x3FF)
+        //printf("FDC write %03X %08X %08X\n", addr, val, PC);
+        switch (addr)
         {
                 case 0x3F2: /*DOR*/
                 if ((val&4) && !(fdc.dor&4)) /*Reset*/
@@ -322,7 +322,7 @@ void write82c711(uint32_t addr, uint32_t val)
         }
 //        if (addr2>=0x278 && addr2<=0x27A)
 //           rpclog("Write 82c711 %08X %08X %03X %07X %08X\n",addr,val,addr2,PC,armregs[12]);
-        if ((addr2>=0x3F0) && (addr2<=0x3F7)) writefdc(addr,val);
+        if ((addr2>=0x3F0) && (addr2<=0x3F7)) writefdc(addr2, val);
         if ((addr2==0x27A) && ((val&0x10) || ((printstat^val)&1 && !(val&1))))
         {
 //                rpclog("Printer interrupt %02X\n",iomd.maska);
@@ -348,13 +348,13 @@ void write82c711(uint32_t addr, uint32_t val)
 
 static uint8_t readfdc(uint32_t addr)
 {
-        if (configmode==2 && ((addr>>2)&0x3FF)==0x3F1)
+        if (configmode==2 && addr == 0x3F1)
         {
 //                printf("Read CR%01X %02X\n",configreg,configregs[configreg]);
                 return configregs[configreg];
         }
-//        printf("FDC read %03X %08X %08X\n",(addr>>2)&0x3FF,addr,PC);
-        switch ((addr>>2)&0x3FF)
+        //printf("FDC read %03X %08X\n", addr, PC);
+        switch (addr)
         {
                 case 0x3F4:
                 iomd.statb&=~0x10;
@@ -438,7 +438,7 @@ uint8_t read82c711(uint32_t addr)
                 ideboard=0;
                 return readide(addr2);
         }
-        if ((addr2>=0x3F0) && (addr2<=0x3F7)) return readfdc(addr);
+        if ((addr2>=0x3F0) && (addr2<=0x3F7)) return readfdc(addr2);
         if (addr2==0x3FA)
         {
                 iomd.statf&=~0x10;
