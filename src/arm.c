@@ -86,7 +86,6 @@ int prefabort;
 //static void refillpipeline(void);
 static void refillpipeline2(void);
 uint32_t rotatelookup[4096];
-//int timetolive = 0;
 uint32_t inscount;
 int armirq=0;
 int cpsr;

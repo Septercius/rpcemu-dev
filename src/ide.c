@@ -60,7 +60,6 @@ static void callreadcd();
 static int skip512[4];
 int cdromenabled=1;
 static void atapicommand();
-int timetolive;
 
 static struct
 {

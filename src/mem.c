@@ -10,7 +10,6 @@
 #include "82c711.h"
 #include "podules.h"
 
-int timetolive;
 //#define LARGETLB
 uint32_t *ram = NULL, *ram2 = NULL, *rom = NULL, *vram = NULL;
 uint8_t *ramb = NULL, *ramb2 = NULL, *romb = NULL, *vramb = NULL;
@@ -42,8 +41,6 @@ static uint32_t writememcache[128] = {0}, writememcache2[128] = {0};
 static uint32_t writememcache = 0,writememcache2 = 0;
 #endif
 static uint32_t writemembcache = 0,writemembcache2 = 0;
-
-//static int timetolive;
 
 void clearmemcache()
 {
