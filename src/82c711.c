@@ -116,21 +116,6 @@ void reset82c711()
 
 static void writefdc(uint32_t addr, uint32_t val)
 {
-        if (configmode==2)
-        {
-                if (addr == 0x3F0)
-                {
-                        configreg=val&15;
-//                        printf("Register CR%01X selected\n",configreg);
-                        return;
-                }
-                else
-                {
-                        configregs[configreg]=val;
-//                        printf("CR%01X = %02X\n",configreg,val);
-                        return;
-                }
-        }
         //printf("FDC write %03X %08X %08X\n", addr, val, PC);
         switch (addr)
         {
@@ -322,6 +307,22 @@ void write82c711(uint32_t addr, uint32_t val)
 //                printf("Cleared config mode\n");
                 return;
         }
+        if (configmode==2)
+        {
+                if (addr == 0x3F0)
+                {
+                        configreg=val&15;
+//                        printf("Register CR%01X selected\n",configreg);
+                        return;
+                }
+                else
+                {
+                        configregs[configreg]=val;
+//                        printf("CR%01X = %02X\n",configreg,val);
+                        return;
+                }
+        }
+
 //        if (addr >= 0x278 && addr <= 0x27A)
 //           rpclog("Write 82c711 %03X %08X %07X %08X\n",addr,val,PC,armregs[12]);
         if ((addr >= 0x3F0) && (addr <= 0x3F7)) writefdc(addr, val);
@@ -350,11 +351,6 @@ void write82c711(uint32_t addr, uint32_t val)
 
 static uint8_t readfdc(uint32_t addr)
 {
-        if (configmode==2 && addr == 0x3F1)
-        {
-//                printf("Read CR%01X %02X\n",configreg,configregs[configreg]);
-                return configregs[configreg];
-        }
         //printf("FDC read %03X %08X\n", addr, PC);
         switch (addr)
         {
@@ -407,6 +403,12 @@ uint8_t read82c711(uint32_t addr)
 {
         /* Convert memory-mapped address to IO port */
         addr = (addr >> 2) & 0x3ff;
+
+        if (configmode==2 && addr == 0x3F1)
+        {
+//                printf("Read CR%01X %02X\n",configreg,configregs[configreg]);
+                return configregs[configreg];
+        }
 
         if (addr == 0x279) return 0x90;
         if ((addr >= 0x1F0 && addr <= 0x1F7) || addr == 0x3F6)
