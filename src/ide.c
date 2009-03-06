@@ -42,6 +42,7 @@ void callbackide(void);
 #define GPCMD_MODE_SELECT_10		0x55
 #define GPCMD_MODE_SENSE_10		0x5a
 #define GPCMD_PAUSE_RESUME		0x4b
+#define GPCMD_PLAY_AUDIO_12		0xa5
 #define GPCMD_READ_CD			0xbe
 #define GPCMD_READ_HEADER		0x44
 #define GPCMD_READ_SUBCHANNEL		0x42
@@ -1038,7 +1039,7 @@ static void atapicommand()
                 }
                 return;
 
-        case 0xA5: /*Play audio (12)*/
+        case GPCMD_PLAY_AUDIO_12:
                 if (!atapi->ready()) { atapi_notready(); return; }
                 /*This is apparently deprecated in the ATAPI spec, and apparently
                   has been since 1995 (!). Hence I'm having to guess most of it*/
