@@ -196,6 +196,23 @@ ide_get_sector(void)
 	          sectors) + (ide.sector - 1) + skip;
 }
 
+/**
+ * Move to the next sector using CHS addressing
+ */
+static void
+ide_next_sector(void)
+{
+	ide.sector++;
+	if (ide.sector == (ide.spt[ide.drive | ide.board] + 1)) {
+		ide.sector = 1;
+		ide.head++;
+		if (ide.head == ide.hpc[ide.drive | ide.board]) {
+			ide.head = 0;
+			ide.cylinder++;
+		}
+	}
+}
+
 static void loadhd(int d, const char *fn)
 {
         if (!hdfile[d])
@@ -552,17 +569,7 @@ uint16_t readidew(void)
                                 ide.secount--;
                                 if (ide.secount)
                                 {
-                                        ide.sector++;
-                                        if (ide.sector==(ide.spt[ide.drive|ide.board]+1))
-                                        {
-                                                ide.sector=1;
-                                                ide.head++;
-                                                if (ide.head==(ide.hpc[ide.drive|ide.board]))
-                                                {
-                                                        ide.head=0;
-                                                        ide.cylinder++;
-                                                }
-                                        }
+                                        ide_next_sector();
                                         ide.atastat[ide.board] = BUSY_STAT;
                                         idecallback=0;
                                         callbackide();
@@ -642,17 +649,7 @@ void callbackide(void)
                 {
                         ide.atastat[ide.board] = DRQ_STAT;
                         ide.pos=0;
-                        ide.sector++;
-                        if (ide.sector==(ide.spt[ide.drive|ide.board]+1))
-                        {
-                                ide.sector=1;
-                                ide.head++;
-                                if (ide.head==(ide.hpc[ide.drive|ide.board]))
-                                {
-                                        ide.head=0;
-                                        ide.cylinder++;
-                                }
-                        }
+                        ide_next_sector();
                 }
                 else
                    ide.atastat[ide.board] = READY_STAT;
