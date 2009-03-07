@@ -26,6 +26,25 @@ static struct cp15
         uint32_t far,fsr,ctrl;
 } cp15;
 
+static void
+cp15_vaddr_reset(void)
+{
+	int c;
+
+	for (c = 0; c < 1024; c++) {
+		if (vraddrls[c] != 0xFFFFFFFF) {
+			vraddrl[vraddrls[c]] = 0xFFFFFFFF;
+			vraddrls[c] = 0xFFFFFFFF;
+			vraddrphys[c] = 0xFFFFFFFF;
+		}
+		if (vwaddrls[c] != 0xFFFFFFFF) {
+			vwaddrl[vwaddrls[c]] = 0xFFFFFFFF;
+			vwaddrls[c] = 0xFFFFFFFF;
+			vwaddrphys[c] = 0xFFFFFFFF;
+		}
+	}
+}
+
 void getcp15fsr()
 {
         rpclog("%08X %08X\n",cp15.far,cp15.fsr);
@@ -79,21 +98,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                         memset(raddrl, 0xff, 256 * sizeof(uint32_t));
                         waddrl=0xFFFFFFFF;
                         resetcodeblocks();
-                        for (c=0;c<1024;c++)
-                        {
-                                if (vraddrls[c]!=0xFFFFFFFF)
-                                {
-                                        vraddrl[vraddrls[c]]=0xFFFFFFFF;
-                                        vraddrls[c]=0xFFFFFFFF;
-                                        vraddrphys[c]=0xFFFFFFFF;
-                                }
-                                if (vwaddrls[c]!=0xFFFFFFFF)
-                                {
-                                        vwaddrl[vwaddrls[c]]=0xFFFFFFFF;
-                                        vwaddrls[c]=0xFFFFFFFF;
-                                        vwaddrphys[c]=0xFFFFFFFF;
-                                }
-                        }
+                        cp15_vaddr_reset();
                 }
                 mmu=val&1;
                 prog32=val&0x10;
@@ -105,21 +110,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 return; /*We can probably ignore all other bits*/
                 case 2: /*TLB base*/
                 cp15.tlbbase=val&~0x3FFF;
-                for (c=0;c<1024;c++)
-                {
-                        if (vraddrls[c]!=0xFFFFFFFF)
-                        {
-                                vraddrl[vraddrls[c]]=0xFFFFFFFF;
-                                vraddrls[c]=0xFFFFFFFF;
-                                vraddrphys[c]=0xFFFFFFFF;
-                        }
-                        if (vwaddrls[c]!=0xFFFFFFFF)
-                        {
-                                vwaddrl[vwaddrls[c]]=0xFFFFFFFF;
-                                vwaddrls[c]=0xFFFFFFFF;
-                                vwaddrphys[c]=0xFFFFFFFF;
-                        }
-                }
+                cp15_vaddr_reset();
 //                memset(raddrl, 0xff, 256 * sizeof(uint32_t));
 //                resetcodeblocks();
 //                for (c=0;c<256;c++)
@@ -167,21 +158,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 //                                vraddrl[tlbcache2[c]]=0xFFFFFFFF;
                         }
                 }
-                for (c=0;c<1024;c++)
-                {
-                        if (vraddrls[c]!=0xFFFFFFFF)
-                        {
-                                vraddrl[vraddrls[c]]=0xFFFFFFFF;
-                                vraddrls[c]=0xFFFFFFFF;
-                                vraddrphys[c]=0xFFFFFFFF;
-                        }
-                        if (vwaddrls[c]!=0xFFFFFFFF)
-                        {
-                                vwaddrl[vwaddrls[c]]=0xFFFFFFFF;
-                                vwaddrls[c]=0xFFFFFFFF;
-                                vwaddrphys[c]=0xFFFFFFFF;
-                        }
-                }
+                cp15_vaddr_reset();
                 memset(tlbcache2, 0xff, TLBCACHESIZE * sizeof(uint32_t));
                 flushes++;
                 tlbcachepos=0;
