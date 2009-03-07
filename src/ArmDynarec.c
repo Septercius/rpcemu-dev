@@ -8,8 +8,6 @@
 #include <windows.h>
 #endif
 
-unsigned long readmeml(unsigned long a);
-//void writememl(unsigned long a, unsigned long v);
 /*RPCemu v0.6 by Tom Walker
   SA110 emulation
   Dynamic recompiling version!*/
@@ -46,18 +44,6 @@ static int inscounts[256];
 #ifdef RPCEMU_LINUX
 #include "network-linux.h"
 #endif
-
-/*unsigned long readmeml(unsigned long a)
-{
-        if (mmu) rpclog("readmeml slow %08X %07X\n",a,PC);
-        if (vraddrl[(a)>>12]&1)
-           return readmemfl(a);
-        else
-        {
-                rpclog("Readmeml %08X %08X\n",a,PC);
-                return *(unsigned long *)((a)+(vraddrl[(a)>>12]&~3));
-        }
-}*/
 
 extern void removeblock(void); /* in codegen_*.c */
 	
