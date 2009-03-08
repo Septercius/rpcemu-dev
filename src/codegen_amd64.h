@@ -11,7 +11,7 @@ extern unsigned char codeblockisrom[0x8000];
 extern int codeblocknum[0x8000];
 extern int codeinscount[0x8000];
 extern unsigned char codeblockpresent[0x10000];
-#define BLOCKSTART 8
+#define BLOCKSTART 12
 //uint32_t blocks[1024];
 
 #define HASH(l) (((l)>>2)&0x7FFF)
