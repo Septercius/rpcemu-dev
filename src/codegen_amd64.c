@@ -21,28 +21,30 @@ int hasldrb[BLOCKS];
 void generateupdatepc();
 int lastflagchange;
 unsigned char rcodeblock[BLOCKS][1792];
-uint64_t codeblockaddr[BLOCKS];
+static uint64_t codeblockaddr[BLOCKS];
 uint32_t codeblockpc[0x8000];
-unsigned char codeblockisrom[0x8000];
+static unsigned char codeblockisrom[0x8000];
 int codeblocknum[0x8000];
 int codeinscount[0x8000];
-unsigned char codeblockpresent[0x10000];
+static unsigned char codeblockpresent[0x10000];
 
 //#define BLOCKS 4096
 //#define HASH(l) ((l>>3)&0x3FFF)
 int blockend;
-int blocknum;//,blockcount;
-int tempinscount;
+static int blocknum;//,blockcount;
+static int tempinscount;
 
 int codeblockpos;
-int lastjumppos;
+static int lastjumppos;
+
 #define addbyte(a)         rcodeblock[blockpoint2][codeblockpos]=(unsigned char) (a),codeblockpos++
 #define addlong(a)         *((unsigned long *)&rcodeblock[blockpoint2][codeblockpos])=(unsigned long) (a),codeblockpos+=4
 
-int blockpoint=0,blockpoint2;
-uint32_t blocks[BLOCKS];
-int pcinc=0;
-int lastrecompiled=0;
+static int blockpoint = 0, blockpoint2;
+static uint32_t blocks[BLOCKS];
+static int pcinc = 0;
+static int lastrecompiled = 0;
+
 void initcodeblocks()
 {
         int c;
