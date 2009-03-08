@@ -184,7 +184,7 @@ addbyte(0); addbyte(0); addbyte(0);
 }
 uint32_t opcode;
 
-int recompreadmemb(uint32_t addr)
+static int recompreadmemb(uint32_t addr)
 {
 	asm("push %r12;");
 	uint32_t temp=readmemb(addr);
@@ -196,7 +196,7 @@ int recompreadmemb(uint32_t addr)
 	return (armirq&0x40)?1:0;
 }
 
-int recompreadmeml(uint32_t addr)
+static int recompreadmeml(uint32_t addr)
 {
 	asm("push %rdi; push %r12");
 	uint32_t temp=readmeml(addr);
@@ -208,7 +208,7 @@ int recompreadmeml(uint32_t addr)
 	return (armirq&0x40)?1:0;
 }
 
-int recompwritememb(uint32_t addr)
+static int recompwritememb(uint32_t addr)
 {
 	asm("push %r12;");
 	register uint8_t v asm("al");
@@ -217,7 +217,7 @@ int recompwritememb(uint32_t addr)
 	return (armirq&0x40)?1:0;
 }
 
-int recompwritememl(uint32_t addr)
+static int recompwritememl(uint32_t addr)
 {
 	asm("push %rdi; push %r12;");
 	register uint32_t v asm("eax");
@@ -226,7 +226,7 @@ int recompwritememl(uint32_t addr)
 	return (armirq&0x40)?1:0;
 }
 
-int canrecompile[256]=
+static const int canrecompile[256]=
 {
 	1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0, /*00*/
 	0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0, /*10*/
@@ -249,7 +249,7 @@ int canrecompile[256]=
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /*F0*/
 };
 
-void genstoreimm(int reg, uint32_t val)
+static void genstoreimm(int reg, uint32_t val)
 {
 	if (reg==15) printf("genstoreimm R15!\n");
 	addbyte(0x41); addbyte(0xC7); addbyte(0x47); /*MOVL $val,reg(r15)*/
@@ -265,29 +265,31 @@ void genstoreimm(int reg, uint32_t val)
 #define ESI 0x30
 #define EDI 0x38
 
-void genloadreg(int reg) /*Assumes %eax as targer*/
+static void genloadreg(int reg) /*Assumes %eax as targer*/
 {
 	if (reg==15) { addbyte(0x44); addbyte(0x89); addbyte(0xE0); /*MOVL %r12d,%eax*/ }
 	else         { addbyte(0x41); addbyte(0x8B); addbyte(0x47); addbyte(reg<<2); /*MOVL RN,%eax*/  }
 }
-void genloadreggen(int reg, int x86reg)
+
+static void genloadreggen(int reg, int x86reg)
 {
 	if (reg==15) { addbyte(0x44); addbyte(0x89); addbyte(0xE0|(x86reg>>3)); /*MOVL %r12d,%eax*/ }
 	else         { addbyte(0x41); addbyte(0x8B); addbyte(0x47|x86reg); addbyte(reg<<2); /*MOVL RN,%eax*/ }
 }
 
-void genstorereg(int reg) /*Assumes %eax as source*/
+static void genstorereg(int reg) /*Assumes %eax as source*/
 {
 	if (reg==15) { addbyte(0x41); addbyte(0x89); addbyte(0xC4); }
 	else         { addbyte(0x41); addbyte(0x89); addbyte(0x47); addbyte(reg<<2); /*MOVL %eax,RD*/ }
 }
-void genstorereggen(int reg, int x86reg)
+
+static void genstorereggen(int reg, int x86reg)
 {
 	if (reg==15) { addbyte(0x41); addbyte(0x89); addbyte(0xC4|x86reg); }
 	else         { addbyte(0x41); addbyte(0x89); addbyte(0x47|x86reg); addbyte(reg<<2); /*MOVL %eax,RD*/ }
 }
 
-void generatedataproc(uint32_t opcode, uint8_t op, uint32_t val)
+static void generatedataproc(uint32_t opcode, uint8_t op, uint32_t val)
 {
 	if (RN==RD) /*Can use RMW instruction*/
 	{
@@ -314,7 +316,7 @@ void generatedataproc(uint32_t opcode, uint8_t op, uint32_t val)
 	}
 }
 
-void generateregdataproc(uint32_t opcode, uint8_t op, int dirmatters)
+static void generateregdataproc(uint32_t opcode, uint8_t op, int dirmatters)
 {
 	if (dirmatters || RN==15)
 	{
@@ -330,7 +332,7 @@ void generateregdataproc(uint32_t opcode, uint8_t op, int dirmatters)
 	}
 }
 
-int generateshift(uint32_t opcode, uint32_t *pcpsr)
+static int generateshift(uint32_t opcode, uint32_t *pcpsr)
 {
 	unsigned int temp;
 	if (opcode&0x10) return 0; /*Can't do register shifts*/
@@ -372,7 +374,7 @@ int generateshift(uint32_t opcode, uint32_t *pcpsr)
 
 }
 
-void genldr() /*address in %edi, data in %eax*/
+static void genldr(void) /*address in %edi, data in %eax*/
 {
 	addbyte(0x57); /*PUSH %rdi*/
 	addbyte(0x89); addbyte(0xFA); /*MOV %edi,%edx*/
@@ -393,7 +395,7 @@ void genldr() /*address in %edi, data in %eax*/
 
 }
 
-void genldrb() /*address in %edi, data in %al*/
+static void genldrb(void) /*address in %edi, data in %al*/
 {
 	addbyte(0x89); addbyte(0xFA); /*MOV %edi,%edx*/
 	addbyte(0xC1); addbyte(0xEA); addbyte(12); /*SHRL $12,%edx*/
@@ -411,7 +413,7 @@ void genldrb() /*address in %edi, data in %al*/
 }
 
 //addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
-void genstr() /*address in %edi, data in %eax*/
+static void genstr(void) /*address in %edi, data in %eax*/
 {
 	addbyte(0x57); /*PUSH %rdi*/
 	addbyte(0x89); addbyte(0xFA); /*MOV %edi,%edx*/
@@ -429,7 +431,7 @@ void genstr() /*address in %edi, data in %eax*/
 	addbyte(0x5F); /*POP %rdi*/
 }
 
-void genstrb() /*address in %edi, data in %al*/
+static void genstrb(void) /*address in %edi, data in %al*/
 {
 	addbyte(0x89); addbyte(0xFA); /*MOV %edi,%edx*/
 	addbyte(0xC1); addbyte(0xEA); addbyte(12); /*SHRL $12,%edx*/
@@ -446,7 +448,7 @@ void genstrb() /*address in %edi, data in %al*/
 	addbyte(0x5F); /*POP %rdi*/
 }
 
-void gentestabort()
+static void gentestabort(void)
 {
 	addbyte(0x84); /*TESTL %al,%al*/
 	addbyte(0xC0);
@@ -462,7 +464,8 @@ void gentestabort()
 		addlong((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
 	}
 }
-int recompile(uint32_t opcode, uint32_t *pcpsr)
+
+static int recompile(uint32_t opcode, uint32_t *pcpsr)
 {
 	int c;
 	uint32_t templ;
