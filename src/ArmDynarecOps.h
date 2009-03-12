@@ -184,7 +184,7 @@ static void opADDreg(uint32_t opcode)
 	uint32_t templ;
 
 #ifdef STRONGARM
-	if ((opcode&0x90)==0x90) /*MULL*/
+	if ((opcode & 0xf0) == 0x90) /* UMULL */
 	{
                 uint64_t mula,mulb,mulres;
                 mula=(uint64_t)(uint32_t)armregs[MULRS];
@@ -215,7 +215,7 @@ static void opADDregS(uint32_t opcode)
 	uint32_t templ;
 
 #ifdef STRONGARM
-	if (((opcode&0x90)==0x90)) /*MULLS*/
+	if ((opcode & 0xf0) == 0x90) /* UMULLS */
 	{
                 uint64_t mula,mulb,mulres;
                 mula=(uint64_t)(uint32_t)armregs[MULRS];
@@ -253,7 +253,7 @@ static void opADCreg(uint32_t opcode)
 	uint32_t templ, templ2;
 
 #ifdef STRONGARM
-	if (((opcode&0xE000090)==0x000090)) /*UMLAL*/
+	if ((opcode & 0xf0) == 0x90) /* UMLAL */
 	{
                 uint64_t mula,mulb,mulres;
                 uint32_t addr,addr2;
@@ -293,7 +293,7 @@ static void opADCregS(uint32_t opcode)
 	uint32_t templ, templ2;
 
 #ifdef STRONGARM
-	if (((opcode&0xE000090)==0x000090)) /*UMLALS*/
+	if ((opcode & 0xf0) == 0x90) /* UMLALS */
 	{
                 uint64_t mula,mulb,mulres;
                 uint32_t addr,addr2;
@@ -337,7 +337,7 @@ static void opSBCreg(uint32_t opcode)
 	uint32_t templ, templ2;
 
 #ifdef STRONGARM
-	if (((opcode&0xE000090)==0x000090)) /*SMULL*/
+	if ((opcode & 0xf0) == 0x90) /* SMULL */
 	{
                 int64_t mula,mulb,mulres;
                 mula=(int64_t)(int32_t)armregs[MULRS];
@@ -371,7 +371,7 @@ static void opSBCregS(uint32_t opcode)
 	uint32_t templ, templ2;
 
 #ifdef STRONGARM
-	if (((opcode&0xE000090)==0x000090)) /*SMULLS*/
+	if ((opcode & 0xf0) == 0x90) /* SMULLS */
 	{
                 int64_t mula,mulb,mulres;
                 mula=(int64_t)(int32_t)armregs[MULRS];
@@ -409,7 +409,7 @@ static void opRSCreg(uint32_t opcode)
 	uint32_t templ, templ2;
 
 #ifdef STRONGARM
-	if (((opcode&0xE000090)==0x000090)) /*SMLAL*/
+	if ((opcode & 0xf0) == 0x90) /* SMLAL */
 	{
                 int64_t mula,mulb,mulres;
                 uint32_t addr,addr2;
@@ -449,7 +449,7 @@ static void opRSCregS(uint32_t opcode)
 	uint32_t templ, templ2;
 
 #ifdef STRONGARM
-	if (((opcode&0xE000090)==0x000090)) /*SMLALS*/
+	if ((opcode & 0xf0) == 0x90) /* SMLALS */
 	{
                 int64_t mula,mulb,mulres;
                 uint32_t addr,addr2;

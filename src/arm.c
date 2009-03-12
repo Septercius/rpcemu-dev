@@ -1668,7 +1668,7 @@ void execarm(int cycs)
 
                                         case 0x08: /*ADD reg*/
                                 #ifdef STRONGARM
-					if ((opcode&0x90)==0x90) /*MULL*/
+					if ((opcode & 0xf0) == 0x90) /* UMULL */
 					{
                                                 uint64_t mula,mulb,mulres;
                                                 mula=(uint64_t)(uint32_t)armregs[MULRS];
@@ -1697,7 +1697,7 @@ void execarm(int cycs)
                                         break;
                                         case 0x09: /*ADDS reg*/
                                 #ifdef STRONGARM
-					if (((opcode&0x90)==0x90)) /*MULLS*/
+					if ((opcode & 0xf0) == 0x90) /* UMULLS */
 					{
                                                 uint64_t mula,mulb,mulres;
                                                 mula=(uint64_t)(uint32_t)armregs[MULRS];
@@ -1737,7 +1737,7 @@ void execarm(int cycs)
                                 
                                         case 0x0A: /*ADC reg*/
                                 #ifdef STRONGARM
-					if (((opcode&0xE000090)==0x000090)) /*UMLAL*/
+					if ((opcode & 0xf0) == 0x90) /* UMLAL */
 					{
                                                 uint64_t mula,mulb,mulres;
                                                 uint32_t addr,addr2;
@@ -1773,7 +1773,7 @@ void execarm(int cycs)
                                         break;
                                         case 0x0B: /*ADCS reg*/
                                 #ifdef STRONGARM
-					if (((opcode&0xE000090)==0x000090)) /*UMLALS*/
+					if ((opcode & 0xf0) == 0x90) /* UMLALS */
 					{
                                                 uint64_t mula,mulb,mulres;
                                                 uint32_t addr,addr2;
@@ -1814,7 +1814,7 @@ void execarm(int cycs)
 
                                         case 0x0C: /*SBC reg*/
                                 #ifdef STRONGARM
-					if (((opcode&0xE000090)==0x000090)) /*SMULL*/
+					if ((opcode & 0xf0) == 0x90) /* SMULL */
 					{
                                                 int64_t mula,mulb,mulres;
                                                 mula=(int64_t)(int32_t)armregs[MULRS];
@@ -1844,7 +1844,7 @@ void execarm(int cycs)
                                         break;
                                         case 0x0D: /*SBCS reg*/
                                 #ifdef STRONGARM
-					if (((opcode&0xE000090)==0x000090)) /*SMULLS*/
+					if ((opcode & 0xf0) == 0x90) /* SMULLS */
 					{
                                                 int64_t mula,mulb,mulres;
                                                 mula=(int64_t)(int32_t)armregs[MULRS];
@@ -1878,7 +1878,7 @@ void execarm(int cycs)
                                         break;
                                         case 0x0E: /*RSC reg*/
                                 #ifdef STRONGARM
-					if (((opcode&0xE000090)==0x000090)) /*SMLAL*/
+					if ((opcode & 0xf0) == 0x90) /* SMLAL */
 					{
                                                 int64_t mula,mulb,mulres;
                                                 addr=armregs[MULRN];
@@ -1913,7 +1913,7 @@ void execarm(int cycs)
                                         break;
                                         case 0x0F: /*RSCS reg*/
                                 #ifdef STRONGARM
-					if (((opcode&0xE000090)==0x000090)) /*Long MUL*/
+					if ((opcode & 0xf0) == 0x90) /* SMLALS */
 					{
                                                 int64_t mula,mulb,mulres;
                                                 addr=armregs[MULRN];

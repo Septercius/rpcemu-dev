@@ -1038,7 +1038,7 @@ int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesave(RD);
                 break;
                 case 0x08: /*ADD reg*/
-                if ((opcode&0x90)==0x90) /*MULL*/
+                if ((opcode & 0xf0) == 0x90) /* UMULL */
                 {
                         generateload(MULRM);
                         addbyte(0xF7); addbyte(0x25); addlong(&armregs[MULRS]); /*MULL armregs[MULRS],%eax*/
@@ -1055,7 +1055,7 @@ int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesave(RD);
                 break;
                 case 0x09: /*ADDS reg*/
-                if ((opcode&0x90)==0x90) /*MULLS*/
+                if ((opcode & 0xf0) == 0x90) /* UMULLS */
                 {
                         if (!flagsdirty) { addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); } /*MOVB *pcpsr,%cl*/
                         addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $ZFLAG+NFLAG+CFLAG,%cl*/
@@ -1099,7 +1099,7 @@ int recompile(uint32_t opcode, uint32_t *pcpsr)
                 break;
                 case 0x0A: /*ADC reg*/
                 flagsdirty=0;
-                if ((opcode&0x90)==0x90) return 0;
+                if ((opcode & 0xf0) == 0x90) return 0; /* UMLAL */
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftnoflags(opcode)) return 0;
                 /*Shifted val now in %eax*/
@@ -1113,7 +1113,7 @@ int recompile(uint32_t opcode, uint32_t *pcpsr)
                 break;
                 case 0x0B: /*ADCS reg*/
                 flagsdirty=0;
-                if ((opcode&0x90)==0x90) return 0;
+                if ((opcode & 0xf0) == 0x90) return 0; /* UMLALS */
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftnoflags(opcode)) return 0;
                 /*Shifted val now in %eax*/
@@ -1133,7 +1133,7 @@ int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x88); addbyte(0x0D); addlong(pcpsr+3); /*MOV %cl,pcpsr*/
                 break;
                 case 0x0C: /*SBC reg*/
-                if ((opcode&0x90)==0x90) /*SMULL*/
+                if ((opcode & 0xf0) == 0x90) /* SMULL */
                 {
                         generateload(MULRM);
                         addbyte(0xF7); addbyte(0x2D); addlong(&armregs[MULRS]); /*IMULL armregs[MULRS],%eax*/
@@ -1155,7 +1155,7 @@ int recompile(uint32_t opcode, uint32_t *pcpsr)
                 break;
                 case 0x0E: /*RSC reg*/
                 flagsdirty=0;
-                if ((opcode&0x90)==0x90) /*SMULAL*/
+                if ((opcode & 0xf0) == 0x90) /* SMLAL */
                 {
                         generateload(MULRM);
                         generateloadgen(MULRN,EBX);
