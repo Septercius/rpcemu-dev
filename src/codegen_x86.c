@@ -896,7 +896,7 @@ int recompile(uint32_t opcode, uint32_t *pcpsr)
         switch ((opcode>>20)&0xFF)
         {
                 case 0x00: /*AND reg*/
-                if (((opcode&0xE00090)==0x90)) /*MUL*/
+                if ((opcode & 0xf0) == 0x90) /* MUL */
                 {
                         if (MULRD==MULRM)
                         {
@@ -919,7 +919,7 @@ int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesave(RD);
                 break;
                 case 0x01: /*ANDS reg*/
-                if (((opcode&0xE00090)==0x90)) /*MUL*/
+                if ((opcode & 0xf0) == 0x90) /* MULS */
                 {
                         if (!flagsdirty) { addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); } /*MOVB *pcpsr,%cl*/
                         addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $ZFLAG+NFLAG+CFLAG,%cl*/
@@ -947,7 +947,7 @@ int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesetzn(pcpsr);
                 break;
                 case 0x02: /*EOR reg*/
-                if (((opcode&0xE00090)==0x90)) /*MLA*/
+                if ((opcode & 0xf0) == 0x90) /* MLA */
                 {
                         if (MULRD==MULRM)
                         {
@@ -971,7 +971,7 @@ int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesave(RD);
                 break;
                 case 0x03: /*EORS reg*/
-                if (((opcode&0xE00090)==0x90)) /*MLAS*/
+                if ((opcode & 0xf0) == 0x90) /* MLAS */
                 {
                         if (!flagsdirty) { addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); } /*MOVB *pcpsr,%cl*/
                         addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $ZFLAG+NFLAG+CFLAG,%cl*/

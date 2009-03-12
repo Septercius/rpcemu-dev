@@ -337,7 +337,7 @@ static void generateregdataproc(uint32_t opcode, uint8_t op, int dirmatters)
 static int generateshift(uint32_t opcode, uint32_t *pcpsr)
 {
 	unsigned int temp;
-	if (opcode&0x10) return 0; /*Can't do register shifts*/
+	if (opcode&0x10) return 0; /* Can't do register shifts or multiplies */
 	if (!(opcode&0xFF0))
 	{
 		genloadreg(RM);

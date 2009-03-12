@@ -4,7 +4,7 @@ static void opANDreg(uint32_t opcode)
 {
 	uint32_t templ;
 
-	if (((opcode&0xE00090)==0x90)) /*MUL*/
+	if ((opcode & 0xf0) == 0x90) /* MUL */
 	{
 		armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
 		if (MULRD==MULRM) armregs[MULRD]=0;
@@ -29,7 +29,7 @@ static void opANDregS(uint32_t opcode)
 {
 	uint32_t templ;
 
-	if (((opcode&0xE000090)==0x90)) /*MULS*/
+	if ((opcode & 0xf0) == 0x90) /* MULS */
         {
 		armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
 		if (MULRD==MULRM) armregs[MULRD]=0;
@@ -58,7 +58,7 @@ static void opEORreg(uint32_t opcode)
 {
 	uint32_t templ;
 
-	if (((opcode&0xE000090)==0x90)) /*MLA*/
+	if ((opcode & 0xf0) == 0x90) /* MLA */
 	{
 		armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
 		if (MULRD==MULRM) armregs[MULRD]=0;
@@ -83,7 +83,7 @@ static void opEORregS(uint32_t opcode)
 {
 	uint32_t templ;
 
-        if (((opcode&0xE000090)==0x90)) /*MLAS*/
+        if ((opcode & 0xf0) == 0x90) /* MLAS */
         {
                 armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
 		if (MULRD==MULRM) armregs[MULRD]=0;
