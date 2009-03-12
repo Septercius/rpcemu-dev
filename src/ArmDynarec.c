@@ -904,7 +904,7 @@ static const OpFn opcodes[256]=
 {
 	opANDreg, opANDregS,opEORreg, opEORregS,opSUBreg,opSUBregS,opRSBreg,opRSBregS,   //00
 	opADDreg, opADDregS,opADCreg, opADCregS,opSBCreg,opSBCregS,opRSCreg,opRSCregS,   //08
-	opSWPword,opTSTreg, opSWPbyte,opTEQreg, opMRSs,  opCMPreg, opMSRs,  opCMNreg,    //10
+	opSWPword,opTSTreg, opMSRc, opTEQreg, opSWPbyte,  opCMPreg, opMSRs,  opCMNreg,    //10
 	opORRreg, opORRregS,opMOVreg, opMOVregS,opBICreg,opBICregS,opMVNreg,opMVNregS,   //18
 
 	opANDimm, opANDimmS,opEORimm, opEORimmS,opSUBimm, opSUBimmS,opRSBimm, opRSBimmS, //20

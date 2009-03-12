@@ -1993,16 +1993,8 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x12: /*SWP byte*/
-                                        if ((opcode&0xF0)==0x90)
-                                        {
-                                                addr=armregs[RN];
-                                                templ=GETREG(RM);
-                                                LOADREG(RD,readmemb(addr));
-                                                writememb(addr,templ);
-                                                //cycles-=3;
-                                        }
-                                        else if (!(opcode&0xFF0)) /*MSR CPSR*/
+                                        case 0x12: /* MSR CPSR */
+                                        if (!(opcode&0xFF0))
                                         {
                                                 temp=armregs[16];
                                                 armregs[16]&=~msrlookup[(opcode>>16)&0xF];
@@ -2041,8 +2033,15 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x14: /*MSR SPSR*/
-                                        if (!(opcode&0xFFF)) /*MRS SPSR*/
+                                        case 0x14: /* SWPB and MRS SPSR */
+                                        if ((opcode&0xF0)==0x90) /* SWPB */
+                                        {
+                                                addr=armregs[RN];
+                                                templ=GETREG(RM);
+                                                LOADREG(RD,readmemb(addr));
+                                                writememb(addr,templ);
+                                                //cycles-=3;
+                                        } else if (!(opcode&0xFFF)) /* MRS SPSR */
                                         {
                                                 armregs[RD]=spsr[mode&15];
                                         }

@@ -532,19 +532,11 @@ static void opTSTreg(uint32_t opcode)
 	//inscount++; //r//inscount++;
 }
 
-static void opSWPbyte(uint32_t opcode)
+static void opMSRc(uint32_t opcode)
 {
 	uint32_t templ;
 
-        if ((opcode&0xF0)==0x90)
-        {
-                uint32_t addr;
-                addr=armregs[RN];
-                templ=GETREG(RM);
-                LOADREG(RD,readmemb(addr));
-                writememb(addr,templ);
-        }
-        else if (!(opcode&0xFF0)) /*MSR CPSR*/
+        if (!(opcode&0xFF0))
         {
 //                temp=armregs[16];
                 armregs[16]&=~msrlookup[(opcode>>16)&0xF];
@@ -585,9 +577,19 @@ static void opTEQreg(uint32_t opcode)
 	//inscount++; //r//inscount++;
 }
 
-static void opMRSs(uint32_t opcode)
+static void opSWPbyte(uint32_t opcode)
 {
-        if (!(opcode&0xFFF)) /*MRS SPSR*/
+	uint32_t templ;
+
+        if ((opcode&0xF0)==0x90) /* SWPB */
+        {
+                uint32_t addr;
+                addr=armregs[RN];
+                templ=GETREG(RM);
+                LOADREG(RD,readmemb(addr));
+                writememb(addr,templ);
+        }
+        else if (!(opcode&0xFFF)) /* MRS SPSR */
         {
                 armregs[RD]=spsr[mode&15];
         }
