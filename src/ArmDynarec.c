@@ -1215,7 +1215,7 @@ void execarm(int cycs)
                                                 }*/
         //                                        dumpregs();
                                                 armregs[15]-=4;
-                                                exception(ABORT,0x10,0);
+                                                exception(ABORT, 0x10, 4);
                                                 armregs[15]+=4;
                                                 armirq&=~0xC0;
                                         }
@@ -1254,9 +1254,9 @@ void execarm(int cycs)
         //                                        icache=0;
         //                                        dumpregs();
         //                                        exit(-1);
-                                                armregs[15]-=8;
+                                                armregs[15]-=4;
 //                                                rpclog("%02X ",armirq);
-                                                exception(ABORT,0x14,-4);
+                                                exception(ABORT, 0x14, 0);
 //                                                rpclog("%02X\n",armirq);
                                                 armregs[15]+=4;
                                                 armirq&=~0xC0;

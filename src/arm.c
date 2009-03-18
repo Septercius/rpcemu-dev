@@ -4099,12 +4099,12 @@ void execarm(int cycs)
                                 if (armirq&0x80)//prefabort)       /*Prefetch abort*/
                                 {
                                         armirq&=~0xC0;
-                                        exception(ABORT,0x10,0);
+                                        exception(ABORT, 0x10, 4);
                                 }
                                 else if (armirq&0x40)//databort==1)     /*Data abort*/
                                 {
                                         armirq&=~0xC0;
-                                        exception(ABORT,0x14,-4);
+                                        exception(ABORT, 0x14, 0);
                                 }
                                 else if (databort==2) /*Address Exception*/
                                 {
