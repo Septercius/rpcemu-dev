@@ -4056,46 +4056,8 @@ void execarm(int cycs)
                                                            setpointer(armregs[1]);
                                                         if (mousehack && templ==6 && armregs[0]==106)
                                                            osbyte106(armregs[1]);
-//                                                        templ=armregs[15]-4;
-exception(SUPERVISOR,0xC,4);
 
-/*
-                                                if (mode&16)
-                                                {
-                                                        templ=armregs[15]-4;
-                                                        spsr[SUPERVISOR]=armregs[16];
-                                                        updatemode(SUPERVISOR|16);
-                                                        armregs[14]=templ;
-                                                        armregs[16]&=~0x1F;
-                                                        armregs[16]|=0x93;
-                                                        armregs[15]=0x0000000C;
-                                                        refillpipeline();
-                                                }
-                                                else if (prog32)
-                                                {
-                                                        templ=armregs[15]-4;
-                                                        updatemode(SUPERVISOR|16);
-                                                        armregs[14]=templ&0x3FFFFFC;
-                                                        spsr[SUPERVISOR]=(armregs[16]&~0x1F)|(templ&3);
-                                                        armregs[15]=0x0000000C;
-                                                        armregs[16]|=0x80;
-                                                        //cycles-=4;
-                                                        refillpipeline();
-                                                }
-                                                else
-                                                {
-                                                        templ=armregs[15]-4;
-                                                        armregs[15]|=3;
-                                                        updatemode(SUPERVISOR);
-                                                        armregs[14]=templ;
-                                                        armregs[15]&=0xFC000003;
-                                                        armregs[15]|=0x0800000C;
-                                                        //cycles-=4;
-                                                        refillpipeline();
-                                                }*/
-//        templ=(PC-4)>>2;
-//refillpipeline();
-//                                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                exception(SUPERVISOR, 0xc, 4);
                                         }
                                         break;
 
