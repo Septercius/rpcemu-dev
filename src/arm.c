@@ -2009,6 +2009,12 @@ void execarm(int cycs)
                                                            armregs[15]=(armregs[15]&~0xC000000)|((armregs[16]&0xC0) << 20);
                                                         }
                                                 }
+                                                if (opcode & 0x80000) {
+                                                        if (!(mode & 16)) {
+                                                                armregs[15] = (armregs[15] & ~0xf0000000) |
+                                                                              (armregs[16] & 0xf0000000);
+                                                        }
+                                                }
                                                 armregs[16]=templ;
                                         }
                                         else
