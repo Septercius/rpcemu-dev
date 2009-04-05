@@ -14,7 +14,6 @@ extern void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr);
 extern void generateirqtest();
 extern void endblock(int c, uint32_t *pcpsr);
 extern void initcodeblock(uint32_t l);
-extern int codewritememfb();
 extern uint32_t *usrregs[16];
 extern uint32_t armregs[18];
 extern int armirq; //,armfiq;

@@ -5,12 +5,9 @@
 
 //unsigned char codeblock[3][0x1000][1600];
 extern unsigned char rcodeblock[BLOCKS+4][1792+512+64];
-extern unsigned long codeblockaddr[BLOCKS];
 extern unsigned long codeblockpc[0x8000];
-extern unsigned char codeblockisrom[0x8000];
 extern int codeblocknum[0x8000];
 extern int codeinscount[0x8000];
-extern unsigned char codeblockpresent[0x10000];
 #define BLOCKSTART 12
 //uint32_t blocks[1024];
 
