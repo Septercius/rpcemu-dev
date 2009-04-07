@@ -898,8 +898,6 @@ static const unsigned char validforskip[64]=
         1,        0,        1,        0,        1,       0,        1,       0
 };
 
-int codeblockpos;
-
 static const OpFn opcodes[256]=
 {
 	opANDreg, opANDregS,opEORreg, opEORregS,opSUBreg,opSUBregS,opRSBreg,opRSBregS,   //00

@@ -34,7 +34,7 @@ int blockend;
 static int blocknum;//,blockcount;
 static int tempinscount;
 
-int codeblockpos;
+static int codeblockpos;
 static int lastjumppos;
 
 #define addbyte(a)         rcodeblock[blockpoint2][codeblockpos]=(unsigned char) (a),codeblockpos++

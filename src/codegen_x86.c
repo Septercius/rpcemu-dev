@@ -44,7 +44,7 @@ static int blocknum;//,blockcount;
 static int tempinscount;
 
 static int bigflagtest = 0;
-int codeblockpos = 0;
+static int codeblockpos = 0;
 
 #define addbyte(a)         rcodeblock[blockpoint2][codeblockpos]=(uint8_t)(a),codeblockpos++
 #define addlong(a)         *((unsigned long *)&rcodeblock[blockpoint2][codeblockpos])=(unsigned long)a; \
