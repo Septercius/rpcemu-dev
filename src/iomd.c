@@ -152,6 +152,12 @@
 #define IOMD_0x1F8_DMAMSK   0x1F8 /* DMA interupt mask */
 
 
+/* IOMD Chip Identifiers */
+#define CHIP_ID_LOW_IOMD      0xE7     /* IOMD */
+#define CHIP_ID_HIGH_IOMD     0xD4
+#define CHIP_ID_LOW_ARM7500   0x98     /* ARM7500 */
+#define CHIP_ID_HIGH_ARM7500  0x5B
+
 struct iomd iomd;
 
 int fdccallback = 0;
@@ -497,12 +503,12 @@ uint32_t readiomd(uint32_t addr)
 
         case IOMD_0x094_ID0: /* Chip ID no. low byte */
                 if (model == CPUModel_ARM7500)
-                        return 0x98; /*ARM7500*/
-                return 0xE7;   /*IOMD*/
+                        return CHIP_ID_LOW_ARM7500;
+                return CHIP_ID_LOW_IOMD;
         case IOMD_0x098_ID1: /* Chip ID no. high byte */
                 if (model == CPUModel_ARM7500)
-                        return 0x5B; /*ARM7500*/
-                return 0xD4;   /*IOMD*/
+                        return CHIP_ID_HIGH_ARM7500;
+                return CHIP_ID_HIGH_IOMD;
         case IOMD_0x09C_VERSION: /* Chip version number */
                 return 0; /*Chip version*/
 
