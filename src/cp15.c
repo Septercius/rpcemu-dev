@@ -26,6 +26,20 @@ static struct cp15
         uint32_t far,fsr,ctrl;
 } cp15;
 
+/* The bits of the processor's internal coprocessor (MMU) control register */
+#define CP15_CTRL_MMU			(1 << 0)
+#define CP15_CTRL_ALIGNMENT_FAULT	(1 << 1)
+#define CP15_CTRL_CACHE			(1 << 2)  /* Data cache only on SA */
+#define CP15_CTRL_WRITE_BUFFER		(1 << 3)
+#define CP15_CTRL_PROG32		(1 << 4)  /* Always enabled in SA */
+#define CP15_CTRL_DATA32		(1 << 5)  /* Always enabled in SA */
+#define CP15_CTRL_LATE_ABORT_TIMING	(1 << 6)  /* Always enabled in 710 & SA */
+#define CP15_CTRL_BIG_ENDIAN		(1 << 7)
+#define CP15_CTRL_SYSTEM		(1 << 8)
+#define CP15_CTRL_ROM			(1 << 9)  /* 710 & SA */
+#define CP15_CTRL_ICACHE		(1 << 12) /* SA only */
+
+
 static void
 cp15_vaddr_reset(void)
 {
@@ -82,9 +96,13 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
         {
                 case 1: /*Control*/
                 cp15.ctrl=val;
-                if (!icache && val&0x1000) resetcodeblocks();
-                icache=val&0x1000;
-                if (!(val&1)) { rpclog("MMU disable at %08X\n",PC); ins=0; }
+                if (!icache && (val & CP15_CTRL_ICACHE))
+                       resetcodeblocks();
+                icache = val & CP15_CTRL_ICACHE;
+                if (!(val & CP15_CTRL_MMU)) {
+                       rpclog("MMU disable at %08X\n",PC);
+                       ins = 0;
+                }
 /*                if (!mmu && val&1)
                 {
                         if (mmucount)
@@ -93,15 +111,15 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                         }
                         mmucount++;
                 }*/
-                if (mmu!=(int)(val&1))
+                if (mmu != (val & CP15_CTRL_MMU))
                 {
                         memset(raddrl, 0xff, 256 * sizeof(uint32_t));
                         waddrl=0xFFFFFFFF;
                         resetcodeblocks();
                         cp15_vaddr_reset();
                 }
-                mmu=val&1;
-                prog32=val&0x10;
+                mmu    = val & CP15_CTRL_MMU;
+                prog32 = val & CP15_CTRL_PROG32;
                 if (!prog32 && (mode&16))
                 {
                         updatemode(mode&15);
