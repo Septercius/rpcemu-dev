@@ -1,10 +1,24 @@
 CC = gcc
-CFLAGS = -O3 -Wall -mtune=i686
+CFLAGS = -Wall -mtune=i686
 LD = $(CC)
-LDFLAGS = -mwindows
+LDFLAGS =
 LIBS = -lalleg -lcomdlg32
 
-//DYNAREC=1
+# Build a Dynamic Recompiling (JIT) build
+#DYNAREC=1
+
+# Enable extra debugging support
+#DEBUG=1
+
+ifdef DEBUG
+	# Enable debugging symbols, and optional debug code
+	CFLAGS += -g -D_DEBUG
+	LDFLAGS += -g
+else
+	# Enable optimisation and hide console window in release builds
+	CFLAGS += -O3
+	LDFLAGS += -mwindows
+endif
 
 ifdef DYNAREC
 	CFLAGS += -D DYNAREC
