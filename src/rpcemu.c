@@ -85,8 +85,7 @@ void UNIMPLEMENTEDFL(const char *file, unsigned line, const char *section,
 
 void resetrpc()
 {
-        memset(ram,0,rammask+1);
-        memset(vram,0,vrammask+1);
+        reallocmem(rammask + 1);
         resetcp15();
         resetarm();
         resetkeyboard();
