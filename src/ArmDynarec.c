@@ -12,7 +12,6 @@
   SA110 emulation
   Dynamic recompiling version!*/
 int swiout=0;
-unsigned long abortaddr,abortaddr2;
 int twice=0;
 int blockend;
 #define STRONGARM
