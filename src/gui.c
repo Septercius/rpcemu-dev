@@ -11,10 +11,28 @@
 extern void ioctl_init(void);
 
 /* Indexes into the configuregui array */
-#define CONF_ARM7500 4
-#define CONF_ARM610  5
-#define CONF_ARM710  6
-#define CONF_SA110   7
+//#define CONF_BOX                   0
+//#define CONF_OK                    1
+//#define CONF_CANCEL                2
+//#define CONF_LABEL_CPU             3
+#define CONF_ARM7500               4
+#define CONF_ARM610                5
+#define CONF_ARM710                6
+#define CONF_SA110                 7
+//#define CONF_LABEL_RAM             8
+#define CONF_RAM_4                 9
+#define CONF_RAM_8                10
+#define CONF_RAM_16               11
+#define CONF_RAM_32               12
+#define CONF_RAM_64               13
+#define CONF_RAM_128              14
+//#define CONF_LABEL_VRAM           15
+#define CONF_VRAM_0               16
+#define CONF_VRAM_2               17
+#define CONF_SOUND                18
+//#define CONF_LABEL_HZ             19
+#define CONF_HZ_SLIDER            20
+#define CONF_HZ_TEXT              21
 
 static DIALOG configuregui[];
 
@@ -204,13 +222,13 @@ static char hzstring[20];
 
 static int menusettings(void)
 {
-        int c,d;
+        int c;
         int changed=0;
 
         configuregui[CONF_ARM7500].flags = 0;
-        configuregui[CONF_ARM610].flags = 0;
-        configuregui[CONF_ARM710].flags = 0;
-        configuregui[CONF_SA110].flags = 0;
+        configuregui[CONF_ARM610].flags  = 0;
+        configuregui[CONF_ARM710].flags  = 0;
+        configuregui[CONF_SA110].flags   = 0;
 
         switch (model) {
         case CPUModel_ARM7500:
@@ -230,22 +248,28 @@ static int menusettings(void)
                 exit(EXIT_FAILURE);
         }
 
-        for (c=0;c<6;c++) configuregui[9+c].flags=0;
+        configuregui[CONF_RAM_4].flags   = 0;
+        configuregui[CONF_RAM_8].flags   = 0;
+        configuregui[CONF_RAM_16].flags  = 0;
+        configuregui[CONF_RAM_32].flags  = 0;
+        configuregui[CONF_RAM_64].flags  = 0;
+        configuregui[CONF_RAM_128].flags = 0;
         switch (rammask)
         {
-                case 0x1FFFFF: configuregui[9].flags=D_SELECTED; break;
-                case 0x3FFFFF: configuregui[10].flags=D_SELECTED; break;
-                case 0x7FFFFF: configuregui[11].flags=D_SELECTED; break;
-                case 0xFFFFFF: configuregui[12].flags=D_SELECTED; break;
-                case 0x1FFFFFF: configuregui[13].flags=D_SELECTED; break;
-                case 0x3FFFFFF: configuregui[14].flags=D_SELECTED; break;
+                case 0x01FFFFF: configuregui[CONF_RAM_4].flags   = D_SELECTED; break;
+                case 0x03FFFFF: configuregui[CONF_RAM_8].flags   = D_SELECTED; break;
+                case 0x07FFFFF: configuregui[CONF_RAM_16].flags  = D_SELECTED; break;
+                case 0x0FFFFFF: configuregui[CONF_RAM_32].flags  = D_SELECTED; break;
+                case 0x1FFFFFF: configuregui[CONF_RAM_64].flags  = D_SELECTED; break;
+                case 0x3FFFFFF: configuregui[CONF_RAM_128].flags = D_SELECTED; break;
         }
-        configuregui[16].flags=(vrammask)?0:D_SELECTED;
-        configuregui[17].flags=(vrammask)?D_SELECTED:0;
-        configuregui[18].flags=(soundenabled)?D_SELECTED:0;
-        configuregui[20].d2=(refresh-20)/5;
-        sprintf(hzstring,"%ihz",refresh);
-        configuregui[21].dp=hzstring;
+
+        configuregui[CONF_VRAM_0].flags = vrammask     ? 0          : D_SELECTED;
+        configuregui[CONF_VRAM_2].flags = vrammask     ? D_SELECTED : 0;
+        configuregui[CONF_SOUND].flags  = soundenabled ? D_SELECTED : 0;
+        configuregui[CONF_HZ_SLIDER].d2 = (refresh - 20) / 5;
+        sprintf(hzstring, "%iHz", refresh);
+        configuregui[CONF_HZ_TEXT].dp = hzstring;
         
         position_dialog(configuregui,(SCREEN_W/2)-80,(SCREEN_H/2)-88);
         
@@ -256,6 +280,8 @@ static int menusettings(void)
         if (c==1)
         {
                 CPUModel selected_model = CPUModel_ARM7500;
+                int selected_rammask = 0;
+                int selected_vrammask = 0;
 
                 if (configuregui[CONF_ARM7500].flags & D_SELECTED) {
                         selected_model = CPUModel_ARM7500;
@@ -272,28 +298,62 @@ static int menusettings(void)
                         changed = 1;
                 }
 
-                d=0;
-                for (c=0;c<6;c++) d=(configuregui[9+c].flags&D_SELECTED)?c:d;
-                d=(0x200000<<d)-1;
-                if (rammask!=d) { rammask=d; changed=1; }
-                d=(configuregui[17].flags&D_SELECTED)?0x1FFFFF:0;
-                if (vrammask!=d) { vrammask=d; changed=1; }
-                if (changed) resetrpc();
+                if (configuregui[CONF_RAM_4].flags & D_SELECTED) {
+                        selected_rammask = 0x01FFFFF;
+                } else if (configuregui[CONF_RAM_8].flags & D_SELECTED) {
+                        selected_rammask = 0x03FFFFF;
+                } else if (configuregui[CONF_RAM_16].flags & D_SELECTED) {
+                        selected_rammask = 0x07FFFFF;
+                } else if (configuregui[CONF_RAM_32].flags & D_SELECTED) {
+                        selected_rammask = 0x0FFFFFF;
+                } else if (configuregui[CONF_RAM_64].flags & D_SELECTED) {
+                        selected_rammask = 0x1FFFFFF;
+                } else if (configuregui[CONF_RAM_128].flags & D_SELECTED) {
+                        selected_rammask = 0x3FFFFFF;
+                }
+                if (rammask != selected_rammask) {
+                        rammask = selected_rammask;
+                        changed = 1;
+                }
+
+                if (configuregui[CONF_VRAM_0].flags & D_SELECTED) {
+                        selected_vrammask = 0;
+                } else if (configuregui[CONF_VRAM_2].flags & D_SELECTED) {
+                        selected_vrammask = 0x7FFFFF;
+                }
+                if (vrammask != selected_vrammask) {
+                        vrammask = selected_vrammask;
+                        changed  = 1;
+                }
+
+                if (changed)
+                        resetrpc();
                 
-                refresh=(configuregui[20].d2*5)+20;
+                refresh = (configuregui[CONF_HZ_SLIDER].d2 * 5) + 20;
                 
-                if (soundenabled && !(configuregui[18].flags&D_SELECTED)) { closesound(); soundenabled=0; }
-                if (!soundenabled && (configuregui[18].flags&D_SELECTED)) { initsound(); soundenabled=1; }
+                if (soundenabled && !(configuregui[CONF_SOUND].flags & D_SELECTED)) {
+                        closesound();
+                        soundenabled = 0;
+                }
+                if (!soundenabled && (configuregui[CONF_SOUND].flags & D_SELECTED)) {
+                        initsound();
+                        soundenabled = 1;
+                }
         }
         return D_CLOSE;
 }
 
 static int hzcallback(void *dp3, int d2)
 {
-        sprintf(hzstring,"%ihz",(d2*5)+20);
-        configuregui[21].dp=hzstring;
-        rectfill(screen,configuregui[21].x,configuregui[21].y,configuregui[21].x+39,configuregui[21].y+7,0xFFFFFFFF);
-        object_message(&configuregui[21], MSG_DRAW, 0);
+        sprintf(hzstring, "%iHz", (d2 * 5) + 20);
+        configuregui[CONF_HZ_TEXT].dp = hzstring;
+        rectfill(screen,
+                 configuregui[CONF_HZ_TEXT].x,
+                 configuregui[CONF_HZ_TEXT].y,
+                 configuregui[CONF_HZ_TEXT].x + 39,
+                 configuregui[CONF_HZ_TEXT].y + 7,
+                 0xFFFFFFFF);
+        object_message(&configuregui[CONF_HZ_TEXT], MSG_DRAW, 0);
 
         return 0;
 }
@@ -319,14 +379,15 @@ static MENU mainmenu[]=
 
 #define CY 0
 #define CX 0
+/* This array must be kept in sync with the CONF_ defines above */
 static DIALOG configuregui[]=
 {
-        {d_shadow_box_proc, CX,CY-8, 160,176,0,-1,0,0,     0,0,0,0,0},
+        {d_shadow_box_proc, CX,CY-8, 160,176,0,-1,0,0,     0,0,0,0,0}, // 0
         
-        {d_button_proc,CX+8,CY+144,64, 16, 0,-1,0,D_EXIT,0,0,"OK",0,0},
-        {d_button_proc,CX+88,CY+144,64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0},
+        {d_button_proc,CX+8,CY+144,64, 16, 0,-1,0,D_EXIT,0,0,"OK",0,0}, // 1
+        {d_button_proc,CX+88,CY+144,64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0}, // 2
 
-        {d_text_proc,CX+8,CY-4,40,8,0,-1,0,0,0,0,"CPU :",0,0},
+        {d_text_proc,CX+8,CY-4,40,8,0,-1,0,0,0,0,"CPU :",0,0}, // 3
 #ifdef DYNAREC
         {d_radio_proc,CX+8,CY+4,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM7500",0,0},   // 4
         {d_radio_proc,CX+8,CY+4+16,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM610",0,0}, // 5
@@ -338,28 +399,28 @@ static DIALOG configuregui[]=
         {d_radio_proc,CX+8,CY+4+32,64,16,0,-1,0,0, 0 ,0,"ARM710",0,0}, // 6
         {d_radio_proc,CX+8,CY+4+48,64,16,0,-1,0,0, 0 ,0,"SA110",0,0},  // 7
 #endif
-        {d_text_proc,CX+88,CY-4,40,8,0,-1,0,0,0,0,"RAM :",0,0},
-        {d_radio_proc,CX+88,CY+4,64,16,0,-1,0,0, 1, 0,"4mb",0,0},
-        {d_radio_proc,CX+88,CY+4+16,64,16,0,-1,0,0, 1, 0,"8mb",0,0},
-        {d_radio_proc,CX+88,CY+4+32,64,16,0,-1,0,0, 1, 0,"16mb",0,0},
-        {d_radio_proc,CX+88,CY+4+48,64,16,0,-1,0,0, 1, 0,"32mb",0,0},
-        {d_radio_proc,CX+88,CY+4+64,64,16,0,-1,0,0, 1, 0,"64mb",0,0},
-        {d_radio_proc,CX+88,CY+4+80,64,16,0,-1,0,0, 1, 0,"128mb",0,0},
+        {d_text_proc,CX+88,CY-4,40,8,0,-1,0,0,0,0,"RAM :",0,0}, // 8
+        {d_radio_proc,CX+88,CY+4,64,16,0,-1,0,0, 1, 0,"4mb",0,0}, // 9
+        {d_radio_proc,CX+88,CY+4+16,64,16,0,-1,0,0, 1, 0,"8mb",0,0}, // 10
+        {d_radio_proc,CX+88,CY+4+32,64,16,0,-1,0,0, 1, 0,"16mb",0,0}, // 11
+        {d_radio_proc,CX+88,CY+4+48,64,16,0,-1,0,0, 1, 0,"32mb",0,0}, // 12
+        {d_radio_proc,CX+88,CY+4+64,64,16,0,-1,0,0, 1, 0,"64mb",0,0}, // 13
+        {d_radio_proc,CX+88,CY+4+80,64,16,0,-1,0,0, 1, 0,"128mb",0,0}, // 14
         
-        {d_text_proc,CX+8,CY+4+72,40,8,0,-1,0,0,0,0,"VRAM :",0,0},
+        {d_text_proc,CX+8,CY+4+72,40,8,0,-1,0,0,0,0,"VRAM :",0,0}, // 15
 #ifdef DYNAREC
-        {d_radio_proc,CX+8,CY+4+80,64,16,0,-1,0,D_DISABLED, 2, 0,"None",0,0},
-        {d_radio_proc,CX+8,CY+4+96,64,16,0,-1,0,D_DISABLED, 2, 0,"2mb",0,0},
+        {d_radio_proc,CX+8,CY+4+80,64,16,0,-1,0,D_DISABLED, 2, 0,"None",0,0}, // 16
+        {d_radio_proc,CX+8,CY+4+96,64,16,0,-1,0,D_DISABLED, 2, 0,"2mb",0,0}, // 17
 #else
-        {d_radio_proc,CX+8,CY+4+80,64,16,0,-1,0,0, 2, 0,"None",0,0},
-        {d_radio_proc,CX+8,CY+4+96,64,16,0,-1,0,0, 2, 0,"2mb",0,0},
+        {d_radio_proc,CX+8,CY+4+80,64,16,0,-1,0,0, 2, 0,"None",0,0}, // 16
+        {d_radio_proc,CX+8,CY+4+96,64,16,0,-1,0,0, 2, 0,"2mb",0,0}, // 17
 #endif
         
-        {d_check_proc,CX+88,CY+4+96,64,16,0,-1,0,D_DISABLED,1,0,  "Sound",0,0},
+        {d_check_proc,CX+88,CY+4+96,64,16,0,-1,0,D_DISABLED,1,0,  "Sound",0,0}, // 18
         
-        {d_text_proc,CX+8,CY+4+112,40,8,0,-1,0,0,0,0,"Refresh rate :",0,0},
-        {d_slider_proc,CX+8,CY+4+120,104,16,0,-1,0,0,80/5,0,NULL,hzcallback,0},
-        {d_text_proc,CX+112,CY+4+120+4+1,40,8,0,-1,0,0,0,0,NULL,0,0},
+        {d_text_proc,CX+8,CY+4+112,40,8,0,-1,0,0,0,0,"Refresh rate :",0,0}, // 19
+        {d_slider_proc,CX+8,CY+4+120,104,16,0,-1,0,0,80/5,0,NULL,hzcallback,0}, // 20
+        {d_text_proc,CX+112,CY+4+120+4+1,40,8,0,-1,0,0,0,0,NULL,0,0}, //21
         
         {0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL}
 };
