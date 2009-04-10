@@ -141,7 +141,7 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 #define DEFAULT_W 640
 #define DEFAULT_H 480
 
-void initvideo()
+void initvideo(void)
 {
         int depth;
 
@@ -194,11 +194,11 @@ void initvideo()
 }
 
 
-int getxs()
+int getxs(void)
 {
         return vidc.hder-vidc.hdsr;
 }
-int getys()
+int getys(void)
 {
         return vidc.vder-vidc.vdsr;
 }
@@ -333,7 +333,7 @@ tryagain:
         resetbuffer();
 }
 
-void closevideo()
+void closevideo(void)
 {
 //        rpclog("Calling closevideo()\n");
         vidcendthread();
@@ -553,7 +553,7 @@ void drawscr(int needredraw)
 
 /* VIDC display thread. This is called whenever vidcwakeupthread() signals it.
    It will only be called when it has the vidc mutex. */ 
-void vidcthread()
+void vidcthread(void)
 {
         uint32_t *vidp=NULL;
         unsigned short *vidp16=NULL;

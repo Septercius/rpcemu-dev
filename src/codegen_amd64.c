@@ -18,7 +18,7 @@
 #endif
 
 int hasldrb[BLOCKS];
-void generateupdatepc();
+void generateupdatepc(void);
 int lastflagchange;
 unsigned char rcodeblock[BLOCKS][1792];
 static uint64_t codeblockaddr[BLOCKS];
@@ -45,7 +45,7 @@ static uint32_t blocks[BLOCKS];
 static int pcinc = 0;
 static int lastrecompiled = 0;
 
-void initcodeblocks()
+void initcodeblocks(void)
 {
         int c;
 #ifdef __linux__
@@ -73,7 +73,7 @@ void initcodeblocks()
 #endif
 }
 
-void resetcodeblocks()
+void resetcodeblocks(void)
 {
         int c;
         /*Clear all blocks _except_ those pointing between 0x3800000 and 0x3FFFFFF (ROM)*/
@@ -1046,7 +1046,7 @@ void generatecall(OpFn addr, uint32_t opcode,uint32_t *pcpsr)
         }
 //        #endif
 }
-void generateupdatepc()
+void generateupdatepc(void)
 {
 //asm("addl $4,0x12345678;");
         if (pcinc)
@@ -1068,7 +1068,7 @@ void generateupdatepc()
                 pcinc=0;
         }
 }
-void generateupdateinscount()
+void generateupdateinscount(void)
 {
         if (tempinscount)
         {
@@ -1081,7 +1081,7 @@ void generateupdateinscount()
         }
 }
 
-void generatepcinc()
+void generatepcinc(void)
 {
 	lastjumppos=0;
         pcinc+=4;
@@ -1089,7 +1089,7 @@ void generatepcinc()
         if (codeblockpos>=1200) blockend=1;
 }
 
-void removeblock()
+void removeblock(void)
 {
         codeblockpc[blocknum]=0xFFFFFFFF;
         codeblocknum[blocknum]=0xFFFFFFFF;
@@ -1190,7 +1190,7 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
         codeinscount[blocknum]=c;
 }
 
-void dumplastblock()
+void dumplastblock(void)
 {
 /*        FILE *f=fopen("block.dmp","wb");
         fwrite(codeblock[blockcount][blocknum],1600,1,f);
@@ -1354,7 +1354,7 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 #endif
         else                                                                        addbyte(5+5+8);
 }
-void generateirqtest()
+void generateirqtest(void)
 {
 	if (lastrecompiled) { lastrecompiled=0; return; }
         //asm("testl %eax,%eax");

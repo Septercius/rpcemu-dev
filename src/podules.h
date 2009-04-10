@@ -23,8 +23,8 @@ typedef struct podule
         int broken;
 } podule;
 
-void initpodules();
-void rethinkpoduleints();
+void initpodules(void);
+void rethinkpoduleints(void);
 
 podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
               void (*writew)(podule *p, int easi, uint32_t addr, uint16_t val),

@@ -236,7 +236,7 @@ static void _closesoundthread(void)
         }
 }
 
-void vidcwakeupthread()
+void vidcwakeupthread(void)
 {
 #ifdef VIDC_THREAD
         SetEvent(waitobject);
@@ -245,7 +245,7 @@ void vidcwakeupthread()
 #endif
 }
 
-void wakeupsoundthread()
+void wakeupsoundthread(void)
 {
         SetEvent(soundobject);
 }

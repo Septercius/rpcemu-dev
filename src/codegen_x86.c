@@ -16,7 +16,7 @@
 #include <unistd.h>
 #endif
 
-void generateupdatepc();
+void generateupdatepc(void);
 int linecyc;
 int hasldrb[BLOCKS];
 #define mwritemem rcodeblock[BLOCKS]
@@ -67,7 +67,7 @@ static int blockpoint = 0, blockpoint2 = 0;
 static uint32_t blocks[BLOCKS];
 static int pcinc = 0;
 
-void initcodeblocks()
+void initcodeblocks(void)
 {
         int c;
 #ifdef __linux__
@@ -231,7 +231,7 @@ addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
 #endif
 }
 
-void resetcodeblocks()
+void resetcodeblocks(void)
 {
         int c;
         /*Clear all blocks _except_ those pointing between 0x3800000 and 0x3FFFFFF (ROM)*/
@@ -337,7 +337,7 @@ void initcodeblock(uint32_t l)
         flagsdirty=0;
 }
 
-void removeblock()
+void removeblock(void)
 {
         codeblockpc[blocknum]=0xFFFFFFFF;
         codeblocknum[blocknum]=0xFFFFFFFF;
@@ -528,7 +528,7 @@ static int generatedataprocS(unsigned char dataop, uint32_t templ)
         return temp;
 }
 
-/*static int codewritememfb()
+/*static int codewritememfb(void)
 {
         uint32_t a;
         uint8_t v;
@@ -677,7 +677,7 @@ static void codereadmemlnt(void)
         );
 }
 
-/*int mwritemem()
+/*int mwritemem(void)
 {
         register uint32_t a asm("edi");
         register uint32_t v asm("eax");
@@ -686,7 +686,7 @@ static void codereadmemlnt(void)
 }*/
 
 #if 0
-int mreadmem()
+int mreadmem(void)
 {
         register uint32_t a asm("edi");
         register uint32_t v asm("edx");
@@ -2806,7 +2806,7 @@ void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr)
 //        rpclog("-%08X %02X %02X %08X %i %02X\n",&rcodeblock[8][0x5F],rcodeblock[8][0x5F],rcodeblock[8][0x60],opcode,blockpoint2,codeblockpos);
 //        #endif
 }
-void generateupdatepc()
+void generateupdatepc(void)
 {
         if (pcinc)
       {
@@ -2817,7 +2817,7 @@ void generateupdatepc()
                 pcinc=0;
         }
 }
-void generateupdateinscount()
+void generateupdateinscount(void)
 {
         if (tempinscount)
         {
@@ -2829,7 +2829,7 @@ void generateupdateinscount()
         }
 }
 
-void generatepcinc()
+void generatepcinc(void)
 {
         pcinc+=4;
         if (pcinc==252) generateupdatepc();
@@ -2927,7 +2927,7 @@ void endblock(int c, uint32_t *pcpsr)
         codeinscount[blocknum]=c;
 }
 
-void dumplastblock()
+void dumplastblock(void)
 {
 /*        FILE *f=fopen("block.dmp","wb");
         fwrite(codeblock[blockcount][blocknum],1600,1,f);
@@ -3089,7 +3089,7 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 #endif
         else                                                                        addbyte(5+7);*/
 }
-void generateirqtest()
+void generateirqtest(void)
 {
         int temp=5+7;
         if (lastrecompiled) return;

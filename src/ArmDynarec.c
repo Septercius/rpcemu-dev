@@ -701,7 +701,7 @@ static const int ldrlookup[4]={0,8,16,24};
 
 #define undefined() exception(UNDEFINED,8,4)
 
-static void refillpipeline2()
+static void refillpipeline2(void)
 {
         #ifdef PREFETCH
         uint32_t addr=PC-8;

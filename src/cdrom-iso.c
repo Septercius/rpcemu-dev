@@ -104,7 +104,7 @@ int iso_open(char *fn)
         return 0;
 }
 
-void iso_close()
+void iso_close(void)
 {
         if (iso_file) fclose(iso_file);
 }
@@ -114,7 +114,7 @@ static void iso_exit(void)
         if (iso_file) fclose(iso_file);
 }
 
-void iso_init()
+void iso_init(void)
 {
         iso_empty=1;
         atapi=&iso_atapi;

@@ -12,16 +12,16 @@ extern unsigned char getkeyboardstat(void);
 extern unsigned char readkeyboarddata(void);
 extern unsigned char getmousestat(void);
 extern unsigned char readmousedata(void);
-extern void pollmouse();
-extern void pollkeyboard();
+extern void pollmouse(void);
+extern void pollkeyboard(void);
 
-extern void doosmouse();
+extern void doosmouse(void);
 extern void setmouseparams(uint32_t a);
 extern void getunbufmouse(uint32_t a);
 extern void setmousepos(uint32_t a);
 extern void osbyte106(uint32_t a);
 extern void setpointer(uint32_t a);
-extern void getosmouse();
+extern void getosmouse(void);
 extern void getmousepos(int *x, int *y);
 
 #endif //__KEYBOARD__

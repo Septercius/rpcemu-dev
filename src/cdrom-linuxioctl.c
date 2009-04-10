@@ -96,7 +96,7 @@ static void ioctl_null(void)
 {
 }
 
-int ioctl_open()
+int ioctl_open(void)
 {
         atapi=&ioctl_atapi;
         ioctl_discchanged=1;
@@ -104,7 +104,7 @@ int ioctl_open()
         return 0;
 }
 
-void ioctl_close()
+void ioctl_close(void)
 {
 }
 
@@ -112,7 +112,7 @@ static void ioctl_exit(void)
 {
 }
 
-void ioctl_init()
+void ioctl_init(void)
 {
         ioctl_empty=1;
         atapi=&ioctl_atapi;

@@ -83,7 +83,7 @@ void UNIMPLEMENTEDFL(const char *file, unsigned line, const char *section,
 }
 #endif /* _DEBUG */
 
-void resetrpc()
+void resetrpc(void)
 {
         reallocmem(rammask + 1);
         resetcp15();
@@ -96,7 +96,7 @@ void resetrpc()
         resetpodules();
 }
 
-int startrpcemu()
+int startrpcemu(void)
 {
         int c;
         char *p;
@@ -146,7 +146,7 @@ int startrpcemu()
         return 0;
 }
 
-void execrpcemu()
+void execrpcemu(void)
 {
 //	static int c;
 //	printf("Exec %i\n",c);
@@ -171,7 +171,7 @@ void execrpcemu()
                 pollkeyboard();
 }
 
-void endrpcemu()
+void endrpcemu(void)
 {
         closevideo();
         endiomd();

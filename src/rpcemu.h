@@ -130,17 +130,17 @@ extern int cyccount;
 extern void error(const char *format, ...);
 extern void rpclog(const char *format, ...);
 extern void updatewindowsize(uint32_t x, uint32_t y);
-extern void wakeupsoundthread();
+extern void wakeupsoundthread(void);
 extern void updateirqs(void);
 
 extern char exname[512];
 extern int timetolive;
 /*rpcemu.c*/
 extern void fatal(const char *format, ...);
-extern int startrpcemu();
-extern void execrpcemu();
-extern void endrpcemu();
-extern void resetrpc();
+extern int startrpcemu(void);
+extern void execrpcemu(void);
+extern void endrpcemu(void);
+extern void resetrpc(void);
 extern int mousecapture;
 extern int drawscre;
 extern int quited;
@@ -178,7 +178,7 @@ extern int lastinscount;
 extern int infocus;
 
 /*FPA*/
-extern void resetfpa();
+extern void resetfpa(void);
 extern void fpaopcode(uint32_t opcode);
 
 #define CDROM_ISO   0

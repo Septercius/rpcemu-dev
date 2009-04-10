@@ -7,7 +7,7 @@
 #include "mem.h"
 #include "iomd.h"
 
-int getbufferlen();
+int getbufferlen(void);
 
 int soundenabled;
 uint32_t soundaddr[4];
@@ -26,7 +26,7 @@ static AUDIOSTREAM *as;
 
 //static FILE *sndfile; // used for debugging
 
-void initsound()
+void initsound(void)
 {
         if (soundon)
         {
@@ -42,14 +42,14 @@ void initsound()
         else              as=play_audio_stream(BUFFERLEN,16,1,samplefreq,0,128);
 }
 
-void closesound()
+void closesound(void)
 {
         stop_audio_stream(as);
         as=play_audio_stream(BUFFERLEN,16,1,samplefreq,0,128);
 //        remove_sound();
 }
 
-int getbufferlen()
+int getbufferlen(void)
 {
         int offset=(iomd.sndstat&1)<<1,start,end;
         start=soundaddr[offset]&0xFF0;
@@ -58,7 +58,7 @@ int getbufferlen()
 }
 
 
-int getsamplefreq()
+int getsamplefreq(void)
 {
         return samplefreq;
 }
@@ -78,18 +78,18 @@ void changesamplefreq(int newsamplefreq)
         }
 }
 
-void stopsound()
+void stopsound(void)
 {
         voice_set_volume(as->voice,0);
 }
 
-void continuesound()
+void continuesound(void)
 {
         voice_set_frequency(as->voice,samplefreq);
         voice_set_volume(as->voice,255);
 }
 
-void updatesoundirq()
+void updatesoundirq(void)
 {
         uint32_t page,start,end,temp;
         int offset=(iomd.sndstat&1)<<1;
@@ -137,7 +137,7 @@ void updatesoundirq()
 //        fwrite(bigsoundbuffer,len<<2,1,sndfile);
 }
 
-int updatesoundbuffer()
+int updatesoundbuffer(void)
 {
         unsigned short *p;
         int c;

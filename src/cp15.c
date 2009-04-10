@@ -59,7 +59,7 @@ cp15_vaddr_reset(void)
 	}
 }
 
-void getcp15fsr()
+void getcp15fsr(void)
 {
         rpclog("%08X %08X\n",cp15.far,cp15.fsr);
 }

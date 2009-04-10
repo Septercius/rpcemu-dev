@@ -17,7 +17,7 @@ int updatemips=0;
 static uint32_t mipscount;
 float mipstotal;
 
-void wakeupsoundthread()
+void wakeupsoundthread(void)
 {
 }
 
@@ -70,7 +70,7 @@ if (!arclog) arclog=fopen("rpclog.txt","wt");
 
 int infocus;
 
-void vblupdate()
+void vblupdate(void)
 {
         drawscre++;
 }
@@ -97,7 +97,7 @@ void vidcreleasemutex(void)
 {
 }
 
-void sndint()
+void sndint(void)
 {
         iomd.state|=0x10;
         updateirqs();
@@ -117,7 +117,7 @@ void updatewindowsize(uint32_t x, uint32_t y)
                         }
 }
 
-void releasemousecapture()
+void releasemousecapture(void)
 {
 }
 

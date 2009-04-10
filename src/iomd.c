@@ -588,12 +588,12 @@ void resetiomd(void)
         #endif
 }
 
-void endiomd()
+void endiomd(void)
 {
         remove_int(gentimerirq);
 }
 
-void updateiomdtimers()
+void updateiomdtimers(void)
 {
         if (iomd.t0c<0)
         {
@@ -625,7 +625,7 @@ void iomdvsync(int vsync)
         }
 }
 
-void dumpiomdregs()
+void dumpiomdregs(void)
 {
         printf("IRQ STAT A %02X B %02X D %02X F %02X\n",iomd.stata,iomd.statb,iomd.statd,iomd.statf);
         printf("IRQ MASK A %02X B %02X D %02X F %02X\n",iomd.maska,iomd.maskb,iomd.maskd,iomd.maskf);

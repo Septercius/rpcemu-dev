@@ -10,7 +10,7 @@
 static podule podules[8];
 static int freepodule;
 
-void initpodules()
+void initpodules(void)
 {
         int c;
         for (c=0;c<8;c++)
@@ -52,7 +52,7 @@ podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t va
         return &podules[freepodule-1];
 }
 
-void rethinkpoduleints()
+void rethinkpoduleints(void)
 {
         int c;
         iomd.statb&=~0x21; /*1 is FIQ downgrade, 0x20 is IRQ*/
@@ -175,7 +175,7 @@ void runpoduletimers(int t)
         }
 }
 
-void resetpodules()
+void resetpodules(void)
 {
         int c;
 //        rpclog("Reset podules!\n");

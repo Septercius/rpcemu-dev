@@ -42,7 +42,7 @@ static uint32_t writememcache = 0,writememcache2 = 0;
 #endif
 static uint32_t writemembcache = 0,writemembcache2 = 0;
 
-void clearmemcache()
+void clearmemcache(void)
 {
 #ifdef LARGETLB
         int c;

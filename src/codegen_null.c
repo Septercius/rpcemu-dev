@@ -2,11 +2,11 @@
 #include "mem.h"
 
 #ifndef DYNAREC
-void initcodeblocks()
+void initcodeblocks(void)
 {
 }
 
-void resetcodeblocks()
+void resetcodeblocks(void)
 {
 }
 

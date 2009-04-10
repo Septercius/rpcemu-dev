@@ -1,19 +1,19 @@
 #ifndef __SOUND__
 #define __SOUND__
 
-extern void initsound();
-extern void closesound();
-extern int getsamplefreq();
+extern void initsound(void);
+extern void closesound(void);
+extern int getsamplefreq(void);
 extern void changesamplefreq(int newsamplefreq);
 extern int soundenabled;
 extern int soundbufferfull;
-extern void updatesoundirq();
-extern int updatesoundbuffer();
-extern int getbufferlen();
+extern void updatesoundirq(void);
+extern int updatesoundbuffer(void);
+extern int getbufferlen(void);
 extern uint32_t soundaddr[4];
 extern int samplefreq;
 extern int soundinited,soundlatch,soundcount;
-extern void stopsound();
-extern void continuesound();
+extern void stopsound(void);
+extern void continuesound(void);
 
 #endif //__SOUND__

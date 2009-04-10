@@ -105,7 +105,7 @@ void saveadf(const char *fn, int drive)
         fclose(f);
 }
 
-void reset82c711()
+void reset82c711(void)
 {
         configregs[0xA]=0;
         configregs[0xD]=0x65;

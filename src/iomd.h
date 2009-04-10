@@ -31,7 +31,7 @@ extern  int motoron;
 extern int idecallback;
 
 extern void resetiomd(void);
-extern void endiomd();
+extern void endiomd(void);
 extern uint32_t readiomd(uint32_t addr);
 extern void writeiomd(uint32_t addr, uint32_t val);
 extern uint8_t readmb(void);

@@ -1,8 +1,8 @@
 #ifndef __VIDC20__
 #define __VIDC20__
 
-extern void initvideo();
-extern void closevideo();
+extern void initvideo(void);
+extern void closevideo(void);
 extern int getxs(void);
 extern int getys(void);
 extern void resetbuffer(void);

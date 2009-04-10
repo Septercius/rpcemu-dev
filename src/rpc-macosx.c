@@ -48,7 +48,7 @@ static void *_soundthread(void *p)
 	return NULL;
 }
 
-void wakeupsoundthread()
+void wakeupsoundthread(void)
 {
     if (pthread_cond_signal(&sound_cond))
     {
@@ -56,7 +56,7 @@ void wakeupsoundthread()
     }
 }
 
-void closesoundthread()
+void closesoundthread(void)
 {
 	wakeupsoundthread();
 	pthread_join(sound_thread, NULL);
@@ -129,7 +129,7 @@ void updatewindowsize(uint32_t x, uint32_t y)
 {
 }
 
-void releasemousecapture()
+void releasemousecapture(void)
 {
 }
 

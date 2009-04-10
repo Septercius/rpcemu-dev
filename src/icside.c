@@ -59,7 +59,7 @@ void icswritew(podule *p, int easi, uint32_t addr, uint16_t val)
         icswriteb(p,easi,addr,val);*/
 }
 
-void initics()
+void initics(void)
 {
 /*        FILE *f;
         char fn[512];

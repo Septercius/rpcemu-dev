@@ -56,10 +56,10 @@ void callbackide(void);
 
 ATAPI *atapi;
 
-static void callreadcd();
+static void callreadcd(void);
 static int skip512[4];
 int cdromenabled=1;
-static void atapicommand();
+static void atapicommand(void);
 
 static struct
 {
@@ -797,7 +797,7 @@ void callbackide(void)
   There are a couple of bugs in the CD audio handling.
   */
 
-static void atapi_notready()
+static void atapi_notready(void)
 {
         /*Medium not present is 02/3A/--*/
         /*cylprecomp is error number*/
@@ -811,14 +811,14 @@ static void atapi_notready()
         idecallback=50;
 }
 
-void atapi_discchanged()
+void atapi_discchanged(void)
 {
         ide.discchanged=1;
 }
 /*Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
   Not that it means anything*/
 static int cdromspeed = 706;
-static void atapicommand()
+static void atapicommand(void)
 {
         int c;
         int len;
@@ -1149,7 +1149,7 @@ static void atapicommand()
         }
 }
 
-static void callreadcd()
+static void callreadcd(void)
 {
         ide_irq_lower();
         if (ide.cdlen<=0)

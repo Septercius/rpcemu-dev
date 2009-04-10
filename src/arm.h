@@ -4,14 +4,14 @@
 typedef void (*OpFn)(uint32_t opcode);
 
 extern void updatemode(uint32_t m);
-extern void resetcodeblocks();
-extern void initcodeblocks();
-extern void generatepcinc();
-extern void generateupdatepc();
-extern void generateupdateinscount();
+extern void resetcodeblocks(void);
+extern void initcodeblocks(void);
+extern void generatepcinc(void);
+extern void generateupdatepc(void);
+extern void generateupdateinscount(void);
 extern void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr);
 extern void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr);
-extern void generateirqtest();
+extern void generateirqtest(void);
 extern void endblock(int c, uint32_t *pcpsr);
 extern void initcodeblock(uint32_t l);
 extern uint32_t *usrregs[16];

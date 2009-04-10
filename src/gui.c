@@ -432,7 +432,7 @@ static DIALOG rpcemugui[]=
       {0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL}
 };
 
-void entergui()
+void entergui(void)
 {
         DIALOG_PLAYER *dp;
         int x = 1;

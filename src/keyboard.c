@@ -425,7 +425,7 @@ void mscallback(void)
         }
 }
 
-void pollmouse()
+void pollmouse(void)
 {
         static unsigned char oldmouseb = 0;
         int x,y;
@@ -593,7 +593,7 @@ void pollkeyboard(void)
 
 static short ml,mr,mt,mb;
 static int activex[5],activey[5];
-void doosmouse()
+void doosmouse(void)
 {
         short temp;
         return;
@@ -707,7 +707,7 @@ void osbyte106(uint32_t a)
         if (point>4) point=0;
         //printf("osbyte 106 %i %i\n",a,point);
 }
-void getosmouse()
+void getosmouse(void)
 {
         long temp;
         temp=(getys()<<1)-(mouse_y<<1);

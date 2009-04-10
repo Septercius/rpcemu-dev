@@ -3,7 +3,7 @@
 
 int iso_open(char *fn);
 
-void iso_init();
+void iso_init(void);
 
 #endif
 

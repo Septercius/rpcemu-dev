@@ -22,7 +22,7 @@ static void dumpfpa(void)
         rpclog("FPSR=%08X FPCR=%08X\n",fpsr,fpcr);
 }
 
-void resetfpa()
+void resetfpa(void)
 {
         uint32_t temp[3];
         float *tfs;
