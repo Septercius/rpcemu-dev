@@ -4,7 +4,7 @@
 #include "vidc20.h"
 #include "sound.h"
 #include "iomd.h"
-#include "82c711.h"
+#include "fdc.h"
 #include "ide.h"
 #include "cdrom-iso.h"
 

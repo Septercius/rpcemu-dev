@@ -38,7 +38,7 @@ static int inscounts[256];
 #include "ide.h"
 #include "arm.h"
 #include "cp15.h"
-#include "82c711.h"
+#include "fdc.h"
 
 #ifdef RPCEMU_LINUX
 #include "network-linux.h"

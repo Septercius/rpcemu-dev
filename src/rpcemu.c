@@ -20,6 +20,7 @@
 #include "cdrom-iso.h"
 #include "podulerom.h"
 #include "podules.h"
+#include "fdc.h"
 
 int cdromtype;
 unsigned char flaglookup[16][16];

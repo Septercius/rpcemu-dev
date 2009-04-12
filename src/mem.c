@@ -9,6 +9,7 @@
 #include "cp15.h"
 #include "82c711.h"
 #include "podules.h"
+#include "fdc.h"
 
 //#define LARGETLB
 uint32_t *ram = NULL, *ram2 = NULL, *rom = NULL, *vram = NULL;

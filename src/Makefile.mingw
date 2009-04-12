@@ -39,6 +39,7 @@ OBJS =	82c711.o    \
 	codegen_null.o \
 	codegen_x86.o \
 	cp15.o      \
+	fdc.o       \
 	fpa.o       \
 	gui.o	      \
 	hostfs.o    \

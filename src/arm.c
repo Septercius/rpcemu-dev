@@ -64,7 +64,7 @@ static int inscounts[256];
 #include "iomd.h"
 #include "sound.h"
 #include "keyboard.h"
-#include "82c711.h"
+#include "fdc.h"
 #include "ide.h"
 
 #ifdef RPCEMU_LINUX

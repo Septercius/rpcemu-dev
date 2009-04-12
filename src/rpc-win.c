@@ -23,7 +23,7 @@
 #include "arm.h"
 #include "cmos.h"
 #include "cp15.h"
-#include "82c711.h"
+#include "fdc.h"
 #include "podules-win.h"
 #include "cdrom-iso.h"
 #include "cdrom-ioctl.h"

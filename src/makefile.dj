@@ -23,6 +23,7 @@ OBJS =	82c711.o    \
 	codegen_null.o \
 	codegen_x86.o \
 	cp15.o      \
+	fdc.o       \
 	fpa.o       \
 	gui.o	      \
 	ide.o	      \
@@ -44,6 +45,7 @@ SRCS = 	82c711.c    \
 	codegen_null.c \
 	codegen_x86.c \
 	cp15.c      \
+	fdc.c       \
 	fpa.c       \
 	gui.c       \
 	ide.c       \
