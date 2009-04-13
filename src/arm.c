@@ -783,8 +783,15 @@ static void bad_opcode(uint32_t opcode)
 void exception(int mmode, uint32_t address, int diff)
 {
         uint32_t templ;
-        unsigned char irq=0xC0;
-        if (mmode==SUPERVISOR) irq=0x80;
+        unsigned char irq_disable;
+
+	/* If FIQ exception, disable FIQ and IRQ, otherwise disable just IRQ */
+	if (mmode == FIQ) {
+		irq_disable = (0x80 | 0x40);
+	} else {
+		irq_disable = 0x80;
+	}
+
         if (mode&16)
         {
                 templ=armregs[15]-diff;
@@ -792,7 +799,7 @@ void exception(int mmode, uint32_t address, int diff)
                 updatemode(mmode|16);
                 armregs[14]=templ;
                 armregs[16]&=~0x1F;
-                armregs[16]|=0x10|mmode|irq;
+                armregs[16] |= 0x10 | mmode | irq_disable;
                 armregs[15]=address;
                 refillpipeline();
         }
@@ -803,7 +810,7 @@ void exception(int mmode, uint32_t address, int diff)
                 armregs[14]=templ&0x3FFFFFC;
                 spsr[mmode]=(armregs[16]&~0x1F)|(templ&3);
                 spsr[mmode]&=~0x10;
-                armregs[16]|=irq;
+                armregs[16] |= irq_disable;
                 armregs[15]=address;
                 refillpipeline();
         }
@@ -814,7 +821,7 @@ void exception(int mmode, uint32_t address, int diff)
                 updatemode(SUPERVISOR);
                 armregs[14]=templ;
                 armregs[15]&=0xFC000003;
-                armregs[15]|=((irq<<20)|address);
+                armregs[15] |= ((irq_disable << 20) | address);
                 refillpipeline();
         }
 }
