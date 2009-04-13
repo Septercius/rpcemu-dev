@@ -29,8 +29,7 @@ endif
 
 all: config.h $(EXE)
 
-OBJS =	82c711.o    \
-	arm.o       \
+OBJS =	arm.o       \
 	ArmDynarec.o \
 	cdrom-ioctl.o \
 	cdrom-iso.o \
@@ -54,6 +53,7 @@ OBJS =	82c711.o    \
 	rpc-win.o   \
 	romload.o   \
 	sound.o     \
+	superio.o   \
 	vidc20.o    \
 	acorn.o
 

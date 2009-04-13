@@ -7,7 +7,7 @@
 #include "ide.h"
 #include "arm.h"
 #include "cp15.h"
-#include "82c711.h"
+#include "superio.h"
 #include "podules.h"
 #include "fdc.h"
 
@@ -235,14 +235,14 @@ uint32_t readmemfl(uint32_t addr)
                                 case 1: case 2:
                                 if (addr==0x3310000)
                                    return readmb();
-                                if ((addr&0xFFF000)==0x10000) /*82c711*/
+                                if ((addr&0xFFF000)==0x10000) /* SuperIO */
                                 {
                                         if ((addr&0xFFC)==0x7C0)
                                         {
                                                 ideboard=0;
                                                 return readidew();
                                         }
-                                        return read82c711(addr);
+                                        return superio_read(addr);
                                 }
                                 break;
                                 case 4:
@@ -419,10 +419,10 @@ uint32_t readmemfb(uint32_t addr)
                                    return readfdcdma(addr);
                                 if ((addr&0x00FFF400)==0x0002B000) /* Network podule */
                                    return 0xFFFFFFFF;
-                                if ((addr&0x00FFF000)==0x00010000) /*82c711*/
-                                   return read82c711(addr);
-                                if ((addr&0x00FF0000)==0x00020000) /*82c711*/
-                                   return read82c711(addr);
+                                if ((addr&0x00FFF000)==0x00010000) /* SuperIO */
+                                   return superio_read(addr);
+                                if ((addr&0x00FF0000)==0x00020000) /* SuperIO */
+                                   return superio_read(addr);
                                 break;
                                 case 4:
 //                                        rpclog("Read poduleb %08X\n",addr);
@@ -604,7 +604,7 @@ void writememfl(uint32_t addr, uint32_t val)
                                 writeiomd(addr,val);
                                 return;
                                 case 1: case 2:
-                                if ((addr&0xFFF000)==0x10000) /*82c711*/
+                                if ((addr&0xFFF000)==0x10000) /* SuperIO */
                                 {
                                         if ((addr&0xFFC)==0x7C0)
                                         {
@@ -612,7 +612,7 @@ void writememfl(uint32_t addr, uint32_t val)
                                                 writeidew(val);
                                                 return;
                                         }
-                                        write82c711(addr,val);
+                                        superio_write(addr, val);
                                         return;
                                 }
                                 if ((addr&0xFFF0000)==0x33A0000)
@@ -838,14 +838,14 @@ void writememfb(uint32_t addr, uint8_t val)
                                         writefdcdma(addr,val);
                                         return;
                                 }
-                                if ((addr&0xFF0000)==0x10000) /*82c711*/
+                                if ((addr&0xFF0000)==0x10000) /* SuperIO */
                                 {
-                                        write82c711(addr,val);
+                                        superio_write(addr, val);
                                         return;
                                 }
-                                if ((addr&0xFF0000)==0x20000) /*82c711*/
+                                if ((addr&0xFF0000)==0x20000) /* SuperIO */
                                 {
-                                        write82c711(addr,val);
+                                        superio_write(addr, val);
                                         return;
                                 }
                                 if ((addr&0xFFF0000)==0x33A0000)

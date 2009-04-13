@@ -63,10 +63,10 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am__rpcemu_SOURCES_DIST = 82c711.c 82c711.h cdrom-iso.c cmos.c cmos.h \
-	cp15.c cp15.h fdc.c fdc.h fpa.c hostfs.c hostfs.h ide.c ide.h \
-	iomd.c iomd.h keyboard.c keyboard.h mem.c mem.h romload.c \
-	rpcemu.c sound.c sound.h vidc20.c vidc20.h podules.c \
+am__rpcemu_SOURCES_DIST = superio.c superio.h cdrom-iso.c cmos.c \
+	cmos.h cp15.c cp15.h fdc.c fdc.h fpa.c hostfs.c hostfs.h ide.c \
+	ide.h iomd.c iomd.h keyboard.c keyboard.h mem.c mem.h \
+	romload.c rpcemu.c sound.c sound.h vidc20.c vidc20.h podules.c \
 	podulerom.c icside.c ArmDynarec.c ArmDynarecOps.h \
 	codegen_amd64.c codegen_amd64.h codegen_x86.c codegen_x86.h \
 	arm.c arm.h codegen_null.c cdrom-ioctl.c rpc-win.c resources.h \
@@ -87,18 +87,18 @@ am__rpcemu_SOURCES_DIST = 82c711.c 82c711.h cdrom-iso.c cmos.c cmos.h \
 @OS_LINUX_TRUE@	rpcemu-network-linux.$(OBJEXT)
 @OS_MACOSX_TRUE@am__objects_7 = rpcemu-rpc-macosx.$(OBJEXT) \
 @OS_MACOSX_TRUE@	rpcemu-gui.$(OBJEXT)
-am_rpcemu_OBJECTS = rpcemu-82c711.$(OBJEXT) rpcemu-cdrom-iso.$(OBJEXT) \
-	rpcemu-cmos.$(OBJEXT) rpcemu-cp15.$(OBJEXT) \
-	rpcemu-fdc.$(OBJEXT) rpcemu-fpa.$(OBJEXT) \
-	rpcemu-hostfs.$(OBJEXT) rpcemu-ide.$(OBJEXT) \
-	rpcemu-iomd.$(OBJEXT) rpcemu-keyboard.$(OBJEXT) \
-	rpcemu-mem.$(OBJEXT) rpcemu-romload.$(OBJEXT) \
-	rpcemu-rpcemu.$(OBJEXT) rpcemu-sound.$(OBJEXT) \
-	rpcemu-vidc20.$(OBJEXT) rpcemu-podules.$(OBJEXT) \
-	rpcemu-podulerom.$(OBJEXT) rpcemu-icside.$(OBJEXT) \
-	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
-	$(am__objects_7)
+am_rpcemu_OBJECTS = rpcemu-superio.$(OBJEXT) \
+	rpcemu-cdrom-iso.$(OBJEXT) rpcemu-cmos.$(OBJEXT) \
+	rpcemu-cp15.$(OBJEXT) rpcemu-fdc.$(OBJEXT) \
+	rpcemu-fpa.$(OBJEXT) rpcemu-hostfs.$(OBJEXT) \
+	rpcemu-ide.$(OBJEXT) rpcemu-iomd.$(OBJEXT) \
+	rpcemu-keyboard.$(OBJEXT) rpcemu-mem.$(OBJEXT) \
+	rpcemu-romload.$(OBJEXT) rpcemu-rpcemu.$(OBJEXT) \
+	rpcemu-sound.$(OBJEXT) rpcemu-vidc20.$(OBJEXT) \
+	rpcemu-podules.$(OBJEXT) rpcemu-podulerom.$(OBJEXT) \
+	rpcemu-icside.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
+	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
+	$(am__objects_6) $(am__objects_7)
 rpcemu_OBJECTS = $(am_rpcemu_OBJECTS)
 am__DEPENDENCIES_1 =
 @OS_WIN_FALSE@rpcemu_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -230,7 +230,7 @@ rpcemu_CFLAGS = $(allegro_CFLAGS) $(am__append_2)
 
 # workaround for Win32 Allegro, which has `allegro-config' missing
 @OS_WIN_TRUE@rpcemu_LDADD = -lalleg acorn.o -lcomdlg32 -lwinmm
-rpcemu_SOURCES = 82c711.c 82c711.h cdrom-iso.c cmos.c cmos.h cp15.c \
+rpcemu_SOURCES = superio.c superio.h cdrom-iso.c cmos.c cmos.h cp15.c \
 	cp15.h fdc.c fdc.h fpa.c hostfs.c hostfs.h ide.c ide.h iomd.c \
 	iomd.h keyboard.c keyboard.h mem.c mem.h romload.c rpcemu.c \
 	sound.c sound.h vidc20.c vidc20.h podules.c podulerom.c \
@@ -327,7 +327,6 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-82c711.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-ArmDynarec.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-arm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-cdrom-ioctl.Po@am__quote@
@@ -356,6 +355,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-rpc-win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-rpcemu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-sound.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-superio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-vidc20.Po@am__quote@
 
 .c.o:
@@ -372,19 +372,19 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
-rpcemu-82c711.o: 82c711.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-82c711.o -MD -MP -MF $(DEPDIR)/rpcemu-82c711.Tpo -c -o rpcemu-82c711.o `test -f '82c711.c' || echo '$(srcdir)/'`82c711.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/rpcemu-82c711.Tpo $(DEPDIR)/rpcemu-82c711.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='82c711.c' object='rpcemu-82c711.o' libtool=no @AMDEPBACKSLASH@
+rpcemu-superio.o: superio.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-superio.o -MD -MP -MF $(DEPDIR)/rpcemu-superio.Tpo -c -o rpcemu-superio.o `test -f 'superio.c' || echo '$(srcdir)/'`superio.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/rpcemu-superio.Tpo $(DEPDIR)/rpcemu-superio.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='superio.c' object='rpcemu-superio.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-82c711.o `test -f '82c711.c' || echo '$(srcdir)/'`82c711.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-superio.o `test -f 'superio.c' || echo '$(srcdir)/'`superio.c
 
-rpcemu-82c711.obj: 82c711.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-82c711.obj -MD -MP -MF $(DEPDIR)/rpcemu-82c711.Tpo -c -o rpcemu-82c711.obj `if test -f '82c711.c'; then $(CYGPATH_W) '82c711.c'; else $(CYGPATH_W) '$(srcdir)/82c711.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/rpcemu-82c711.Tpo $(DEPDIR)/rpcemu-82c711.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='82c711.c' object='rpcemu-82c711.obj' libtool=no @AMDEPBACKSLASH@
+rpcemu-superio.obj: superio.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-superio.obj -MD -MP -MF $(DEPDIR)/rpcemu-superio.Tpo -c -o rpcemu-superio.obj `if test -f 'superio.c'; then $(CYGPATH_W) 'superio.c'; else $(CYGPATH_W) '$(srcdir)/superio.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/rpcemu-superio.Tpo $(DEPDIR)/rpcemu-superio.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='superio.c' object='rpcemu-superio.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-82c711.obj `if test -f '82c711.c'; then $(CYGPATH_W) '82c711.c'; else $(CYGPATH_W) '$(srcdir)/82c711.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-superio.obj `if test -f 'superio.c'; then $(CYGPATH_W) 'superio.c'; else $(CYGPATH_W) '$(srcdir)/superio.c'; fi`
 
 rpcemu-cdrom-iso.o: cdrom-iso.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-cdrom-iso.o -MD -MP -MF $(DEPDIR)/rpcemu-cdrom-iso.Tpo -c -o rpcemu-cdrom-iso.o `test -f 'cdrom-iso.c' || echo '$(srcdir)/'`cdrom-iso.c
