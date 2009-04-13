@@ -818,7 +818,9 @@ void exception(int mmode, uint32_t address, int diff)
         {
                 templ=armregs[15]-diff;
                 armregs[15]|=3;
-                updatemode(SUPERVISOR);
+                /* When in 26-bit config, Abort and Undefined exceptions enter
+                   mode SVC_26 */
+                updatemode(mmode >= SUPERVISOR ? SUPERVISOR : mmode);
                 armregs[14]=templ;
                 armregs[15]&=0xFC000003;
                 armregs[15] |= ((irq_disable << 20) | address);
