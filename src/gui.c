@@ -34,6 +34,14 @@ extern void ioctl_init(void);
 #define CONF_HZ_SLIDER            20
 #define CONF_HZ_TEXT              21
 
+/* Indexes into the settingsmenu array */
+//#define MENU_SETTINGS_SETTINGS_WINDOW 0
+#define MENU_SETTINGS_FULLSCREEN      1
+#define MENU_SETTINGS_ALT_BLIT        2
+#define MENU_SETTINGS_BLIT_OPTIMISE   3
+#define MENU_SETTINGS_MOUSEHACK       4
+//#define MENU_SETTINGS_CDROM_SUBMENU   5
+
 static DIALOG configuregui[];
 
 static int menuexit(void)
@@ -193,28 +201,28 @@ static MENU settingsmenu[];
 static int menufullscreen(void)
 {
         togglefullscreen(!fullscreen);
-        settingsmenu[1].flags=(fullscreen)?D_SELECTED:0;
+        settingsmenu[MENU_SETTINGS_FULLSCREEN].flags = fullscreen ? D_SELECTED : 0;
         return D_CLOSE;
 }
 
 static int menualt(void)
 {
         stretchmode^=1;
-        settingsmenu[2].flags=(stretchmode)?D_SELECTED:0;
+        settingsmenu[MENU_SETTINGS_ALT_BLIT].flags = stretchmode ? D_SELECTED : 0;
         return D_CLOSE;
 }
 
 static int menublt(void)
 {
         skipblits^=1;
-        settingsmenu[3].flags=(skipblits)?D_SELECTED:0;
+        settingsmenu[MENU_SETTINGS_BLIT_OPTIMISE].flags = skipblits ? D_SELECTED : 0;
         return D_CLOSE;
 }
 
 static int menumouse(void)
 {
         mousehackon^=1;
-        settingsmenu[4].flags=(mousehackon)?D_SELECTED:0;
+        settingsmenu[MENU_SETTINGS_MOUSEHACK].flags = mousehackon ? D_SELECTED : 0;
         return D_CLOSE;
 }
 
@@ -440,10 +448,10 @@ void entergui(void)
         
         if (soundenabled) stopsound();
         
-        settingsmenu[1].flags=(fullscreen)?D_SELECTED:0;
-        settingsmenu[2].flags=(stretchmode)?D_SELECTED:0;
-        settingsmenu[3].flags=(skipblits)?D_SELECTED:0;
-        settingsmenu[4].flags=(mousehackon)?D_SELECTED:0;
+        settingsmenu[MENU_SETTINGS_FULLSCREEN].flags    = fullscreen  ? D_SELECTED : 0;
+        settingsmenu[MENU_SETTINGS_ALT_BLIT].flags      = stretchmode ? D_SELECTED : 0;
+        settingsmenu[MENU_SETTINGS_BLIT_OPTIMISE].flags = skipblits   ? D_SELECTED : 0;
+        settingsmenu[MENU_SETTINGS_MOUSEHACK].flags     = mousehackon ? D_SELECTED : 0;
         
         dp=init_dialog(rpcemugui,0);
         show_mouse(screen);
