@@ -64,7 +64,6 @@ uint32_t inscount;
 int armirq=0;
 int cpsr;
 uint32_t *pcpsr;
-unsigned char *pcpsrb;
 
 uint32_t *usrregs[16];
 static uint32_t userregs[17], superregs[17], fiqregs[17], irqregs[17];
@@ -308,7 +307,6 @@ void updatemode(uint32_t m)
 //                        printf("R15 now %08X\n",armregs[15]);
                 }
         }
-        pcpsrb=((unsigned char *)pcpsr)+3;
 }
 
 static int stmlookup[256];
@@ -686,9 +684,6 @@ static inline unsigned rotate(unsigned data)
         rotval=rotatelookup[data&4095];
         if (/*data&0x100000 && */data&0xF00)
         {
-//                (*pcpsrb)=((*pcpsrb)&~(CFLAG>>24))|(((rotval>>2)&CFLAG)>>24);
-//                /*armregs[cpsr]*/(*pcpsrb)&=~(CFLAG>>24);
-//                /*armregs[cpsr]*/(*pcpsrb)|=(((rotval>>2)&CFLAG)>>24);
                 if (rotval&0x80000000) armregs[cpsr]|=CFLAG;
                 else                   armregs[cpsr]&=~CFLAG;
         }
