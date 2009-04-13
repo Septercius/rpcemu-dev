@@ -1155,39 +1155,7 @@ void execarm(int cycs)
                                 else if ((armirq&1) && !(armregs[16]&0x80)) /*IRQ*/
                                 {
                                         armregs[15]-=4;
-//                                        exception(IRQ,0x1C,0x80,0);
-                                        if (mode&16)
-                                        {
-                                                templ=armregs[15];
-                                                spsr[IRQ]=armregs[16];
-                                                updatemode(IRQ|16);
-                                                armregs[14]=templ;
-                                                armregs[16]&=~0x1F;
-                                                armregs[16]|=0x92;
-                                                armregs[15]=0x00000001C;
-                                                refillpipeline();
-//                                                timetolive=500;
-                                        }
-                                        else if (prog32)
-                                        {
-                                                templ=armregs[15];
-                                                updatemode(IRQ|16);
-                                                armregs[14]=templ&0x3FFFFFC;
-                                                spsr[IRQ]=(armregs[16]&~0x1F)|(templ&3);
-                                                armregs[16]|=0x80;
-                                                armregs[15]=0x00000001C;
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                templ=armregs[15];
-                                                armregs[15]|=3;
-                                                updatemode(IRQ);
-                                                armregs[14]=templ;
-                                                armregs[15]&=0xFC000002;
-                                                armregs[15]|=0x0800001C;
-                                                refillpipeline();
-                                        }
+                                        exception(IRQ, 0x1c, 0);
                                         armregs[15]+=4;
                                 }
                         }
