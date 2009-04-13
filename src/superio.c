@@ -1,17 +1,20 @@
-/*RPCemu v0.6 by Tom Walker
-  PC Combo emulation*/
-
+/* SMC 37C665GT PC style Super IO chip
+   Combination
+    Floppy Controller
+    IDE Controller
+    Serial
+    Parallel
+ */
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 
 #include "rpcemu.h"
-#include "82c711.h"
+#include "fdc.h"
 #include "vidc20.h"
 #include "iomd.h"
 #include "ide.h"
 #include "arm.h"
-#include "fdc.h"
 
 static int configmode = 0;
 static uint8_t configregs[16];
@@ -20,7 +23,7 @@ static int configreg;
 static uint8_t scratch, linectrl;
 
 
-void reset82c711(void)
+void superio_reset(void)
 {
         configregs[0xA]=0;
         configregs[0xD]=0x65;
@@ -30,7 +33,7 @@ void reset82c711(void)
 }
 
 
-void write82c711(uint32_t addr, uint32_t val)
+void superio_write(uint32_t addr, uint32_t val)
 {
 	static unsigned char printstat = 0;
 
@@ -70,7 +73,7 @@ void write82c711(uint32_t addr, uint32_t val)
         }
 
 //        if (addr >= 0x278 && addr <= 0x27A)
-//           rpclog("Write 82c711 %03X %08X %07X %08X\n",addr,val,PC,armregs[12]);
+//           rpclog("Write SuperIO %03X %08X %07X %08X\n",addr,val,PC,armregs[12]);
         if ((addr >= 0x3F0) && (addr <= 0x3F7)) writefdc(addr, val);
         if ((addr == 0x27A) && ((val&0x10) || ((printstat^val)&1 && !(val&1))))
         {
@@ -96,7 +99,8 @@ void write82c711(uint32_t addr, uint32_t val)
 }
 
 
-uint8_t read82c711(uint32_t addr)
+
+uint8_t superio_read(uint32_t addr)
 {
         /* Convert memory-mapped address to IO port */
         addr = (addr >> 2) & 0x3ff;

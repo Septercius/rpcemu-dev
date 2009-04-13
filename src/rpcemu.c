@@ -14,7 +14,7 @@
 #include "ide.h"
 #include "arm.h"
 #include "cmos.h"
-#include "82c711.h"
+#include "superio.h"
 #include "romload.h"
 #include "cp15.h"
 #include "cdrom-iso.h"
@@ -93,7 +93,7 @@ void resetrpc(void)
         resetiomd();
         reseti2c();
         resetide();
-        reset82c711();
+        superio_reset();
         resetpodules();
 }
 
@@ -120,8 +120,8 @@ int startrpcemu(void)
 //printf("IOMD reset!\n");
         resetkeyboard();
 //printf("Keyboard reset!\n");
-        reset82c711();
-//printf("82c711 reset!\n");
+        superio_reset();
+//printf("SuperIO reset!\n");
         resetide();
 //printf("IDE reset!\n");
         reseti2c();

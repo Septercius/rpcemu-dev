@@ -14,8 +14,7 @@ endif
 
 all: $(EXE)
 
-OBJS =	82c711.o    \
-	arm.o       \
+OBJS =	arm.o       \
 	ArmDynarec.o \
 	cdrom-iso.o \
 	cmos.o      \
@@ -34,11 +33,11 @@ OBJS =	82c711.o    \
 	rpc-dos.o   \
 	romload.o   \
 	sound.o     \
+	superio.o   \
 	vidc20.o    \
 	hostfs.o   
 
-SRCS = 	82c711.c    \
-	arm.c       \
+SRCS =	arm.c       \
 	cdrom-iso.c \
 	cmos.c      \
 	codegen_amd.c \
@@ -56,6 +55,7 @@ SRCS = 	82c711.c    \
 	rpc-dos.c   \
 	romload.c   \
 	sound.c     \
+	superio.c   \
 	vidc20.c    \
 	hostfs.c 
 
