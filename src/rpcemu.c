@@ -86,7 +86,7 @@ void UNIMPLEMENTEDFL(const char *file, unsigned line, const char *section,
 
 void resetrpc(void)
 {
-        reallocmem(rammask + 1);
+        mem_reset(rammask + 1);
         resetcp15();
         resetarm();
         resetkeyboard();
@@ -110,7 +110,7 @@ int startrpcemu(void)
                 if (HOSTFS_ROOT[c]=='\\')
                    HOSTFS_ROOT[c]='/';
         }
-        initmem();
+        mem_init();
 //printf("Mem inited...\n");
 	loadroms();
 //printf("ROMs loaded!\n");
@@ -134,7 +134,7 @@ int startrpcemu(void)
 //printf("Video inited!\n");
         loadconfig();
         initsound();
-        reallocmem(rammask+1);
+        mem_reset(rammask + 1);
         initcodeblocks();
         iso_init();
         if (cdromtype==2) /*ISO*/

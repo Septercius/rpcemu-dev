@@ -1,5 +1,7 @@
 /*RPCemu v0.6 by Tom Walker
   Memory handling*/
+#include <assert.h>
+
 #include "rpcemu.h"
 #include "vidc20.h"
 #include "mem.h"
@@ -57,36 +59,39 @@ void clearmemcache(void)
 
 static int vraddrlpos, vwaddrlpos;
 
-void initmem(void)
+/**
+ * Initialise memory (called only once on program startup)
+ */
+void mem_init(void)
 {
-        ram=(uint32_t *)malloc(2*1024*1024);
-        ram2=(uint32_t *)malloc(2*1024*1024);
-        rom=(uint32_t *)malloc(ROMSIZE);
-        vram=(uint32_t *)malloc(8*1024*1024); /*8 meg VRAM!*/
-        ramb=(unsigned char *)ram;
-        ramb2=(unsigned char *)ram2;
-        romb=(unsigned char *)rom;
-        vramb=(unsigned char *)vram;
-        memset(ram,0,2*1024*1024);
-        memset(ram2,0,2*1024*1024);
-        memset(raddrl, 0xff, 256 * sizeof(uint32_t));
-        waddrl=0xFFFFFFFF;
-        vraddrlpos=vwaddrlpos=0;
-//printf("Init RAM %p\n",ram);
+	rom  = malloc(ROMSIZE);
+	vram = malloc(8 * 1024 * 1024); /*8 meg VRAM!*/
+	romb  = (unsigned char *) rom;
+	vramb = (unsigned char *) vram;
 }
 
-void reallocmem(int ramsize)
+/**
+ * Initialise/reset RAM (called on startup and emulated machine reset)
+ *
+ * @param ramsize Amount of RAM in bytes for each of two RAM banks
+ *                (i.e. half the desired RAM)
+ */
+void mem_reset(uint32_t ramsize)
 {
-        free(ram);
-        free(ram2);
-        ram=(uint32_t *)malloc(ramsize);
-        ramb=(unsigned char *)ram;
-        ram2=(uint32_t *)malloc(ramsize);
-        ramb2=(unsigned char *)ram2;
-        memset(ram,0,ramsize);
-        memset(ram2,0,ramsize);
-//intf("Init RAM %p %i\n",ram,ramsize);
-//        error("RAMsize now %08X RAMmask now %08X\n",ramsize,rammask);
+	assert(ramsize >= 2 * 1024 * 1024); /* At least 2MB per bank */
+	assert(ramsize <= 64 * 1024 * 1024); /* At most 64MB per bank */
+	assert(((ramsize - 1) & ramsize) == 0); /* Must be a power of 2 */
+
+	ram  = realloc(ram, ramsize);
+	ram2 = realloc(ram2, ramsize);
+	ramb  = (unsigned char *) ram;
+	ramb2 = (unsigned char *) ram2;
+	memset(ram, 0, ramsize);
+	memset(ram2, 0, ramsize);
+
+	memset(raddrl, 0xff, 256 * sizeof(uint32_t));
+	waddrl = 0xFFFFFFFF;
+	vraddrlpos = vwaddrlpos = 0;
 }
 
 #define vradd(a,v,f,p) if (vraddrls[vraddrlpos]!=0xFFFFFFFF) vraddrl[vraddrls[vraddrlpos]]=0xFFFFFFFF; \
