@@ -9,8 +9,8 @@ extern void writememfb(uint32_t addr, uint8_t val);
 extern void writememfl(uint32_t addr, uint32_t val);
 extern uint32_t readmemfb(uint32_t addr);
 extern void clearmemcache(void);
-extern void initmem(void);
-extern void reallocmem(int ramsize);
+extern void mem_init(void);
+extern void mem_reset(uint32_t ramsize);
 
 extern uint32_t raddrl[256];
 extern uint32_t *raddrl2[256];

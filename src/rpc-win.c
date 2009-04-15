@@ -605,7 +605,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         if (chngram)
                         {
                                 rammask=_mask;
-                                reallocmem(rammask+1);
+                                mem_reset(rammask + 1);
                         }
                         model=model2;
                         vrammask=vrammask2;
