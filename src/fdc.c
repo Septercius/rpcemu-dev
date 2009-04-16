@@ -184,6 +184,11 @@ void writefdc(uint32_t addr, uint32_t val)
                                         fdc.st0=fdc.parameters[0]&7;
                                         fdc.st1=fdc.st2=0;
                                         break;
+
+                                        default:
+                                        UNIMPLEMENTED("FDC command",
+                                                      "Unknown command 0x%02x",
+                                                      fdc.command);
                                 }
                         }
                         return;
@@ -262,6 +267,8 @@ void writefdc(uint32_t addr, uint32_t val)
                         break;
 
                         default:
+                        UNIMPLEMENTED("FDC command 2",
+                                      "Unknown command 0x%02x", fdc.command);
                         error("Bad FDC command %02X\n",val);
                         dumpregs();
                         exit(-1);
@@ -271,6 +278,10 @@ void writefdc(uint32_t addr, uint32_t val)
                 //output=0;
 //                printf("3F7 write %02X %07X\n",val,PC);
                 fdc.rate=val&3;
+
+                default:
+                UNIMPLEMENTED("FDC write",
+                              "Unknown register 0x%03x", addr);
         }
 }
 
@@ -296,6 +307,10 @@ uint8_t readfdc(uint32_t addr)
 //                printf("Read FDC data %02X\n",fdc.data);
                 return fdc.data;
 //                case 0x3F7: return 0x80;
+
+                default:
+                UNIMPLEMENTED("FDC read",
+                              "Unknown register 0x%03x", addr);
         }
         return 0;
 }
