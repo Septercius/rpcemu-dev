@@ -185,18 +185,4 @@ extern void fpaopcode(uint32_t opcode);
 #define CDROM_IOCTL 1
 extern int cdromtype;
 
-
-
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_
-        #ifdef __GNUC__
-	register uint32_t armptr asm("esi");
-	#endif
-#endif
-#ifdef __amd64__
-        #ifdef __GNUC__
-	register uint32_t *armptr asm("r15");
-        #endif
-#endif
-
-
 #endif

@@ -82,7 +82,6 @@ void initcodeblocks(void)
         blockpoint=0;
         for (c=0;c<BLOCKS;c++) blocks[c]=0xFFFFFFFF;
         for (c=0;c<BLOCKS;c++) codeblockaddr[c]=(unsigned long)&rcodeblock[c][12];
-//        armptr=&armregs[0];
         for (c=0;c<256;c++)
         {
                 lahftable[c]=0;
