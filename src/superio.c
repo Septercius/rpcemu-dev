@@ -72,30 +72,51 @@ void superio_write(uint32_t addr, uint32_t val)
                 }
         }
 
-//        if (addr >= 0x278 && addr <= 0x27A)
-//           rpclog("Write SuperIO %03X %08X %07X %08X\n",addr,val,PC,armregs[12]);
-        if ((addr >= 0x3F0) && (addr <= 0x3F7)) writefdc(addr, val);
-        if ((addr == 0x27A) && ((val&0x10) || ((printstat^val)&1 && !(val&1))))
-        {
-//                rpclog("Printer interrupt %02X\n",iomd.maska);
-                iomd.stata|=1;
-                updateirqs();
-        }
-        if (addr == 0x27A) printstat=val;
-        if ((addr == 0x3F9) && (val&2))
-        {
-//                printf("Serial transmit empty interrupt\n");
-                iomd.statf|=0x10;
-                updateirqs();
-        }
-        if (addr == 0x3FB) linectrl=val;
-        if (addr == 0x3FE) scratch=val;
-        if ((addr >= 0x1F0 && addr <= 0x1F7) || addr == 0x3F6)
-        {
-                ideboard=0;
-                writeide(addr, val);
-                return;
-        }
+	if ((addr >= 0x1f0 && addr <= 0x1f7) || addr == 0x3f6) {
+		/* IDE */
+		ideboard = 0;
+		writeide(addr, val);
+
+	} else if ((addr >= 0x278) && (addr <= 0x27f)) {
+		/* Parallel */
+		if (addr == 0x27a) {
+			if ((val & 0x10) || ((printstat ^ val) & 1 && !(val & 1))) {
+				// rpclog("Printer interrupt %02X\n", iomd.maska);
+				iomd.stata |= 1;
+				updateirqs();
+			}
+
+			printstat = val;
+		} else {
+			UNIMPLEMENTED("Parallel write",
+			              "Unknown register 0x%03x", addr);
+		}
+
+	} else if ((addr >= 0x3f0) && (addr <= 0x3f7)) {
+		/* Floppy */
+		writefdc(addr, val);
+
+	} else if ((addr >= 0x3f8) && (addr <= 0x3ff)) {
+		/* Serial Port 1 */
+		if ((addr == 0x3f9) && (val & 2))
+		{
+			// printf("Serial transmit empty interrupt\n");
+			iomd.statf |= 0x10;
+			updateirqs();
+		} else if (addr == 0x3fb) {
+			linectrl = val;
+		} else if (addr == 0x3fe) {
+			scratch = val;
+		} else {
+			UNIMPLEMENTED("Serial1 write",
+			              "Unknown register 0x%03x", addr);
+		}
+
+	} else {
+		UNIMPLEMENTED("SuperIO write",
+		              "Unknown register 0x%03x", addr);
+
+	}
 }
 
 
@@ -107,30 +128,48 @@ uint8_t superio_read(uint32_t addr)
 
         if (configmode==2 && addr == 0x3F1)
         {
-//                printf("Read CR%01X %02X\n",configreg,configregs[configreg]);
+                /* SuperIO Chip configuration registers */
+                // printf("Read CR%01X %02X\n",configreg,configregs[configreg]);
                 return configregs[configreg];
         }
 
-        if (addr == 0x279) return 0x90;
-        if ((addr >= 0x1F0 && addr <= 0x1F7) || addr == 0x3F6)
-        {
-                ideboard=0;
-                return readide(addr);
-        }
-        if ((addr >= 0x3F0) && (addr <= 0x3F7)) return readfdc(addr);
-        if (addr == 0x3FA)
-        {
-                iomd.statf&=~0x10;
-                updateirqs();
-                return 2;
-        }
-        if (addr == 0x3FB) return linectrl;
-        if (addr == 0x3FE) return scratch;
+	if ((addr >= 0x1f0 && addr <= 0x1f7) || addr == 0x3f6) {
+		/* IDE */
+		ideboard = 0;
+		return readide(addr);
 
-/*        if (addr == 0x3F6)
-        {
-                ide.atastat+=0x40;
-                return ide.atastat&0xC0;
-        }*/
-        return 0;
+	} else if ((addr >= 0x278) && (addr <= 0x27f)) {
+		/* Parallel */
+		if (addr == 0x279) {
+			return 0x90;
+		} else {
+			UNIMPLEMENTED("Parallel read",
+			              "Unknown register 0x%03x", addr);
+		}
+
+	} else if ((addr >= 0x3f0) && (addr <= 0x3f7)) {
+		/* Floppy */
+		return readfdc(addr);
+
+	} else if ((addr >= 0x3f8) && (addr <= 0x3ff)) {
+		/* Serial Port 1 */
+		if (addr == 0x3fa) {
+			iomd.statf &= ~0x10;
+			updateirqs();
+			return 2;
+		} else if (addr == 0x3fb) {
+			return linectrl;
+		} else if (addr == 0x3fe) {
+			return scratch;
+		} else {
+			UNIMPLEMENTED("Serial1 read",
+			              "Unknown register 0x%03x", addr);
+		}
+
+	} else {
+		UNIMPLEMENTED("SuperIO read",
+		              "Unknown register 0x%03x", addr);
+	}
+
+	return 0;
 }
