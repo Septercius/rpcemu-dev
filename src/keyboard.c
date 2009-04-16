@@ -81,6 +81,7 @@ void resetkeyboard(void)
         kcallback=0;
         kbdreset=0;
         kbdstat=0;
+        kbdcommand = 0;
         kbdqueue.rptr = 0;
         kbdqueue.wptr = 0;
         kbdqueue.count = 0;
