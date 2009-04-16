@@ -120,8 +120,6 @@ extern int stretchmode;
 extern const char *username;
 extern const char *ipaddress;
 
-extern uint32_t soundaddr[4];
-
 extern uint32_t inscount;
 extern int rinscount;
 extern int cyccount;
