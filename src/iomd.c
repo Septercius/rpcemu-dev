@@ -153,10 +153,12 @@
 
 
 /* IOMD Chip Identifiers */
-#define CHIP_ID_LOW_IOMD      0xE7     /* IOMD */
-#define CHIP_ID_HIGH_IOMD     0xD4
-#define CHIP_ID_LOW_ARM7500   0x98     /* ARM7500 */
-#define CHIP_ID_HIGH_ARM7500  0x5B
+#define CHIP_ID_LOW_IOMD        0xe7     /* IOMD */
+#define CHIP_ID_HIGH_IOMD       0xd4
+#define CHIP_ID_LOW_ARM7500     0x98     /* ARM7500 */
+#define CHIP_ID_HIGH_ARM7500    0x5b
+//#define CHIP_ID_LOW_ARM7500FE   0x7c     /* ARM7500FE */
+//#define CHIP_ID_HIGH_ARM7500FE  0xaa
 
 struct iomd iomd;
 
