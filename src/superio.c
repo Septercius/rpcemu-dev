@@ -16,6 +16,30 @@
 #include "ide.h"
 #include "arm.h"
 
+/* The chip supports entering a 'configuration' mode,
+   allowing the behaviour of the chip to be altered.
+
+   It is entered by
+   writing 0x55 to register 0x3f0
+   writing 0x55 to register 0x3f0 again
+
+   It is exited by
+   writing 0xaa to register 0x3f0
+
+   Once in 'configuration' mode a value can
+   be written to the internal configuration by
+   writing 'which value' to register 0x3f0, then
+   writing 'new value' to register 0x3f1
+
+   Configuration is read from 'configuration' mode by
+   writing 'which value' to register 0x3f0, then
+   reading the value from register 0x3f1
+*/
+
+#define SUPERIO_MODE_NORMAL		0
+#define SUPERIO_MODE_INTERMEDIATE	1
+#define SUPERIO_MODE_CONFIGURATION	2
+
 static int configmode = 0;
 static uint8_t configregs[16];
 static int configreg;
@@ -40,37 +64,35 @@ void superio_write(uint32_t addr, uint32_t val)
         /* Convert memory-mapped address to IO port */
         addr = (addr >> 2) & 0x3ff;
 
-        if (configmode!=2)
-        {
-                if ((addr == 0x3F0) && (val==0x55))
-                {
-                        configmode++;
-                        return;
-                }
-                else
-                   configmode=0;
-        }
-        if (configmode==2 && addr == 0x3F0 && val==0xAA)
-        {
-                configmode=0;
-//                printf("Cleared config mode\n");
-                return;
-        }
-        if (configmode==2)
-        {
-                if (addr == 0x3F0)
-                {
-                        configreg=val&15;
-//                        printf("Register CR%01X selected\n",configreg);
-                        return;
-                }
-                else
-                {
-                        configregs[configreg]=val;
-//                        printf("CR%01X = %02X\n",configreg,val);
-                        return;
-                }
-        }
+	if (configmode != SUPERIO_MODE_CONFIGURATION) {
+		if ((addr == 0x3f0) && (val == 0x55)) {
+			/* Attempting to enter configuration mode */
+			if (configmode == SUPERIO_MODE_NORMAL) {
+				configmode = SUPERIO_MODE_INTERMEDIATE;
+			} else if (configmode == SUPERIO_MODE_INTERMEDIATE) {
+				configmode = SUPERIO_MODE_CONFIGURATION;
+			}
+			return;
+		} else {
+			configmode = SUPERIO_MODE_NORMAL;
+		}
+	}
+
+	if (configmode == SUPERIO_MODE_CONFIGURATION) {
+		if (addr == 0x3f0) {
+			if (val == 0xaa) {
+				/* Leave configuration mode */
+				configmode = SUPERIO_MODE_NORMAL;
+			} else {
+				/* Select a configuration register */
+				configreg = val & 0xf;
+			}
+		} else {
+			/* Write to a configuration register */
+			configregs[configreg] = val;
+		}
+		return;
+	}
 
 	if ((addr >= 0x1f0 && addr <= 0x1f7) || addr == 0x3f6) {
 		/* IDE */
@@ -126,12 +148,10 @@ uint8_t superio_read(uint32_t addr)
         /* Convert memory-mapped address to IO port */
         addr = (addr >> 2) & 0x3ff;
 
-        if (configmode==2 && addr == 0x3F1)
-        {
-                /* SuperIO Chip configuration registers */
-                // printf("Read CR%01X %02X\n",configreg,configregs[configreg]);
-                return configregs[configreg];
-        }
+	if (configmode == SUPERIO_MODE_CONFIGURATION && addr == 0x3f1) {
+		/* Read from configuration register */
+		return configregs[configreg];
+	}
 
 	if ((addr >= 0x1f0 && addr <= 0x1f7) || addr == 0x3f6) {
 		/* IDE */
