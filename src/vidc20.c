@@ -1285,131 +1285,130 @@ void vidcthread(void)
 
 void writevidc20(uint32_t val)
 {
-        float f;
-//        rpclog("Write VIDC %08X %07X\n",val,PC);
-        switch (val>>24)
-        {
-                case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
-                case 8: case 9: case 0xA: case 0xB: case 0xC: case 0xD: case 0xE:
-                        case 0xF: /* Video palette data */
-//                printf("Write palette index %i %08X\n",palindex,val);
-                if (val!=vidc.vidcpal[vidc.palindex])
-                {
-                        vidc.vidcpal[vidc.palindex]=val;
-                        vidc.palchange=1;
-                }
-                vidc.palindex++;
-                vidc.palindex&=255;
-                break;
-                case 0x10: /* Video palette address pointer */
-                vidc.palindex=val&255;
-                break;
-                case 0x40: case 0x41: case 0x42: case 0x43:
-                case 0x44: case 0x45: case 0x46: case 0x47:
-                case 0x48: case 0x49: case 0x4A: case 0x4B:
-                case 0x4C: case 0x4D: case 0x4E: case 0x4F:
-                /* Border colour register */
-                if (val!=vidc.vidcpal[0x100])
-                {
-                        vidc.palchange=1;
-                        vidc.vidcpal[0x100]=val;
-//                        rpclog("Change border colour %08X\n",val);
-                }
-//                rpclog("Border now %06X\n",val&0xFFFFFF);
-                break;
-                case 0x50: case 0x51: case 0x52: case 0x53:
-                case 0x54: case 0x55: case 0x56: case 0x57:
-                case 0x58: case 0x59: case 0x5A: case 0x5B:
-                case 0x5C: case 0x5D: case 0x5E: case 0x5F:
-                /* Cursor palette (colour 1) */
-                if (val!=vidc.vidcpal[0x101])
-                {
-                        vidc.vidcpal[0x101]=val;
-                        vidc.palchange=1;
-                        vidc.curchange=1;                        
-                }
-                break;
-                case 0x60: case 0x61: case 0x62: case 0x63:
-                case 0x64: case 0x65: case 0x66: case 0x67:
-                case 0x68: case 0x69: case 0x6A: case 0x6B:
-                case 0x6C: case 0x6D: case 0x6E: case 0x6F:
-                /* Cursor palette (colour 2) */
-                if (val!=vidc.vidcpal[0x102])
-                {
-                        vidc.vidcpal[0x102]=val;
-                        vidc.palchange=1;                        
-                        vidc.curchange=1;                        
-                }
-                break;
-                case 0x70: case 0x71: case 0x72: case 0x73:
-                case 0x74: case 0x75: case 0x76: case 0x77:
-                case 0x78: case 0x79: case 0x7A: case 0x7B:
-                case 0x7C: case 0x7D: case 0x7E: case 0x7F:
-                /* Cursor palette (colour 3) */
-                if (val!=vidc.vidcpal[0x103])
-                {
-                        vidc.vidcpal[0x103]=val;
-                        vidc.palchange=1;
-                        vidc.curchange=1;
-                }
-                break;
-                case 0x83: /* Horizontal Display Start Register */
-                vidc.hdsr=val&0xFFE;
-                break;
-                case 0x84: /* Horizontal Display End Register */
-                vidc.hder=val&0xFFE;
-                break;
-                case 0x86: /* Horizontal Cursor Start Register */
-//                printf("HCSR write %03X\n",val&0xFFE);
-                if (vidc.hcsr != (val&0xFFE)) vidc.curchange=1;
-                vidc.hcsr=val&0xFFE;
-                break;
-                case 0x93: /* Vertical Display Start Register */
-                vidc.vdsr=val&0xFFF;
-                vidc.palchange=1;
-                break;
-                case 0x94: /* Vertical Display End Register */
-                vidc.vder=val&0xFFF;
-                vidc.palchange=1;
-                break;
+	int index;
+	float freq;
+
+	switch (val >> 28) {
+	case 0: /* Video Palette */
+		if (val != vidc.vidcpal[vidc.palindex]) {
+			vidc.vidcpal[vidc.palindex] = val;
+			vidc.palchange = 1;
+		}
+		/* Increment Video Palette Address, wraparound from 255 to 0 */
+		vidc.palindex = (vidc.palindex + 1) & 0xff;
+		break;
+
+	case 1: /* Video Palette Address */
+		/* These bits should not be set */
+		if ((val & 0x0fffff00) != 0) {
+			return;
+		}
+		vidc.palindex = val & 0xff;
+		break;
+
+	case 4: /* Border Colour */
+		if (val != vidc.vidcpal[0x100]) {
+			vidc.vidcpal[0x100] = val;
+			vidc.palchange = 1;
+		}
+		break;
+
+	case 5: /* Cursor Palette Colour 1 */
+	case 6: /* Cursor Palette Colour 2 */
+	case 7: /* Cursor Palette Colour 3 */
+		/* Cursor palette starts from base of 0x101 */
+		index = 0x101 + ((val >> 28) - 5);
+		if (val != vidc.vidcpal[index]) {
+			vidc.vidcpal[index] = val;
+			vidc.palchange = 1;
+			vidc.curchange = 1;
+		}
+		break;
+
+	case 8: /* Horizontal Registers */
+	case 9: /* Vertical Registers */
+		switch (val >> 24) {
+		case 0x83: /* Horizontal Display Start Register */
+			vidc.hdsr = val & 0x3ffe;
+			break;
+		case 0x84: /* Horizontal Display End Register */
+			vidc.hder = val & 0x3ffe;
+			break;
+		case 0x86: /* Horizontal Cursor Start Register */
+			if (vidc.hcsr != (val & 0x3fff)) {
+				vidc.hcsr = val & 0x3fff;
+				vidc.curchange = 1;
+			}
+			break;
+
+		case 0x93: /* Vertical Display Start Register */
+			vidc.vdsr = val & 0x1fff;
+			vidc.palchange = 1;
+			break;
+		case 0x94: /* Vertical Display End Register */
+			vidc.vder = val & 0x1fff;
+			vidc.palchange = 1;
+			break;
                 case 0x96: /* Vertical Cursor Start Register */
-//                printf("VCSR write %03X\n",val&0xFFF);
-                if (vidc.vcsr != (val&0xFFF)) vidc.curchange=1;
-                vidc.vcsr=val&0xFFF;
-                break;
-                case 0x97: /* Vertical Cursor End Register */
-//                printf("VCER write %03X\n",val&0xFFF);
-                if (vidc.vcer != (val&0xFFF)) vidc.curchange=1;
-                vidc.vcer=val&0xFFF;
-                break;
-                case 0xB0: /* Sound Frequency Register */
-                vidc.b0=val;
-//                rpclog("Write B0 %08X %08X\n",val,PC);
-                val=(vidc.b0&0xFF)+2;
-                if (vidc.b1&1) f=(1000000.0f/(float)val)/4.0f;
-                else      f=(705600.0f/(float)val)/4.0f;
-                changesamplefreq((int)f);
-//                rpclog("Sample rate : %i ns %f hz\n",val,f);
-                break;
-                case 0xB1: /* Sound Control Register */
-//                rpclog("Write B1 %08X %08X\n",val,PC);
-                vidc.b1=val;
-                val=(vidc.b0&0xFF)+2;
-                if (vidc.b1&1) f=(1000000.0f/(float)val)/4.0f;
-                else      f=(705600.0f/(float)val)/4.0f;
-                changesamplefreq((int)f);
-//                rpclog("Sample rate : %i ns %f hz\n",val,f);
-                break;
-                case 0xE0: /* Control Register */
-                if (((val>>5)&7)!=(uint32_t)vidc.bit8)
-                {
-//                        printf("Change mode - %08X %i\n",val,(val>>5)&7);
-                        vidc.bit8=(val>>5)&7;
-                        resetbuffer();
-                        vidc.palchange=1;
-                }
-                break;
-        }
+			if (vidc.vcsr != (val & 0x1fff)) {
+				vidc.vcsr = val & 0x1fff;
+				vidc.curchange = 1;
+			}
+			break;
+		case 0x97: /* Vertical Cursor End Register */
+			if (vidc.vcer != (val & 0x1fff)) {
+				vidc.vcer = val & 0x1fff;
+				vidc.curchange = 1;
+			}
+			break;
+		}
+		break;
+
+	case 0xb: /* Sound Registers */
+		switch (val >> 24) {
+		case 0xb0: /* Sound Frequency Register */
+			vidc.b0 = val;
+			break;
+
+		case 0xb1: /* Sound Control Register */
+			vidc.b1 = val;
+			break;
+
+		default: /* Not a valid register - ignore */
+			return;
+		}
+
+		/* Because either the Sound Frequency or Control register has
+		   changed recalculate the sample frequency. */
+
+		val = (vidc.b0 & 0xff) + 2;
+		/* Calculated frequency depends on selected clock: */
+		if (vidc.b1 & 1) {
+			freq = (1000000.0f / (float) val) / 4.0f;
+		} else {
+			freq = (705600.0f / (float) val) / 4.0f;
+		}
+		changesamplefreq((int) freq);
+		break;
+
+	case 0xe: /* Control Register */
+		/* These bits should not be set */
+		if ((val & 0x0ff00000) != 0) {
+			return;
+		}
+
+		if (((val >> 5) & 7) != vidc.bit8) {
+			//printf("Change mode - %08X %i\n", val, (val>>5)&7);
+			vidc.bit8 = (val >> 5) & 7;
+			resetbuffer();
+			vidc.palchange = 1;
+		}
+		break;
+
+	default:
+		UNIMPLEMENTED("VIDC register", "Unknown register 0x%08x", val);
+		break;
+	}
 }
 
 void resetbuffer(void)
