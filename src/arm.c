@@ -829,8 +829,7 @@ void exception(int mmode, uint32_t address, int diff)
 }
 #if 0
 #define writememfast(a,v) writememl(a,v)
-//#define writememfast(a,v) if (((a)&0xFFFFF000)==raddrl[((a)>>12)&0xFF]) raddrl2[((a)>>12)&0xFF][(a)>>2]=v; else writememl(a,v)
-//#define writememfast(a,v) if (((a)&0xFFFFF000)!=raddrl[((a)>>12)&0xFF]) { readmeml(a); } raddrl2[((a)>>12)&0xFF][(a)>>2]=v
+
 static inline void ldmstm(uint32_t ls_opcode, uint32_t opcode)
 {
   uint32_t templ, mask, addr, c;

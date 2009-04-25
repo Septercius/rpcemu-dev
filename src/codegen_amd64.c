@@ -124,7 +124,6 @@ d=HASH(a<<12);
 /*        codeblockpc[hash][0]=0xFFFFFFFF;
         codeblockpc[hash][1]=0xFFFFFFFF;
         codeblockpc[hash][2]=0xFFFFFFFF;*/
-//        waddrl=0xFFFFFFFF;
 }
 //#endif
 
