@@ -12,9 +12,6 @@ extern void clearmemcache(void);
 extern void mem_init(void);
 extern void mem_reset(uint32_t ramsize);
 
-extern uint32_t raddrl[256];
-extern uint32_t *raddrl2[256];
-
 extern unsigned long *vraddrl;
 extern uint32_t vraddrls[1024],vraddrphys[1024];
 //#define readmeml(a) readmemfl(a)
@@ -25,16 +22,6 @@ extern uint32_t vraddrls[1024],vraddrphys[1024];
 #else
 	#define readmemb(a) ((vraddrl[(a)>>12]&1)?readmemfb(a):*(unsigned char *)((a)+(vraddrl[(a)>>12])))
 #endif
-
-//#define readmeml(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?raddrl2[((a)>>12)&0xFF][(a)>>2]:readmemfl(a))
-//#define readmeml(a) ((((a)&0xFFFFF000)==raddrl)?raddrl2[((a)&0xFFC)>>2]:readmemfl(a))
-
-//#define readmemb(a) ((((a)>>12)==raddrl[((a)>>12)&0xFF])?((unsigned char *)raddrl2[((a)>>12)&0xFF])[(a)]:readmemfb(a))
-
-extern uint32_t waddrl;
-extern uint32_t *waddrl2;
-extern uint32_t waddrbl;
-extern uint32_t *waddrbl2;
 
 extern unsigned long *vwaddrl;
 extern uint32_t vwaddrls[1024],vwaddrphys[1024];
@@ -48,8 +35,6 @@ extern uint32_t vwaddrls[1024],vwaddrphys[1024];
 #else
 	#define writememb(a,v) if (vwaddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)((a)+vwaddrl[(a)>>12])=v; }
 #endif
-//#define writememl(a,v) if (((a)>>12)==waddrl) { waddrl2[((a)&0xFFC)>>2]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfl(a,v); }
-//#define writememb(a,v) if (((a)>>12)==waddrbl) { ((unsigned char *)waddrbl2)[(a)&0xFFF]=v; /*pagedirty[HASH(a)]=1;*/ } else { writememfb(a,v); }
 
 #define ROMSIZE (8*1024*1024)
 

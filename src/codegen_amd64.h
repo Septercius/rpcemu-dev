@@ -12,5 +12,3 @@ extern int codeinscount[0x8000];
 
 #define HASH(l) (((l)>>2)&0x7FFF)
 //#define callblock(l) (((codeblockpc[0][HASH(l)]==l)||(codeblockpc[1][HASH(l)]==l))?codecallblock(l):0)
-
-//#define cacheclearpage(hash) waddrl=codeblockpc[hash][0]=codeblockpc[hash][1]=codeblockpc[hash][2]=0xFFFFFFFF; codeblockcount[hash]=0; ins++;

@@ -71,8 +71,6 @@ void resetcp15(void)
         memset(tlbcache, 0xff, 0x100000 * sizeof(uint32_t));
         memset(tlbcache2, 0xff, TLBCACHESIZE * sizeof(uint32_t));
         tlbcachepos=0;
-        memset(raddrl, 0xff, 256 * sizeof(uint32_t));
-        waddrl=0xFFFFFFFF;
         if (!vraddrl) vraddrl=malloc(0x100000*sizeof(uint32_t *));
         memset(vraddrl,0xFF,0x100000*sizeof(uint32_t *));
         memset(vraddrls,0xFF,1024*sizeof(uint32_t));
@@ -113,8 +111,6 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 }*/
                 if (mmu != (val & CP15_CTRL_MMU))
                 {
-                        memset(raddrl, 0xff, 256 * sizeof(uint32_t));
-                        waddrl=0xFFFFFFFF;
                         resetcodeblocks();
                         cp15_vaddr_reset();
                 }
@@ -129,11 +125,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 case 2: /*TLB base*/
                 cp15.tlbbase=val&~0x3FFF;
                 cp15_vaddr_reset();
-//                memset(raddrl, 0xff, 256 * sizeof(uint32_t));
 //                resetcodeblocks();
-//                for (c=0;c<256;c++)
-//                    raddrl[c]=0xFFFFFFFF;
-//                waddrl=0xFFFFFFFF;
                 switch (cp15.tlbbase&0x1F000000)
                 {
                         case 0x02000000: /*VRAM - yes RISC OS 3.7 does put the TLB in VRAM at one point*/
@@ -166,8 +158,6 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 clearmemcache();
                 pccache = 0xFFFFFFFF;
                 blockend=1;
-                memset(raddrl, 0xff, 256 * sizeof(uint32_t));
-                waddrl=0xFFFFFFFF;
                 for (c=0;c<TLBCACHESIZE;c++)
                 {
                         if (tlbcache2[c]!=0xFFFFFFFF)
@@ -206,8 +196,6 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 //                rpclog("Cache invalidate %08X\n",PC);
                 pccache = 0xFFFFFFFF;
 //                blockend=1;
-                memset(raddrl, 0xff, 256 * sizeof(uint32_t));
-                waddrl=0xFFFFFFFF;
                 return;
                 default:
                 UNIMPLEMENTED("CP15 Write", "Unknown register %u", addr & 15);
