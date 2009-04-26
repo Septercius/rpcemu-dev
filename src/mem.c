@@ -96,29 +96,22 @@ void mem_reset(uint32_t ramsize)
 uint32_t readmemfl(uint32_t addr)
 {
         uint32_t addr2;
-//        rpclog("readmemfl %08X\n",addr);
-//        if (addr>=0x21D3738 && addr<0x21D3938) rpclog("Readl %08X %07X\n",addr,PC);
-//        if (!addr && !timetolive) timetolive=250;
+
         if (mmu)
         {
                 addr2=addr;
                 if ((addr>>12)==readmemcache)
                 {
                         addr=(addr&0xFFF)+readmemcache2;
-//                        rpclog("In readmemcache, bizarrely enough\n");
                 }
                 else
                 {
                         readmemcache=addr>>12;
-//                        rpclog("Translate read ");
-//                        if (armirq&0x40) rpclog("We're fucked 2...\n");
                         armirq&=~0x40;
                         addr=translateaddress(addr,0,0);
-//                        if (databort) rpclog("Dat abort reading %08X %08X\n",addr2,PC);
                         if (armirq&0x40)
                         {
                                 vraddrl[addr2>>12]=readmemcache=0xFFFFFFFF;
-//                                rpclog("readmemfl Abort! %08X %i\n",addr2,inscount);
                                 return 0;
                         }
                         readmemcache2=addr&0xFFFFF000;
@@ -152,22 +145,18 @@ uint32_t readmemfl(uint32_t addr)
                                 return *(uint32_t *)(vraddrl[addr2>>12]+(addr2&~3));
                                 
                                 default:
-//                                rpclog("Other\n");
                                 vraddrl[addr2>>12]=0xFFFFFFFF;
                         }
 //                }
         }
         else// if (0)
         {
-//printf("Long read %08X\n",addr);
                 switch (addr&0x1F000000)
                 {
                        case 0x00000000: /*ROM*/
 //                       vradd(addr,&rom[((addr&0x7FF000)-(addr&~0xFFF))>>2],2,addr);
                        break;
                        case 0x02000000: /*VRAM*/
-//			printf("VRAM %08X%08X %08X%08X\n",((unsigned long)vram)>>32,vram,((unsigned long)&vram[((addr&0x1FF000)-(long)(addr&~0xFFF))>>2])>>32,&vram[((addr&0x1FF000)-(long)(addr&~0xFFF))>>2]);
-//                       rpclog("VRAM\n");
                        vradd(addr,&vram[((addr&0x7FF000)-(long)(addr&~0xFFF))>>2],0,addr);
                        break;
                        case 0x10000000: /*SIMM 0 bank 0*/
@@ -184,7 +173,6 @@ uint32_t readmemfl(uint32_t addr)
                        vradd(addr,&ram2[((addr&rammask&~0xFFF)-(long)(addr&~0xFFF))>>2],0,addr);
                        break;
                        default:
-//                       rpclog("Other\n");
                        vraddrl[addr>>12]=0xFFFFFFFF;
                 }
         }
@@ -199,8 +187,6 @@ uint32_t readmemfl(uint32_t addr)
             case 0x02000000: /*VRAM*/
                 if (!vrammask || model == CPUModel_ARM7500)
                   return 0xFFFFFFFF;
-//                rpclog("Read VRAM %08X %07X - %08X\n",addr,PC,vram[(addr&vrammask)>>2]);
-//              if (vram[(addr&vrammask)>>2]==0x6E756F66) output=1;
                 return vram[(addr&vrammask)>>2];
 
             case 0x03000000: /*IO*/
@@ -226,10 +212,8 @@ uint32_t readmemfl(uint32_t addr)
                                 }
                                 break;
                                 case 4:
-//                                        rpclog("Read podulew %08X\n",addr);
                                 return readpodulew((addr&0xC000)>>14,0,addr&0x3FFF);
                                 case 7:
-//                                        rpclog("Read podulew %08X\n",addr);
                                 return readpodulew(((addr&0xC000)>>14)+4,0,addr&0x3FFF);
                         }
                 }
@@ -251,8 +235,6 @@ uint32_t readmemfl(uint32_t addr)
             case 0x11000000:
             case 0x12000000:
             case 0x13000000:
-
-//                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
                 return ram[(addr&rammask)>>2];
 
             case 0x14000000: /*SIMM 0 bank 1*/
@@ -274,15 +256,7 @@ uint32_t readmemfl(uint32_t addr)
 uint32_t readmemfb(uint32_t addr)
 {
         uint32_t addr2;
-/*        if (addr>=0x21D3738 && addr<0x21D3938)
-        {
-                rpclog("Readb %08X %07X\n",addr,PC);
-                if (PC==0x3B9699C)
-                {
-                        output=1;
-                        timetolive=50;
-                }
-        }*/
+
 /*        if (mmu)
         {
                 if ((addr>>12)==readmemcache) addr=(addr&0xFFF)+readmemcache2;
@@ -301,14 +275,11 @@ uint32_t readmemfb(uint32_t addr)
                 else
                 {
                         readmemcache=addr>>12;
-//                        rpclog("Translate read ");
                         armirq&=~0x40;
                         addr=translateaddress(addr,0,0);
-//                        if (databort) rpclog("Dat abort reading %08X %08X\n",addr2,PC);
                         if (armirq&0x40)
                         {
                                 readmemcache=0xFFFFFFFF;
-//                                rpclog("Abort! %08X\n",addr2);
                                 return 0;
                         }
                         readmemcache2=addr&0xFFFFF000;
@@ -388,10 +359,8 @@ uint32_t readmemfb(uint32_t addr)
                                    return superio_read(addr);
                                 break;
                                 case 4:
-//                                        rpclog("Read poduleb %08X\n",addr);
                                 return readpoduleb((addr&0xC000)>>14,0,addr&0x3FFF);
                                 case 7:
-//                                        rpclog("Read poduleb %08X\n",addr);
                                 return readpoduleb(((addr&0xC000)>>14)+4,0,addr&0x3FFF);
                         }
                 }
@@ -444,20 +413,17 @@ void writememfl(uint32_t addr, uint32_t val)
         uint32_t addr;
 #endif
         uint32_t addr2=addr;
-//        if (addr==0x34D20) rpclog("Writef %08X %08X %08X\n",addr,val,PC);
-//        uint32_t addr2=addr;
+
         if (mmu)
         {
                 if ((addr>>12)==writememcache) addr=(addr&0xFFF)+writememcache2;
                 else
                 {
-			//printf("Translating %08X\n",addr);
                         writememcache=addr>>12;
                         armirq&=~0x40;
                         addr=translateaddress(addr,1,0);
                         if (armirq&0x40)
                         {
-//                                rpclog("Abort! %08X\n",addr2);
                                 writememcache=0xFFFFFFFF;
                                 return;
                         }
@@ -522,7 +488,6 @@ void writememfl(uint32_t addr, uint32_t val)
         {
                 case 0x02000000: /*VRAM*/
 //                if (!vrammask) return;
-//                if (val && addr<=0x2025800) rpclog("Write VRAM %08X %07X - %08X\n",addr,PC,val);
 #ifdef LARGETLB
                 dirtybuffer[(addr&vrammask)>>12]=1;
 #endif
@@ -586,9 +551,6 @@ void writememfl(uint32_t addr, uint32_t val)
                 case 0x11000000:
                 case 0x12000000:
                 case 0x13000000:
-//                if (addr>=0x10006000 && addr<=0x10007FFF)
-//                   rpclog("Write %08X %08X\n",addr,val);
-//                printf("SIMM0 w %08X %08X %07X\n",addr,val,PC);
                 ram[(addr&rammask)>>2]=val;
 //                if (model == CPUModel_ARM7500 || (vrammask==0 && (addr&rammask)<0x100000))
 //                   dirtybuffer[(addr&rammask)>>12]=1;
@@ -623,7 +585,7 @@ void writememfb(uint32_t addr, uint8_t val)
         uint32_t addr2=addr;
 //        pagedirty[HASH(addr)]=1;
 //        pagedirty[addr>>9]=1;
-//        if ((addr&~0x1F)==0x40) rpclog("Writefb %08X %08X %08X\n",addr,val,PC);
+
         if (mmu)
         {
                 if ((addr>>12)==writemembcache) addr=(addr&0xFFF)+writemembcache2;
@@ -634,7 +596,6 @@ void writememfb(uint32_t addr, uint8_t val)
                         addr=translateaddress(addr,1,0);
                         if (armirq&0x40)
                         {
-//                                rpclog("Abort! %08X\n",addr2);
                                 writemembcache=0xFFFFFFFF;
                                 return;
                         }
@@ -704,7 +665,6 @@ void writememfb(uint32_t addr, uint8_t val)
 #ifdef LARGETLB
                 dirtybuffer[(addr&vrammask)>>12]=1;
 #endif
-//                rpclog("Writeb VRAM %08X %07X - %02X %c\n",addr,PC,val,val);
 #ifdef _RPCEMU_BIG_ENDIAN
 				addr^=3;
 #endif
