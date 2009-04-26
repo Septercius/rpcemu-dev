@@ -271,21 +271,6 @@ uint32_t readmemfl(uint32_t addr)
 }
 
 
-uint32_t mem_getphys(uint32_t addr)
-{
-        if (mmu)
-        {
-                if ((addr>>12) == readmemcache) addr=(addr&0xFFF)+readmemcache2;
-                else
-                {
-                        readmemcache = addr >> 12;
-                        addr = translateaddress(addr,0,0);
-                        readmemcache2 = addr & 0xFFFFF000;
-                }
-        }
-        return addr;
-}
-
 uint32_t readmemfb(uint32_t addr)
 {
         uint32_t addr2;
