@@ -31,7 +31,6 @@ static void codewritememflnt(void);
 unsigned char rcodeblock[BLOCKS+4][1792+512+64] = {{0}};
 static unsigned long codeblockaddr[BLOCKS];
 unsigned long codeblockpc[0x8000] = {0};
-static unsigned char codeblockisrom[0x8000];
 static unsigned char codeblockpresent[0x10000];
 int codeblocknum[0x8000] = {0};
 int codeinscount[0x8000] = {0};
@@ -254,7 +253,6 @@ void resetcodeblocks(void)
         {
                 if (blocks[c]!=0xFFFFFFFF)
                 {
-//                        if (codeblockisrom[blocks[c]&0x7FFF])
                         if ((codeblockpc[blocks[c]&0x7FFF]&0xFF800000)!=0x3800000)
                         {
                                 codeblockpc[blocks[c]&0x7FFF]=0xFFFFFFFF;
@@ -311,7 +309,6 @@ void initcodeblock(uint32_t l)
 //        if (codeblockcount[blocknum]==3) codeblockcount[blocknum]=0;
         codeblockpos=0;
         codeblockpc[blocknum]=l;
-        codeblockisrom[blocknum]=pcisrom;
         codeblocknum[blocknum]=blockpoint;
         blocks[blockpoint]=blocknum;
         blockpoint2=blockpoint;

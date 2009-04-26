@@ -46,8 +46,6 @@ extern uint32_t tlbcache[0x100000];
 
 extern int mmu,memmode;
 
-extern int pcisrom;
-
 extern void cacheclearpage(uint32_t a);
 
 #endif /* MEM_H */

@@ -9,7 +9,6 @@ int icache = 0;
 
 #define TLBCACHESIZE 256
 int mmucount=0;
-int pcisrom = 0;
 uint32_t tlbcache[0x100000] = {0};
 static uint32_t tlbcache2[TLBCACHESIZE];
 unsigned long *vraddrl = 0;
@@ -477,11 +476,9 @@ uint32_t *getpccache(uint32_t addr)
         /*Invalidate write pointer for this page - so we can handle code modification*/
         vwaddrl[addr>>12]=0xFFFFFFFF;
         //output=0;
-        pcisrom=0;
         switch (addr2&0x1F000000)
         {
                 case 0x00000000: /*ROM*/
-                pcisrom=1;
                 return &rom[((long)(addr2&0x7FF000)-(long)addr)>>2];
                 case 0x02000000: /*VRAM*/
                 return &vram[((long)(addr2&0x1FF000)-(long)addr)>>2];

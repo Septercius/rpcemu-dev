@@ -23,7 +23,6 @@ int lastflagchange;
 unsigned char rcodeblock[BLOCKS][1792];
 static uint64_t codeblockaddr[BLOCKS];
 uint32_t codeblockpc[0x8000];
-static unsigned char codeblockisrom[0x8000];
 int codeblocknum[0x8000];
 int codeinscount[0x8000];
 static unsigned char codeblockpresent[0x10000];
@@ -97,7 +96,6 @@ void resetcodeblocks(void)
         {
                 if (blocks[c]!=0xFFFFFFFF)
                 {
-//                        if (codeblockisrom[blocks[c]&0x7FFF])
                         if ((codeblockpc[blocks[c]&0x7FFF]&0xFF800000)!=0x3800000)
                         {
                                 codeblockpc[blocks[c]&0x7FFF]=0xFFFFFFFF;
@@ -153,7 +151,6 @@ void initcodeblock(uint32_t l)
         codeblockpos=0;
         codeblockpc[blocknum]=l;
 	//printf("New block %08X %08X %08X\n",blocknum,l,codeblockpc[blocknum]);
-        codeblockisrom[blocknum]=pcisrom;
         codeblocknum[blocknum]=blockpoint;
         blocks[blockpoint]=blocknum;
         blockpoint2=blockpoint;
