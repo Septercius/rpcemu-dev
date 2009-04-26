@@ -87,12 +87,6 @@ void mem_reset(uint32_t ramsize)
                        vwaddrphys[vwaddrlpos]=p; \
                        vwaddrlpos=(vwaddrlpos+1)&1023;
 
-/*#define vwadd(a,v,p)   if (vwaddrls[vwaddrlpos]!=0xFFFFFFFF) vwaddrl[vwaddrls[vwaddrlpos]]=0xFFFFFFFF; \
-                       vwaddrls[vwaddrlpos]=a>>12; \
-                       vwaddrl[a>>12]=v; \
-                       vwaddrphys[vwaddrlpos]=p; \
-                       vwaddrlpos=(vwaddrlpos+1)&1023;*/
-
 uint32_t readmemfl(uint32_t addr)
 {
         uint32_t addr2;
@@ -125,7 +119,6 @@ uint32_t readmemfl(uint32_t addr)
                                 case 0x02000000: /*VRAM*/
                                 dirtybuffer[(addr&vrammask)>>12]=2;
                                 vradd(addr2,&vram[((readmemcache2&0x7FF000)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
-//                                vwadd(addr2,&vram[((readmemcache2&0x1FF000)-(addr2&~0xFFF))>>2],readmemcache2);
                                 return *(uint32_t *)(vraddrl[addr2>>12]+(addr2&~3));
                                 
                                 case 0x10000000: /*SIMM 0 bank 0*/
@@ -133,7 +126,6 @@ uint32_t readmemfl(uint32_t addr)
                                 case 0x12000000:
                                 case 0x13000000:
                                 vradd(addr2,&ram[((readmemcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
-//                                vwadd(addr2,&ram[((readmemcache2&rammask)-(addr2&~0xFFF))>>2],readmemcache2);
                                 return *(uint32_t *)(vraddrl[addr2>>12]+(addr2&~3));
                                 
                                 case 0x14000000: /*SIMM 0 bank 1*/
@@ -141,7 +133,6 @@ uint32_t readmemfl(uint32_t addr)
                                 case 0x16000000:
                                 case 0x17000000:
                                 vradd(addr2,&ram2[((readmemcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,readmemcache2);
-//                                vwadd(addr2,&ram2[((readmemcache2&rammask)-(addr2&~0xFFF))>>2],readmemcache2);
                                 return *(uint32_t *)(vraddrl[addr2>>12]+(addr2&~3));
                                 
                                 default:
@@ -163,7 +154,6 @@ uint32_t readmemfl(uint32_t addr)
                        case 0x11000000:
                        case 0x12000000:
                        case 0x13000000:
-//                        vradd(addr2,&ram[((readmemcache2&rammask)-(addr2&~0xFFF))>>2],0,readmemcache2);
                        vradd(addr,&ram[((addr&rammask&~0xFFF)-(long)(addr&~0xFFF))>>2],0,addr);
                        break;
                        case 0x14000000: /*SIMM 0 bank 1*/
@@ -257,17 +247,6 @@ uint32_t readmemfb(uint32_t addr)
 {
         uint32_t addr2;
 
-/*        if (mmu)
-        {
-                if ((addr>>12)==readmemcache) addr=(addr&0xFFF)+readmemcache2;
-                else
-                {
-                        readmemcache=addr>>12;
-                        addr=translateaddress(addr,0);
-                        if (databort) return 0;                        
-                        readmemcache2=addr&0xFFFFF000;
-                }
-        }*/
         if (mmu)
         {
                 addr2=addr;
@@ -407,8 +386,6 @@ void writememfl(uint32_t addrt, uint32_t val)
 void writememfl(uint32_t addr, uint32_t val)
 #endif
 {
-//        pagedirty[HASH(addr)]=1;
-//        pagedirty[addr>>10]=1;
 #ifdef LARGETLB
         uint32_t addr;
 #endif
@@ -429,7 +406,6 @@ void writememfl(uint32_t addr, uint32_t val)
                         }
                         writememcache2=addr&0xFFFFF000;
                 }
-//                        if ((addr&0x1F000000)==0x2000000)
                         switch (writememcache2&0x1F000000)
                         {
                                 case 0x02000000: /*VRAM*/
@@ -451,7 +427,6 @@ void writememfl(uint32_t addr, uint32_t val)
                                 vwadd(addr2,&ram2[((writememcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,writememcache2);
                                 break;
                         }
-//                }
         }
 
 /*        if (mmu)
@@ -583,8 +558,6 @@ void writememfb(uint32_t addr, uint8_t val)
         uint32_t addr;
         #endif
         uint32_t addr2=addr;
-//        pagedirty[HASH(addr)]=1;
-//        pagedirty[addr>>9]=1;
 
         if (mmu)
         {
@@ -624,7 +597,6 @@ void writememfb(uint32_t addr, uint8_t val)
                                 vwadd(addr2,&ram2[((writemembcache2&rammask)-(long)(addr2&~0xFFF))>>2],0,writemembcache2);
                                 break;
                         }
-//                }
         }
 
 /*        if (mmu)
