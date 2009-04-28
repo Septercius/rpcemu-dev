@@ -190,7 +190,7 @@ uint32_t readmemfl(uint32_t addr)
                                 return readiomd(addr);
                                 case 1: case 2:
                                 if (addr==0x3310000)
-                                   return readmb();
+                                   return mouse_buttons_read();
                                 if ((addr&0xFFF000)==0x10000) /* SuperIO */
                                 {
                                         if ((addr&0xFFC)==0x7C0)
@@ -327,7 +327,7 @@ uint32_t readmemfb(uint32_t addr)
                                 return readiomd(addr);
                                 case 1: case 2:
                                 if (addr==0x03310000)
-                                   return readmb();
+                                   return mouse_buttons_read();
                                 if (addr>=0x03012000 && addr<=0x0302A000)
                                    return readfdcdma(addr);
                                 if ((addr&0x00FFF400)==0x0002B000) /* Network podule */
