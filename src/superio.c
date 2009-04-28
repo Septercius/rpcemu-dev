@@ -103,8 +103,8 @@ void superio_write(uint32_t addr, uint32_t val)
 		/* Parallel */
 		if (addr == 0x27a) {
 			if ((val & 0x10) || ((printstat ^ val) & 1 && !(val & 1))) {
-				// rpclog("Printer interrupt %02X\n", iomd.maska);
-				iomd.stata |= 1;
+				// rpclog("Printer interrupt %02X\n", iomd.irqa.mask);
+				iomd.irqa.status |= 1;
 				updateirqs();
 			}
 

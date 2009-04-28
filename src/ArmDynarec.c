@@ -1207,7 +1207,7 @@ void execarm(int cycs)
                         if (fdci<=0)
                         {
                                 fdci=20000;
-                                iomd.stata|=4;
+                                iomd.irqa.status |= 4;
                                 updateirqs();
                         }
                 }

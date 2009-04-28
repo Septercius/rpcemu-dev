@@ -292,7 +292,7 @@ uint8_t readfdc(uint32_t addr)
         switch (addr)
         {
                 case 0x3F4:
-                iomd.statb&=~0x10;
+                iomd.irqb.status &= ~0x10;
                 updateirqs();
 //                printf("Status : %02X %07X\n",fdc.status,PC);
                 return fdc.status;
@@ -320,7 +320,7 @@ static void fdcsend(uint8_t val)
 //        printf("New FDC data %02X %02X %i %i\n",val,fdc.command,fdc.incommand,fdc.commandpos);
         fdc.data=val;
         fdc.status=0xD0;
-        iomd.statb|=0x10;
+        iomd.irqb.status |= 0x10;
         updateirqs();
 }
 
@@ -346,7 +346,7 @@ void callbackfdc(void)
   //        int maxsector=5;
         if (fdc.reset)
         {
-                iomd.statb|=0x10;
+                iomd.irqb.status |= 0x10;
                 updateirqs();
                 fdc.reset=0;
                 fdc.status=0x80;
@@ -379,7 +379,7 @@ void callbackfdc(void)
                 fdc.incommand=0;
                 fdc.status=0x80;
                 fdc.params=fdc.curparam=0;
-                iomd.statb|=0x10;
+                iomd.irqb.status |= 0x10;
                 updateirqs();
                 fdc.st0=0x20;
 //                printf("Recalibrate complete\n");
@@ -410,7 +410,7 @@ void callbackfdc(void)
                 fdc.incommand=0;
                 fdc.status=0x80;
                 fdc.params=fdc.curparam=0;
-                iomd.statb|=0x10;
+                iomd.irqb.status |= 0x10;
                 updateirqs();
                 fdc.st0=0x20;
                 break;
@@ -560,7 +560,7 @@ void callbackfdc(void)
 //                   fdccallback=50;
                 break;
                 case 0x0A:
-                iomd.statb|=0x10;
+                iomd.irqb.status |= 0x10;
                 updateirqs();
                 fdc.st0=0x40|(fdc.parameters[0]&7);
                 fdc.st1=1;

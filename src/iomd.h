@@ -1,10 +1,19 @@
 #ifndef __IOMD__
 #define __IOMD__
 
+typedef struct {
+        uint8_t status;
+        uint8_t mask;
+} iomd_irq;
+
 struct iomd
 {
-        unsigned char stata,statb,statc,statd,state,statf;
-        unsigned char maska,maskb,maskc,maskd,maske,maskf;
+        iomd_irq irqa;
+        iomd_irq irqb;
+        iomd_irq irqc;
+        iomd_irq irqd;
+        unsigned char state, statf;
+        unsigned char maske, maskf;
         unsigned char romcr0,romcr1;
         uint32_t vidstart,vidend,vidcur,vidinit;
         int t0l,t1l,t0c,t1c,t0r,t1r;
