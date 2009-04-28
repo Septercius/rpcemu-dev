@@ -230,7 +230,6 @@ int main (int argc, char ** argv)
 	startsoundthread();
         if (soundenabled) initsound();
         infocus=1;
-        mousehackon=1;
 
         while (!quited)
         {
