@@ -86,7 +86,7 @@
 //#define IOMD_0x0D4_SELFREF  0x0D4 /* Force CAS/RAS lines low (ARM7500/FE) */
 
 
-//#define IOMD_0x0E0_ATODICR  0x0E0 /* A to D interrupt control (ARM7500/FE) */
+#define IOMD_0x0E0_ATODICR  0x0E0 /* A to D interrupt control (ARM7500/FE) */
 //#define IOMD_0x0E4_ATODSR   0x0E4 /* A to D status            (ARM7500/FE) */
 //#define IOMD_0x0E8_ATODCC   0x0E8 /* A to D convertor control (ARM7500/FE) */
 //#define IOMD_0x0EC_ATODCNT1 0x0EC /* A to D counter 1         (ARM7500/FE) */
@@ -367,6 +367,15 @@ void writeiomd(uint32_t addr, uint32_t val)
         case IOMD_0x0C4_IOTCR: /* I/O timing control */
         case IOMD_0x0C8_ECTCR: /* I/O expansion timing control */
         case IOMD_0x0D0_DRAMWID: /* DRAM width control (ARM7500/FE) */
+                return;
+
+        case IOMD_0x0E0_ATODICR: /* A to D interrupt control (ARM7500/FE) */
+                /* We do not support enabling any of the interrupts */
+                if (val != 0) {
+                        UNIMPLEMENTED("IOMD ATODICR write",
+                                      "Unsupported A to D control write 0x%x",
+                                      val);
+                }
                 return;
 
         case IOMD_0x180_SD0CURA: /* Sound DMA 0 CurA */
