@@ -568,7 +568,7 @@ uint32_t readiomd(uint32_t addr)
         exit(-1);
 }
 
-uint8_t readmb(void)
+uint8_t mouse_buttons_read(void)
 {
         unsigned char temp=0;
         if (mouse_b&1) temp|=0x40;
