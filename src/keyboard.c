@@ -149,7 +149,7 @@ static void keyboardsend(unsigned char v)
 {
 //        rpclog("Keyboard send %02X\n",v);
         iomd.keydat=v;
-        iomd.statb|=0x80;
+        iomd.irqb.status |= 0x80;
         updateirqs();
         kbdstat|=0x20;
         if (calculateparity(v)) kbdstat|=4;
@@ -162,7 +162,7 @@ void keycallback(void)
 
         if (kbdreset==1)
         {
-                iomd.statb|=0x40;
+                iomd.irqb.status |= 0x40;
                 updateirqs();
                 kbdreset=0;
                 kbdstat|=0x80;
@@ -215,7 +215,7 @@ unsigned char getkeyboardstat(void)
 unsigned char readkeyboarddata(void)
 {
         kbdstat&=~0x20;
-        iomd.statb&=~0x80;
+        iomd.irqb.status &= ~0x80;
         updateirqs();
         if (kbdcommand==0xFE) kcallback=5*4;
 //        rpclog("Read keyboard data %02X %07X\n",iomd.keydat,PC);
@@ -244,7 +244,7 @@ void writems(unsigned char v)
                 timetolive=50;
         }*/
         msstat=(msstat&0x3F)|0x40;
-        iomd.statd&=~2;
+        iomd.irqd.status &= ~2;
         updateirqs();
         justsent=1;
         if (msincommand)
@@ -325,7 +325,7 @@ unsigned char readmousedata(void)
 {
         unsigned char temp=iomd.msdat;
         msstat&=~0x20;
-        iomd.statd&=~0x1;
+        iomd.irqd.status &= ~0x1;
         updateirqs();
         if (mspacketpos<3 && mscommand==0xFE) mcallback=20;
 //        printf("Read mouse data %02X\n",iomd.msdat);
@@ -337,7 +337,7 @@ unsigned char readmousedata(void)
 static void mousesend(unsigned char v)
 {
         iomd.msdat=v;
-        iomd.statd|=1;
+        iomd.irqd.status |= 1;
         updateirqs();
         msstat|=0x20;
 //        printf("Send data %02X\n",v);
@@ -351,13 +351,13 @@ void mscallback(void)
         msstat=(msstat&0x3F)|0x80;
         if (justsent)
         {
-                iomd.statd|=2;
+                iomd.irqd.status |= 2;
                 updateirqs();
                 justsent=0;
         }
         if (msreset==1)
         {
-                iomd.statd|=2;
+                iomd.irqd.status |= 2;
                 updateirqs();
                 msreset=3;
                 msstat|=0x80;

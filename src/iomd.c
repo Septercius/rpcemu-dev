@@ -174,7 +174,10 @@ static int flyback=0;
 
 void updateirqs(void)
 {
-        if ((iomd.stata&iomd.maska) || (iomd.statb&iomd.maskb) || (iomd.statd&iomd.maskd) || (iomd.state&iomd.maske))
+        if ((iomd.irqa.status & iomd.irqa.mask) ||
+            (iomd.irqb.status & iomd.irqb.mask) ||
+            (iomd.irqd.status & iomd.irqd.mask) ||
+            (iomd.state & iomd.maske))
            armirq|=1;
         else
            armirq&=~1;
@@ -191,14 +194,14 @@ static void gentimerirq(void)
         while (iomd.t0c<0 && iomd.t0l)
         {
                 iomd.t0c+=iomd.t0l;
-                iomd.stata|=0x20;
+                iomd.irqa.status |= 0x20;
                 updateirqs();
         }
         iomd.t1c-=4000;//10000;
         while (iomd.t1c<0 && iomd.t1l)
         {
                 iomd.t1c+=iomd.t1l;
-                iomd.stata|=0x40;
+                iomd.irqa.status |= 0x40;
                 updateirqs();
         }
         if (soundinited && sndon)
@@ -216,7 +219,7 @@ static void gentimerirq(void)
 
 static void timerairq(void)
 {
-        iomd.stata|=0x20;
+        iomd.irqa.status |= 0x20;
         updateirqs();
 }
 
@@ -233,7 +236,7 @@ static void settimera(int latch)
 
 static void timerbirq(void)
 {
-        iomd.stata|=0x40;
+        iomd.irqa.status |= 0x40;
         updateirqs();
 }
 
@@ -271,16 +274,16 @@ void writeiomd(uint32_t addr, uint32_t val)
                 return;
 
         case IOMD_0x014_IRQRQA: /* IRQA request/clear */
-                iomd.stata&=~val;
+                iomd.irqa.status &= ~val;
                 updateirqs();
                 return;
         case IOMD_0x018_IRQMSKA: /* IRQA mask */
-                iomd.maska=val;
+                iomd.irqa.mask = val;
                 updateirqs();
                 return;
 
         case IOMD_0x028_IRQMSKB: /* IRQB mask */
-                iomd.maskb=val;
+                iomd.irqb.mask = val;
                 updateirqs();
                 return;
 
@@ -332,7 +335,7 @@ void writeiomd(uint32_t addr, uint32_t val)
                 break;
 
         case IOMD_0x068_IRQMSKC: /* IRQC mask (ARM7500/FE) */
-                iomd.maskc=val;
+                iomd.irqc.mask = val;
                 return;
 
         case IOMD_0x06C_VIDIMUX: /* LCD and IIS control bits (ARM7500/FE) */
@@ -341,7 +344,7 @@ void writeiomd(uint32_t addr, uint32_t val)
         case IOMD_0x074_IRQRQD: /* IRQD request/clear (ARM7500/FE) */
                 return;
         case IOMD_0x078_IRQMSKD: /* IRQD mask (ARM7500/FE) */
-                iomd.maskd=val;
+                iomd.irqd.mask = val;
                 return;
 
         case IOMD_0x080_ROMCR0: /* ROM control bank 0 */
@@ -467,18 +470,18 @@ uint32_t readiomd(uint32_t addr)
                 return 0;
 
         case IOMD_0x010_IRQSTA: /* IRQA status */
-                return iomd.stata;
+                return iomd.irqa.status;
         case IOMD_0x014_IRQRQA: /* IRQA request/clear */
-                return iomd.stata&iomd.maska;
+                return iomd.irqa.status & iomd.irqa.mask;
         case IOMD_0x018_IRQMSKA: /* IRQA mask */
-                return iomd.maska;
+                return iomd.irqa.mask;
 
         case IOMD_0x020_IRQSTB: /* IRQB status */
-                return iomd.statb;
+                return iomd.irqb.status;
         case IOMD_0x024_IRQRQB: /* IRQB request/clear */
-                return iomd.statb&iomd.maskb;
+                return iomd.irqb.status & iomd.irqb.mask;
         case IOMD_0x028_IRQMSKB: /* IRQB mask */
-                return iomd.maskb;
+                return iomd.irqb.mask;
 
         case IOMD_0x038_FIQMSK: /* FIQ mask */
                 return iomd.maskf;
@@ -494,18 +497,18 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.t1r >> 8;
 
         case IOMD_0x060_IRQSTC: /* IRQC status (ARM7500/FE) */
-                return iomd.statc;
+                return iomd.irqc.status;
         case IOMD_0x064_IRQRQC: /* IRQC request/clear (ARM7500/FE) */
-                return iomd.statc&iomd.maskc;
+                return iomd.irqc.status & iomd.irqc.mask;
         case IOMD_0x068_IRQMSKC: /* IRQC mask (ARM7500/FE) */
-                return iomd.maskc;
+                return iomd.irqc.mask;
 
         case IOMD_0x070_IRQSTD: /* IRQD status (ARM7500/FE) */
-                return iomd.statd|0x18;
+                return iomd.irqd.status | 0x18;
         case IOMD_0x074_IRQRQD: /* IRQD request/clear (ARM7500/FE) */
-                return (iomd.statd|0x18)&iomd.maskd;
+                return (iomd.irqd.status | 0x18) & iomd.irqd.mask;
         case IOMD_0x078_IRQMSKD: /* IRQD mask (ARM7500/FE) */
-                return iomd.maskd;
+                return iomd.irqd.mask;
 
         case IOMD_0x080_ROMCR0: /* ROM control bank 0 */
                 return iomd.romcr0;
@@ -579,17 +582,33 @@ uint8_t mouse_buttons_read(void)
 
 void dumpiomd(void)
 {
-        error("IOMD :\nSTATA %02X STATB %02X STATC %02X STATD %02X\nMASKA %02X MASKB %02X MASKC %02X MASKD %02X\n",iomd.stata,iomd.statb,iomd.statc,iomd.statd,iomd.maska,iomd.maskb,iomd.maskc,iomd.maskd);
+        error("IOMD :\n"
+              "STATA %02X STATB %02X STATC %02X STATD %02X\n"
+              "MASKA %02X MASKB %02X MASKC %02X MASKD %02X\n",
+              iomd.irqa.status,
+              iomd.irqb.status,
+              iomd.irqc.status,
+              iomd.irqd.status,
+              iomd.irqa.mask,
+              iomd.irqb.mask,
+              iomd.irqc.mask,
+              iomd.irqd.mask);
 }
 
 void resetiomd(void)
 {
         remove_int(gentimerirq);
-        iomd.stata=0x10;
         iomd.romcr0=iomd.romcr1=0x40;
         iomd.sndstat=6;
-        iomd.statb=iomd.statc=iomd.statd=0;
-        iomd.maska=iomd.maskb=iomd.maskc=iomd.maskd=iomd.maske=0;
+        iomd.irqa.status = 0x10;
+        iomd.irqb.status = 0;
+        iomd.irqc.status = 0;
+        iomd.irqd.status = 0;
+        iomd.irqa.mask = 0;
+        iomd.irqb.mask = 0;
+        iomd.irqc.mask = 0;
+        iomd.irqd.mask = 0;
+        iomd.maske = 0;
         remove_int(timerairq);
         remove_int(timerbirq);
         soundcount=100000;
@@ -609,13 +628,13 @@ void updateiomdtimers(void)
         if (iomd.t0c<0)
         {
                 iomd.t0c+=iomd.t0l;
-                iomd.stata|=0x20;
+                iomd.irqa.status |= 0x20;
                 updateirqs();
         }
         if (iomd.t1c<0)
         {
                 iomd.t1c+=iomd.t1l;
-                iomd.stata|=0x40;
+                iomd.irqa.status |= 0x40;
                 updateirqs();
         }
 }
@@ -625,7 +644,7 @@ void iomdvsync(int vsync)
         if (vsync)
         {
 //                rpclog("Vsync high\n");
-                iomd.stata|=8;
+                iomd.irqa.status |= 8;
                 updateirqs();
                 flyback=1;
         }
@@ -638,6 +657,10 @@ void iomdvsync(int vsync)
 
 void dumpiomdregs(void)
 {
-        printf("IRQ STAT A %02X B %02X D %02X F %02X\n",iomd.stata,iomd.statb,iomd.statd,iomd.statf);
-        printf("IRQ MASK A %02X B %02X D %02X F %02X\n",iomd.maska,iomd.maskb,iomd.maskd,iomd.maskf);
+        printf("IRQ STAT A %02X B %02X D %02X F %02X\n",
+               iomd.irqa.status, iomd.irqb.status,
+               iomd.irqd.status, iomd.statf);
+        printf("IRQ MASK A %02X B %02X D %02X F %02X\n",
+               iomd.irqa.mask, iomd.irqb.mask,
+               iomd.irqd.mask, iomd.maskf);
 }

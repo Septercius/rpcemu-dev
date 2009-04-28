@@ -4132,7 +4132,6 @@ void execarm(int cycs)
                                 }
                                 else if ((armirq&1) && !(armregs[16]&0x80)) /*IRQ*/
                                 {
-//                                        if (output) rpclog("IRQ %02X %02X %02X %02X %08X %08X %02X %08X\n",iomd.stata&iomd.maska,iomd.statb&iomd.maskb,iomd.statc&iomd.maskc,iomd.statd&iomd.maskd,PC,armregs[13],mode,irqregs[0]);
 //                                        if (output) printf("IRQ %i %i\n",prog32,mode&16);
                                         exception(IRQ, 0x1c, 0);
                                 }
@@ -4240,7 +4239,7 @@ void execarm(int cycs)
                         if (fdci<=0)
                         {
                                 fdci=20000;
-                                iomd.stata|=4;
+                                iomd.irqa.status |= 4;
                                 updateirqs();
                         }
                 }

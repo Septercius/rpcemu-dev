@@ -88,7 +88,7 @@ static inline void
 ide_irq_raise(void)
 {
 	if (ide.board == 0) {
-		iomd.statb |= 2;
+		iomd.irqb.status |= 2;
 		updateirqs();
 	}
 }
@@ -97,7 +97,7 @@ static inline void
 ide_irq_lower(void)
 {
 	if (ide.board == 0) {
-		iomd.statb &= ~2;
+		iomd.irqb.status &= ~2;
 		updateirqs();
 	}
 }
