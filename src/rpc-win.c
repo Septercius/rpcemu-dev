@@ -90,7 +90,7 @@ static void sndupdate(void)
 {
         int nextlen;
         float temp;
-        iomd.state|=0x10;
+        iomd.irqdma.status |= 0x10;
         updateirqs();
         iomd.sndstat^=1;
         iomd.sndstat|=6;

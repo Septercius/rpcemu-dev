@@ -12,8 +12,8 @@ struct iomd
         iomd_irq irqb;
         iomd_irq irqc;
         iomd_irq irqd;
-        unsigned char state, statf;
-        unsigned char maske, maskf;
+        iomd_irq fiq;
+        iomd_irq irqdma;
         unsigned char romcr0,romcr1;
         uint32_t vidstart,vidend,vidcur,vidinit;
         int t0l,t1l,t0c,t1c,t0r,t1r;

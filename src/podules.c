@@ -56,7 +56,7 @@ void rethinkpoduleints(void)
 {
         int c;
         iomd.irqb.status &= ~0x21; /*1 is FIQ downgrade, 0x20 is IRQ*/
-        iomd.statf&=~0x40; /*0x40 is FIQ*/
+        iomd.fiq.status &= ~0x40; /*0x40 is FIQ*/
         for (c=0;c<8;c++)
         {
                 if (podules[c].irq)
@@ -67,7 +67,7 @@ void rethinkpoduleints(void)
                 if (podules[c].fiq)
                 {
                         iomd.irqb.status |= 1;
-                        iomd.statf|=0x40;
+                        iomd.fiq.status |= 0x40;
                 }
         }
         updateirqs();

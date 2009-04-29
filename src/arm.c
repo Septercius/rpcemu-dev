@@ -4127,7 +4127,7 @@ void execarm(int cycs)
                                 }
                                 else if ((armirq&2) && !(armregs[16]&0x40)) /*FIQ*/
                                 {
-//                                        printf("FIQ %02X %02X\n",iomd.statf,iomd.maskf);
+//                                        printf("FIQ %02X %02X\n", iomd.fiq.status, iomd.fiq.mask);
                                         exception(FIQ,0x20,0);
                                 }
                                 else if ((armirq&1) && !(armregs[16]&0x80)) /*IRQ*/

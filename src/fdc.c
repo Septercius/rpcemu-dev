@@ -335,7 +335,7 @@ static void fdcsenddata(uint8_t val)
 {
 //        printf("New FDC DMA data %02X %02X %i %i  %i %i %i\n",val,fdc.command,fdc.incommand,fdc.commandpos,fdc.side,fdc.track,fdc.sector);
         fdc.dmadat=val;
-        iomd.statf|=1;
+        iomd.fiq.status |= 1;
         updateirqs();
 //        timetolive=50;
 }
@@ -480,7 +480,7 @@ void callbackfdc(void)
                         else
                         {
 //                                printf("FIQ\n");
-                                iomd.statf|=1;
+                                iomd.fiq.status |= 1;
                                 updateirqs();
                         }
                         fdccallback=0;
@@ -574,7 +574,7 @@ void callbackfdc(void)
 uint8_t readfdcdma(uint32_t addr)
 {
 //        printf("Read FDC DMA %08X\n",addr);
-        iomd.statf&=~1;
+        iomd.fiq.status &= ~1;
         updateirqs();
         fdccallback=100;
         if (!fdc.commandpos) fdccallback=2000;
@@ -592,7 +592,7 @@ uint8_t readfdcdma(uint32_t addr)
 
 void writefdcdma(uint32_t addr, uint8_t val)
 {
-        iomd.statf&=~1;
+        iomd.fiq.status &= ~1;
         updateirqs();
         fdccallback=200;
         if (!fdc.commandpos) fdccallback=2000;
