@@ -123,7 +123,7 @@ void superio_write(uint32_t addr, uint32_t val)
 		if ((addr == 0x3f9) && (val & 2))
 		{
 			// printf("Serial transmit empty interrupt\n");
-			iomd.statf |= 0x10;
+			iomd.fiq.status |= 0x10;
 			updateirqs();
 		} else if (addr == 0x3fb) {
 			linectrl = val;
@@ -174,7 +174,7 @@ uint8_t superio_read(uint32_t addr)
 	} else if ((addr >= 0x3f8) && (addr <= 0x3ff)) {
 		/* Serial Port 1 */
 		if (addr == 0x3fa) {
-			iomd.statf &= ~0x10;
+			iomd.fiq.status &= ~0x10;
 			updateirqs();
 			return 2;
 		} else if (addr == 0x3fb) {

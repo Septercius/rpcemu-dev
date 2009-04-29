@@ -177,13 +177,17 @@ void updateirqs(void)
         if ((iomd.irqa.status & iomd.irqa.mask) ||
             (iomd.irqb.status & iomd.irqb.mask) ||
             (iomd.irqd.status & iomd.irqd.mask) ||
-            (iomd.state & iomd.maske))
-           armirq|=1;
-        else
-           armirq&=~1;
-        if (iomd.statf&iomd.maskf) armirq|=2;
-        else                       armirq&=~2;
-//        if (!(irq&3)) armirq&=~3;
+            (iomd.irqdma.status & iomd.irqdma.mask))
+        {
+                armirq |= 1;
+        } else {
+                armirq &= ~1;
+        }
+        if (iomd.fiq.status & iomd.fiq.mask) {
+                armirq |= 2;
+        } else {
+                armirq &= ~2;
+        }
 }
 
 static void gentimerirq(void)
@@ -288,7 +292,7 @@ void writeiomd(uint32_t addr, uint32_t val)
                 return;
 
         case IOMD_0x038_FIQMSK: /* FIQ mask */
-                iomd.maskf=val;
+                iomd.fiq.mask = val;
                 return;
 
         case IOMD_0x03C_CLKCTL: /* Clock divider control (ARM7500/FE) */
@@ -387,7 +391,7 @@ void writeiomd(uint32_t addr, uint32_t val)
         case IOMD_0x18C_SD0ENDB: /* Sound DMA 0 EndB */
                 // rpclog("Write sound DMA %08X %02X\n",addr,val);
                 iomd.sndstat&=1;
-                iomd.state&=~0x10;
+                iomd.irqdma.status &= ~0x10;
                 updateirqs();
                 soundaddr[(addr>>2)&3]=val;
                 // rpclog("Buffer A start %08X len %08X\nBuffer B start %08X len %08X\n",
@@ -400,7 +404,7 @@ void writeiomd(uint32_t addr, uint32_t val)
                 {
                         iomd.sndstat=6;
                         soundinited=1;
-                        iomd.state|=0x10;
+                        iomd.irqdma.status |= 0x10;
                         updateirqs();
                 }
                 sndon=val&0x20;
@@ -441,7 +445,7 @@ void writeiomd(uint32_t addr, uint32_t val)
         case IOMD_0x1F4_DMARQ: /* DMA interupt request */
                 return;
         case IOMD_0x1F8_DMAMSK: /* DMA interupt mask */
-                iomd.maske=val;
+                iomd.irqdma.mask = val;
                 return;
 
         default:
@@ -484,7 +488,7 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.irqb.mask;
 
         case IOMD_0x038_FIQMSK: /* FIQ mask */
-                return iomd.maskf;
+                return iomd.fiq.mask;
 
         case IOMD_0x040_T0LOW: /* Timer 0 low bits */
                 return iomd.t0r & 0xFF;
@@ -554,11 +558,11 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.vidcr|0x50;
 
         case IOMD_0x1F0_DMAST: /* DMA interupt status */
-                return iomd.state;
+                return iomd.irqdma.status;
         case IOMD_0x1F4_DMARQ: /* DMA interupt request */
-                return iomd.state&iomd.maske;
+                return iomd.irqdma.status & iomd.irqdma.mask;
         case IOMD_0x1F8_DMAMSK: /* DMA interupt mask */
-                return iomd.maske;
+                return iomd.irqdma.mask;
 
         default:
                 UNIMPLEMENTED("IOMD Register read",
@@ -608,7 +612,7 @@ void resetiomd(void)
         iomd.irqb.mask = 0;
         iomd.irqc.mask = 0;
         iomd.irqd.mask = 0;
-        iomd.maske = 0;
+        iomd.irqdma.mask = 0;
         remove_int(timerairq);
         remove_int(timerbirq);
         soundcount=100000;
@@ -659,8 +663,8 @@ void dumpiomdregs(void)
 {
         printf("IRQ STAT A %02X B %02X D %02X F %02X\n",
                iomd.irqa.status, iomd.irqb.status,
-               iomd.irqd.status, iomd.statf);
+               iomd.irqd.status, iomd.fiq.status);
         printf("IRQ MASK A %02X B %02X D %02X F %02X\n",
                iomd.irqa.mask, iomd.irqb.mask,
-               iomd.irqd.mask, iomd.maskf);
+               iomd.irqd.mask, iomd.fiq.mask);
 }

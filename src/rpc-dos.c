@@ -99,7 +99,7 @@ void vidcreleasemutex(void)
 
 void sndint(void)
 {
-        iomd.state|=0x10;
+        iomd.irqdma.status |= 0x10;
         updateirqs();
         iomd.sndstat|=6;
         iomd.sndstat^=1;
