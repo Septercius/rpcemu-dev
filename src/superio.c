@@ -49,11 +49,26 @@ static uint8_t scratch, linectrl;
 
 void superio_reset(void)
 {
-        configregs[0xA]=0;
-        configregs[0xD]=0x65;
-        configregs[0xE]=2;
-        configregs[0xF]=0;
-        fdc_reset();
+	/* Initial configuration register default values from the datasheet */
+	configregs[0x0] = 0x3b;
+	configregs[0x1] = 0x9f;
+	configregs[0x2] = 0xdc;
+	configregs[0x3] = 0x78;
+	configregs[0x4] = 0x00;
+	configregs[0x5] = 0x00;
+	configregs[0x6] = 0xff; /* Floppy Drive types for four floppy drives */
+	configregs[0x7] = 0x00;
+	configregs[0x8] = 0x00;
+	configregs[0x9] = 0x00;
+	configregs[0xa] = 0x00; /* FIFO threshhold for ECP parallel port */
+	configregs[0xb] = 0x00; /* Reserved (undefined when read) */
+	configregs[0xc] = 0x00; /* Reserved (undefined when read) */
+	configregs[0xd] = 0x65; /* Chip ID */
+	configregs[0xe] = 0x02; /* Chip revision level
+	                           (see page 127 not 119 of datasheet) */
+	configregs[0xf] = 0x00; /* Test modes reserved */
+
+	fdc_reset();
 }
 
 
