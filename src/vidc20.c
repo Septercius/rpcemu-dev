@@ -1328,12 +1328,24 @@ void writevidc20(uint32_t val)
 	case 8: /* Horizontal Registers */
 	case 9: /* Vertical Registers */
 		switch (val >> 24) {
+		case 0x80: /* Horizontal Cycle Register */
+		case 0x81: /* Horizontal Sync Width Register */
+		case 0x82: /* Horizontal Border Start Register */
+			/* No need to emulate */
+			break;
+
 		case 0x83: /* Horizontal Display Start Register */
 			vidc.hdsr = val & 0x3ffe;
 			break;
+
 		case 0x84: /* Horizontal Display End Register */
 			vidc.hder = val & 0x3ffe;
 			break;
+
+		case 0x85: /* Horizontal Border End Register */
+			/* No need to emulate */
+			break;
+
 		case 0x86: /* Horizontal Cursor Start Register */
 			if (vidc.hcsr != (val & 0x3fff)) {
 				vidc.hcsr = val & 0x3fff;
@@ -1341,27 +1353,56 @@ void writevidc20(uint32_t val)
 			}
 			break;
 
+		case 0x87: /* Horizontal interlace register */
+			/* Program for interlaced display.
+			   (VIDC20 only, not ARM7500/FE).
+			   No need to emulate */
+			break;
+
+		case 0x90: /* Vertical Cycle Register */
+		case 0x91: /* Vertical Sync Width Register */
+		case 0x92: /* Vertical Border Start Register */
+			/* No need to emulate */
+			break;
+
 		case 0x93: /* Vertical Display Start Register */
 			vidc.vdsr = val & 0x1fff;
 			vidc.palchange = 1;
 			break;
+
 		case 0x94: /* Vertical Display End Register */
 			vidc.vder = val & 0x1fff;
 			vidc.palchange = 1;
 			break;
-                case 0x96: /* Vertical Cursor Start Register */
+
+		case 0x95: /* Vertical Border End Register */
+			/* No need to emulate */
+			break;
+
+		case 0x96: /* Vertical Cursor Start Register */
 			if (vidc.vcsr != (val & 0x1fff)) {
 				vidc.vcsr = val & 0x1fff;
 				vidc.curchange = 1;
 			}
 			break;
+
 		case 0x97: /* Vertical Cursor End Register */
 			if (vidc.vcer != (val & 0x1fff)) {
 				vidc.vcer = val & 0x1fff;
 				vidc.curchange = 1;
 			}
 			break;
+
+		default:
+			UNIMPLEMENTED("VIDC Horiz/Vert",
+			              "Unknown register 0x%08x 0x%02x",
+			              val, val >> 24);
 		}
+		break;
+
+	case 0xa: /* Stereo Image Registers */
+		/* VIDC20 only (for 8-bit VIDC10 compatible system).
+		   No need to emulate. */
 		break;
 
 	case 0xb: /* Sound Registers */
@@ -1391,6 +1432,16 @@ void writevidc20(uint32_t val)
 		changesamplefreq((int) freq);
 		break;
 
+	case 0xc: /* External Register */
+		/* Used to control things such as the Sync polarity
+		   and the 'external port', no need to emulate. */
+		break;
+
+	case 0xd: /* Frequency Synthesizer Register */
+		/* Used to set the frequency of the pixel clock.
+		   No need to emulate */
+		break;
+
 	case 0xe: /* Control Register */
 		/* These bits should not be set */
 		if ((val & 0x0ff00000) != 0) {
@@ -1405,8 +1456,16 @@ void writevidc20(uint32_t val)
 		}
 		break;
 
+	case 0xf: /* Data Control Register */
+		/* Used to program the length of the raster, this enables
+		   DMA access near the end of the raster line. No need to
+		   emulate. */
+		break;
+
 	default:
-		UNIMPLEMENTED("VIDC register", "Unknown register 0x%08x", val);
+		UNIMPLEMENTED("VIDC register",
+		              "Unknown register 0x%08x 0x%x",
+		              val, val >> 28);
 		break;
 	}
 }
