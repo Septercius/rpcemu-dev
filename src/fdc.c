@@ -278,6 +278,7 @@ void writefdc(uint32_t addr, uint32_t val)
                 //output=0;
 //                printf("3F7 write %02X %07X\n",val,PC);
                 fdc.rate=val&3;
+                break;
 
                 default:
                 UNIMPLEMENTED("FDC write",
