@@ -364,6 +364,30 @@ static void calccrc(unsigned short *crc, unsigned char byte)
         }
 }
 
+static void
+vidc_palette_update(void)
+{
+	int i;
+
+	for (i = 0; i < 0x100; i++) {
+		thr.pal[i].r = makecol(vidc.vidcpal[i] & 0xff, 0, 0);
+		thr.pal[i].g = makecol(0, (vidc.vidcpal[i] >> 8) & 0xff, 0);
+		thr.pal[i].b = makecol(0, 0, (vidc.vidcpal[i] >> 16) & 0xff);
+	}
+	for (i = 0; i < 0x104; i++) {
+		thr.vpal[i] = makecol(vidc.vidcpal[i] & 0xff,
+		                      (vidc.vidcpal[i] >> 8) & 0xff,
+		                      (vidc.vidcpal[i] >> 16) & 0xff);
+	}
+	if ((vidc.bit8 == 4) && (drawcode == 16)) {
+		for (i = 0; i < 65536; i++) {
+			thr.pal16lookup[i] = thr.pal[i & 0xff].r |
+			                     thr.pal[(i >> 4) & 0xff].g |
+			                     thr.pal[i >> 8].b;
+		}
+	}
+}
+
 /* Called periodically from the main thread. If needredraw is non-zero
    then the refresh timer indicates it is time for a new frame */
 void drawscr(int needredraw)
@@ -388,27 +412,8 @@ void drawscr(int needredraw)
                 thr.cursory=vidc.vcsr-vidc.vdsr;
                 thr.cursorheight=vidc.vcer-vidc.vcsr;
 
-                if (vidc.palchange)
-                {
-                        int i;
-                        for (i=0; i < 0x100; i++)
-                        {
-                                thr.pal[i].r=makecol(vidc.vidcpal[i]&0xFF,0,0);
-                                thr.pal[i].g=makecol(0,(vidc.vidcpal[i]>>8)&0xFF,0);
-                                thr.pal[i].b=makecol(0,0,(vidc.vidcpal[i]>>16)&0xFF);
-                        }
-                        for (i=0; i < 0x104; i++)
-                        {
-                                thr.vpal[i]=makecol(vidc.vidcpal[i]&0xFF,(vidc.vidcpal[i]>>8)&0xFF,(vidc.vidcpal[i]>>16)&0xFF);
-                        }
-                        if ((vidc.bit8 == 4) && (drawcode == 16))
-                        {
-                                int i;
-                                for (i=0;i<65536;i++)
-                                {
-                                        thr.pal16lookup[i]=thr.pal[i&0xFF].r|thr.pal[(i>>4)&0xFF].g|thr.pal[i>>8].b;
-                                }
-                        }
+                if (vidc.palchange) {
+                        vidc_palette_update();
                 }
 
 
