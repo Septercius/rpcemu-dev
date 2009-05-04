@@ -529,10 +529,12 @@ void drawscr(int needredraw)
         }
         if (needredraw)
         {
+                uint32_t invalidate = thr.iomd_vidinit & 0x1f000000;
+
                 for (c=0;c<1024;c++)
                 {
 //                        rpclog("%03i %08X %08X %08X\n",c,vraddrphys[c],(vraddrphys[c]&0x1F000000),vraddrls[c]<<12);
-                        if ((vwaddrphys[c]&0x1F000000)==0x02000000)
+                        if ((vwaddrphys[c] & 0x1f000000) == invalidate)
                         {
 //                                rpclog("Invalidated %08X\n",vraddrls[c]);
                                 vwaddrl[vwaddrls[c]]=0xFFFFFFFF;
