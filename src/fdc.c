@@ -109,7 +109,7 @@ void writefdc(uint32_t addr, uint32_t val)
         //printf("FDC write %03X %08X %08X\n", addr, val, PC);
         switch (addr)
         {
-                case 0x3F2: /*DOR*/
+        case 0x3f2: /* Digital Output Register (DOR) */
                 if ((val&4) && !(fdc.dor&4)) /*Reset*/
                 {
                         fdc.reset=1;
@@ -118,12 +118,14 @@ void writefdc(uint32_t addr, uint32_t val)
                 if (!(val&4)) fdc.status=0x80;
                 if (val&0x10) motoron=1;
                 break;
-                case 0x3F4:
-//                printf("3F4 write %02X %07X\n",val,PC);
+
+        case 0x3f4: /* Data Rate Select Register (DSR) */
+                // printf("3f4 write %02X %07X\n", val, PC);
                 break;
-                case 0x3F5: /*Command*/
+
+        case 0x3f5: /* Data (FIFO) - Command */
                 //output=0;
-//                printf("Command write %02X %i : rate %i\n",val,ins,fdc.rate);
+                // printf("Command write %02X %i : rate %i\n", val, ins, fdc.rate);
                 timetolive=50;
                 if (fdc.params)
                 {
@@ -274,13 +276,14 @@ void writefdc(uint32_t addr, uint32_t val)
                         exit(-1);
                 }
                 break;
-                case 0x3F7:
+
+        case 0x3f7: /* Configuration Control Register (CCR) */
                 //output=0;
-//                printf("3F7 write %02X %07X\n",val,PC);
+                // printf("3f7 write %02X %07X\n", val, PC);
                 fdc.rate=val&3;
                 break;
 
-                default:
+        default:
                 UNIMPLEMENTED("FDC write",
                               "Unknown register 0x%03x", addr);
         }
@@ -292,24 +295,27 @@ uint8_t readfdc(uint32_t addr)
         //printf("FDC read %03X %08X\n", addr, PC);
         switch (addr)
         {
-                case 0x3F4:
+        case 0x3f4: /* Main Status Register (MSR) */
                 iomd.irqb.status &= ~0x10;
                 updateirqs();
-//                printf("Status : %02X %07X\n",fdc.status,PC);
+                // printf("Status : %02X %07X\n", fdc.status, PC);
                 return fdc.status;
-                case 0x3F5: /*Data*/
-/*                if (fdc.command==4)
+
+        case 0x3f5: /* Data (FIFO) */
+                /* if (fdc.command==4)
                 {
                         timetolive=400;
                 }*/
                 fdc.status&=0x7F;
                 if (!fdc.incommand) fdc.status=0x80;
                 else                fdccallback=100;
-//                printf("Read FDC data %02X\n",fdc.data);
+                // printf("Read FDC data %02X\n",fdc.data);
                 return fdc.data;
-//                case 0x3F7: return 0x80;
 
-                default:
+        // case 0x3f7: /* Digital Input Register (DIR) */
+                // return 0x80;
+
+        default:
                 UNIMPLEMENTED("FDC read",
                               "Unknown register 0x%03x", addr);
         }
