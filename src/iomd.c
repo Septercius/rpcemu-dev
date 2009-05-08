@@ -61,7 +61,7 @@
 
 #define IOMD_0x080_ROMCR0   0x080 /* ROM control bank 0 */
 #define IOMD_0x084_ROMCR1   0x084 /* ROM control bank 1 */
-//#define IOMD_0x088_DRAMCR   0x088 /* DRAM control (IOMD) */
+#define IOMD_0x088_DRAMCR   0x088 /* DRAM control (IOMD) */
 #define IOMD_0x08C_VREFCR   0x08C /* VRAM and refresh control */
 
 #define IOMD_0x090_FSIZE    0x090 /* Flyback line size (IOMD) */
@@ -356,6 +356,10 @@ void writeiomd(uint32_t addr, uint32_t val)
                 return;
         case IOMD_0x084_ROMCR1: /* ROM control bank 1 */
                 iomd.romcr1=val;
+                return;
+
+        case IOMD_0x088_DRAMCR: /* DRAM control (IOMD) */
+                /* Control the DRAM row address options, no need to implement */
                 return;
 
         case IOMD_0x08C_VREFCR: /* VRAM refresh control */
