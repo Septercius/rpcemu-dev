@@ -78,10 +78,10 @@ static struct
         int reset;
         FILE *hdfile[4];
         int skip512[4];
+        uint16_t buffer[65536];
 } ide;
 
 int ideboard;
-static unsigned short idebuffer[65536];
 
 static inline void
 ide_irq_raise(void)
@@ -149,36 +149,36 @@ ide_padstr8(uint8_t *buf, int buf_size, const char *src)
 }
 
 /**
- * Fill in idebuffer with the output of the "IDENTIFY DEVICE" command
+ * Fill in ide.buffer with the output of the "IDENTIFY DEVICE" command
  */
 static void
 ide_identify(void)
 {
-	memset(idebuffer, 0, 512);
+	memset(ide.buffer, 0, 512);
 
-	//idebuffer[1] = 101; /* Cylinders */
-	idebuffer[1] = 65535; /* Cylinders */
-	idebuffer[3] = 16;  /* Heads */
-	idebuffer[6] = 63;  /* Sectors */
-	ide_padstr((char *) (idebuffer + 10), "", 20); /* Serial Number */
-	ide_padstr((char *) (idebuffer + 23), "v1.0", 8); /* Firmware */
-	ide_padstr((char *) (idebuffer + 27), "RPCEmuHD", 40); /* Model */
-	idebuffer[50] = 0x4000; /* Capabilities */
+	//ide.buffer[1] = 101; /* Cylinders */
+	ide.buffer[1] = 65535; /* Cylinders */
+	ide.buffer[3] = 16;  /* Heads */
+	ide.buffer[6] = 63;  /* Sectors */
+	ide_padstr((char *) (ide.buffer + 10), "", 20); /* Serial Number */
+	ide_padstr((char *) (ide.buffer + 23), "v1.0", 8); /* Firmware */
+	ide_padstr((char *) (ide.buffer + 27), "RPCEmuHD", 40); /* Model */
+	ide.buffer[50] = 0x4000; /* Capabilities */
 }
 
 /**
- * Fill in idebuffer with the output of the "IDENTIFY PACKET DEVICE" command
+ * Fill in ide.buffer with the output of the "IDENTIFY PACKET DEVICE" command
  */
 static void
 ide_atapi_identify(void)
 {
-	memset(idebuffer, 0, 512);
+	memset(ide.buffer, 0, 512);
 
-	idebuffer[0] = 0x8000 | (5<<8) | 0x80; /* ATAPI device, CD-ROM drive, removable media */
-	ide_padstr((char *) (idebuffer + 10), "", 20); /* Serial Number */
-	ide_padstr((char *) (idebuffer + 23), "v1.0", 8); /* Firmware */
-	ide_padstr((char *) (idebuffer + 27), "RPCEmuCD", 40); /* Model */
-	idebuffer[49] = 0x200; /* LBA supported */
+	ide.buffer[0] = 0x8000 | (5<<8) | 0x80; /* ATAPI device, CD-ROM drive, removable media */
+	ide_padstr((char *) (ide.buffer + 10), "", 20); /* Serial Number */
+	ide_padstr((char *) (ide.buffer + 23), "v1.0", 8); /* Firmware */
+	ide_padstr((char *) (ide.buffer + 27), "RPCEmuCD", 40); /* Model */
+	ide.buffer[49] = 0x200; /* LBA supported */
 }
 
 /*
@@ -295,7 +295,7 @@ void writeidew(uint16_t val)
 #ifdef _RPCEMU_BIG_ENDIAN
 		val=(val>>8)|(val<<8);
 #endif
-        idebuffer[ide.pos>>1]=val;
+        ide.buffer[ide.pos >> 1] = val;
         ide.pos+=2;
 
         if (ide.packetstatus==4)
@@ -329,7 +329,7 @@ void writeidew(uint16_t val)
 
 void writeide(uint16_t addr, uint8_t val)
 {
-        uint8_t *idebufferb = (uint8_t *) idebuffer;
+        uint8_t *idebufferb = (uint8_t *) ide.buffer;
 //        int c;
 //        rpclog("Write IDE %08X %02X %08X %08X\n",addr,val,PC-8,armregs[12]);
 
@@ -382,7 +382,7 @@ void writeide(uint16_t addr, uint8_t val)
                         ide.packetstatus=0;
                         ide.packlen=0;
                         ide.cdlen=ide.cdpos=ide.pos=0;
-                        memset(idebuffer,0,512);
+                        memset(ide.buffer, 0, 512);
                         ide_irq_lower();
                 }
                 ide.drive=(val>>4)&1;
@@ -490,7 +490,7 @@ void writeide(uint16_t addr, uint8_t val)
 
 uint8_t readide(uint16_t addr)
 {
-        const uint8_t *idebufferb = (const uint8_t *) idebuffer;
+        const uint8_t *idebufferb = (const uint8_t *) ide.buffer;
         uint8_t temp;
 //        FILE *f;
 //        int c;
@@ -548,9 +548,8 @@ uint8_t readide(uint16_t addr)
 uint16_t readidew(void)
 {
         uint16_t temp;
-//        if (ide.command == WIN_PACKETCMD) rpclog("Read data2 %08X %04X %07X\n",ide.pos,idebuffer[(ide.pos>>1)],PC);
-//        if (output) rpclog("Read data2 %08X %02X%02X %07X\n",ide.pos,idebuffer[(ide.pos>>1)+1],idebuffer[(ide.pos>>1)],PC);
-        temp=idebuffer[ide.pos>>1];
+
+        temp = ide.buffer[ide.pos >> 1];
 	#ifdef _RPCEMU_BIG_ENDIAN
 		temp=(temp>>8)|(temp<<8);
 	#endif
@@ -633,7 +632,7 @@ void callbackide(void)
                         exit(-1);
                 }*/
                 fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
-                fread(idebuffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
+                fread(ide.buffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
                 ide.pos=0;
                 ide.atastat[ide.board] = DRQ_STAT;
 //                rpclog("Read sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
@@ -644,7 +643,7 @@ void callbackide(void)
                 addr = ide_get_sector() * 512;
 //                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
                 fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
-                fwrite(idebuffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
+                fwrite(ide.buffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
                 ide_irq_raise();
                 ide.secount--;
                 if (ide.secount)
@@ -668,10 +667,10 @@ void callbackide(void)
                 addr = ide_get_sector() * 512;
 //                rpclog("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
                 fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
-                memset(idebuffer, 0, 512);
+                memset(ide.buffer, 0, 512);
                 for (c=0;c<ide.secount;c++)
                 {
-                        fwrite(idebuffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
+                        fwrite(ide.buffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
                 }
                 ide.atastat[ide.board] = READY_STAT;
                 ide_irq_raise();
@@ -817,7 +816,7 @@ void atapi_discchanged(void)
 static int cdromspeed = 706;
 static void atapicommand(void)
 {
-        uint8_t *idebufferb = (uint8_t *) idebuffer;
+        uint8_t *idebufferb = (uint8_t *) ide.buffer;
         int c;
         int len;
         int msf;
@@ -1159,7 +1158,7 @@ static void callreadcd(void)
 //        rpclog("Continue readcd! %i blocks left\n",ide.cdlen);
         ide.atastat[0] = BUSY_STAT;
         
-        atapi->readsector((uint8_t *) idebuffer, ide.cdpos);
+        atapi->readsector((uint8_t *) ide.buffer, ide.cdpos);
 
                 ide.cdpos++;
                 ide.cdlen--;
