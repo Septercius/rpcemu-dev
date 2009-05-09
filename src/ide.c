@@ -57,7 +57,6 @@ void callbackide(void);
 ATAPI *atapi;
 
 static void callreadcd(void);
-static int skip512[4];
 int cdromenabled=1;
 static void atapicommand(void);
 
@@ -77,11 +76,12 @@ static struct
         int discchanged;
         int board;
         int reset;
+        FILE *hdfile[4];
+        int skip512[4];
 } ide;
 
 int ideboard;
 static unsigned short idebuffer[65536];
-static FILE *hdfile[4];
 
 static inline void
 ide_irq_raise(void)
@@ -189,7 +189,7 @@ ide_get_sector(void)
 {
 	int heads = ide.hpc[ide.drive | ide.board];
 	int sectors = ide.spt[ide.drive | ide.board];
-	int skip = skip512[ide.drive | ide.board];
+	int skip = ide.skip512[ide.drive | ide.board];
 
 	return ((((off64_t) ide.cylinder * heads) + ide.head) *
 	          sectors) + (ide.sector - 1) + skip;
@@ -214,40 +214,44 @@ ide_next_sector(void)
 
 static void loadhd(int d, const char *fn)
 {
-        if (!hdfile[d])
+        if (ide.hdfile[d] == NULL)
         {
-                hdfile[d]=fopen(fn,"rb+");
-                if (!hdfile[d])
+                ide.hdfile[d] = fopen(fn, "rb+");
+                if (ide.hdfile[d] == NULL)
                 {
-                        hdfile[d]=fopen64(fn,"rb+");
-                        if (!hdfile[d])
+                        ide.hdfile[d] = fopen64(fn, "rb+");
+                        if (ide.hdfile[d] == NULL)
                         {
-                                hdfile[d]=fopen(fn,"wb");
-                                if (!hdfile[d]) fatal("Cannot create file %s", fn);
-                                putc(0,hdfile[d]);
-                                fclose(hdfile[d]);
-                                hdfile[d]=fopen64(fn,"rb+");
-                                if (!hdfile[d]) fatal("Cannot open file %s", fn);
+                                ide.hdfile[d] = fopen(fn, "wb");
+                                if (ide.hdfile[d] == NULL) {
+                                        fatal("Cannot create file %s", fn);
+                                }
+                                putc(0, ide.hdfile[d]);
+                                fclose(ide.hdfile[d]);
+                                ide.hdfile[d] = fopen64(fn, "rb+");
+                                if (ide.hdfile[d] == NULL) {
+                                        fatal("Cannot open file %s", fn);
+                                }
                         }
                 }
         }
-        fseek(hdfile[d],0xFC1,SEEK_SET);
-        ide.spt[d]=getc(hdfile[d]);
-        ide.hpc[d]=getc(hdfile[d]);
-        skip512[d]=1;
+        fseek(ide.hdfile[d], 0xfc1, SEEK_SET);
+        ide.spt[d] = getc(ide.hdfile[d]);
+        ide.hpc[d] = getc(ide.hdfile[d]);
+        ide.skip512[d] = 1;
 //        rpclog("First check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
         if (!ide.spt[d] || !ide.hpc[d])
         {
-                fseek(hdfile[d],0xDC1,SEEK_SET);
-                ide.spt[d]=getc(hdfile[d]);
-                ide.hpc[d]=getc(hdfile[d]);
+                fseek(ide.hdfile[d], 0xdc1, SEEK_SET);
+                ide.spt[d] = getc(ide.hdfile[d]);
+                ide.hpc[d] = getc(ide.hdfile[d]);
 //                rpclog("Second check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
-                skip512[d]=0;
+                ide.skip512[d] = 0;
                 if (!ide.spt[d] || !ide.hpc[d])
                 {
                         ide.spt[d]=63;
                         ide.hpc[d]=16;
-                        skip512[d]=1;
+                        ide.skip512[d] = 1;
 //        rpclog("Final check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
                 }
         }
@@ -259,9 +263,9 @@ void resetide(void)
 
         /* Close hard disk image files (if previously open) */
         for (d = 0; d < 4; d++) {
-                if (hdfile[d]) {
-                        fclose(hdfile[d]);
-                        hdfile[d] = NULL;
+                if (ide.hdfile[d] != NULL) {
+                        fclose(ide.hdfile[d]);
+                        ide.hdfile[d] = NULL;
                 }
         }
 
@@ -621,7 +625,6 @@ void callbackide(void)
                 return;
 
         case WIN_READ:
-//                rpclog("Read sector %i %i %i\n",ide.hpc[ide.drive],ide.spt[ide.drive],skip512[ide.drive]);
                 addr = ide_get_sector() * 512;
 //                rpclog("Read %i %i %i %08X\n",ide.cylinder,ide.head,ide.sector,addr);
                 /*                if (ide.cylinder || ide.head)
@@ -629,8 +632,8 @@ void callbackide(void)
                         error("Read from other cylinder/head");
                         exit(-1);
                 }*/
-                fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);
-                fread(idebuffer,512,1,hdfile[ide.drive|ide.board]);
+                fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
+                fread(idebuffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
                 ide.pos=0;
                 ide.atastat[ide.board] = DRQ_STAT;
 //                rpclog("Read sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
@@ -640,8 +643,8 @@ void callbackide(void)
         case WIN_WRITE:
                 addr = ide_get_sector() * 512;
 //                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
-                fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);
-                fwrite(idebuffer,512,1,hdfile[ide.drive|ide.board]);
+                fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
+                fwrite(idebuffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
                 ide_irq_raise();
                 ide.secount--;
                 if (ide.secount)
@@ -664,11 +667,11 @@ void callbackide(void)
         case WIN_FORMAT:
                 addr = ide_get_sector() * 512;
 //                rpclog("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
-                fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);
+                fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
                 memset(idebuffer, 0, 512);
                 for (c=0;c<ide.secount;c++)
                 {
-                        fwrite(idebuffer,512,1,hdfile[ide.drive|ide.board]);
+                        fwrite(idebuffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
                 }
                 ide.atastat[ide.board] = READY_STAT;
                 ide_irq_raise();
