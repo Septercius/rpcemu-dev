@@ -76,10 +76,10 @@ static struct
         unsigned char asc;
         int discchanged;
         int board;
+        int reset;
 } ide;
 
 int ideboard;
-static int idereset;
 static unsigned short idebuffer[65536];
 static FILE *hdfile[4];
 
@@ -373,7 +373,7 @@ void writeide(uint16_t addr, uint8_t val)
                         ide.head=0;
                         ide.cylinder=0;
                         ide.cylprecomp=0;
-                        idereset=0;
+                        ide.reset = 0;
                         ide.command=0;
                         ide.packetstatus=0;
                         ide.packlen=0;
@@ -472,7 +472,7 @@ void writeide(uint16_t addr, uint8_t val)
                 if ((ide.fdisk&4) && !(val&4))
                 {
                         idecallback=500;
-                        idereset=1;
+                        ide.reset = 1;
                         ide.atastat[ide.board] = BUSY_STAT;
 //                        rpclog("IDE Reset\n");
                 }
@@ -583,7 +583,7 @@ void callbackide(void)
 {
         off64_t addr;
         int c;
-        if (idereset)
+        if (ide.reset)
         {
                 ide.atastat[ide.board] = READY_STAT;
                 ide.error=0;
@@ -591,7 +591,7 @@ void callbackide(void)
                 ide.sector=1;
                 ide.head=0;
                 ide.cylinder=0;
-                idereset=0;
+                ide.reset = 0;
 //                rpclog("Reset callback\n");
                 return;
         }
