@@ -81,7 +81,6 @@ static struct
 int ideboard;
 static int idereset;
 static unsigned short idebuffer[65536];
-static unsigned char *idebufferb;
 static FILE *hdfile[4];
 
 static inline void
@@ -258,8 +257,6 @@ void resetide(void)
 {
         int d;
 
-        idebufferb=(unsigned char *)idebuffer;
-
         /* Close hard disk image files (if previously open) */
         for (d = 0; d < 4; d++) {
                 if (hdfile[d]) {
@@ -295,8 +292,8 @@ void writeidew(uint16_t val)
 		val=(val>>8)|(val<<8);
 #endif
         idebuffer[ide.pos>>1]=val;
-//        if (ide.command == WIN_PACKETCMD) rpclog("Write packet %i %02X %02X %08X %08X\n",ide.pos,idebufferb[ide.pos],idebufferb[ide.pos+1],idebuffer,idebufferb);
         ide.pos+=2;
+
         if (ide.packetstatus==4)
         {
                 if (ide.pos>=(ide.packlen+2))
@@ -328,6 +325,7 @@ void writeidew(uint16_t val)
 
 void writeide(uint16_t addr, uint8_t val)
 {
+        uint8_t *idebufferb = (uint8_t *) idebuffer;
 //        int c;
 //        rpclog("Write IDE %08X %02X %08X %08X\n",addr,val,PC-8,armregs[12]);
 
@@ -488,6 +486,7 @@ void writeide(uint16_t addr, uint8_t val)
 
 uint8_t readide(uint16_t addr)
 {
+        const uint8_t *idebufferb = (const uint8_t *) idebuffer;
         uint8_t temp;
 //        FILE *f;
 //        int c;
@@ -666,7 +665,7 @@ void callbackide(void)
                 addr = ide_get_sector() * 512;
 //                rpclog("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
                 fseeko64(hdfile[ide.drive|ide.board],addr,SEEK_SET);
-                memset(idebufferb,0,512);
+                memset(idebuffer, 0, 512);
                 for (c=0;c<ide.secount;c++)
                 {
                         fwrite(idebuffer,512,1,hdfile[ide.drive|ide.board]);
@@ -731,11 +730,6 @@ void callbackide(void)
                 }
                 else if (ide.packetstatus==1)
                 {
-/*                        rpclog("packetstatus != 0!\n");
-                        rpclog("Packet data :\n");
-                        for (c=0;c<12;c++)
-                            rpclog("%02X ",idebufferb[c]);
-                        rpclog("\n");*/
                         ide.atastat[ide.board] = BUSY_STAT;
                         
                         atapicommand();
@@ -820,6 +814,7 @@ void atapi_discchanged(void)
 static int cdromspeed = 706;
 static void atapicommand(void)
 {
+        uint8_t *idebufferb = (uint8_t *) idebuffer;
         int c;
         int len;
         int msf;
@@ -1161,7 +1156,7 @@ static void callreadcd(void)
 //        rpclog("Continue readcd! %i blocks left\n",ide.cdlen);
         ide.atastat[0] = BUSY_STAT;
         
-                atapi->readsector(idebufferb,ide.cdpos);
+        atapi->readsector((uint8_t *) idebuffer, ide.cdpos);
 
                 ide.cdpos++;
                 ide.cdlen--;
