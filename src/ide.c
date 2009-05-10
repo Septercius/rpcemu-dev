@@ -54,6 +54,10 @@ void callbackide(void);
 #define GPCMD_START_STOP_UNIT		0x1b
 #define GPCMD_TEST_UNIT_READY		0x00
 
+/* Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
+   Not that it means anything */
+#define CDROM_SPEED	706
+
 ATAPI *atapi;
 
 static void callreadcd(void);
@@ -811,9 +815,7 @@ void atapi_discchanged(void)
 {
         ide.discchanged=1;
 }
-/*Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
-  Not that it means anything*/
-static int cdromspeed = 706;
+
 static void atapicommand(void)
 {
         uint8_t *idebufferb = (uint8_t *) ide.buffer;
@@ -981,10 +983,12 @@ static void atapicommand(void)
                 idebufferb[pos++]=0; /*Some other stuff not supported*/
                 idebufferb[pos++]=0; /*Some other stuff not supported (lock state + eject)*/
                 idebufferb[pos++]=0; /*Some other stuff not supported*/
-                idebufferb[pos++]=cdromspeed>>8; idebufferb[pos++]=cdromspeed&0xFF; /*Maximum speed - 706kpbs (4x)*/
+                idebufferb[pos++] = (uint8_t) (CDROM_SPEED >> 8);
+                idebufferb[pos++] = (uint8_t) CDROM_SPEED; /* Maximum speed */
                 idebufferb[pos++]=0; idebufferb[pos++]=2; /*Number of audio levels - on and off only*/
                 idebufferb[pos++]=0; idebufferb[pos++]=0; /*Buffer size - none*/
-                idebufferb[pos++]=706>>8; idebufferb[pos++]=706&0xFF; /*Current speed - 706kpbs (4x)*/
+                idebufferb[pos++] = (uint8_t) (CDROM_SPEED >> 8);
+                idebufferb[pos++] = (uint8_t) CDROM_SPEED; /* Current speed */
                 idebufferb[pos++]=0; /*Reserved*/
                 idebufferb[pos++]=0; /*Drive digital format*/
                 idebufferb[pos++]=0; /*Reserved*/
