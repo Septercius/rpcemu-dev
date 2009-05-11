@@ -40,6 +40,19 @@ static struct cp15
 
 
 static void
+cp15_tlb_flush(void)
+{
+	int c;
+
+	for (c = 0; c < TLBCACHESIZE; c++) {
+		if (tlbcache2[c] != 0xffffffff) {
+			tlbcache[tlbcache2[c]] = 0xffffffff;
+			tlbcache2[c] = 0xffffffff;
+		}
+	}
+}
+
+static void
 cp15_vaddr_reset(void)
 {
 	int c;
@@ -87,7 +100,6 @@ static uint32_t tlbrammask;
 #define OPC2 ((opcode>>5)&7)
 void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 {
-        int c;
         if (output) rpclog("Write CP15 %08X %08X %i %i %07X %i\n",addr,val,OPC2,CRm,PC,blockend);
         switch (addr&15)
         {
@@ -157,29 +169,9 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 clearmemcache();
                 pccache = 0xFFFFFFFF;
                 blockend=1;
-                for (c=0;c<TLBCACHESIZE;c++)
-                {
-                        if (tlbcache2[c]!=0xFFFFFFFF)
-                        {
-                                tlbcache[tlbcache2[c]]=0xFFFFFFFF;
-//                                vraddrl[tlbcache2[c]]=0xFFFFFFFF;
-                        }
-                }
+                cp15_tlb_flush();
                 cp15_vaddr_reset();
-                memset(tlbcache2, 0xff, TLBCACHESIZE * sizeof(uint32_t));
                 flushes++;
-                tlbcachepos=0;
-/*                if (!translations) return;
-                if (translations==1)
-                   tlbcache[lastcache>>12]=0xFFFFFFFF;
-                else
-                {
-                        memset(tlbcache,0xFF,16384*4);
-                        flushes++;
-                }
-                translations=0;
-//                for (c=0;c<16384;c++)
-//                    tlbcache[c]=0xFFFFFFFF;*/
                 return;
                 case 7: /*Invalidate cache*/
 /*                for (c=0;c<1024;c++)
