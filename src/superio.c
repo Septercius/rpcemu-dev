@@ -5,6 +5,7 @@
     Serial
     Parallel
  */
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -46,6 +47,54 @@ static int configreg;
 
 static uint8_t scratch, linectrl;
 
+static void
+superio_config_reg_write(uint8_t configreg, uint8_t val)
+{
+	assert(configreg < 16);
+
+	/* Check for various configurations that we don't handle yet */
+	switch (configreg) {
+	case 1:
+		/* Don't reconfigure parallel port address */
+		if ((val & 0x3) != 0x3) {
+			UNIMPLEMENTED("SuperIO Conf Reg",
+			              "Unsupported Parallel Port address 0x%x",
+			              val & 0x3);
+		}
+		break;
+
+	case 2:
+		/* Don't reconfigure serial addresses */
+		if ((val & 0x3) != 0x0) {
+			UNIMPLEMENTED("SuperIO Conf Reg",
+			              "Unsupported Serial Port 1 address 0x%x",
+			              val & 0x3);
+		}
+		if (((val >> 4) & 0x3) != 0x1) {
+			UNIMPLEMENTED("SuperIO Conf Reg",
+			              "Unsupported Serial Port 2 address 0x%x",
+			              (val >> 4) & 0x3);
+		}
+		break;
+
+	case 5:
+		/* Don't reconfigure FDC address */
+		if ((val & 0x1) != 0x0) {
+			UNIMPLEMENTED("SuperIO Conf Reg",
+			              "Unsupported FDC address 0x%x",
+			              val & 0x1);
+		}
+		/* Don't reconfigure IDE address */
+		if ((val & 0x2) != 0x0) {
+			UNIMPLEMENTED("SuperIO Conf Reg",
+			              "Unsupported IDE address 0x%x",
+			              val & 0x2);
+		}
+		break;
+	}
+
+	configregs[configreg] = val;
+}
 
 void superio_reset(void)
 {
@@ -104,7 +153,7 @@ void superio_write(uint32_t addr, uint32_t val)
 			}
 		} else {
 			/* Write to a configuration register */
-			configregs[configreg] = val;
+			superio_config_reg_write(configreg, val);
 		}
 		return;
 	}
