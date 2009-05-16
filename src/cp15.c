@@ -8,7 +8,7 @@ uint32_t oldpc = 0, oldpc2 = 0, oldpc3 = 0;
 int icache = 0;
 
 #define TLBCACHESIZE 256
-int mmucount=0;
+
 uint32_t tlbcache[0x100000] = {0};
 static uint32_t tlbcache2[TLBCACHESIZE];
 unsigned long *vraddrl = 0;
@@ -99,7 +99,6 @@ void resetcp15(void)
 }
 
 static int translations;
-static uint32_t lastcache;
 static uint32_t *tlbram;
 static uint32_t tlbrammask;
 
@@ -130,14 +129,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                        rpclog("MMU disable at %08X\n",PC);
                        ins = 0;
                 }
-                /* if (!mmu && val&1)
-                {
-                        if (mmucount)
-                        {
-                                rpclog("MMU count!\n");
-                        }
-                        mmucount++;
-                }*/
+
                 if (mmu != (val & CP15_CTRL_MMU))
                 {
                         resetcodeblocks();
@@ -447,7 +439,6 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                            tlbcache[tlbcache2[tlbcachepos]]=0xFFFFFFFF;
                         tlbcache2[tlbcachepos]=oa>>12;
                         tlbcache[oa>>12]=sld&0xFFFFF000;
-                        lastcache=oa>>12;
 //                        rpclog("Cached to %08X %08X %08X %i  ",oa>>12,tlbcache[oa>>12],tlbcache2[tlbcachepos],tlbcachepos);
                         tlbcachepos=(tlbcachepos+1)&(TLBCACHESIZE-1);
 //                }
@@ -472,11 +463,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                            tlbcache[tlbcache2[tlbcachepos]]=0xFFFFFFFF;
                         tlbcache2[tlbcachepos]=oa>>12;
                         tlbcache[oa>>12]=addr&0xFFFFF000;//sld&0xFFFFF000;
-                        lastcache=oa>>12;
                         tlbcachepos=(tlbcachepos+1)&(TLBCACHESIZE-1);
 //                        rpclog("Cached to %08X %08X %08X %i  ",oa>>12,tlbcache[oa>>12],tlbcache2[tlbcachepos],tlbcachepos);
-/*                        tlbcache[oa>>12]=addr&0xFFFFF000;
-                        lastcache=oa>>12;*/
 //                }
                 if (prntrans) rpclog("S %08X %08X %08X %08X\n",addr,oa,tlbcache[oa>>12],fld);
                 return addr;
