@@ -96,6 +96,17 @@ static uint32_t lastcache;
 static uint32_t *tlbram;
 static uint32_t tlbrammask;
 
+static void
+cp15_tlb_flush_all(void)
+{
+	clearmemcache();
+	pccache = 0xffffffff;
+	blockend = 1;
+	cp15_tlb_flush();
+	cp15_vaddr_reset();
+	flushes++;
+}
+
 #define CRm (opcode&0xF)
 #define OPC2 ((opcode>>5)&7)
 void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
@@ -103,7 +114,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
         if (output) rpclog("Write CP15 %08X %08X %i %i %07X %i\n",addr,val,OPC2,CRm,PC,blockend);
         switch (addr&15)
         {
-                case 1: /*Control*/
+        case 1: /* Control */
                 cp15.ctrl=val;
                 if (!icache && (val & CP15_CTRL_ICACHE))
                        resetcodeblocks();
@@ -112,7 +123,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                        rpclog("MMU disable at %08X\n",PC);
                        ins = 0;
                 }
-/*                if (!mmu && val&1)
+                /* if (!mmu && val&1)
                 {
                         if (mmucount)
                         {
@@ -131,12 +142,13 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 {
                         updatemode(mode&15);
                 }
-//                rpclog("CP15 control write %08X %08X %i\n",val,PC,blockend);
+                // rpclog("CP15 control write %08X %08X %i\n",val,PC,blockend);
                 return; /*We can probably ignore all other bits*/
-                case 2: /*TLB base*/
+
+        case 2: /* TLB base */
                 cp15.tlbbase=val&~0x3FFF;
                 cp15_vaddr_reset();
-//                resetcodeblocks();
+                // resetcodeblocks();
                 switch (cp15.tlbbase&0x1F000000)
                 {
                         case 0x02000000: /*VRAM - yes RISC OS 3.7 does put the TLB in VRAM at one point*/
@@ -152,29 +164,63 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                         case 0x17000000:
                         tlbram=ram2; tlbrammask=rammask>>2; break;
                 }
-//                printf("CP15 tlb base now %08X\n",cp15.tlbbase);
+                // printf("CP15 tlb base now %08X\n",cp15.tlbbase);
                 return;
-                case 3: /*Domain access control*/
+
+        case 3: /* Domain Access Control */
                 cp15.dacr=val;
-//                printf("CP15 DACR now %08X\n",cp15.dacr);
+                // printf("CP15 DACR now %08X\n",cp15.dacr);
                 return;
-                case 8: /*Flush TLB (SA110)*/
-                if ((CRm&1) && !(OPC2)) resetcodeblocks();
-//                if (model == CPUModel_SA110) rpclog("TLB purge %08X %01X %i\n",val,opcode&0xF,(opcode>>5)&7);
-                case 6: /*Purge TLB*/
-                case 5: /*Flush TLB*/
-//                else if (!icache) resetcodeblocks();
-//                resetcodeblocks();
-//                rpclog("TLB flush %08X %08X %07X %i %i %08X\n",addr,val,PC,ins,translations,lastcache);
-                clearmemcache();
-                pccache = 0xFFFFFFFF;
-                blockend=1;
-                cp15_tlb_flush();
-                cp15_vaddr_reset();
-                flushes++;
-                return;
-                case 7: /*Invalidate cache*/
-/*                for (c=0;c<1024;c++)
+
+        case 5:
+        case 6:
+        case 8:
+                switch (model) {
+                /* ARMv3 Architecture */
+                case CPUModel_ARM610:
+                case CPUModel_ARM710:
+                case CPUModel_ARM7500:
+                        switch (addr & 0xf) {
+                        case 5: /* TLB Flush */
+                        case 6: /* TLB Purge */
+                                cp15_tlb_flush_all();
+                                break;
+
+                        default:
+                                UNIMPLEMENTED("CP15 ARMv3 Write",
+                                   "Unsupported write to reg 8 in ARMv3 mode");
+                        }
+                        return;
+
+                /* ARMv4 Architecture */
+                case CPUModel_SA110:
+                        switch (addr & 0xf) {
+                        case 5: /* Fault Status Register */
+                                cp15.fsr = val;
+                                break;
+
+                        case 6: /* Fault Address Register */
+                                cp15.far = val;
+                                break;
+
+                        case 8: /* TLB Operations */
+                                if ((CRm & 1) && !(OPC2)) {
+                                        resetcodeblocks();
+                                }
+                                cp15_tlb_flush_all();
+                                break;
+                        }
+                        return;
+
+                default:
+                        fprintf(stderr, "writecp15(): unknown CPU model %d\n",
+                                model);
+                        exit(EXIT_FAILURE);
+                }
+                break;
+
+        case 7: /* Flush Cache */
+                /* for (c=0;c<1024;c++)
                 {
                         if (vraddrls[c]!=0xFFFFFFFF)
                         {
@@ -184,16 +230,18 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                         }
                 }*/
                 if ((CRm&1) && !(OPC2)) resetcodeblocks();
-//                rpclog("Cache invalidate %08X\n",PC);
+                // rpclog("Cache invalidate %08X\n",PC);
                 pccache = 0xFFFFFFFF;
-//                blockend=1;
+                // blockend=1;
                 return;
-                default:
+
+        default:
                 UNIMPLEMENTED("CP15 Write", "Unknown register %u", addr & 15);
+                break;
         }
-//        error("Bad write CP15 %08X %08X %07X\n",addr,val,PC);
-//        dumpregs();
-//        exit(-1);
+        // error("Bad write CP15 %08X %08X %07X\n",addr,val,PC);
+        // dumpregs();
+        // exit(-1);
 }
 
 uint32_t readcp15(uint32_t addr)
