@@ -38,6 +38,13 @@ static struct cp15
 #define CP15_CTRL_ROM			(1 << 9)  /* 710 & SA */
 #define CP15_CTRL_ICACHE		(1 << 12) /* SA only */
 
+/* Fault Status codes stored in FSR[0:3] when a fault occurs */
+#define CP15_FAULT_TRANSLATION_SECTION	0x5
+#define CP15_FAULT_TRANSLATION_PAGE	0x7
+#define CP15_FAULT_DOMAIN_SECTION	0x9
+#define CP15_FAULT_DOMAIN_PAGE		0xb
+#define CP15_FAULT_PERMISSION_SECTION	0xd
+#define CP15_FAULT_PERMISSION_PAGE	0xf
 
 static void
 cp15_tlb_flush(void)
@@ -336,7 +343,8 @@ static int checkdomain(uint32_t addr, int domain, int type, int prefetch)
 //                if (addr==0x4F01180) { output=1; timetolive=500; }
                 if (prefetch) return 0;
                 cp15.far=addr;
-                cp15.fsr=(type==1)?11:9;
+                cp15.fsr = (type == 1) ? CP15_FAULT_DOMAIN_PAGE :
+                               CP15_FAULT_DOMAIN_SECTION;
 //                rpclog("Domain fault\n");
         }
         return temp&3;
@@ -375,7 +383,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 armirq|=0x40;
                 if (prefetch) return 0;
                 cp15.far=addr;
-                cp15.fsr=5;
+                cp15.fsr = CP15_FAULT_TRANSLATION_SECTION;
                 if (prntrans) rpclog("Fault!\n");
 //                printf("Fault! %08X %07X %i\n",addr,PC,rw);
 //                exit(-1);
@@ -395,7 +403,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         armirq|=0x40;
                         if (prefetch) return 0;
                         cp15.far=addr;
-                        cp15.fsr=7|((fld>>1)&0xF0);
+                        cp15.fsr = ((fld >> 1) & 0xf0) |
+                                   CP15_FAULT_TRANSLATION_PAGE;
 //                        output=1;
 //                        timetolive=100;
 //                        dumpregs();
@@ -423,7 +432,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 }
                 if (temp3!=3)
                 {
-                        if (checkpermissions(temp2,15,rw,addr,fld,sld,prefetch))
+                        if (checkpermissions(temp2, CP15_FAULT_PERMISSION_PAGE,
+                                             rw, addr, fld, sld, prefetch))
                         {
 //                                if (output) rpclog("Failed permissions!\n");
                                 return 0xFFFFFFFF;
@@ -447,7 +457,9 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 if (!temp3) { /*rpclog("Nothing here!\n");*/ return 0; }
                 if (temp3!=3)
                 {
-                        if (checkpermissions((fld&0xC00)>>10,13,rw,addr,fld,0xFFFFFFFF,prefetch))
+                        if (checkpermissions((fld & 0xc00) >> 10,
+                                             CP15_FAULT_PERMISSION_SECTION, rw,
+                                             addr, fld, 0xffffffff, prefetch))
                         {
 //                                if (output) rpclog("Failed permissions!\n");
                                 return 0xFFFFFFFF;
