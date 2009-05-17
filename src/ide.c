@@ -54,6 +54,12 @@ void callbackide(void);
 #define GPCMD_START_STOP_UNIT		0x1b
 #define GPCMD_TEST_UNIT_READY		0x00
 
+/* Mode page codes for mode sense/set */
+#define GPMODE_R_W_ERROR_PAGE		0x01
+#define GPMODE_CDROM_PAGE		0x0d
+#define GPMODE_CAPABILITIES_PAGE	0x2a
+#define GPMODE_ALL_PAGES		0x3f
+
 /* Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
    Not that it means anything */
 #define CDROM_SPEED	706
@@ -944,7 +950,7 @@ static void atapicommand(void)
                 
         case GPCMD_MODE_SENSE_10:
                 if (!atapi->ready()) { atapi_notready(); return; }
-                if (idebufferb[2]!=0x3F)
+                if (idebufferb[2] != GPMODE_ALL_PAGES)
                 {
                         rpclog("Bad mode sense - not 3F\n");
                         rpclog("Packet data :\n");
@@ -960,7 +966,7 @@ static void atapicommand(void)
                 idebufferb[2]=1; /*120mm data CD-ROM*/
                 pos=8;
                 /*&01 - Read error recovery*/
-                idebufferb[pos++]=0x01; /*Page code*/
+                idebufferb[pos++] = GPMODE_R_W_ERROR_PAGE;
                 idebufferb[pos++]=6; /*Page length*/
                 idebufferb[pos++]=0; /*Error recovery parameters*/
                 idebufferb[pos++]=3; /*Read retry count*/
@@ -969,14 +975,14 @@ static void atapicommand(void)
                 idebufferb[pos++]=0; /*Reserved*/
                 idebufferb[pos++]=0; /*Reserved*/
                 /*&0D - CD-ROM Parameters*/
-                idebufferb[pos++]=0x0D; /*Page code*/
+                idebufferb[pos++] = GPMODE_CDROM_PAGE;
                 idebufferb[pos++]=6; /*Page length*/
                 idebufferb[pos++]=0; /*Reserved*/
                 idebufferb[pos++]=1; /*Inactivity time multiplier *NEEDED BY RISCOS* value is a guess*/
                 idebufferb[pos++]=0; idebufferb[pos++]=60; /*MSF settings*/
                 idebufferb[pos++]=0; idebufferb[pos++]=75; /*MSF settings*/
                 /*&2A - CD-ROM capabilities and mechanical status*/
-                idebufferb[pos++]=0x2A; /*Page code*/
+                idebufferb[pos++] = GPMODE_CAPABILITIES_PAGE;
                 idebufferb[pos++]=0x12; /*Page length*/
                 idebufferb[pos++]=0; idebufferb[pos++]=0; /*CD-R methods*/
                 idebufferb[pos++]=1; /*Supports audio play, not multisession*/
