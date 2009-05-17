@@ -342,8 +342,6 @@ static int checkdomain(uint32_t addr, int domain, int type, int prefetch)
         return temp&3;
 }
 
-static int prntrans;
-
 uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 {
         uint32_t vaddr=((addr>>18)&~3)|cp15.tlbbase;
@@ -351,36 +349,25 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         uint32_t sldaddr,sld; //,taddr;
         uint32_t oa=addr;
         int temp,temp2 = 0,temp3 = 0;
-        prntrans=0;
-        if ((addr&~0xFFF)==0xF03B7000) { rpclog("Translate %08X!\n",addr); prntrans=1; }
+
         armirq&=~0x40;
-//if (addr&0x80000000) printf("Translating %08X\n",addr);
-/*        if (!(addr&0xFC000000) && !(tlbcache[(addr>>12)&0x3FFF]&0xFFF))
-        {
-//                rpclog("Cached %08X\n",tlbcache[addr>>12]);
-                return tlbcache[addr>>12]|(addr&0xFFF);
-        }*/
-//        rpclog("Translate %08X\n",addr);
+
         translations++;
-//        rpclog("Uncached ");
         tlbs++;
 
         rw = rw;
         fld=tlbram[(vaddr>>2)&tlbrammask];
         if (fld&3) temp3=checkdomain(addr,(fld>>5)&15,fld&3,prefetch);
-//        rpclog("%08X %08X %08X\n",fld,temp3,vraddrl[0x4F000C0>>12]);
         switch (fld&3)
         {
-                case 0: /*Fault*/
+        case 0: /* Fault (Section Translation) */
                 armirq|=0x40;
                 if (prefetch) return 0;
                 cp15.far=addr;
                 cp15.fsr = CP15_FAULT_TRANSLATION_SECTION;
-                if (prntrans) rpclog("Fault!\n");
-//                printf("Fault! %08X %07X %i\n",addr,PC,rw);
-//                exit(-1);
                 return 0;
-                case 1: /*Page table*/
+
+        case 1: /* Page */
                 if (!temp3) { return 0; }
                 sldaddr=((addr&0xFF000)>>10)|(fld&0xFFFFFC00);
                 if ((sldaddr&0x1F000000)==0x02000000)
@@ -391,24 +378,13 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                    sld=ram[(sldaddr&rammask)>>2];
                 if (!(sld&3)) /*Unmapped*/
                 {
-                        if (prntrans) rpclog("Unmapped! %08X %07X %i\n",addr,PC,ins);
                         armirq|=0x40;
                         if (prefetch) return 0;
                         cp15.far=addr;
                         cp15.fsr = ((fld >> 1) & 0xf0) |
                                    CP15_FAULT_TRANSLATION_PAGE;
-//                        output=1;
-//                        timetolive=100;
-//                        dumpregs();
-//                        exit(-1);
                         return 0;
                 }
-/*                if ((sld&3)!=2)
-                {
-                        rpclog("Unsupported page size - %i %08X\n",sld&3,sld);
-                        dumpregs();
-                        exit(-1);
-                }*/
                 switch (sld&3)
                 {
                         case 1: /*64kb - NetBSD*/
@@ -427,7 +403,6 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         if (checkpermissions(temp2, CP15_FAULT_PERMISSION_PAGE,
                                              rw, addr, fld, sld, prefetch))
                         {
-//                                if (output) rpclog("Failed permissions!\n");
                                 return 0xFFFFFFFF;
                         }
                 }
@@ -442,17 +417,16 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 //                        rpclog("Cached to %08X %08X %08X %i  ",oa>>12,tlbcache[oa>>12],tlbcache2[tlbcachepos],tlbcachepos);
                         tlbcachepos=(tlbcachepos+1)&(TLBCACHESIZE-1);
 //                }
-                if (prntrans) rpclog("P %08X %08X %08X %08X\n",addr,sld,oa,tlbcache[oa>>12]);
                 return addr;
-                case 2: /*Section*/
-                if (!temp3) { /*rpclog("Nothing here!\n");*/ return 0; }
+
+        case 2: /* Section */
+                if (!temp3) { return 0; }
                 if (temp3!=3)
                 {
                         if (checkpermissions((fld & 0xc00) >> 10,
                                              CP15_FAULT_PERMISSION_SECTION, rw,
                                              addr, fld, 0xffffffff, prefetch))
                         {
-//                                if (output) rpclog("Failed permissions!\n");
                                 return 0xFFFFFFFF;
                         }
                 }
@@ -466,9 +440,9 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         tlbcachepos=(tlbcachepos+1)&(TLBCACHESIZE-1);
 //                        rpclog("Cached to %08X %08X %08X %i  ",oa>>12,tlbcache[oa>>12],tlbcache2[tlbcachepos],tlbcachepos);
 //                }
-                if (prntrans) rpclog("S %08X %08X %08X %08X\n",addr,oa,tlbcache[oa>>12],fld);
                 return addr;
-                default:
+
+        default:
                 error("Bad descriptor type %i %08X\n",fld&3,fld);
                 error("Address %08X\n",addr);
                 dumpregs();
