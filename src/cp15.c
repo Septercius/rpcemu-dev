@@ -113,6 +113,18 @@ cp15_tlb_flush_all(void)
 	flushes++;
 }
 
+static void
+cp15_tlb_add_entry(uint32_t vaddr, uint32_t paddr)
+{
+	if (tlbcache2[tlbcachepos] != 0xffffffff) {
+		tlbcache[tlbcache2[tlbcachepos]] = 0xffffffff;
+	}
+	tlbcache2[tlbcachepos] = vaddr >> 12;
+	tlbcache[vaddr >> 12] = paddr & 0xfffff000;
+
+	tlbcachepos = (tlbcachepos + 1) & (TLBCACHESIZE - 1);
+}
+
 #define CRm (opcode&0xF)
 #define OPC2 ((opcode>>5)&7)
 void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
@@ -408,15 +420,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 }
                 if ((sld&3)==1) sld=((sld&0xFFFF0FFF)|(addr&0xF000));
                 addr=(sld&0xFFFFF000)|(addr&0xFFF);
-//                if (!(oa&0xFC000000))
-//                {
-                        if (tlbcache2[tlbcachepos]!=0xFFFFFFFF)
-                           tlbcache[tlbcache2[tlbcachepos]]=0xFFFFFFFF;
-                        tlbcache2[tlbcachepos]=oa>>12;
-                        tlbcache[oa>>12]=sld&0xFFFFF000;
-//                        rpclog("Cached to %08X %08X %08X %i  ",oa>>12,tlbcache[oa>>12],tlbcache2[tlbcachepos],tlbcachepos);
-                        tlbcachepos=(tlbcachepos+1)&(TLBCACHESIZE-1);
-//                }
+                cp15_tlb_add_entry(oa, addr);
                 return addr;
 
         case 2: /* Section */
@@ -431,15 +435,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         }
                 }
                 addr=(addr&0xFFFFF)|(fld&0xFFF00000);
-//                if (!(oa&0xFC000000))
-//                {
-                        if (tlbcache2[tlbcachepos]!=0xFFFFFFFF)
-                           tlbcache[tlbcache2[tlbcachepos]]=0xFFFFFFFF;
-                        tlbcache2[tlbcachepos]=oa>>12;
-                        tlbcache[oa>>12]=addr&0xFFFFF000;//sld&0xFFFFF000;
-                        tlbcachepos=(tlbcachepos+1)&(TLBCACHESIZE-1);
-//                        rpclog("Cached to %08X %08X %08X %i  ",oa>>12,tlbcache[oa>>12],tlbcache2[tlbcachepos],tlbcachepos);
-//                }
+                cp15_tlb_add_entry(oa, addr);
                 return addr;
 
         default:
