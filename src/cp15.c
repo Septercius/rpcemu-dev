@@ -360,6 +360,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         uint32_t fld;
         uint32_t sldaddr,sld; //,taddr;
         uint32_t oa=addr;
+        uint32_t domain;
         int temp,temp2 = 0,temp3 = 0;
 
         armirq&=~0x40;
@@ -369,7 +370,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 
         rw = rw;
         fld=tlbram[(vaddr>>2)&tlbrammask];
-        if (fld&3) temp3=checkdomain(addr,(fld>>5)&15,fld&3,prefetch);
+        domain = (fld >> 5) & 0xf;
+        if (fld & 3) temp3 = checkdomain(addr, domain, fld & 3, prefetch);
         switch (fld&3)
         {
         case 0: /* Fault (Section Translation) */
@@ -393,7 +395,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         armirq|=0x40;
                         if (prefetch) return 0;
                         cp15.far=addr;
-                        cp15.fsr = ((fld >> 1) & 0xf0) |
+                        cp15.fsr = (domain << 4) |
                                    CP15_FAULT_TRANSLATION_PAGE;
                         return 0;
                 }
