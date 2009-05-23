@@ -360,7 +360,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         uint32_t fld;
         uint32_t sldaddr,sld; //,taddr;
         uint32_t oa=addr;
-        uint32_t domain;
+        uint32_t domain, fault_code;
         int temp,temp2 = 0,temp3 = 0;
 
         armirq&=~0x40;
@@ -374,11 +374,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         switch (fld&3)
         {
         case 0: /* Fault (Section Translation) */
-                armirq|=0x40;
-                if (prefetch) return 0;
-                cp15.far=addr;
-                cp15.fsr = CP15_FAULT_TRANSLATION_SECTION;
-                return 0;
+                fault_code = CP15_FAULT_TRANSLATION_SECTION;
+                goto do_fault;
 
         case 1: /* Page */
                 if (!temp3) { return 0; }
@@ -391,12 +388,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                    sld=ram[(sldaddr&rammask)>>2];
                 if (!(sld&3)) /*Unmapped*/
                 {
-                        armirq|=0x40;
-                        if (prefetch) return 0;
-                        cp15.far=addr;
-                        cp15.fsr = (domain << 4) |
-                                   CP15_FAULT_TRANSLATION_PAGE;
-                        return 0;
+                        fault_code = CP15_FAULT_TRANSLATION_PAGE;
+                        goto do_fault;
                 }
                 switch (sld&3)
                 {
@@ -446,6 +439,14 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 exit(-1);
         }
         exit(-1);
+
+do_fault:
+	armirq |= 0x40;
+	if (!prefetch) {
+		cp15.far = addr;
+		cp15.fsr = (domain << 4) | fault_code;
+	}
+	return 0;
 }
 //#undef output
 /*uint32_t translateaddress(uint32_t addr, int rw)
