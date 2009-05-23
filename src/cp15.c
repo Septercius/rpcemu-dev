@@ -302,36 +302,38 @@ uint32_t readcp15(uint32_t addr)
                                 cp15.far=addr;       \
                                 cp15.fsr=fsr;        \
                         } \
-                        if (output) rpclog("PERMISSIONS FAULT! %08X %07X %08X %08X %08X %08X %i %03X %08X %08X %08X %08X\n",addr,PC,opcode,oldpc,oldpc2,oldpc3,p,cp15.ctrl&0x300,fld,sld,armregs[16],cp15.dacr);  \
                         return 0xFFFFFFFF
 
-static int checkpermissions(int p, int fsr, int rw, uint32_t addr, uint32_t fld, uint32_t sld, int prefetch)
+static int checkpermissions(int p, int fsr, int rw, uint32_t addr, int prefetch)
 {
         switch (p)
         {
-                case 0:
+        case 0:
                 switch (cp15.ctrl&0x300)
                 {
-                        case 0x000: /*No access*/
-                        case 0x300: /*Unpredictable*/
-                        if (output) rpclog("Always fault\n");
+                case 0x000: /* No access */
+                case 0x300: /* Unpredictable */
                         FAULT();
-                        case 0x100: /*Supervisor read-only*/
+
+                case 0x100: /* Supervisor read-only */
 //                        break; /*delibrately broken for Linux*/
                         /*Linux will crash very early on if this is implemented properly*/
-                        if (!memmode || rw) { if (output) rpclog("Supervisor read only\n"); FAULT(); }
+                        if (!memmode || rw) { FAULT(); }
                         break;
-                        case 0x200: /*Read-only*/
-                        if (rw) { if (output) rpclog("Read only\n"); FAULT(); }
+
+                case 0x200: /* Read-only */
+                        if (rw) { FAULT(); }
                         break;
                 }
                 break;
-                case 1: /*Supervisor only*/
+
+        case 1: /* Supervisor read/write */
 //                break;
-                if (!memmode) { if (output) rpclog("Supervisor only\n"); FAULT(); }
+                if (!memmode) { FAULT(); }
                 break;
-                case 2: /*User read-only*/
-                if (!memmode && rw) { if (output) rpclog("Read only\n"); FAULT(); }
+
+        case 2: /* Supervisor read/write, User read-only*/
+                if (!memmode && rw) { FAULT(); }
                 break;
         }
         return 0;
@@ -340,16 +342,14 @@ static int checkpermissions(int p, int fsr, int rw, uint32_t addr, uint32_t fld,
 static int checkdomain(uint32_t addr, int domain, int type, int prefetch)
 {
         int temp=cp15.dacr>>(domain<<1);
+
         if (!(temp&3))
         {
                 armirq|=0x40;
-//                rpclog("Domain fault! %08X %i %i %i %08X\n",addr,domain,type,prefetch,temp);
-//                if (addr==0x4F01180) { output=1; timetolive=500; }
                 if (prefetch) return 0;
                 cp15.far=addr;
                 cp15.fsr = (type == 1) ? CP15_FAULT_DOMAIN_PAGE :
                                CP15_FAULT_DOMAIN_SECTION;
-//                rpclog("Domain fault\n");
         }
         return temp&3;
 }
@@ -368,7 +368,6 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         translations++;
         tlbs++;
 
-        rw = rw;
         fld=tlbram[(vaddr>>2)&tlbrammask];
         domain = (fld >> 5) & 0xf;
         if (fld & 3) temp3 = checkdomain(addr, domain, fld & 3, prefetch);
@@ -415,7 +414,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 if (temp3!=3)
                 {
                         if (checkpermissions(temp2, CP15_FAULT_PERMISSION_PAGE,
-                                             rw, addr, fld, sld, prefetch))
+                                             rw, addr, prefetch))
                         {
                                 return 0xFFFFFFFF;
                         }
@@ -431,7 +430,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 {
                         if (checkpermissions((fld & 0xc00) >> 10,
                                              CP15_FAULT_PERMISSION_SECTION, rw,
-                                             addr, fld, 0xffffffff, prefetch))
+                                             addr, prefetch))
                         {
                                 return 0xFFFFFFFF;
                         }
