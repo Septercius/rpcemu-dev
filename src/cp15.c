@@ -296,15 +296,8 @@ uint32_t readcp15(uint32_t addr)
 //1010042e
 //databort=1;
 //#define output 1
-#define FAULT()         armirq|=0x40;        \
-                        if (!prefetch) \
-                        { \
-                                cp15.far=addr;       \
-                                cp15.fsr=fsr;        \
-                        } \
-                        return 0xFFFFFFFF
 
-static int checkpermissions(int p, int fsr, int rw, uint32_t addr, int prefetch)
+static int checkpermissions(int p, int rw)
 {
         switch (p)
         {
@@ -313,27 +306,27 @@ static int checkpermissions(int p, int fsr, int rw, uint32_t addr, int prefetch)
                 {
                 case 0x000: /* No access */
                 case 0x300: /* Unpredictable */
-                        FAULT();
+                        return 1;
 
                 case 0x100: /* Supervisor read-only */
 //                        break; /*delibrately broken for Linux*/
                         /*Linux will crash very early on if this is implemented properly*/
-                        if (!memmode || rw) { FAULT(); }
+                        if (!memmode || rw) { return 1; }
                         break;
 
                 case 0x200: /* Read-only */
-                        if (rw) { FAULT(); }
+                        if (rw) { return 1; }
                         break;
                 }
                 break;
 
         case 1: /* Supervisor read/write */
 //                break;
-                if (!memmode) { FAULT(); }
+                if (!memmode) { return 1; }
                 break;
 
         case 2: /* Supervisor read/write, User read-only*/
-                if (!memmode && rw) { FAULT(); }
+                if (!memmode && rw) { return 1; }
                 break;
         }
         return 0;
@@ -406,10 +399,9 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 }
                 if (temp3!=3)
                 {
-                        if (checkpermissions(temp2, CP15_FAULT_PERMISSION_PAGE,
-                                             rw, addr, prefetch))
-                        {
-                                return 0xFFFFFFFF;
+                        if (checkpermissions(temp2, rw)) {
+                                fault_code = CP15_FAULT_PERMISSION_PAGE;
+                                goto do_fault;
                         }
                 }
                 if ((sld&3)==1) sld=((sld&0xFFFF0FFF)|(addr&0xF000));
@@ -421,11 +413,9 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 if (!temp3) { return 0; }
                 if (temp3!=3)
                 {
-                        if (checkpermissions((fld & 0xc00) >> 10,
-                                             CP15_FAULT_PERMISSION_SECTION, rw,
-                                             addr, prefetch))
-                        {
-                                return 0xFFFFFFFF;
+                        if (checkpermissions((fld & 0xc00) >> 10, rw)) {
+                                fault_code = CP15_FAULT_PERMISSION_SECTION;
+                                goto do_fault;
                         }
                 }
                 addr=(addr&0xFFFFF)|(fld&0xFFF00000);
