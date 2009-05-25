@@ -112,7 +112,8 @@ ps2_read_data(PS2Queue *q)
         return val;
 }
 
-void writekbd(uint8_t v)
+void
+keyboard_data_write(uint8_t v)
 {
 //        rpclog("Write keyboard %02X %08X\n",v,PC);
         switch (v)
@@ -133,7 +134,8 @@ void writekbd(uint8_t v)
         }
 }
 
-void writekbdenable(int v)
+void
+keyboard_control_write(uint8_t v)
 {
 //        printf("Write keyboard enable %02X\n",v);
         if (v && !kbdenable)
@@ -206,13 +208,15 @@ void keycallback(void)
         }
 }
 
-unsigned char getkeyboardstat(void)
+uint8_t
+keyboard_status_read(void)
 {
 //        printf("Read keyboard stat %02X %07X\n",kbdstat,PC);
         return kbdstat;
 }
 
-unsigned char readkeyboarddata(void)
+uint8_t
+keyboard_data_read(void)
 {
         kbdstat&=~0x20;
         iomd.irqb.status &= ~0x80;

@@ -268,10 +268,10 @@ void writeiomd(uint32_t addr, uint32_t val)
                 return;
 
         case IOMD_0x004_KBDDAT: /* Keyboard data */
-                writekbd(val);
+                keyboard_data_write(val);
                 return;
         case IOMD_0x008_KBDCR: /* Keyboard control */
-                writekbdenable(val&8);
+                keyboard_control_write(val & 8);
                 return;
 
         case IOMD_0x00C_IOLINES: /* General Purpose I/O lines (ARM7500/FE) */
@@ -470,9 +470,9 @@ uint32_t readiomd(uint32_t addr)
                 return ((i2cclock)?2:0)|((i2cdata)?1:0)|(iomd.ctrl&0x7C)|4|((flyback)?0x80:0);
 
         case IOMD_0x004_KBDDAT: /* Keyboard data */
-                return readkeyboarddata();
+                return keyboard_data_read();
         case IOMD_0x008_KBDCR: /* Keyboard control */
-                return getkeyboardstat();
+                return keyboard_status_read();
 
         case IOMD_0x00C_IOLINES: /* General Purpose I/O lines (ARM7500/FE) */
                 return 0;
