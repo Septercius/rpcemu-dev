@@ -191,6 +191,58 @@ ide_atapi_identify(void)
 	ide.buffer[49] = 0x200; /* LBA supported */
 }
 
+/**
+ * Fill in ide.buffer with the output of the ATAPI "MODE SENSE" command
+ *
+ * @param pos Offset within the buffer to start filling in data
+ *
+ * @return Offset within the buffer after the end of the data
+ */
+static uint32_t
+ide_atapi_mode_sense(uint32_t pos)
+{
+	uint8_t *buf = (uint8_t *) ide.buffer;
+
+	/* &01 - Read error recovery */
+	buf[pos++] = GPMODE_R_W_ERROR_PAGE;
+	buf[pos++] = 6; /* Page length */
+	buf[pos++] = 0; /* Error recovery parameters */
+	buf[pos++] = 3; /* Read retry count */
+	buf[pos++] = 0; /* Reserved */
+	buf[pos++] = 0; /* Reserved */
+	buf[pos++] = 0; /* Reserved */
+	buf[pos++] = 0; /* Reserved */
+
+	/* &0D - CD-ROM Parameters */
+	buf[pos++] = GPMODE_CDROM_PAGE;
+	buf[pos++] = 6; /* Page length */
+	buf[pos++] = 0; /* Reserved */
+	buf[pos++] = 1; /* Inactivity time multiplier *NEEDED BY RISCOS* value is a guess */
+	buf[pos++] = 0; buf[pos++] = 60; /* MSF settings */
+	buf[pos++] = 0; buf[pos++] = 75; /* MSF settings */
+
+	/* &2A - CD-ROM capabilities and mechanical status */
+	buf[pos++] = GPMODE_CAPABILITIES_PAGE;
+	buf[pos++] = 0x12; /* Page length */
+	buf[pos++] = 0; buf[pos++] = 0; /* CD-R methods */
+	buf[pos++] = 1; /* Supports audio play, not multisession */
+	buf[pos++] = 0; /* Some other stuff not supported */
+	buf[pos++] = 0; /* Some other stuff not supported (lock state + eject) */
+	buf[pos++] = 0; /* Some other stuff not supported */
+	buf[pos++] = (uint8_t) (CDROM_SPEED >> 8);
+	buf[pos++] = (uint8_t) CDROM_SPEED; /* Maximum speed */
+	buf[pos++] = 0; buf[pos++] = 2; /* Number of audio levels - on and off only */
+	buf[pos++] = 0; buf[pos++] = 0; /* Buffer size - none */
+	buf[pos++] = (uint8_t) (CDROM_SPEED >> 8);
+	buf[pos++] = (uint8_t) CDROM_SPEED; /* Current speed */
+	buf[pos++] = 0; /* Reserved */
+	buf[pos++] = 0; /* Drive digital format */
+	buf[pos++] = 0; /* Reserved */
+	buf[pos++] = 0; /* Reserved */
+
+	return pos;
+}
+
 /*
  * Return the sector offset for the current register values
  */
@@ -964,42 +1016,9 @@ static void atapicommand(void)
                 /*Set mode parameter header - bytes 0 & 1 are data length (filled out later),
                   byte 2 is media type*/
                 idebufferb[2]=1; /*120mm data CD-ROM*/
-                pos=8;
-                /*&01 - Read error recovery*/
-                idebufferb[pos++] = GPMODE_R_W_ERROR_PAGE;
-                idebufferb[pos++]=6; /*Page length*/
-                idebufferb[pos++]=0; /*Error recovery parameters*/
-                idebufferb[pos++]=3; /*Read retry count*/
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=0; /*Reserved*/
-                /*&0D - CD-ROM Parameters*/
-                idebufferb[pos++] = GPMODE_CDROM_PAGE;
-                idebufferb[pos++]=6; /*Page length*/
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=1; /*Inactivity time multiplier *NEEDED BY RISCOS* value is a guess*/
-                idebufferb[pos++]=0; idebufferb[pos++]=60; /*MSF settings*/
-                idebufferb[pos++]=0; idebufferb[pos++]=75; /*MSF settings*/
-                /*&2A - CD-ROM capabilities and mechanical status*/
-                idebufferb[pos++] = GPMODE_CAPABILITIES_PAGE;
-                idebufferb[pos++]=0x12; /*Page length*/
-                idebufferb[pos++]=0; idebufferb[pos++]=0; /*CD-R methods*/
-                idebufferb[pos++]=1; /*Supports audio play, not multisession*/
-                idebufferb[pos++]=0; /*Some other stuff not supported*/
-                idebufferb[pos++]=0; /*Some other stuff not supported (lock state + eject)*/
-                idebufferb[pos++]=0; /*Some other stuff not supported*/
-                idebufferb[pos++] = (uint8_t) (CDROM_SPEED >> 8);
-                idebufferb[pos++] = (uint8_t) CDROM_SPEED; /* Maximum speed */
-                idebufferb[pos++]=0; idebufferb[pos++]=2; /*Number of audio levels - on and off only*/
-                idebufferb[pos++]=0; idebufferb[pos++]=0; /*Buffer size - none*/
-                idebufferb[pos++] = (uint8_t) (CDROM_SPEED >> 8);
-                idebufferb[pos++] = (uint8_t) CDROM_SPEED; /* Current speed */
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=0; /*Drive digital format*/
-                idebufferb[pos++]=0; /*Reserved*/
-                idebufferb[pos++]=0; /*Reserved*/
-                len=pos;
+
+                len = ide_atapi_mode_sense(8);
+
                 idebufferb[0]=len>>8;
                 idebufferb[1]=len&255;
 /*        rpclog("ATAPI buffer len %i\n",len);
