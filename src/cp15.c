@@ -332,18 +332,10 @@ static int checkpermissions(int p, int rw)
         return 0;
 }
 
-static int checkdomain(uint32_t addr, int domain, int type, int prefetch)
+static int checkdomain(uint32_t domain)
 {
         int temp=cp15.dacr>>(domain<<1);
 
-        if (!(temp&3))
-        {
-                armirq|=0x40;
-                if (prefetch) return 0;
-                cp15.far=addr;
-                cp15.fsr = (type == 1) ? CP15_FAULT_DOMAIN_PAGE :
-                               CP15_FAULT_DOMAIN_SECTION;
-        }
         return temp&3;
 }
 
@@ -363,7 +355,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 
         fld=tlbram[(vaddr>>2)&tlbrammask];
         domain = (fld >> 5) & 0xf;
-        if (fld & 3) temp3 = checkdomain(addr, domain, fld & 3, prefetch);
+        if (fld & 3) temp3 = checkdomain(domain);
         switch (fld&3)
         {
         case 0: /* Fault (Section Translation) */
@@ -371,7 +363,10 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 goto do_fault;
 
         case 1: /* Page */
-                if (!temp3) { return 0; }
+                if (temp3 == 0) {
+                        fault_code = CP15_FAULT_DOMAIN_PAGE;
+                        goto do_fault;
+                }
                 sldaddr=((addr&0xFF000)>>10)|(fld&0xFFFFFC00);
                 if ((sldaddr&0x1F000000)==0x02000000)
                    sld=vram[(sldaddr&vrammask)>>2];
@@ -410,7 +405,10 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 return addr;
 
         case 2: /* Section */
-                if (!temp3) { return 0; }
+                if (temp3 == 0) {
+                        fault_code = CP15_FAULT_DOMAIN_SECTION;
+                        goto do_fault;
+                }
                 if (temp3!=3)
                 {
                         if (checkpermissions((fld & 0xc00) >> 10, rw)) {
