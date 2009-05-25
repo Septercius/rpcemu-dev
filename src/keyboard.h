@@ -4,12 +4,12 @@
 extern void resetkeyboard(void);
 extern void keycallback(void);
 extern void mscallback(void);
-extern void writekbd(uint8_t v);
-extern void writekbdenable(int v);
+extern void keyboard_data_write(uint8_t v);
+extern void keyboard_control_write(uint8_t v);
 extern void writems(unsigned char v);
 extern void writemsenable(int v);
-extern unsigned char getkeyboardstat(void);
-extern unsigned char readkeyboarddata(void);
+extern uint8_t keyboard_status_read(void);
+extern uint8_t keyboard_data_read(void);
 extern unsigned char getmousestat(void);
 extern unsigned char readmousedata(void);
 extern void pollmouse(void);
