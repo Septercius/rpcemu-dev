@@ -22,6 +22,14 @@
 #include "iomd.h"
 #include "arm.h"
 
+/* Keyboard Commands */
+#define KBD_CMD_ENABLE		0xf4
+#define KBD_CMD_RESET		0xff
+
+/* Keyboard Replies */
+#define KBD_REPLY_POR		0xaa	/* Power on reset */
+#define KBD_REPLY_ACK		0xfa	/* Command ACK */
+
 #define PS2_QUEUE_SIZE 256
 
 typedef struct {
@@ -118,16 +126,18 @@ keyboard_data_write(uint8_t v)
 //        rpclog("Write keyboard %02X %08X\n",v,PC);
         switch (v)
         {
-                case 0xFF:
+        case KBD_CMD_RESET:
                 kbdreset=2;
                 kcallback=4*4;
                 break;
-                case 0xF4:
+
+        case KBD_CMD_ENABLE:
                 kcallback=1*4;
                 kbdreset=0;
-                kbdcommand=0xF4;
+                kbdcommand = KBD_CMD_ENABLE;
                 break;
-                default:
+
+        default:
                 kbdcommand=1;
                 kcallback=1*4;
                 kbdreset=0;
@@ -172,26 +182,27 @@ void keycallback(void)
         else if (kbdreset==2)
         {
                 kbdreset=3;
-//                keyboardsend(0xFA);
+                // keyboardsend(KBD_REPLY_ACK);
                 kcallback=500*4;
         }
         else if (kbdreset==3)
         {
                 kcallback=0;
                 kbdreset=0;
-                keyboardsend(0xAA);
+                keyboardsend(KBD_REPLY_POR);
         }
         else switch (kbdcommand)
         {
-                case 1:
-                case 0xF4:
-//                        rpclog("Send key dataF4\n");
-                keyboardsend(0xFA);
+        case 1:
+        case KBD_CMD_ENABLE:
+                // rpclog("Send key dataF4\n");
+                keyboardsend(KBD_REPLY_ACK);
                 kcallback=0;
                 kbdcommand=0;
                 break;
-                case 0xFE:
-  //                      rpclog("Send key dataFE %i %02X\n",kbdpacketpos,kbdpacket[kbdpacketpos]);
+
+        case 0xFE:
+                // rpclog("Send key dataFE %i %02X\n",kbdpacketpos,kbdpacket[kbdpacketpos]);
                 keyboardsend(ps2_read_data(q));
                 kcallback=0;
                 if (q->count == 0)
