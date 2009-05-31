@@ -18,10 +18,7 @@ extern void vidcwakeupthread(void);
 extern int vidctrymutex(void);
 extern void vidcreleasemutex(void);
 
-extern int refresh;
-extern int skipblits;
 extern int fullscreen;
-
 
 extern uint8_t *dirtybuffer;
 

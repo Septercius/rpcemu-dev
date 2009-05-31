@@ -162,18 +162,24 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 // resetcodeblocks();
                 switch (cp15.tlbbase&0x1F000000)
                 {
-                        case 0x02000000: /*VRAM - yes RISC OS 3.7 does put the TLB in VRAM at one point*/
-                        tlbram=vram; tlbrammask=vrammask>>2; break;
-                        case 0x10000000: /*SIMM 0 bank 0*/
-                        case 0x11000000:
-                        case 0x12000000:
-                        case 0x13000000:
-                        tlbram=ram; tlbrammask=rammask>>2; break;
-                        case 0x14000000: /*SIMM 0 bank 1*/
-                        case 0x15000000:
-                        case 0x16000000:
-                        case 0x17000000:
-                        tlbram=ram2; tlbrammask=rammask>>2; break;
+                case 0x02000000: /*VRAM - yes RISC OS 3.7 does put the TLB in VRAM at one point*/
+                        tlbram = vram;
+                        tlbrammask = config.vrammask >> 2;
+                        break;
+                case 0x10000000: /*SIMM 0 bank 0*/
+                case 0x11000000:
+                case 0x12000000:
+                case 0x13000000:
+                        tlbram = ram;
+                        tlbrammask = config.rammask >> 2;
+                        break;
+                case 0x14000000: /*SIMM 0 bank 1*/
+                case 0x15000000:
+                case 0x16000000:
+                case 0x17000000:
+                        tlbram = ram2;
+                        tlbrammask = config.rammask >> 2;
+                        break;
                 }
                 // printf("CP15 tlb base now %08X\n",cp15.tlbbase);
                 return;
@@ -186,7 +192,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
         case 5:
         case 6:
         case 8:
-                switch (model) {
+                switch (config.model) {
                 /* ARMv3 Architecture */
                 case CPUModel_ARM610:
                 case CPUModel_ARM710:
@@ -225,7 +231,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 
                 default:
                         fprintf(stderr, "writecp15(): unknown CPU model %d\n",
-                                model);
+                                config.model);
                         exit(EXIT_FAILURE);
                 }
                 break;
@@ -260,7 +266,7 @@ uint32_t readcp15(uint32_t addr)
         switch (addr&15)
         {
                 case 0: /*ARM ID*/
-                switch (model)
+                switch (config.model)
                 {
                         case CPUModel_ARM7500: return 0x41027100;
                         case CPUModel_ARM610: return 0x41560610;
@@ -369,11 +375,11 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 }
                 sldaddr=((addr&0xFF000)>>10)|(fld&0xFFFFFC00);
                 if ((sldaddr&0x1F000000)==0x02000000)
-                   sld=vram[(sldaddr&vrammask)>>2];
+                   sld = vram[(sldaddr & config.vrammask) >> 2];
                 else if (sldaddr&0x4000000)
-                   sld=ram2[(sldaddr&rammask)>>2];
+                   sld = ram2[(sldaddr & config.rammask) >> 2];
                 else
-                   sld=ram[(sldaddr&rammask)>>2];
+                   sld = ram[(sldaddr & config.rammask) >> 2];
                 if (!(sld&3)) /*Unmapped*/
                 {
                         fault_code = CP15_FAULT_TRANSLATION_PAGE;
@@ -487,13 +493,13 @@ uint32_t *getpccache(uint32_t addr)
                 case 0x12000000:
                 case 0x13000000:
 //                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
-                return &ram[((long)(addr2&rammask)-(long)addr)>>2];
+                return &ram[((long)(addr2 & config.rammask) - (long)addr) >> 2];
                 case 0x14000000: /*SIMM 0 bank 1*/
                 case 0x15000000:
                 case 0x16000000:
                 case 0x17000000:
 //                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
-                return &ram2[((long)(addr2&rammask)-(long)addr)>>2];
+                return &ram2[((long)(addr2 & config.rammask) - (long)addr) >> 2];
         }
         error("Bad PC %08X %08X\n",addr,addr2);
         dumpregs();

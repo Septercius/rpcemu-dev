@@ -88,7 +88,7 @@
 #else
 #define mousehackena 0
 #endif
-#define mousehack (/*mousehackena&&*/mousehackon && !fullscreen)
+#define mousehack (/*mousehackena&&*/config.mousehackon && !fullscreen)
 
 extern int fullscreen;
 /*This enables abort checking after every LDR/STR/LDM/STM instruction in the
@@ -101,7 +101,6 @@ extern int fullscreen;
 #define FULLSCREENALWAYS
 #endif
 
-extern int mousehackon;
 //#define PREFETCH
 
 
@@ -112,13 +111,25 @@ typedef enum {
 	CPUModel_SA110
 } CPUModel;
 
-/*Config*/
-extern int vrammask;
-extern CPUModel model;
-extern int rammask;
-extern int stretchmode;
-extern const char *username;
-extern const char *ipaddress;
+
+/* Config */
+typedef struct {
+	CPUModel model;
+	int rammask;
+	int vrammask;
+	int stretchmode;
+	const char *username;
+	const char *ipaddress;
+	int refresh;		/* Video refresh rate */
+	int soundenabled;
+	int skipblits;
+	int cdromenabled;
+	int cdromtype;
+	char isoname[512];
+	int mousehackon;
+} Config;
+
+extern Config config;
 
 extern uint32_t inscount;
 extern int rinscount;
@@ -181,6 +192,5 @@ extern void fpaopcode(uint32_t opcode);
 
 #define CDROM_ISO   0
 #define CDROM_IOCTL 1
-extern int cdromtype;
 
 #endif

@@ -417,7 +417,7 @@ void resetarm(void)
         refillpipeline2();
         resetcp15();
         pccache=0xFFFFFFFF;
-        if (model == CPUModel_SA110)
+        if (config.model == CPUModel_SA110)
                 r15diff = 0;
         else
                 r15diff = 4;

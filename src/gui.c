@@ -105,12 +105,12 @@ static MENU discmenu[]=
 static int cddisabled(void)
 {
 	int res;
-	if (cdromenabled)
+	if (config.cdromenabled)
 	{
 		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
 		if (res==1)
 		{
-			cdromenabled=0;
+			config.cdromenabled = 0;
 			resetrpc();
 		}
 	}
@@ -120,12 +120,12 @@ static int cddisabled(void)
 static int cdempty(void)
 {
 	int res;
-	if (!cdromenabled)
+	if (!config.cdromenabled)
 	{
 		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
 		if (res==1)
 		{
-			cdromenabled=1;
+			config.cdromenabled = 1;
 			resetrpc();
 		}
 		else		   
@@ -136,32 +136,29 @@ static int cdempty(void)
 	return D_CLOSE;
 }
 
-char isoname[512]="";
-
 static int cdisoimage(void)
 {
         char fn[260];
         int ret,res;
         int xsize=SCREEN_W-32,ysize=SCREEN_H-64;
-	if (!cdromenabled)
+	if (!config.cdromenabled)
 	{
 		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
 		if (res==1)
 		{
-			cdromenabled=1;
+			config.cdromenabled = 1;
 			resetrpc();
 		}
 		else
 	   	   return D_EXIT;
 	}
-		        memcpy(fn,isoname,260);
-		        ret=file_select_ex("Please choose a disc image",fn,"ISO",260,xsize,ysize);
-		        if (ret)
-	        	{
-		                strcpy(isoname,fn);
-				atapi->exit();
-                		iso_open(isoname);
-		        }
+	memcpy(fn, config.isoname, 260);
+	ret=file_select_ex("Please choose a disc image",fn,"ISO",260,xsize,ysize);
+	if (ret) {
+		strcpy(config.isoname, fn);
+		atapi->exit();
+		iso_open(config.isoname);
+	}
         return D_EXIT;
 }
 
@@ -169,12 +166,12 @@ static int cdisoimage(void)
 static int cdioctl(void)
 {
 	int res;
-	if (!cdromenabled)
+	if (!config.cdromenabled)
 	{
 		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
 		if (res==1)
 		{
-			cdromenabled=1;
+			config.cdromenabled = 1;
 			resetrpc();
 		}
 		else return D_CLOSE;
@@ -207,22 +204,22 @@ static int menufullscreen(void)
 
 static int menualt(void)
 {
-        stretchmode^=1;
-        settingsmenu[MENU_SETTINGS_ALT_BLIT].flags = stretchmode ? D_SELECTED : 0;
+        config.stretchmode ^= 1;
+        settingsmenu[MENU_SETTINGS_ALT_BLIT].flags = config.stretchmode ? D_SELECTED : 0;
         return D_CLOSE;
 }
 
 static int menublt(void)
 {
-        skipblits^=1;
-        settingsmenu[MENU_SETTINGS_BLIT_OPTIMISE].flags = skipblits ? D_SELECTED : 0;
+        config.skipblits ^= 1;
+        settingsmenu[MENU_SETTINGS_BLIT_OPTIMISE].flags = config.skipblits ? D_SELECTED : 0;
         return D_CLOSE;
 }
 
 static int menumouse(void)
 {
-        mousehackon^=1;
-        settingsmenu[MENU_SETTINGS_MOUSEHACK].flags = mousehackon ? D_SELECTED : 0;
+        config.mousehackon ^= 1;
+        settingsmenu[MENU_SETTINGS_MOUSEHACK].flags = config.mousehackon ? D_SELECTED : 0;
         return D_CLOSE;
 }
 
@@ -238,7 +235,7 @@ static int menusettings(void)
         configuregui[CONF_ARM710].flags  = 0;
         configuregui[CONF_SA110].flags   = 0;
 
-        switch (model) {
+        switch (config.model) {
         case CPUModel_ARM7500:
                 configuregui[CONF_ARM7500].flags = D_SELECTED;
                 break;
@@ -252,7 +249,7 @@ static int menusettings(void)
                 configuregui[CONF_SA110].flags = D_SELECTED;
                 break;
         default:
-                fprintf(stderr, "Unknown CPU model %d\n", model);
+                fprintf(stderr, "Unknown CPU model %d\n", config.model);
                 exit(EXIT_FAILURE);
         }
 
@@ -262,7 +259,7 @@ static int menusettings(void)
         configuregui[CONF_RAM_32].flags  = 0;
         configuregui[CONF_RAM_64].flags  = 0;
         configuregui[CONF_RAM_128].flags = 0;
-        switch (rammask)
+        switch (config.rammask)
         {
                 case 0x01FFFFF: configuregui[CONF_RAM_4].flags   = D_SELECTED; break;
                 case 0x03FFFFF: configuregui[CONF_RAM_8].flags   = D_SELECTED; break;
@@ -272,11 +269,11 @@ static int menusettings(void)
                 case 0x3FFFFFF: configuregui[CONF_RAM_128].flags = D_SELECTED; break;
         }
 
-        configuregui[CONF_VRAM_0].flags = vrammask     ? 0          : D_SELECTED;
-        configuregui[CONF_VRAM_2].flags = vrammask     ? D_SELECTED : 0;
-        configuregui[CONF_SOUND].flags  = soundenabled ? D_SELECTED : 0;
-        configuregui[CONF_HZ_SLIDER].d2 = (refresh - 20) / 5;
-        sprintf(hzstring, "%iHz", refresh);
+        configuregui[CONF_VRAM_0].flags = config.vrammask     ? 0          : D_SELECTED;
+        configuregui[CONF_VRAM_2].flags = config.vrammask     ? D_SELECTED : 0;
+        configuregui[CONF_SOUND].flags  = config.soundenabled ? D_SELECTED : 0;
+        configuregui[CONF_HZ_SLIDER].d2 = (config.refresh - 20) / 5;
+        sprintf(hzstring, "%iHz", config.refresh);
         configuregui[CONF_HZ_TEXT].dp = hzstring;
         
         position_dialog(configuregui,(SCREEN_W/2)-80,(SCREEN_H/2)-88);
@@ -301,8 +298,8 @@ static int menusettings(void)
                         selected_model = CPUModel_SA110;
                 }
 
-                if (model != selected_model) {
-                        model = selected_model;
+                if (config.model != selected_model) {
+                        config.model = selected_model;
                         changed = 1;
                 }
 
@@ -319,8 +316,8 @@ static int menusettings(void)
                 } else if (configuregui[CONF_RAM_128].flags & D_SELECTED) {
                         selected_rammask = 0x3FFFFFF;
                 }
-                if (rammask != selected_rammask) {
-                        rammask = selected_rammask;
+                if (config.rammask != selected_rammask) {
+                        config.rammask = selected_rammask;
                         changed = 1;
                 }
 
@@ -329,23 +326,23 @@ static int menusettings(void)
                 } else if (configuregui[CONF_VRAM_2].flags & D_SELECTED) {
                         selected_vrammask = 0x7FFFFF;
                 }
-                if (vrammask != selected_vrammask) {
-                        vrammask = selected_vrammask;
+                if (config.vrammask != selected_vrammask) {
+                        config.vrammask = selected_vrammask;
                         changed  = 1;
                 }
 
                 if (changed)
                         resetrpc();
                 
-                refresh = (configuregui[CONF_HZ_SLIDER].d2 * 5) + 20;
+                config.refresh = (configuregui[CONF_HZ_SLIDER].d2 * 5) + 20;
                 
-                if (soundenabled && !(configuregui[CONF_SOUND].flags & D_SELECTED)) {
+                if (config.soundenabled && !(configuregui[CONF_SOUND].flags & D_SELECTED)) {
                         closesound();
-                        soundenabled = 0;
+                        config.soundenabled = 0;
                 }
-                if (!soundenabled && (configuregui[CONF_SOUND].flags & D_SELECTED)) {
+                if (!config.soundenabled && (configuregui[CONF_SOUND].flags & D_SELECTED)) {
                         initsound();
-                        soundenabled = 1;
+                        config.soundenabled = 1;
                 }
         }
         return D_CLOSE;
@@ -446,12 +443,12 @@ void entergui(void)
         int x = 1;
         infocus=0;
         
-        if (soundenabled) stopsound();
+        if (config.soundenabled) stopsound();
         
         settingsmenu[MENU_SETTINGS_FULLSCREEN].flags    = fullscreen  ? D_SELECTED : 0;
-        settingsmenu[MENU_SETTINGS_ALT_BLIT].flags      = stretchmode ? D_SELECTED : 0;
-        settingsmenu[MENU_SETTINGS_BLIT_OPTIMISE].flags = skipblits   ? D_SELECTED : 0;
-        settingsmenu[MENU_SETTINGS_MOUSEHACK].flags     = mousehackon ? D_SELECTED : 0;
+        settingsmenu[MENU_SETTINGS_ALT_BLIT].flags      = config.stretchmode ? D_SELECTED : 0;
+        settingsmenu[MENU_SETTINGS_BLIT_OPTIMISE].flags = config.skipblits   ? D_SELECTED : 0;
+        settingsmenu[MENU_SETTINGS_MOUSEHACK].flags     = config.mousehackon ? D_SELECTED : 0;
         
         dp=init_dialog(rpcemugui,0);
         show_mouse(screen);
@@ -466,7 +463,7 @@ void entergui(void)
         clear_keybuf();
         resetbuffer();
         
-        if (soundenabled) continuesound();
+        if (config.soundenabled) continuesound();
         
         infocus=1;
         return;

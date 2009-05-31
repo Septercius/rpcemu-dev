@@ -226,9 +226,9 @@ int main (int argc, char ** argv)
            return -1;
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
-        install_int_ex(vblupdate,BPS_TO_TIMER(refresh));
+        install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
 	startsoundthread();
-        if (soundenabled) initsound();
+        if (config.soundenabled) initsound();
         infocus=1;
 
         while (!quited)

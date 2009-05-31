@@ -427,7 +427,7 @@ void writeiomd(uint32_t addr, uint32_t val)
                 // rpclog("Vidcur = %08X\n",val);
                 return;
         case IOMD_0x1D4_VIDEND: /* Video DMA End */
-                if (vrammask && model != CPUModel_ARM7500)
+                if (config.vrammask && config.model != CPUModel_ARM7500)
                         iomd.vidend = (val + 2048) & 0x7FFFF0;
                 else
                         iomd.vidend = (val + 16) & 0x7FFFF0;
@@ -524,11 +524,11 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.romcr1;
 
         case IOMD_0x094_ID0: /* Chip ID no. low byte */
-                if (model == CPUModel_ARM7500)
+                if (config.model == CPUModel_ARM7500)
                         return CHIP_ID_LOW_ARM7500;
                 return CHIP_ID_LOW_IOMD;
         case IOMD_0x098_ID1: /* Chip ID no. high byte */
-                if (model == CPUModel_ARM7500)
+                if (config.model == CPUModel_ARM7500)
                         return CHIP_ID_HIGH_ARM7500;
                 return CHIP_ID_HIGH_IOMD;
         case IOMD_0x09C_VERSION: /* Chip version number */
