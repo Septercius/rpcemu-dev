@@ -369,10 +369,6 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 goto do_fault;
 
         case 1: /* Page */
-                if (temp3 == 0) {
-                        fault_code = CP15_FAULT_DOMAIN_PAGE;
-                        goto do_fault;
-                }
                 sldaddr=((addr&0xFF000)>>10)|(fld&0xFFFFFC00);
                 if ((sldaddr&0x1F000000)==0x02000000)
                    sld = vram[(sldaddr & config.vrammask) >> 2];
@@ -383,6 +379,10 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 if (!(sld&3)) /*Unmapped*/
                 {
                         fault_code = CP15_FAULT_TRANSLATION_PAGE;
+                        goto do_fault;
+                }
+                if (temp3 == 0) {
+                        fault_code = CP15_FAULT_DOMAIN_PAGE;
                         goto do_fault;
                 }
                 switch (sld&3)
