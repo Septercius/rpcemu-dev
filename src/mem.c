@@ -13,29 +13,18 @@
 #include "podules.h"
 #include "fdc.h"
 
-//#define LARGETLB
 uint32_t *ram = NULL, *ram2 = NULL, *rom = NULL, *vram = NULL;
 uint8_t *ramb = NULL, *ramb2 = NULL, *romb = NULL, *vramb = NULL;
 
 int mmu = 0, memmode = 0;
 
 static uint32_t readmemcache = 0,readmemcache2 = 0;
-#ifdef LARGETLB
-static uint32_t writememcache[128] = {0}, writememcache2[128] = {0};
-#else
 static uint32_t writememcache = 0,writememcache2 = 0;
-#endif
 static uint32_t writemembcache = 0,writemembcache2 = 0;
 
 void clearmemcache(void)
 {
-#ifdef LARGETLB
-        int c;
-        for (c=0;c<128;c++)
-            writememcache[c]=0xFFFFFFFF;
-#else
         writememcache=0xFFFFFFFF;
-#endif
         readmemcache=0xFFFFFFFF;
 }
 
@@ -380,15 +369,9 @@ uint32_t readmemfb(uint32_t addr)
 }
 
 #define HASH(l) (((l)>>2)&0x7FFF)
-#ifdef LARGETLB
-void writememfl(uint32_t addrt, uint32_t val)
-#else
+
 void writememfl(uint32_t addr, uint32_t val)
-#endif
 {
-#ifdef LARGETLB
-        uint32_t addr;
-#endif
         uint32_t addr2=addr;
 
         if (mmu)
@@ -429,43 +412,10 @@ void writememfl(uint32_t addr, uint32_t val)
                         }
         }
 
-/*        if (mmu)
-        {
-                #ifdef LARGETLB
-                if ((addrt>>12)==writememcache[(addrt>>12)&127]) addr=(addrt&0xFFF)+writememcache2[(addrt>>12)&127];
-                else
-                {
-                        writememcache[(addrt>>12)&127]=addrt>>12;
-                        addr=translateaddress(addrt,1);
-                        if (databort) return;
-                        writememcache2[(addrt>>12)&127]=addr&0xFFFFF000;
-                }
-                #else
-                if ((addr>>12)==writememcache) addr=(addr&0xFFF)+writememcache2;
-                else
-                {
-                        writememcache=addr>>12;
-                        addr=translateaddress(addr,1);
-                        if (databort) return;
-                        writememcache2=addr&0xFFFFF000;
-                        if ((addr&0x1F000000)==0x2000000)
-                           dirtybuffer[(addr & config.vrammask) >> 12] = 2;
-                        if (!config.vrammask && (addr & 0x1FF00000) == 0x10000000)
-                           dirtybuffer[(addr & config.rammask) >> 12] = 2;
-                }
-                #endif
-        }*/
-        #ifdef LARGETLB
-        else
-           addr=addrt;
-        #endif
         switch (addr&0x1F000000)
         {
                 case 0x02000000: /*VRAM*/
 //                if (!config.vrammask) return;
-#ifdef LARGETLB
-                dirtybuffer[(addr & config.vrammask) >> 12] = 1;
-#endif
                 vram[(addr & config.vrammask) >> 2] = val;
                 return;
 
@@ -548,15 +498,8 @@ void writememfl(uint32_t addr, uint32_t val)
         exit(-1);*/
 }
 
-#ifdef LARGETLB
-void writememfb(uint32_t addrt, uint8_t val)
-#else
 void writememfb(uint32_t addr, uint8_t val)
-#endif
 {
-        #ifdef LARGETLB
-        uint32_t addr;
-        #endif
         uint32_t addr2=addr;
 
         if (mmu)
@@ -599,44 +542,10 @@ void writememfb(uint32_t addr, uint8_t val)
                         }
         }
 
-/*        if (mmu)
-        {
-                #ifdef LARGETLB
-                if ((addrt>>12)==writememcache[(addrt>>12)&127]) addr=(addrt&0xFFF)+writememcache2[(addrt>>12)&127];
-                else
-                {
-                        writememcache[(addrt>>12)&127]=addrt>>12;
-                        addr=translateaddress(addrt,1,0);
-                        if (armirq&0x40) return;
-                        writememcache2[(addrt>>12)&127]=addr&0xFFFFF000;
-                }
-                #else
-                if ((addr>>12)==writemembcache) addr=(addr&0xFFF)+writemembcache2;
-                else
-                {
-                        writemembcache=addr>>12;
-                        addr=translateaddress(addr,1,0);
-                        if (armirq&0x40) return;
-                        writemembcache2=addr&0xFFFFF000;
-                        if ((addr&0x1F000000)==0x2000000)
-                           dirtybuffer[(addr & config.vrammask) >> 12] = 2;
-                        if ((!config.vrammask || config.model == CPUModel_ARM7500) && (addr & 0x1FF00000) == 0x10000000)
-                           dirtybuffer[(addr & config.rammask) >> 12] = 2;
-                }
-                #endif
-        }
-        #ifdef LARGETLB
-        else
-           addr=addrt;
-        #endif
-        */
         switch (addr&0x1F000000)
         {
                 case 0x02000000: /*VRAM*/
 //                if (!config.vrammask) return;
-#ifdef LARGETLB
-                dirtybuffer[(addr & config.vrammask) >> 12] = 1;
-#endif
 #ifdef _RPCEMU_BIG_ENDIAN
 				addr^=3;
 #endif
