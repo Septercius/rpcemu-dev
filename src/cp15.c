@@ -377,8 +377,10 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                    sld = ram2[(sldaddr & config.rammask) >> 2];
                 else
                    sld = ram[(sldaddr & config.rammask) >> 2];
-                if (!(sld&3)) /*Unmapped*/
-                {
+
+                /* Check for invalid Page Table Entry */
+                if ((sld & 3) == 0 || (sld & 3) == 3) {
+                        /* Fault or Reserved */
                         fault_code = CP15_FAULT_TRANSLATION_PAGE;
                         goto do_fault;
                 }
