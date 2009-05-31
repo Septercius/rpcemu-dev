@@ -9,7 +9,6 @@
 
 int getbufferlen(void);
 
-int soundenabled;
 uint32_t soundaddr[4];
 static int samplefreq;
 int soundinited,soundlatch,soundcount;
@@ -38,8 +37,11 @@ void initsound(void)
                 samplefreq=44100;
                 soundon=1;
         }
-        if (soundenabled) as=play_audio_stream(BUFFERLEN,16,1,samplefreq,255,128);
-        else              as=play_audio_stream(BUFFERLEN,16,1,samplefreq,0,128);
+        if (config.soundenabled) {
+                as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 255, 128);
+        } else {
+                as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 0, 128);
+        }
 }
 
 void closesound(void)
@@ -96,7 +98,7 @@ void updatesoundirq(void)
         int len;
         unsigned int c;
 
-        if (!soundenabled)
+        if (!config.soundenabled)
         {
                 return;
         }
@@ -122,7 +124,7 @@ void updatesoundirq(void)
                                         iomd.sndstat^=1;
         for (c=start;c<end;c+=4)
         {
-                temp=ram[((c+page)&rammask)>>2];
+                temp = ram[((c + page) & config.rammask) >> 2];
                 bigsoundbuffer[bigsoundbufferhead][bigsoundpos++]=(temp&0xFFFF);//^0x8000;
                 bigsoundbuffer[bigsoundbufferhead][bigsoundpos++]=(temp>>16);//&0x8000;
                 if (bigsoundpos>=(BUFFERLEN<<1))
@@ -142,7 +144,7 @@ int updatesoundbuffer(void)
         unsigned short *p;
         int c;
 
-        if (!soundenabled)
+        if (!config.soundenabled)
         {
                 return 0;
         }

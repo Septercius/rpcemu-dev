@@ -91,7 +91,7 @@ static int tun_alloc(void)
     int fd;
     int sd;
     
-    if (ipaddress == NULL) {
+    if (config.ipaddress == NULL) {
         printf("IP address not configured\n");
         return -1;
     }
@@ -119,7 +119,7 @@ static int tun_alloc(void)
     addr = (struct sockaddr_in *)(&(ifr.ifr_addr));
     addr->sin_family = AF_INET;
     addr->sin_port = 0;
-    inet_aton(ipaddress, &(addr->sin_addr));
+    inet_aton(config.ipaddress, &(addr->sin_addr));
     if (ioctl(sd, SIOCSIFADDR, &ifr) == -1) {
         printf("Error assigning %s addr: %s\n",
                ifr.ifr_name, strerror(errno));
@@ -350,7 +350,7 @@ void initnetwork(void)
 { 
     uid_t uid = 0;
     gid_t gid = 0;
-    const char *user = username;
+    const char *user = config.username;
     /* Use configured username if available, otherwise see if
        we are running from a sudo command */
     if (user == NULL) user = getenv("SUDO_USER");

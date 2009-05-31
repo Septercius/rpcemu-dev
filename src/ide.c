@@ -67,7 +67,6 @@ void callbackide(void);
 ATAPI *atapi;
 
 static void callreadcd(void);
-int cdromenabled=1;
 static void atapicommand(void);
 
 static struct
@@ -334,7 +333,7 @@ void resetide(void)
         ide.atastat[0] = ide.atastat[2] = READY_STAT;
         idecallback=0;
         loadhd(0,"hd4.hdf");
-        if (cdromenabled)
+        if (config.cdromenabled)
         {
                 /* Hard disk images for ICS IDE disabled
                 loadhd(2,"hd5.hdf");
@@ -665,7 +664,7 @@ void callbackide(void)
         case WIN_SRST: /*ATAPI Device Reset */
                 ide.atastat[ide.board] = READY_STAT;
                 ide.error=1; /*Device passed*/
-                if ((ide.drive|ide.board)!=1 || !cdromenabled)
+                if ((ide.drive|ide.board)!=1 || !config.cdromenabled)
                 {
                         ide.secount=ide.sector=1;
                         ide.cylinder=0;
@@ -747,7 +746,7 @@ void callbackide(void)
                 return;
 
         case WIN_PIDENTIFY: /* Identify Packet Device */
-                if (ide.drive && !ide.board && cdromenabled)
+                if (ide.drive && !ide.board && config.cdromenabled)
                 {
                         ide_atapi_identify();
                         ide.pos=0;
@@ -764,7 +763,7 @@ void callbackide(void)
                 return;
 
         case WIN_IDENTIFY: /* Identify Device */
-                if (ide.drive && cdromenabled && !ide.board)
+                if (ide.drive && config.cdromenabled && !ide.board)
                 {
                         ide.secount=1;
                         ide.sector=1;

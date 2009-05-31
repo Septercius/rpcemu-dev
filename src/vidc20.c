@@ -85,13 +85,19 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
         switch (doublesize)
         {
                 case 0:
-                if (!(fullscreen && stretchmode)) ys=yh-yl;
+                if (!(fullscreen && config.stretchmode)) ys = yh - yl;
                 if (fullscreen)
                 {
-                        if (stretchmode) blit(b,backbuf,0,0,(SCREEN_W-xs)>>1,((SCREEN_H-oldsy)>>1),xs,ys);
-                        else             blit(b,backbuf,0,yl,(SCREEN_W-xs)>>1,yl+((SCREEN_H-oldsy)>>1),xs,ys);
+                        if (config.stretchmode) {
+                                blit(b, backbuf, 0, 0,  (SCREEN_W - xs) >> 1, ((SCREEN_H - oldsy) >> 1),      xs, ys);
+                        } else {
+                                blit(b, backbuf, 0, yl, (SCREEN_W - xs) >> 1, yl + ((SCREEN_H - oldsy) >> 1), xs, ys);
+                        }
                 }
-                else            blit(b,screen,0,yl,0,yl,xs,ys);
+                else
+                {
+                        blit(b, screen, 0, yl, 0, yl, xs, ys);
+                }
                 break;
                 case 1:
                 ys=yh-yl;
@@ -99,7 +105,7 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
                 else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl,                      xs<<1,ys);
                 break;
                 case 2:
-                if (stretchmode)
+                if (config.stretchmode)
                 {
                         if (fullscreen) stretch_blit(b,backbuf,0,0,xs,ys,0,0,xs,(ys<<1)-1);
                         else            stretch_blit(b,screen, 0,0,xs,ys,0,0,xs,(ys<<1)-1);
@@ -112,7 +118,7 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
                 }
                 break;
                 case 3:
-                if (stretchmode)
+                if (config.stretchmode)
                 {
                         if (fullscreen) stretch_blit(b,backbuf,0,0,xs,ys,(SCREEN_W-(xs<<1))>>1,((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
                         else            stretch_blit(b,screen, 0,0,xs,ys,0,0,xs<<1,(ys<<1)-1);
@@ -513,11 +519,11 @@ void drawscr(int needredraw)
                         /*Not looking good for screen redraw - check to see if cursor data has changed*/
                         if (cinit&0x4000000) ramp = (const unsigned char *) ram2;
                         else                 ramp = (const unsigned char *) ram;
-                        addr=(cinit&rammask);//>>2;
+                        addr = (cinit & config.rammask); // >> 2;
                         for (c=0;c<(thr.cursorheight<<3);c++)
                             calccrc(&crc, ramp[addr++]);
                         /*If cursor data matches then no point redrawing screen - return*/
-                        if (crc==curcrc && skipblits)
+                        if (crc == curcrc && config.skipblits)
                         {
                                 needredraw = 0;
                                 thr.needvsync = 1;
@@ -1203,7 +1209,7 @@ void vidcthread(void)
         {
                 if (cinit&0x4000000) ramp = (const unsigned char *) ram2;
                 else                 ramp = (const unsigned char *) ram;
-                addr=cinit&rammask;
+                addr = cinit & config.rammask;
 //                printf("Mouse now at %i,%i\n",thr.cursorx,thr.cursory);
                 switch (drawcode)
                 {

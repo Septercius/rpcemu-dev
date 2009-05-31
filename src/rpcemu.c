@@ -22,27 +22,34 @@
 #include "podules.h"
 #include "fdc.h"
 
-int cdromtype;
 unsigned char flaglookup[16][16];
 
 char discname[2][260]={"boot.adf","notboot.adf"};
 char exname[512] = {0};
 
-int vrammask = 0;
-CPUModel model = CPUModel_ARM7500;
-int rammask = 0;
-int stretchmode = 0;
+Config config = {
+	CPUModel_ARM7500,	/* model */
+	0,			/* rammask */
+	0,			/* vrammask */
+	0,			/* stretchmode */
+	NULL,			/* username */
+	NULL,			/* ipaddress */
+	0,			/* refresh */
+	1,			/* soundenabled */
+	0,			/* skipblits (blit_optimisation) */
+	1,			/* cdromenabled */
+	0,			/* cdromtype  -- Only used on Windows build */
+	"",			/* isoname */
+	1,			/* mousehackon */
+};
+
 int infocus = 0;
-int refresh = 0;
-int skipblits = 0;
 int rinscount = 0;
 int cyccount = 0;
 int timetolive = 0;
 int drawscre = 0;
 int mousecapture = 0;
 int quited = 0;
-const char *username = NULL;
-const char *ipaddress = NULL;
 
 static void loadconfig(void);
 static void saveconfig(void);
@@ -86,7 +93,7 @@ void UNIMPLEMENTEDFL(const char *file, unsigned line, const char *section,
 
 void resetrpc(void)
 {
-        mem_reset(rammask + 1);
+        mem_reset(config.rammask + 1);
         resetcp15();
         resetarm();
         resetkeyboard();
@@ -134,16 +141,16 @@ int startrpcemu(void)
 //printf("Video inited!\n");
         loadconfig();
         initsound();
-        mem_reset(rammask + 1);
+        mem_reset(config.rammask + 1);
         initcodeblocks();
         iso_init();
-        if (cdromtype==2) /*ISO*/
-           iso_open(isoname);
+        if (config.cdromtype == 2) /* ISO */
+                iso_open(config.isoname);
         initpodules();
         initpodulerom();
         //initics();
 //        iso_open("e:/au_cd8.iso");
-//        cdromtype=CDROM_ISO;
+//        config.cdromtype = CDROM_ISO;
         return 0;
 }
 
@@ -194,66 +201,67 @@ static void loadconfig(void)
         append_filename(fn,exname,"rpc.cfg",511);
         set_config_file(fn);
         p = get_config_string(NULL,"mem_size",NULL);
-        if (!p)                    rammask=0x7FFFFF;
-        else if (!strcmp(p,"4"))   rammask=0x1FFFFF;
-        else if (!strcmp(p,"8"))   rammask=0x3FFFFF;
-        else if (!strcmp(p,"32"))  rammask=0xFFFFFF;
-        else if (!strcmp(p,"64"))  rammask=0x1FFFFFF;
-        else if (!strcmp(p,"128")) rammask=0x3FFFFFF;
-        else                       rammask=0x7FFFFF;
+        if (!p)                    config.rammask = 0x7FFFFF;
+        else if (!strcmp(p,"4"))   config.rammask = 0x1FFFFF;
+        else if (!strcmp(p,"8"))   config.rammask = 0x3FFFFF;
+        else if (!strcmp(p,"32"))  config.rammask = 0xFFFFFF;
+        else if (!strcmp(p,"64"))  config.rammask = 0x1FFFFFF;
+        else if (!strcmp(p,"128")) config.rammask = 0x3FFFFFF;
+        else                       config.rammask = 0x7FFFFF;
         #ifdef DYNAREC
-        model = CPUModel_SA110;
-        vrammask=0x7FFFFF; /*2mb VRAM*/
+        config.model = CPUModel_SA110;
+        config.vrammask = 0x7FFFFF; /* 2mb VRAM */
         #else
         p = get_config_string(NULL,"vram_size",NULL);
-        if (!p) vrammask=0x7FFFFF;
-        else if (!strcmp(p,"0"))        vrammask=0;
-        else                       vrammask=0x7FFFFF;
+        if (!p) config.vrammask = 0x7FFFFF;
+        else if (!strcmp(p,"0"))   config.vrammask = 0;
+        else                       config.vrammask = 0x7FFFFF;
         p = get_config_string(NULL,"cpu_type",NULL);
-        if (!p) model = CPUModel_ARM710;
-        else if (!strcmp(p, "ARM610"))  model = CPUModel_ARM610;
-        else if (!strcmp(p, "ARM7500")) model = CPUModel_ARM7500;
-        else if (!strcmp(p, "SA110"))   model = CPUModel_SA110;
-        else                            model = CPUModel_ARM710;
+        if (!p) config.model = CPUModel_ARM710;
+        else if (!strcmp(p, "ARM610"))  config.model = CPUModel_ARM610;
+        else if (!strcmp(p, "ARM7500")) config.model = CPUModel_ARM7500;
+        else if (!strcmp(p, "SA110"))   config.model = CPUModel_SA110;
+        else                            config.model = CPUModel_ARM710;
         #endif
-        soundenabled=get_config_int(NULL,"sound_enabled",1);
-        stretchmode=get_config_int(NULL,"stretch_mode",0);
-        refresh=get_config_int(NULL,"refresh_rate",60);
-        skipblits=get_config_int(NULL,"blit_optimisation",0);
-        cdromenabled=get_config_int(NULL,"cdrom_enabled",0);
-        cdromtype=get_config_int(NULL,"cdrom_type",0);
-        p = get_config_string(NULL,"cdrom_iso",NULL);
-        if (!p) strcpy(isoname,"");
-        else    strcpy(isoname,p);
-        mousehackon=get_config_int(NULL,"mouse_following",1);
-        username=get_config_string(NULL,"username",NULL);
-        ipaddress=get_config_string(NULL,"ipaddress",NULL);
+        config.soundenabled = get_config_int(NULL, "sound_enabled", 1);
+        config.stretchmode  = get_config_int(NULL, "stretch_mode",  0);
+        config.refresh      = get_config_int(NULL, "refresh_rate", 60);
+        config.skipblits    = get_config_int(NULL, "blit_optimisation", 0);
+        config.cdromenabled = get_config_int(NULL, "cdrom_enabled", 0);
+        config.cdromtype    = get_config_int(NULL, "cdrom_type", 0);
+        p = get_config_string(NULL, "cdrom_iso", NULL);
+        if (!p) strcpy(config.isoname, "");
+        else    strcpy(config.isoname, p);
+        config.mousehackon = get_config_int(NULL, "mouse_following", 1);
+        config.username  = get_config_string(NULL, "username",  NULL);
+        config.ipaddress = get_config_string(NULL, "ipaddress", NULL);
 }
 
 static void saveconfig(void)
 {
         char s[256];
-        sprintf(s,"%i",((rammask+1)>>20)<<1);
+
+        sprintf(s, "%i", ((config.rammask + 1) >> 20) << 1);
         set_config_string(NULL,"mem_size",s);
         #ifndef DYNAREC
-        switch (model)
+        switch (config.model)
         {
                 case CPUModel_ARM610:  sprintf(s, "ARM610"); break;
                 case CPUModel_ARM710:  sprintf(s, "ARM710"); break;
                 case CPUModel_SA110:   sprintf(s, "SA110"); break;
                 case CPUModel_ARM7500: sprintf(s, "ARM7500"); break;
-                default: fprintf(stderr, "saveconfig(): unknown cpu model %d\n", model); break;
+                default: fprintf(stderr, "saveconfig(): unknown cpu model %d\n", config.model); break;
         }
         set_config_string(NULL,"cpu_type",s);
-        if (vrammask) set_config_string(NULL,"vram_size","2");
-        else          set_config_string(NULL,"vram_size","0");
+        if (config.vrammask) set_config_string(NULL, "vram_size", "2");
+        else                 set_config_string(NULL, "vram_size", "0");
         #endif
-        set_config_int(NULL,"sound_enabled",soundenabled);
-        set_config_int(NULL,"stretch_mode",stretchmode);
-        set_config_int(NULL,"refresh_rate",refresh);
-        set_config_int(NULL,"blit_optimisation",skipblits);
-        set_config_int(NULL,"cdrom_enabled",cdromenabled);
-        set_config_int(NULL,"cdrom_type",cdromtype);
-        set_config_string(NULL,"cdrom_iso",isoname);
-        set_config_int(NULL,"mouse_following",mousehackon);
+        set_config_int(NULL, "sound_enabled",     config.soundenabled);
+        set_config_int(NULL, "stretch_mode",      config.stretchmode);
+        set_config_int(NULL, "refresh_rate",      config.refresh);
+        set_config_int(NULL, "blit_optimisation", config.skipblits);
+        set_config_int(NULL, "cdrom_enabled",     config.cdromenabled);
+        set_config_int(NULL, "cdrom_type",        config.cdromtype);
+        set_config_string(NULL, "cdrom_iso",      config.isoname);
+        set_config_int(NULL, "mouse_following",   config.mousehackon);
 }
