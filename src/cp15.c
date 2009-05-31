@@ -352,7 +352,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
         uint32_t sldaddr,sld; //,taddr;
         uint32_t oa=addr;
         uint32_t domain, fault_code;
-        int temp,temp2 = 0,temp3 = 0;
+        uint32_t domain_access;
+        int temp,temp2 = 0;
 
         armirq&=~0x40;
 
@@ -361,7 +362,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 
         fld=tlbram[(vaddr>>2)&tlbrammask];
         domain = (fld >> 5) & 0xf;
-        if (fld & 3) temp3 = checkdomain(domain);
+        if (fld & 3) domain_access = checkdomain(domain);
         switch (fld&3)
         {
         case 0: /* Fault (Section Translation) */
@@ -381,7 +382,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         fault_code = CP15_FAULT_TRANSLATION_PAGE;
                         goto do_fault;
                 }
-                if (temp3 == 0) {
+                if (domain_access == 0 || domain_access == 2) {
                         fault_code = CP15_FAULT_DOMAIN_PAGE;
                         goto do_fault;
                 }
@@ -398,8 +399,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                         temp2>>=(4+temp);
                         break;
                 }
-                if (temp3!=3)
-                {
+                if (domain_access == 1) {
+                        /* Client Domain - check permissions */
                         if (checkpermissions(temp2, rw)) {
                                 fault_code = CP15_FAULT_PERMISSION_PAGE;
                                 goto do_fault;
@@ -411,12 +412,12 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 return addr;
 
         case 2: /* Section */
-                if (temp3 == 0) {
+                if (domain_access == 0 || domain_access == 2) {
                         fault_code = CP15_FAULT_DOMAIN_SECTION;
                         goto do_fault;
                 }
-                if (temp3!=3)
-                {
+                if (domain_access == 1) {
+                        /* Client Domain - check permissions */
                         if (checkpermissions((fld & 0xc00) >> 10, rw)) {
                                 fault_code = CP15_FAULT_PERMISSION_SECTION;
                                 goto do_fault;
