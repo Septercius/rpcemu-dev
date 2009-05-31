@@ -10,7 +10,6 @@ extern void updatesoundirq(void);
 extern int updatesoundbuffer(void);
 extern int getbufferlen(void);
 extern uint32_t soundaddr[4];
-extern int samplefreq;
 extern int soundinited,soundlatch,soundcount;
 extern void stopsound(void);
 extern void continuesound(void);
