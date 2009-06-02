@@ -593,7 +593,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                                 closesound();
                                 install_int_ex(sndupdate,BPS_TO_TIMER(10));
                         }
-                        if (config.soundenabled2 && !soundenabled)
+                        if (soundenabled2 && !config.soundenabled)
                         {
                                 initsound();
                         }
