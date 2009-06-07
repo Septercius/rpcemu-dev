@@ -738,11 +738,7 @@ static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam,
                         changedisc(ghwnd,1);
                         return 0;
                         case IDM_CONFIG:
-                        #ifdef DYNAREC
-                        DialogBox(hinstance,TEXT("ConfigureDlgDynaRec"),ghwnd,configdlgproc);
-                        #else
                         DialogBox(hinstance,TEXT("ConfigureDlg"),ghwnd,configdlgproc);
-                        #endif
                         return 0;
                         case IDM_STRETCH:
                         config.stretchmode ^= 1;
