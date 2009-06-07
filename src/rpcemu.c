@@ -208,10 +208,6 @@ static void loadconfig(void)
         else if (!strcmp(p,"64"))  config.rammask = 0x1FFFFFF;
         else if (!strcmp(p,"128")) config.rammask = 0x3FFFFFF;
         else                       config.rammask = 0x7FFFFF;
-        #ifdef DYNAREC
-        config.model = CPUModel_SA110;
-        config.vrammask = 0x7FFFFF; /* 2mb VRAM */
-        #else
         p = get_config_string(NULL,"vram_size",NULL);
         if (!p) config.vrammask = 0x7FFFFF;
         else if (!strcmp(p,"0"))   config.vrammask = 0;
@@ -222,7 +218,6 @@ static void loadconfig(void)
         else if (!strcmp(p, "ARM7500")) config.model = CPUModel_ARM7500;
         else if (!strcmp(p, "SA110"))   config.model = CPUModel_SA110;
         else                            config.model = CPUModel_ARM710;
-        #endif
         config.soundenabled = get_config_int(NULL, "sound_enabled", 1);
         config.stretchmode  = get_config_int(NULL, "stretch_mode",  0);
         config.refresh      = get_config_int(NULL, "refresh_rate", 60);
@@ -243,7 +238,6 @@ static void saveconfig(void)
 
         sprintf(s, "%i", ((config.rammask + 1) >> 20) << 1);
         set_config_string(NULL,"mem_size",s);
-        #ifndef DYNAREC
         switch (config.model)
         {
                 case CPUModel_ARM610:  sprintf(s, "ARM610"); break;
@@ -255,7 +249,6 @@ static void saveconfig(void)
         set_config_string(NULL,"cpu_type",s);
         if (config.vrammask) set_config_string(NULL, "vram_size", "2");
         else                 set_config_string(NULL, "vram_size", "0");
-        #endif
         set_config_int(NULL, "sound_enabled",     config.soundenabled);
         set_config_int(NULL, "stretch_mode",      config.stretchmode);
         set_config_int(NULL, "refresh_rate",      config.refresh);

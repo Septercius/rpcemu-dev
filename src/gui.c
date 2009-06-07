@@ -393,17 +393,11 @@ static DIALOG configuregui[]=
         {d_button_proc,CX+88,CY+144,64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0}, // 2
 
         {d_text_proc,CX+8,CY-4,40,8,0,-1,0,0,0,0,"CPU :",0,0}, // 3
-#ifdef DYNAREC
-        {d_radio_proc,CX+8,CY+4,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM7500",0,0},   // 4
-        {d_radio_proc,CX+8,CY+4+16,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM610",0,0}, // 5
-        {d_radio_proc,CX+8,CY+4+32,64,16,0,-1,0,D_DISABLED, 0 ,0,"ARM710",0,0}, // 6
-        {d_radio_proc,CX+8,CY+4+48,64,16,0,-1,0,D_DISABLED, 0 ,0,"SA110",0,0},  // 7
-#else
         {d_radio_proc,CX+8,CY+4,64,16,0,-1,0,0, 0 ,0,"ARM7500",0,0},   // 4
         {d_radio_proc,CX+8,CY+4+16,64,16,0,-1,0,0, 0 ,0,"ARM610",0,0}, // 5
         {d_radio_proc,CX+8,CY+4+32,64,16,0,-1,0,0, 0 ,0,"ARM710",0,0}, // 6
         {d_radio_proc,CX+8,CY+4+48,64,16,0,-1,0,0, 0 ,0,"SA110",0,0},  // 7
-#endif
+
         {d_text_proc,CX+88,CY-4,40,8,0,-1,0,0,0,0,"RAM :",0,0}, // 8
         {d_radio_proc,CX+88,CY+4,64,16,0,-1,0,0, 1, 0,"4mb",0,0}, // 9
         {d_radio_proc,CX+88,CY+4+16,64,16,0,-1,0,0, 1, 0,"8mb",0,0}, // 10
@@ -413,13 +407,8 @@ static DIALOG configuregui[]=
         {d_radio_proc,CX+88,CY+4+80,64,16,0,-1,0,0, 1, 0,"128mb",0,0}, // 14
         
         {d_text_proc,CX+8,CY+4+72,40,8,0,-1,0,0,0,0,"VRAM :",0,0}, // 15
-#ifdef DYNAREC
-        {d_radio_proc,CX+8,CY+4+80,64,16,0,-1,0,D_DISABLED, 2, 0,"None",0,0}, // 16
-        {d_radio_proc,CX+8,CY+4+96,64,16,0,-1,0,D_DISABLED, 2, 0,"2mb",0,0}, // 17
-#else
         {d_radio_proc,CX+8,CY+4+80,64,16,0,-1,0,0, 2, 0,"None",0,0}, // 16
         {d_radio_proc,CX+8,CY+4+96,64,16,0,-1,0,0, 2, 0,"2mb",0,0}, // 17
-#endif
         
         {d_check_proc,CX+88,CY+4+96,64,16,0,-1,0,D_DISABLED,1,0,  "Sound",0,0}, // 18
         
