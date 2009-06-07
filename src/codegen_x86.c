@@ -1088,10 +1088,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); /*MOVB *pcpsr,%cl*/
                 addbyte(0x80); addbyte(0xE1); addbyte(~0xF0); /*AND $ZFLAG+NFLAG+VFLAG+CFLAG,%cl*/
                 generateloadgen(RN,EDI);
-//                addbyte(0x8B); addbyte(0x3D); addlong(&armregs[RN]); /*MOV armregs[RN],%edi*/
                 addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/
                 addbyte(0x9F); /*LAHF*/
-//                addbyte(0x89); addbyte(0x3D); addlong(&armregs[RD]); /*MOVL %edi,armregs[RD]*/
                 generatesavegen(RD,EDI);
                 addbyte(0x71); addbyte(3); /*JNO notoverflow*/
                 addbyte(0x80); addbyte(0xC9); addbyte(0x10); /*OR $VFLAG,%cl*/
@@ -1185,7 +1183,6 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generateload(RN);
                 addbyte(0x29); addbyte(0xCA); /*SUBL %ecx,%edx*/
                 addbyte(0x29); addbyte(0xC2); /*SUBL %eax,%edx*/
-//                addbyte(0x89); addbyte(0x15); addlong(&armregs[RD]); /*MOVL %edx,armregs[RD]*/
                 generatesavegen(RD,EDX);
                 break;
                 case 0x18: /*ORR reg*/
@@ -1510,15 +1507,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 codeblockpos=old;
                 if (RD==15 || RN==15) return 0;
                 generateload(RN);
-//                if (opcode&0x400000)
-//                {
-//                        addbyte(0x8A); addbyte(0x1D); addlong(&armregs[RD]); /*MOVL armregs[RD],%bl*/
-//                }
-//                else
-//                {
-//                        addbyte(0x8B); addbyte(0x1D); addlong(&armregs[RD]); /*MOVL armregs[RD],%ebx*/
-generateloadgen(RD,EBX);
-//                }
+                generateloadgen(RD,EBX);
                 addbyte(0x89); /*MOVL %eax,%edx*/
                 addbyte(0xC2);
                 addbyte(0xC1); addbyte(0xE8); addbyte(12); /*SHR $12,%eax*/
@@ -1696,7 +1685,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 /*.nextbit*/
                 if (opcode&0x400000)
                 {
-//                        addbyte(0x89); addbyte(0x0D); addlong(&armregs[RD]); /*MOV %ecx,armregs[RD]*/
                         generatesavegen(RD,ECX);
                 }
                 else
@@ -1704,7 +1692,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
                         addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx*/
                         addbyte(0xD3); addbyte(0xCA); /*ROR %cl,%edx*/
-//                        addbyte(0x89); addbyte(0x15); addlong(&armregs[RD]); /*MOV %edx,armregs[RD]*/
                         generatesavegen(RD,EDX);
                 }
                 if (opcode&0x2000000)
@@ -1743,12 +1730,10 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 if (opcode&0x2000000) { if (!generateshiftnoflags(opcode)) return 0; }
                 else                  { addbyte(0xB8); addlong(opcode&0xFFF); }
                 if (!(opcode&0x800000)) { addbyte(0xF7); addbyte(0xD8); } /*NEG %eax*/
-//                addbyte(0x8B); addbyte(0x1D); addlong(&armregs[RD]);/*MOVL armregs[RD],%ebx*/
                 generateloadgen(RD,EBX);
                 /*Shifted value now in %eax*/
                 if (RN==15)
                 {
-//                        addbyte(0x8B); addbyte(0x15); addlong(&armregs[RN]); /*MOVL armregs[RN],%edx*/
                         generateloadgen(RN,EDX);
                         addbyte(0x81); addbyte(0xE2); addlong(r15mask);      /*ANDL $r15mask,%edx*/
                         addbyte(0x01); addbyte(0xD0); /*ADDL %edx,%eax*/
@@ -1802,7 +1787,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 /*Shifted value now in %eax*/
                 if (RN==15)
                 {
-//                        addbyte(0x8B); addbyte(0x15); addlong(&armregs[RN]); /*MOVL armregs[RN],%edx*/
                         generateloadgen(RN,EDX);
                         addbyte(0x81); addbyte(0xE2); addlong(r15mask);      /*ANDL $r15mask,%edx*/
                         addbyte(0x01); addbyte(0xD0); /*ADDL %edx,%eax*/
@@ -1853,7 +1837,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 /*Shifted value now in %eax*/
                 if (RN==15)
                 {
-//                        addbyte(0x8B); addbyte(0x15); addlong(&armregs[RN]); /*MOVL armregs[RN],%edx*/
                         generateloadgen(RN,EDX);
                         addbyte(0x81); addbyte(0xE2); addlong(r15mask);      /*ANDL $r15mask,%edx*/
                         addbyte(0x01); addbyte(0xD0); /*ADDL %edx,%eax*/
@@ -1907,7 +1890,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 /*Shifted value now in %eax*/
                 if (RN==15)
                 {
-//                        addbyte(0x8B); addbyte(0x15); addlong(&armregs[RN]); /*MOVL armregs[RN],%edx*/
                         generateloadgen(RN,EDX);
                         addbyte(0x81); addbyte(0xE2); addlong(r15mask);      /*ANDL $r15mask,%edx*/
                         addbyte(0x01); addbyte(0xD0); /*ADDL %edx,%eax*/
@@ -1942,7 +1924,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
 /*.nextbit*/    if (opcode&0x200000) { generateloadgen(17,EDX);
                         addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
                 generatesavegen(RD,ECX);
-//                addbyte(0x89); addbyte(0x0D); addlong(&armregs[RD]); /*MOV %ecx,armregs[RD]*/
                 break;
 //#if 0
                 case 0x80: /*STMDB*/  case 0x82: /*STMDB!*/
@@ -2304,7 +2285,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
 //hasldrb[blockpoint2]=1;
                 templ=opcode&0xFFFF;
                 temp=isvalidforfastread(armregs[RN]);
-//                addbyte(0x8B); addbyte(0x3D); addlong(&armregs[RN]); /*MOV armregs[RN],%edi*/
                 generateloadgen(RN,EDI);
                 if (opcode&0x200000) generatesavegen(17,EDI); /*PUSH EDI*/
                 addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL ~3,%edi*/
