@@ -1506,7 +1506,7 @@ void execarm(int cycs)
 #endif
                                 switch (target)//((opcode>>20)&0xFF)
                                 {
-				        case 0x00: /*AND reg*/
+				case 0x00: /* AND reg */
 				  /*    if (!opcode)
 					{
 					      printf("Opcode 0 at %08X\n",PC);
@@ -1535,7 +1535,7 @@ void execarm(int cycs)
 					}
 					break;
 
-				        case 0x01: /*ANDS reg*/
+				case 0x01: /* ANDS reg */
 					if ((opcode & 0xf0) == 0x90) /* MULS */
 					{
 					        armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
@@ -1562,7 +1562,7 @@ void execarm(int cycs)
 					}
 					break;
 
-				        case 0x02: /*EOR reg*/
+				case 0x02: /* EOR reg */
 					if ((opcode & 0xf0) == 0x90) /* MLA */
 					{
 					       armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
@@ -1585,7 +1585,7 @@ void execarm(int cycs)
                                         }
                                         break;
 
-                                        case 0x03: /*EORS reg*/
+                                case 0x03: /* EORS reg */
                                         if ((opcode & 0xf0) == 0x90) /* MLAS */
                                         {
                                                 armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
@@ -1612,7 +1612,7 @@ void execarm(int cycs)
                                         }
                                         break;
 
-                                        case 0x04: /*SUB reg*/
+                                case 0x04: /* SUB reg */
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
@@ -1626,7 +1626,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x05: /*SUBS reg*/
+
+                                case 0x05: /* SUBS reg */
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
@@ -1641,7 +1642,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x06: /*RSB reg*/
+                                case 0x06: /* RSB reg */
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
@@ -1654,7 +1655,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x07: /*RSBS reg*/
+
+                                case 0x07: /* RSBS reg */
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
@@ -1669,7 +1671,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x08: /*ADD reg*/
+                                case 0x08: /* ADD reg */
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMULL */
 					{
@@ -1698,7 +1700,8 @@ void execarm(int cycs)
                                         }
                                 #endif
                                         break;
-                                        case 0x09: /*ADDS reg*/
+
+                                case 0x09: /* ADDS reg */
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMULLS */
 					{
@@ -1738,7 +1741,7 @@ void execarm(int cycs)
                                 #endif
                                         break;
                                 
-                                        case 0x0A: /*ADC reg*/
+                                case 0x0A: /* ADC reg */
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMLAL */
 					{
@@ -1774,7 +1777,8 @@ void execarm(int cycs)
                                         }
                                 #endif
                                         break;
-                                        case 0x0B: /*ADCS reg*/
+
+                                case 0x0B: /* ADCS reg */
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMLALS */
 					{
@@ -1815,7 +1819,7 @@ void execarm(int cycs)
                                 #endif
                                         break;
 
-                                        case 0x0C: /*SBC reg*/
+                                case 0x0C: /* SBC reg */
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMULL */
 					{
@@ -1845,7 +1849,8 @@ void execarm(int cycs)
                                         }
                                 #endif
                                         break;
-                                        case 0x0D: /*SBCS reg*/
+
+                                case 0x0D: /* SBCS reg */
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMULLS */
 					{
@@ -1879,7 +1884,8 @@ void execarm(int cycs)
                                         }
                                 #endif
                                         break;
-                                        case 0x0E: /*RSC reg*/
+
+                                case 0x0E: /* RSC reg */
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMLAL */
 					{
@@ -1914,7 +1920,8 @@ void execarm(int cycs)
                                         }
                                 #endif
                                         break;
-                                        case 0x0F: /*RSCS reg*/
+
+                                case 0x0F: /* RSCS reg */
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMLALS */
 					{
@@ -1954,7 +1961,7 @@ void execarm(int cycs)
                                 #endif
                                         break;
 
-                                        case 0x10: /*SWP word*/
+                                case 0x10: /* MRS reg,CPSR and SWP word */
                                         if ((opcode&0xF0)==0x90)
                                         {
                                                 addr=armregs[RN];
@@ -1980,7 +1987,7 @@ void execarm(int cycs)
                                         }
                                         break;
                                         
-                                        case 0x11: /*TST reg*/
+                                case 0x11: /* TST reg */
                                         if (RD==15)
                                         {
                                                 opcode&=~0x100000;
@@ -1996,7 +2003,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x12: /* MSR CPSR */
+                                case 0x12: /* MSR CPSR,reg */
                                         if (!(opcode&0xFF0))
                                         {
                                                 temp=armregs[16];
@@ -2026,7 +2033,7 @@ void execarm(int cycs)
                                         }
                                         break;
                                         
-                                        case 0x13: /*TEQ reg*/
+                                case 0x13: /* TEQ reg */
                                         if (RD==15)
                                         {
                                                 opcode&=~0x100000;
@@ -2042,7 +2049,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x14: /* SWPB and MRS SPSR */
+                                case 0x14: /* MRS reg,SPSR and SWPB */
                                         if ((opcode&0xF0)==0x90) /* SWPB */
                                         {
                                                 addr=armregs[RN];
@@ -2060,7 +2067,7 @@ void execarm(int cycs)
                                         }
                                         break;
                                         
-                                        case 0x15: /*CMP reg*/
+                                case 0x15: /* CMP reg */
                                         if (RD==15)
                                         {
                                                 opcode&=~0x100000;
@@ -2077,8 +2084,8 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x16:
-                                        if (!(opcode&0xFF0)) /*MSR SPSR*/
+                                case 0x16: /* MSR SPSR,reg */
+                                        if ((opcode & 0xff0) == 0)
                                         {
                                                 temp=spsr[mode&15];
                                                 spsr[mode&15]&=~msrlookup[(opcode>>16)&0xF];
@@ -2090,7 +2097,7 @@ void execarm(int cycs)
                                         }
                                         break;
 
-                                        case 0x17: /*CMN reg*/
+                                case 0x17: /* CMN reg */
                                         if (RD==15)
                                         {
                                                 opcode&=~0x100000;
@@ -2104,7 +2111,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x18: /*ORR reg*/
+                                case 0x18: /* ORR reg */
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
@@ -2117,7 +2124,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x19: /*ORRS reg*/
+
+                                case 0x19: /* ORRS reg */
                                         if (RD==15)
                                         {
                                                 templ=shift2(opcode);
@@ -2134,7 +2142,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x1A: /*MOV reg*/
+                                case 0x1A: /* MOV reg */
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
@@ -2145,7 +2153,8 @@ void execarm(int cycs)
                                            armregs[RD]=templ;
                                         //cycles--;
                                         break;
-                                        case 0x1B: /*MOVS reg*/
+
+                                case 0x1B: /* MOVS reg */
                                         if (RD==15)
                                         {
                                                 armregs[15]=shift2(opcode)+4;
@@ -2162,7 +2171,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x1C: /*BIC reg*/
+                                case 0x1C: /* BIC reg */
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
@@ -2175,7 +2184,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x1D: /*BICS reg*/
+
+                                case 0x1D: /* BICS reg */
                                         if (RD==15)
                                         {
                                                 templ=shift2(opcode);
@@ -2192,7 +2202,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x1E: /*MVN reg*/
+                                case 0x1E: /* MVN reg */
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
@@ -2203,7 +2213,8 @@ void execarm(int cycs)
                                            armregs[RD]=~templ;
                                         //cycles--;
                                         break;
-                                        case 0x1F: /*MVNS reg*/
+
+                                case 0x1F: /* MVNS reg */
                                         if (RD==15)
                                         {
                                                 armregs[15]=(~shift2(opcode))+4;
@@ -2217,7 +2228,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x20: /*AND imm*/
+                                case 0x20: /* AND imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2230,7 +2241,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x21: /*ANDS imm*/
+
+                                case 0x21: /* ANDS imm */
                                         if (RD==15)
                                         {
                                                 templ=rotate2(opcode);
@@ -2247,7 +2259,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x22: /*EOR imm*/
+                                case 0x22: /* EOR imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2260,7 +2272,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x23: /*EORS imm*/
+
+                                case 0x23: /* EORS imm */
                                         if (RD==15)
                                         {
                                                 templ=rotate2(opcode);
@@ -2277,7 +2290,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x24: /*SUB imm*/
+                                case 0x24: /* SUB imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2290,7 +2303,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x25: /*SUBS imm*/
+
+                                case 0x25: /* SUBS imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2309,7 +2323,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x26: /*RSB imm*/
+                                case 0x26: /* RSB imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2322,7 +2336,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x27: /*RSBS imm*/
+
+                                case 0x27: /* RSBS imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2337,7 +2352,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x28: /*ADD imm*/
+                                case 0x28: /* ADD imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2350,7 +2365,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x29: /*ADDS imm*/
+
+                                case 0x29: /* ADDS imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2366,7 +2382,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x2A: /*ADC imm*/
+                                case 0x2A: /* ADC imm */
                                         templ2=CFSET;
                                         templ=rotate2(opcode);
                                         if (RD==15)
@@ -2380,7 +2396,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x2B: /*ADCS imm*/
+
+                                case 0x2B: /* ADCS imm */
                                         templ2=CFSET;
                                         templ=rotate2(opcode);
                                         if (RD==15)
@@ -2396,7 +2413,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x2C: /*SBC imm*/
+                                case 0x2C: /* SBC imm */
                                         templ2=(CFSET)?0:1;
                                         templ=rotate2(opcode);
                                         if (RD==15)
@@ -2410,7 +2427,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x2D: /*SBCS imm*/
+
+                                case 0x2D: /* SBCS imm */
                                         templ2=(CFSET)?0:1;
                                         templ=rotate2(opcode);
                                         if (RD==15)
@@ -2425,7 +2443,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x2E: /*RSC imm*/
+
+                                case 0x2E: /* RSC imm */
                                         templ2=(CFSET)?0:1;
                                         templ=rotate2(opcode);
                                         if (RD==15)
@@ -2439,7 +2458,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x2F: /*RSCS imm*/
+
+                                case 0x2F: /* RSCS imm */
                                         templ2=(CFSET)?0:1;
                                         templ=rotate2(opcode);
                                         if (RD==15)
@@ -2455,7 +2475,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x31: /*TST imm*/
+                                case 0x31: /* TST imm */
                                         if (RD==15)
                                         {
                                                 opcode&=~0x100000;
@@ -2471,7 +2491,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
                                 
-                                        case 0x32: /*MSR rot->flags*/
+                                case 0x32: /* MSR CPSR,imm */
 /*                                        if ((opcode&0x3FF000)==0x28F000)
                                         {
                                                 templ=rotate(opcode);
@@ -2518,7 +2538,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x33: /*TEQ imm*/
+                                case 0x33: /* TEQ imm */
                                         if (RD==15)
                                         {
 /*                                                if (mode&16)
@@ -2548,7 +2568,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x35: /*CMP imm*/
+                                case 0x35: /* CMP imm */
                                         if (RD==15)
                                         {
                                                 opcode&=~0x100000;
@@ -2566,7 +2586,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x37: /*CMN imm*/
+                                case 0x37: /* CMN imm */
                                         if (RD==15)
                                         {
                                                 opcode&=~0x100000;
@@ -2580,7 +2600,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x38: /*ORR imm*/
+                                case 0x38: /* ORR imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2593,7 +2613,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x39: /*ORRS imm*/
+
+                                case 0x39: /* ORRS imm */
                                         if (RD==15)
                                         {
                                                 templ=rotate2(opcode);
@@ -2613,7 +2634,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x3A: /*MOV imm*/
+                                case 0x3A: /* MOV imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2624,7 +2645,8 @@ void execarm(int cycs)
                                            armregs[RD]=templ;
                                         //cycles--;
                                         break;
-                                        case 0x3B: /*MOVS imm*/
+
+                                case 0x3B: /* MOVS imm */
                                         if (RD==15)
                                         {
                                                 armregs[15]=rotate2(opcode)+4;
@@ -2639,7 +2661,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x3C: /*BIC imm*/
+                                case 0x3C: /* BIC imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2652,7 +2674,8 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                        case 0x3D: /*BICS imm*/
+
+                                case 0x3D: /* BICS imm */
                                         if (RD==15)
                                         {
                                                 templ=rotate2(opcode);
@@ -2669,7 +2692,7 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                        case 0x3E: /*MVN imm*/
+                                case 0x3E: /* MVN imm */
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
@@ -2680,7 +2703,8 @@ void execarm(int cycs)
                                            armregs[RD]=~templ;
                                         //cycles--;
                                         break;
-                                        case 0x3F: /*MVNS imm*/
+
+                                case 0x3F: /* MVNS imm */
                                         if (RD==15)
                                         {
                                                 armregs[15]=(~rotate2(opcode))+4;
