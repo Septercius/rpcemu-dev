@@ -1521,15 +1521,15 @@ void execarm(int cycs)
 					}
 					else
 					{
-					      templ=shift2(opcode);
+					      templ = GETADDR(RN) & shift2(opcode);
 					      if (RD==15)
 					      {
-						     armregs[15]=(((GETADDR(RN)&templ)+4)&r15mask)|(armregs[15]&~r15mask);
+						     armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
 						     refillpipeline();
 					      }
 					      else
 					      {
-						     armregs[RD]=GETADDR(RN)&templ;
+						     armregs[RD]=templ;
 					      }
 					      //cycles--;
 					}
@@ -1571,15 +1571,15 @@ void execarm(int cycs)
 					}
 					else
 					{
-					       templ=shift2(opcode);
+					       templ = GETADDR(RN) ^ shift2(opcode);
 					       if (RD==15)
 					       {
-						      armregs[15]=(((GETADDR(RN)^templ)+4)&r15mask)|(armregs[15]&~r15mask);
+						      armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
 						      refillpipeline();
 					       }
 					       else
 					       {
-						      armregs[RD]=GETADDR(RN)^templ;
+						      armregs[RD]=templ;
 					       }
 					       //cycles--;
                                         }
@@ -1613,16 +1613,16 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x04: /* SUB reg */
-                                        templ=shift2(opcode);
+                                        templ = GETADDR(RN) - shift2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((GETADDR(RN)-templ)+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                                 if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)-templ;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -1643,15 +1643,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x06: /* RSB reg */
-                                        templ=shift2(opcode);
+                                        templ = shift2(opcode) - GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((templ-GETADDR(RN))+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=templ-GETADDR(RN);
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -1685,15 +1685,15 @@ void execarm(int cycs)
                                         else
                                         {
                                 #endif
-                                        templ=shift2(opcode);
+                                        templ = GETADDR(RN) + shift2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=((GETADDR(RN)+templ+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)+templ;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                 #ifdef STRONGARM
@@ -1761,16 +1761,15 @@ void execarm(int cycs)
                                         else
                                         {
                                 #endif
-                                        templ2=CFSET;
-                                        templ=shift2(opcode);
+                                        templ = GETADDR(RN) + shift2(opcode) + CFSET;
                                         if (RD==15)
                                         {
-                                                armregs[15]=((GETADDR(RN)+templ+templ2+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)+templ+templ2;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                 #ifdef STRONGARM                                        
@@ -1833,16 +1832,15 @@ void execarm(int cycs)
                                         else
                                         {
                                 #endif
-                                        templ2=(CFSET)?0:1;
-                                        templ=shift2(opcode);
+                                        templ = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((GETADDR(RN)-(templ+templ2))+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)-(templ+templ2);
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                 #ifdef STRONGARM                                        
@@ -1904,16 +1902,15 @@ void execarm(int cycs)
                                         else
                                         {
                                 #endif
-                                        templ2=(CFSET)?0:1;
-                                        templ=shift2(opcode);
+                                        templ = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((templ-(GETADDR(RN)+templ2))+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=templ-(GETADDR(RN)+templ2);
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                 #ifdef STRONGARM                                        
@@ -2112,15 +2109,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x18: /* ORR reg */
-                                        templ=shift2(opcode);
+                                        templ = GETADDR(RN) | shift2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((GETADDR(RN)|templ)+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)|templ;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2172,15 +2169,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x1C: /* BIC reg */
-                                        templ=shift2(opcode);
+                                        templ = GETADDR(RN) & ~shift2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((GETADDR(RN)&~templ)+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)&~templ;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2203,14 +2200,14 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x1E: /* MVN reg */
-                                        templ=shift2(opcode);
+                                        templ = ~shift2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(armregs[15]&~r15mask)|(((~templ)+4)&r15mask);
+                                                armregs[15]=(armregs[15]&~r15mask)|((templ+4)&r15mask);
                                                 refillpipeline();
                                         }
                                         else
-                                           armregs[RD]=~templ;
+                                           armregs[RD]=templ;
                                         //cycles--;
                                         break;
 
@@ -2229,15 +2226,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x20: /* AND imm */
-                                        templ=rotate2(opcode);
+                                        templ = GETADDR(RN) & rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((GETADDR(RN)&templ)+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)&templ;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2260,15 +2257,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x22: /* EOR imm */
-                                        templ=rotate2(opcode);
+                                        templ = GETADDR(RN) ^ rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((GETADDR(RN)^templ)+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)^templ;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2291,15 +2288,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x24: /* SUB imm */
-                                        templ=rotate2(opcode);
+                                        templ = GETADDR(RN) - rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((GETADDR(RN)-templ)+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)-templ;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2324,15 +2321,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x26: /* RSB imm */
-                                        templ=rotate2(opcode);
+                                        templ = rotate2(opcode) - GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((templ-GETADDR(RN))+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=templ-GETADDR(RN);
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2353,15 +2350,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x28: /* ADD imm */
-                                        templ=rotate2(opcode);
+                                        templ = GETADDR(RN) + rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((GETADDR(RN)+templ)+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)+templ;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2383,16 +2380,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x2A: /* ADC imm */
-                                        templ2=CFSET;
-                                        templ=rotate2(opcode);
+                                        templ = GETADDR(RN) + rotate2(opcode) + CFSET;
                                         if (RD==15)
                                         {
-                                                armregs[15]=((GETADDR(RN)+templ+templ2+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)+templ+templ2;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2414,16 +2410,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x2C: /* SBC imm */
-                                        templ2=(CFSET)?0:1;
-                                        templ=rotate2(opcode);
+                                        templ = GETADDR(RN) - rotate2(opcode) - ((CFSET) ? 0 : 1);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((GETADDR(RN)-(templ+templ2))+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)-(templ+templ2);
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2445,16 +2440,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x2E: /* RSC imm */
-                                        templ2=(CFSET)?0:1;
-                                        templ=rotate2(opcode);
+                                        templ = rotate2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((templ-(GETADDR(RN)+templ2))+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=templ-(GETADDR(RN)+templ2);
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2601,15 +2595,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x38: /* ORR imm */
-                                        templ=rotate2(opcode);
+                                        templ = GETADDR(RN) | rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((GETADDR(RN)|templ)+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)|templ;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2662,15 +2656,15 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x3C: /* BIC imm */
-                                        templ=rotate2(opcode);
+                                        templ = GETADDR(RN) & ~rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(((GETADDR(RN)&~templ)+4)&r15mask)|(armregs[15]&~r15mask);
+                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
                                                 refillpipeline();
                                         }
                                         else
                                         {
-                                                armregs[RD]=GETADDR(RN)&~templ;
+                                                armregs[RD]=templ;
                                         }
                                         //cycles--;
                                         break;
@@ -2693,14 +2687,14 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x3E: /* MVN imm */
-                                        templ=rotate2(opcode);
+                                        templ = ~rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15]=(armregs[15]&~r15mask)|(((~templ)+4)&r15mask);
+                                                armregs[15]=(armregs[15]&~r15mask)|((templ+4)&r15mask);
                                                 refillpipeline();
                                         }
                                         else
-                                           armregs[RD]=~templ;
+                                           armregs[RD]=templ;
                                         //cycles--;
                                         break;
 
