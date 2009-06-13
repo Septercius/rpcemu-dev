@@ -102,21 +102,6 @@ int prog32;
 
 uint32_t ins=0;
 
-/*0=i/o, 1=all, 2=r/o, 3=os r/o, 4=super only, 5=read mem, write io*/
-/*0=user, 1=os, 2=super*/
-static const int modepritabler[3][6]=
-{
-        {0,1,1,0,0,1},
-        {0,1,1,1,0,1},
-        {0,1,1,1,1,1}
-};
-static const int modepritablew[3][6]=
-{
-        {0,1,0,0,0,0},
-        {0,1,1,0,0,0},
-        {0,1,1,1,1,0}
-};
-
 uint32_t pccache,*pccache2;
 
 #ifdef PREFETCH
