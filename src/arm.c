@@ -168,11 +168,6 @@ void updatemode(uint32_t m)
 {
         uint32_t c,om=mode;
 
-//        if (PC==0x8E30) output=1;
-//      if (output) rpclog("Update mode to %s mode %i %08X\n",(m&0x10)?"32-bit":"26-bit",m&15,PC);
-//      timetolive=1000;
-//      if (!m && PC==0x9FB8) output=2;
-//      if (!m && PC==0x9FBC) output=2;
         usrregs[15]=&armregs[15];
         switch (mode&15) /*Store back registers*/
         {
@@ -313,7 +308,6 @@ void updatemode(uint32_t m)
                         armregs[15]|=(mode&3);
                         armregs[15]|=(armregs[16]&0xF0000000);
                         armregs[15]|=((armregs[16]&0xC0)<<20);
-//                        printf("R15 now %08X\n",armregs[15]);
                 }
         }
 }
@@ -1480,12 +1474,6 @@ void execarm(int cycs)
                                 switch (target)//((opcode>>20)&0xFF)
                                 {
 				case 0x00: /* AND reg */
-				  /*    if (!opcode)
-					{
-					      printf("Opcode 0 at %08X\n",PC);
-					      dumpregs();
-					      exit(-1);
-					}*/
 					if ((opcode & 0xf0) == 0x90) /* MUL */
 					{
 					      armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
@@ -1694,19 +1682,14 @@ void execarm(int cycs)
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
-        //                                        printf("R15=%08X+%08X+4=",GETADDR(RN),templ);
                                                 armregs[15]=GETADDR(RN)+templ+4;
                                                 refillpipeline();
                                                 if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-        //                                        printf("%08X\n",armregs[15]);
                                         }
                                         else
                                         {
                                                 setadd(GETADDR(RN),templ,GETADDR(RN)+templ);
-        //                                        printf("ADDS %08X+%08X = ",GETADDR(RN),templ);
                                                 armregs[RD]=GETADDR(RN)+templ;
-        //                                        printf("%08X\n",armregs[RD]);
-        //                                        setzn(templ);
                                         }
                                         //cycles--;
                                 #ifdef STRONGARM                                                                                
@@ -1946,7 +1929,6 @@ void execarm(int cycs)
                                                 {
                                                         armregs[16]=(armregs[15]&0xF0000000)|(armregs[15]&3);
                                                         armregs[16]|=((armregs[15]&0xC000000)>>20);
-//                                                        if (output) rpclo("CPSR %08X R15 %08X\n",armregs[16],armregs[15]);
                                                 }
                                                 armregs[RD]=armregs[16];
                                         }
@@ -1980,7 +1962,6 @@ void execarm(int cycs)
                                                 armregs[16]&=~msrlookup[(opcode>>16)&0xF];
                                                 armregs[16]|=(armregs[RM]&msrlookup[(opcode>>16)&0xF]);
                                                 templ=armregs[16];
-//                                                if (output) rpclog("%07X CPSR now %08X\n",PC,armregs[16]);
                                                 if (opcode&0x10000)
                                                 {
                                                         updatemode(armregs[16]&0x1F);
@@ -2467,9 +2448,6 @@ void execarm(int cycs)
 
 					templ = rotate2(opcode);
 
-//					if (output)
-//						rpclog("MSR: %08x (%08x - %08x)\n", opcode, armregs[15], armregs[16]);
-
 					if (mode & 0xF) {
 						if (opcode & 0x10000) {
 							armregs[16] = (armregs[16] & ~ 0xFF) | (templ & 0xFF);
@@ -2491,13 +2469,7 @@ void execarm(int cycs)
 						}
 					}
 
-//					if (output)
-//						rpclog("%08x - %08x\n", armregs[15], armregs[16]);
-
 					if ((armregs[16] & 0x1F) != mode) {
-//						if (output)
-//							rpclog("changing mode to %02x (was %02x)\n", armregs[16] & 0x1F, mode);
-
 						updatemode(armregs[16] & 0x1F);
 					}
 
@@ -2508,12 +2480,6 @@ void execarm(int cycs)
                                 case 0x33: /* TEQ imm */
                                         if (RD==15)
                                         {
-/*                                                if (mode&16)
-                                                {
-                                                        error("TEQP in 32-bit mode %08X\n",rotate2(opcode));
-                                                        dumpregs();
-                                                        exit(-1);
-                                                }*/
                                                 opcode&=~0x100000;
                                                 if (armregs[15]&3)
                                                 {
@@ -3449,7 +3415,6 @@ void execarm(int cycs)
 		                     if (armirq&0x40) break;
         			     armregs[RN]+=(opcode&0xFFF);
 			             //cycles-=2;
-//			             rpclog("STRB %07X\n",PC);
 			             break;
 
                 			case 0x59: /*LDR RD,[RN,#]*/
@@ -3984,7 +3949,6 @@ void execarm(int cycs)
                                         case 0xF8: case 0xF9: case 0xFA: case 0xFB:
                                         case 0xFC: case 0xFD: case 0xFE: case 0xFF:
                                         templ=opcode&0xDFFFF;
-//                                        if (templ==0x34) printf("OS_CallAVector %08X %08X %08X\n",armregs[9],armregs[0],armregs[1]);
                                         if (mousehack && templ==7 && armregs[0]==0x15)
                                         {
 //                                                printf("OSWORD call %i\n",readmemb(armregs[1]));
@@ -4018,12 +3982,9 @@ void execarm(int cycs)
                                         }
                                         else if (templ == ARCEM_SWI_HOSTFS)
 					  {
-//                                                        rpclog("HOSTFS SWI\n");
-//                                                        dbug_hostfs("ARCEM_SWI %08X\n",templ);
 					    ARMul_State state;
 					    state.Reg = armregs;
 					    hostfs(&state);
-//					    dbug_hostfs("Results : %08X %08X %08X %08X\n",armregs[2],armregs[3],armregs[4],armregs[5]);
 					  }
                                         else if (templ == ARCEM_SWI_NANOSLEEP)
                                           {
@@ -4071,20 +4032,12 @@ void execarm(int cycs)
 #endif
                         if (/*databort|*/armirq)//|prefabort)
                         {
-/*                                if (mode&16)
-                                {
-                                        printf("32-bit Exception %i %i %i\n",databort,armirq,prefabort);
-                                        dumpregs();
-                                        exit(-1);
-                                }
-                                else*/
                                 if (!(mode&16))
                                 {
                                         armregs[16]&=~0xC0;
                                         armregs[16]|=((armregs[15]&0xC000000)>>20);
                                 }
-//                                if (output) rpclog("Exception process - %i %i %i %08X %08X %i\n",databort,armirq,prefabort,armregs[15],armregs[16],inscount);
-//                                if (out2) printf("PC at the moment %07X %i %i %02X %08X\n",PC,ins,mode,armregs[16]&0xC0,armregs[15]);
+
                                 if (armirq&0xC0)
                                 {
 //                                        exception(ABORT,(armirq&0x80)?0x10:0x14,0);
@@ -4118,75 +4071,27 @@ void execarm(int cycs)
                                 }
                                 else if ((armirq&2) && !(armregs[16]&0x40)) /*FIQ*/
                                 {
-//                                        printf("FIQ %02X %02X\n", iomd.fiq.status, iomd.fiq.mask);
                                         exception(FIQ,0x20,0);
                                 }
                                 else if ((armirq&1) && !(armregs[16]&0x80)) /*IRQ*/
                                 {
-//                                        if (output) printf("IRQ %i %i\n",prog32,mode&16);
                                         exception(IRQ, 0x1c, 0);
                                 }
 //                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
                         }
 //                        armirq=irq;
                         armregs[15]+=4;
-/*                        if (armregs[13]==0x1F00000 && armregs[13]!=oldr13)
-                        {
-                                rpclog("R13 = 1EFFFF0 from %08X\n",oldr13);
-                        }
-                        oldr13=armregs[13];*/
-/*                        if (PC==0x8008)
-                        {
-                                rpclog("Hit 8000\n");
-                                times8000++;
-                                output=1;
-                                ins=0;
-                        }*/
-//                        if (PC==0x14820) armregs[6]=0x8;
-                #if 0
-                        if (PC==(lastswi+4))
-                        {
-                                lastswi=0xFFFFFFFF;
-                                rpclog("Last SWI exited with V %s  %08X %08X %08X %08X\n",(armregs[15]&VFLAG)?"set":"clear",armregs[0],armregs[1],armregs[2],armregs[3]);
-                        }
-                        inssinceswi++;
-                        if (inssinceswi==207229) output=0;
-                        #endif
+
 //                        ins++;
 //                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-                        #if 0
-                        if (output)
-                        {
-                                ins++;
-                                if (swiout && ins>59) output=2;
-//                                if (times8000==9 && ins==6600000) output=2;
-//                                if (ins==88990000) output=2;
-                        }*/
-                        if (output)
-                        {
-                                       rpclog(":%08X %08X %08X %08X %08X %08X %08X %08X %08X  %08X %08X %08X %08X\n",PC,armregs[0],armregs[1],armregs[2],armregs[3],armregs[4],armregs[5],armregs[6],armregs[7],oldpc,oldpc2,oldpc3,spsr[mode&15]);
-                                        rpclog(":         %08X %08X %08X %08X %08X %08X %08X %08X  %08X %08X %08X %08X\n",armregs[8],armregs[9],armregs[10],armregs[11],armregs[12],armregs[13],armregs[14],armregs[15],opcode,opcode2,opcode3,armregs[16]);
-                                if (timetolive)
-                                {
-                                        timetolive--;
-                                        if (!timetolive)
-                                        {
-                                                output=1;
-                                                exit(0);
-                                        }
-                                }
-//                                ins++;
-                        }
-                        #endif
+
 //                        linecyc--;
 //                        inscount++;
 //                        ins++;
                 }
                 inscount+=200;
                 rinscount+=200;
-/*                iomd.t0c--;
-                iomd.t1c--;
-                if ((iomd.t0c<0) || (iomd.t1c<0)) updateiomdtimers();*/
+
                 if (kcallback)
                 {
                         kcallback--;
@@ -4217,7 +4122,6 @@ void execarm(int cycs)
                 if (idecallback)
                 {
                         idecallback-=10;
-//                        if (output) printf("IDE callback now %i\n",idecallback);
                         if (idecallback<=0)
                         {
                                 idecallback=0;
@@ -4234,7 +4138,6 @@ void execarm(int cycs)
                                 updateirqs();
                         }
                 }
-//                printf("T0 now %04X\n",iomd.t0c);
 //                cyc=(oldcyc-cycles);
 /*                if (soundbufferfull)
                 {
