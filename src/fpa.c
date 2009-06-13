@@ -39,9 +39,6 @@ void resetfpa(void)
 
 #define FD ((opcode>>12)&7)
 #define FN ((opcode>>16)&7)
-#define RD ((opcode>>12)&0xF)
-#define RN ((opcode>>16)&0xF)
-#define RM (opcode&0xF)
 
 #define GETADDR(r) ((r==15)?(armregs[15]&r15mask):armregs[r])
 

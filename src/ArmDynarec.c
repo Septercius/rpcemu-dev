@@ -95,8 +95,6 @@ int prog32;
 #define VFLAG 0x10000000
 #define IFLAG 0x08000000
 
-//int RD;
-
 #define GETADDR(r) ((r==15)?(armregs[15]&r15mask):armregs[r])
 #define LOADREG(r,v) if (r==15) { armregs[15]=(armregs[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else armregs[r]=(v);
 #define GETREG(r) ((r==15) ? armregs[15]+4 : armregs[r])
@@ -311,7 +309,6 @@ void updatemode(uint32_t m)
 
 static int stmlookup[256];
 
-//#define countbits(c) countbitstable[c]
 int countbitstable[65536];
 void resetarm(void)
 {
