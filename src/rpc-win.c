@@ -533,10 +533,10 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
         char s[10];
         switch (message)
         {
-                case WM_INITDIALOG:
-                        h=GetDlgItem(hdlg,Slider1);
-                        SendMessage(h,TBM_SETRANGE,TRUE,MAKELONG(20/5,100/5));
-                        SendMessage(h, TBM_SETPOS, TRUE, config.refresh / 5);
+        case WM_INITDIALOG:
+                h=GetDlgItem(hdlg,Slider1);
+                SendMessage(h,TBM_SETRANGE,TRUE,MAKELONG(20/5,100/5));
+                SendMessage(h, TBM_SETPOS, TRUE, config.refresh / 5);
                 h=GetDlgItem(hdlg,Text1);
                 sprintf(s, "%ihz", config.refresh);
                 SendMessage(h,WM_SETTEXT,0,(LPARAM)s);
@@ -584,10 +584,11 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 soundenabled2 = config.soundenabled;
                 refresh2      = config.refresh;
                 return TRUE;
-                case WM_COMMAND:
+
+        case WM_COMMAND:
                 switch (LOWORD(wParam))
                 {
-                        case IDOK:
+                case IDOK:
                         if (config.soundenabled && !soundenabled2)
                         {
                                 closesound();
@@ -609,13 +610,15 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         config.vrammask = vrammask2;
                         config.refresh = refresh2;
                         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
-
-                        case IDCANCEL:
                         EndDialog(hdlg,0);
                         return TRUE;
 
-                        /* VRAM None */
-                        case RadioButton11:
+                case IDCANCEL:
+                        EndDialog(hdlg,0);
+                        return TRUE;
+
+                /* VRAM None */
+                case RadioButton11:
                         h=GetDlgItem(hdlg,RadioButton11);
                         SendMessage(h,BM_SETCHECK,1,0);
                         h=GetDlgItem(hdlg,RadioButton12);
@@ -623,8 +626,8 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         vrammask2=0;
                         return TRUE;
 
-                        /* VRAM 2MB */
-                        case RadioButton12:
+                /* VRAM 2MB */
+                case RadioButton12:
                         h=GetDlgItem(hdlg,RadioButton11);
                         SendMessage(h,BM_SETCHECK,0,0);
                         h=GetDlgItem(hdlg,RadioButton12);
@@ -632,11 +635,11 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         vrammask2=0x7FFFFF;
                         return TRUE;
                         
-                        /* CPU Type radio buttons */
-                        case RadioButton1:
-                        case RadioButton2:
-                        case RadioButton3:
-                        case RadioButton4:
+                /* CPU Type radio buttons */
+                case RadioButton1:
+                case RadioButton2:
+                case RadioButton3:
+                case RadioButton4:
                         /* The model enum and the dialog IDs are in different orders */
 
                         /* Clear previous CPU model choice */
@@ -676,9 +679,9 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         SendMessage(h, BM_SETCHECK, 1, 0);
                         return TRUE;
                         
-                        /* Memory selection radio buttons */
-                        case RadioButton5: case RadioButton6: case RadioButton7:
-                        case RadioButton8: case RadioButton9: case RadioButton10:
+                /* Memory selection radio buttons */
+                case RadioButton5: case RadioButton6: case RadioButton7:
+                case RadioButton8: case RadioButton9: case RadioButton10:
                         _mask=(0x200000<<(LOWORD(wParam)-RadioButton5))-1;
                         for (c=RadioButton5;c<=RadioButton10;c++)
                         {
@@ -691,15 +694,16 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         else               chngram=0;
                         return TRUE;
                         
-                        /* Sound */
-                        case CheckBox1:
+                /* Sound */
+                case CheckBox1:
                         soundenabled2^=1;
                         h=GetDlgItem(hdlg,LOWORD(wParam));
                         SendMessage(h,BM_SETCHECK,soundenabled2,0);
                         return TRUE;
                 }
                 break;
-                case WM_HSCROLL:
+
+        case WM_HSCROLL:
                 h=GetDlgItem(hdlg,Slider1);
                 c=SendMessage(h,TBM_GETPOS,0,0);
                 h=GetDlgItem(hdlg,Text1);
@@ -717,34 +721,41 @@ static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam,
         HMENU hmenu;
         switch (message)                  /* handle the messages */
         {
-                case WM_CREATE:
+        case WM_CREATE:
                 strcpy(config.isoname, "");
 //                _beginthread(soundthread,0,NULL);
                 return 0;
-                case WM_COMMAND:
+
+        case WM_COMMAND:
                 hmenu=GetMenu(hwnd);
                 switch (LOWORD(wParam))
                 {
-                        case IDM_FILE_RESET:
+                case IDM_FILE_RESET:
                         resetrpc();
                         return 0;
-                        case IDM_FILE_EXIT:
+
+                case IDM_FILE_EXIT:
                         PostQuitMessage(0);
                         return 0;
-                        case IDM_DISC_LD0:
+
+                case IDM_DISC_LD0:
                         changedisc(ghwnd,0);
                         return 0;
-                        case IDM_DISC_LD1:
+
+                case IDM_DISC_LD1:
                         changedisc(ghwnd,1);
                         return 0;
-                        case IDM_CONFIG:
+
+                case IDM_CONFIG:
                         DialogBox(hinstance,TEXT("ConfigureDlg"),ghwnd,configdlgproc);
                         return 0;
-                        case IDM_STRETCH:
+
+                case IDM_STRETCH:
                         config.stretchmode ^= 1;
                         CheckMenuItem(hmenu, IDM_STRETCH, config.stretchmode ? MF_CHECKED : MF_UNCHECKED);
                         return 0;
-                        case IDM_FULLSCR:
+
+                case IDM_FULLSCR:
                         if (mousecapture)
                         {
                                 ClipCursor(&oldclip);
@@ -752,11 +763,13 @@ static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam,
                         }
                         togglefullscreen(1);
                         return 0;
-                        case IDM_BLITOPT:
+
+                case IDM_BLITOPT:
                         config.skipblits ^= 1;
                         CheckMenuItem(hmenu, IDM_BLITOPT, config.skipblits ? MF_CHECKED : MF_UNCHECKED);
                         return 0;
-                        case IDM_CDROM_DISABLED:
+
+                case IDM_CDROM_DISABLED:
                         if (config.cdromenabled)
                         {
                                 if (MessageBox(ghwnd,"This will reset RPCemu!\nOkay to continue?","RPCemu",MB_OKCANCEL)==IDOK)
@@ -769,7 +782,8 @@ static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam,
                                 }
                         }
                         return 0;
-                        case IDM_CDROM_EMPTY:
+
+                case IDM_CDROM_EMPTY:
                         if (!config.cdromenabled)
                         {
                                 if (MessageBox(ghwnd,"This will reset RPCemu!\nOkay to continue?","RPCemu",MB_OKCANCEL)==IDOK)
@@ -786,7 +800,8 @@ static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam,
                         config.cdromtype = IDM_CDROM_EMPTY - IDM_CDROM_DISABLED;
                         CheckMenuItem(hmenu, IDM_CDROM_DISABLED + config.cdromtype, MF_CHECKED);
                         return 0;
-                        case IDM_CDROM_ISO:
+
+                case IDM_CDROM_ISO:
                         if (selectiso(ghwnd))
                         {
                                 if (!config.cdromenabled)
@@ -806,7 +821,8 @@ static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam,
                         config.cdromtype = IDM_CDROM_ISO - IDM_CDROM_DISABLED;
                         CheckMenuItem(hmenu, IDM_CDROM_DISABLED + config.cdromtype, MF_CHECKED);
                         return 0;
-                        case IDM_MOUSE_FOL:
+
+                case IDM_MOUSE_FOL:
                         CheckMenuItem(hmenu,IDM_MOUSE_FOL,MF_CHECKED);
                         CheckMenuItem(hmenu,IDM_MOUSE_CAP,MF_UNCHECKED);
                         config.mousehackon = 1;
@@ -816,16 +832,19 @@ static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam,
                                 mousecapture=0;
                         }
                         return 0;
-                        case IDM_MOUSE_CAP:
+
+                case IDM_MOUSE_CAP:
                         CheckMenuItem(hmenu,IDM_MOUSE_FOL,MF_UNCHECKED);
                         CheckMenuItem(hmenu,IDM_MOUSE_CAP,MF_CHECKED);
                         config.mousehackon = 0;
                         return 0;
-//                        case IDM_CDROM_G:
+
+                        //                        case IDM_CDROM_G:
 //                        atapi->exit();
 //                        ioctl_open();
 //                        return 0;
                 }
+
                 if (LOWORD(wParam)>=IDM_CDROM_REAL && LOWORD(wParam)<(IDM_CDROM_REAL+100))
                 {
                         if (!config.cdromenabled)
@@ -846,16 +865,19 @@ static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam,
                         return 0;
                 }
                 break;
-                case WM_DESTROY:
-                        closevideo();
-                        infocus=0;
+
+        case WM_DESTROY:
+                closevideo();
+                infocus=0;
                 PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
                 break;
-                case WM_SETFOCUS:
+
+        case WM_SETFOCUS:
                 infocus=1;
                 resetbuffer();
                 break;
-                case WM_KILLFOCUS:
+
+        case WM_KILLFOCUS:
                 infocus=0;
                 if (mousecapture)
                 {
@@ -863,7 +885,8 @@ static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam,
                         mousecapture=0;
                 }
                 break;
-                case WM_LBUTTONUP:
+
+        case WM_LBUTTONUP:
                 if (!mousecapture && !fullscreen && !config.mousehackon)
                 {
                         GetClipCursor(&oldclip);
@@ -877,9 +900,10 @@ static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam,
                         updatemips=1;
                 }
                 break;
-                default:                      /* for messages that we don't deal with */
-                return DefWindowProc (hwnd, message, wParam, lParam);
-    }
 
-    return 0;
+        default:                      /* for messages that we don't deal with */
+                return DefWindowProc (hwnd, message, wParam, lParam);
+        }
+
+        return 0;
 }
