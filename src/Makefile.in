@@ -67,7 +67,7 @@ am__rpcemu_SOURCES_DIST = superio.c superio.h cdrom-iso.c cmos.c \
 	cmos.h cp15.c cp15.h fdc.c fdc.h fpa.c hostfs.c hostfs.h ide.c \
 	ide.h iomd.c iomd.h keyboard.c keyboard.h mem.c mem.h \
 	romload.c rpcemu.c sound.c sound.h vidc20.c vidc20.h podules.c \
-	podulerom.c icside.c ArmDynarec.c ArmDynarecOps.h \
+	podulerom.c icside.c arm_common.h ArmDynarec.c ArmDynarecOps.h \
 	codegen_amd64.c codegen_amd64.h codegen_x86.c codegen_x86.h \
 	arm.c arm.h codegen_null.c cdrom-ioctl.c rpc-win.c resources.h \
 	rpc-linux.c gui.c cdrom-linuxioctl.c network-linux.c \
@@ -234,9 +234,9 @@ rpcemu_SOURCES = superio.c superio.h cdrom-iso.c cmos.c cmos.h cp15.c \
 	cp15.h fdc.c fdc.h fpa.c hostfs.c hostfs.h ide.c ide.h iomd.c \
 	iomd.h keyboard.c keyboard.h mem.c mem.h romload.c rpcemu.c \
 	sound.c sound.h vidc20.c vidc20.h podules.c podulerom.c \
-	icside.c $(am__append_1) $(am__append_3) $(am__append_4) \
-	$(am__append_5) $(am__append_6) $(am__append_7) \
-	$(am__append_8)
+	icside.c arm_common.h $(am__append_1) $(am__append_3) \
+	$(am__append_4) $(am__append_5) $(am__append_6) \
+	$(am__append_7) $(am__append_8)
 @OS_WIN_TRUE@rpcemu_CPPFLAGS = -Dsleep=Sleep
 EXTRA_DIST = acorn.rc rpcemu.ico makefile.dj rpc-dos.c
 all: config.h
