@@ -17,29 +17,6 @@ BEGIN
         END
         POPUP "&Settings"
         BEGIN
-#if 0
-                POPUP "&CPU"
-                BEGIN
-                        MENUITEM "ARM&610",  IDM_CPU_ARM610
-                        MENUITEM "ARM&710",  IDM_CPU_ARM710
-                        MENUITEM "ARM7&500", IDM_CPU_ARM7500
-                        MENUITEM "StrongARM",IDM_CPU_SA110
-                END
-                POPUP "&RAM"
-                BEGIN
-                        MENUITEM "&4 megs", IDM_RAM_4MEGS
-                        MENUITEM "&8 megs", IDM_RAM_8MEGS
-                        MENUITEM "&16 megs", IDM_RAM_16MEGS
-                        MENUITEM "&32 megs", IDM_RAM_32MEGS
-                        MENUITEM "&64 megs", IDM_RAM_64MEGS
-                        MENUITEM "&128 megs", IDM_RAM_128MEGS
-                END
-                POPUP "&VRAM"
-                BEGIN
-                        MENUITEM "&None",  IDM_VRAM_NONE
-                        MENUITEM "&2 megs",IDM_VRAM_2MEGS
-                END
-#endif
                 MENUITEM "&Configure...",IDM_CONFIG
                 MENUITEM "&Fullscreen mode",IDM_FULLSCR
                 MENUITEM "&Alternative blitting code",IDM_STRETCH
