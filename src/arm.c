@@ -126,6 +126,8 @@ int prog32;
 #define GETREG(r) ((r==15) ? armregs[15]+4 : armregs[r])
 #define LDRRESULT(a,v) ((a&3)?(v>>((a&3)<<3))|(v<<(((a&3)^3)<<3)):v)
 
+#include "arm_common.h"
+
 uint32_t ins=0;
 
 uint32_t pccache,*pccache2;
@@ -422,71 +424,6 @@ void dumpregs(void)
 }
 
 #define dumpregs()
-
-#define checkneg(v) (v&0x80000000)
-#define checkpos(v) !(v&0x80000000)
-
-static inline void setadd(uint32_t op1, uint32_t op2, uint32_t result)
-{
-        uint32_t flags = 0;
-
-        if (result == 0)                                  flags = ZFLAG;
-        else if (checkneg(result))                        flags = NFLAG;
-        if (result < op1)                                 flags |= CFLAG;
-        if ((op1 ^ result) & (op2 ^ result) & 0x80000000) flags |= VFLAG;
-        *pcpsr = ((*pcpsr) & 0x0fffffff) | flags;
-}
-
-static inline void setsub(uint32_t op1, uint32_t op2, uint32_t result)
-{
-        uint32_t flags = 0;
-
-        if (result == 0)                               flags = ZFLAG;
-        else if (checkneg(result))                     flags = NFLAG;
-        if (result <= op1)                             flags |= CFLAG;
-        if ((op1 ^ op2) & (op1 ^ result) & 0x80000000) flags |= VFLAG;
-        *pcpsr = ((*pcpsr) & 0x0fffffff) | flags;
-}
-
-static inline void setsbc(uint32_t op1, uint32_t op2, uint32_t res)
-{
-        armregs[cpsr]&=0xFFFFFFF;
-        if (!res)                           armregs[cpsr]|=ZFLAG;
-        else if (checkneg(res))             armregs[cpsr]|=NFLAG;
-        if ((checkneg(op1) && checkpos(op2)) ||
-            (checkneg(op1) && checkpos(res)) ||
-            (checkpos(op2) && checkpos(res)))  armregs[cpsr]|=CFLAG;
-        if ((checkneg(op1) && checkpos(op2) && checkpos(res)) ||
-            (checkpos(op1) && checkneg(op2) && checkneg(res)))
-            armregs[cpsr]|=VFLAG;
-}
-
-static inline void setadc(uint32_t op1, uint32_t op2, uint32_t res)
-{
-        armregs[cpsr]&=0xFFFFFFF;
-        if ((checkneg(op1) && checkneg(op2)) ||
-            (checkneg(op1) && checkpos(res)) ||
-            (checkneg(op2) && checkpos(res)))  armregs[cpsr]|=CFLAG;
-        if ((checkneg(op1) && checkneg(op2) && checkpos(res)) ||
-            (checkpos(op1) && checkpos(op2) && checkneg(res)))
-            armregs[cpsr]|=VFLAG;
-        if (!res)                          armregs[cpsr]|=ZFLAG;
-        else if (checkneg(res))            armregs[cpsr]|=NFLAG;
-}
-
-static inline void setzn(uint32_t op)
-{
-        uint32_t flags;
-
-        if (op == 0) {
-                flags = ZFLAG;
-        } else if (checkneg(op)) {
-                flags = NFLAG;
-        } else {
-                flags = 0;
-        }
-        *pcpsr = flags | ((*pcpsr) & 0x3fffffff);
-}
 
 static uint32_t shift3(uint32_t opcode)
 {
