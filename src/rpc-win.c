@@ -838,11 +838,6 @@ static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam,
                         CheckMenuItem(hmenu,IDM_MOUSE_CAP,MF_CHECKED);
                         config.mousehackon = 0;
                         return 0;
-
-                        //                        case IDM_CDROM_G:
-//                        atapi->exit();
-//                        ioctl_open();
-//                        return 0;
                 }
 
                 if (LOWORD(wParam)>=IDM_CDROM_REAL && LOWORD(wParam)<(IDM_CDROM_REAL+100))
