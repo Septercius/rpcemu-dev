@@ -56,8 +56,6 @@ int memmode;
 int irq;
 static int cycles;
 int prefabort;
-//static void refillpipeline(void);
-static void refillpipeline2(void);
 uint32_t rotatelookup[4096];
 uint32_t inscount;
 int armirq=0;
@@ -71,7 +69,7 @@ static uint32_t spsr[16];
 uint32_t armregs[18];
 uint32_t mode;
 int databort;
-uint32_t opcode,opcode2,opcode3;
+uint32_t opcode;
 int prog32;
 
 
@@ -105,39 +103,7 @@ uint32_t ins=0;
 
 uint32_t pccache,*pccache2;
 
-#ifdef PREFETCH
-static void refillpipeline(void)
-{
-        uint32_t addr=(PC-4)>>2;
-        if ((addr>>10)!=pccache)
-        {
-                pccache=addr>>10;
-                pccache2=getpccache(addr<<2);
-                if (pccache2==NULL)
-                {
-                        opcode2=opcode3=0xFFFFFFFF;
-                        pccache=0xFFFFFFFF;
-                        return;
-                }
-        }
-        opcode2=pccache2[addr];
-        addr++;
-        if (!(addr&0x3FF))
-        {
-                pccache=addr>>10;
-                pccache2=getpccache(addr<<2);
-                if (pccache2==NULL)
-                {
-                        opcode3=0xFFFFFFFF;
-                        pccache=0xFFFFFFFF;
-                        return;
-                }
-        }
-        opcode3=pccache2[addr];
-}
-#else
 #define refillpipeline() blockend=1;
-#endif
 
 void updatemode(uint32_t m)
 {
@@ -363,7 +329,6 @@ void resetarm(void)
         armregs[15]=0x0C000008|3;
         armregs[16]=SUPERVISOR|0xD0;
         mode=SUPERVISOR;
-        refillpipeline2();
         resetcp15();
         pccache=0xFFFFFFFF;
         if (config.model == CPUModel_SA110)
@@ -613,41 +578,6 @@ static const int ldrlookup[4]={0,8,16,24};
 #define ldrresult(v,a) ((v>>ldrlookup[addr&3])|(v<<(32-ldrlookup[addr&3])))
 
 #define undefined() exception(UNDEFINED,8,4)
-
-static void refillpipeline2(void)
-{
-        #ifdef PREFETCH
-        uint32_t addr=PC-8;
-        if ((addr>>12)!=pccache)
-        {
-                pccache=addr>>12;
-                pccache2=getpccache(addr);
-                if (pccache2==NULL)
-                {
-                        opcode2=opcode3=0xFFFFFFFF;
-                        pccache=0xFFFFFFFF;
-                        return;
-                }
-        }
-        opcode2=pccache2[addr>>2];
-        addr+=4;
-        if ((addr>>12)!=pccache)
-        {
-                pccache=addr>>12;
-                pccache2=getpccache(addr);
-                if (pccache2==NULL)
-                {
-                        opcode3=0xFFFFFFFF;
-                        pccache=0xFFFFFFFF;
-                        return;
-                }
-        }
-        opcode3=pccache2[addr>>2];
-//        opcode2=readmeml(PC-8);
-//        opcode3=readmeml(PC-4);
-        #endif
-        blockend=1;
-}
 
 static const uint32_t msrlookup[16]=
 {

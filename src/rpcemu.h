@@ -101,9 +101,6 @@ extern int fullscreen;
 #define FULLSCREENALWAYS
 #endif
 
-//#define PREFETCH
-
-
 typedef enum {
 	CPUModel_ARM7500,
 	CPUModel_ARM610,

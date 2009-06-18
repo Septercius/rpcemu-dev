@@ -18,11 +18,9 @@ extern uint32_t *usrregs[16];
 extern uint32_t armregs[18];
 extern int armirq; //,armfiq;
 extern int cpsr;
-#ifdef PREFETCH
-#define PC (armregs[15]&r15mask)
-#else
+
 #define PC ((armregs[15]-8)&r15mask)
-#endif
+
 extern uint32_t ins,output;
 extern int r15mask;
 extern uint32_t mode;
