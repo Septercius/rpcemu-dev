@@ -1881,26 +1881,6 @@ static void opB(uint32_t opcode)
         templ=(opcode&0xFFFFFF)<<2;
         if (templ&0x2000000) templ|=0xFC000000;
         armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
-#ifdef PREFETCH
-        templ=(PC-4)>>2;
-        if ((templ>>10)!=pccache)
-        {
-                pccache=templ>>10;
-                pccache2=getpccache(templ<<2);
-                if ((uint32_t)pccache2==0xFFFFFFFF) pccache=(uint32_t)pccache2;
-                else                                opcode2=pccache2[templ];
-        }
-        else opcode2=pccache2[templ];
-        templ++;
-        if (!(templ&0x3FF) || (uint32_t)pccache2==0xFFFFFFFF)
-        {
-                pccache=templ>>10;
-                pccache2=getpccache(templ<<2);
-                if ((uint32_t)pccache2==0xFFFFFFFF) pccache=(uint32_t)pccache2;
-                else                                opcode3=pccache2[templ];
-        }
-        else opcode3=pccache2[templ];
-#endif
         blockend=1;
 }
 
