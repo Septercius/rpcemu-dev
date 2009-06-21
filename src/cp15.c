@@ -5,7 +5,7 @@
 #include "arm.h"
 
 uint32_t oldpc = 0, oldpc2 = 0, oldpc3 = 0;
-int icache = 0;
+int dcache = 0; /* Data cache on StrongARM, unified cache pre-StrongARM */
 
 #define TLBCACHESIZE 256
 
@@ -24,6 +24,7 @@ static struct cp15
         uint32_t tlbbase,dacr;
         uint32_t far,fsr,ctrl;
 } cp15;
+static int icache = 0;
 
 /* The bits of the processor's internal coprocessor (MMU) control register */
 #define CP15_CTRL_MMU			(1 << 0)
@@ -137,6 +138,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 if (!icache && (val & CP15_CTRL_ICACHE))
                        resetcodeblocks();
                 icache = val & CP15_CTRL_ICACHE;
+                dcache = val & CP15_CTRL_CACHE;
                 if (!(val & CP15_CTRL_MMU)) {
                        rpclog("MMU disable at %08X\n",PC);
                        ins = 0;

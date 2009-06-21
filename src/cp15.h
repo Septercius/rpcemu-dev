@@ -10,6 +10,6 @@ extern int isvalidforfastread(uint32_t addr);
 extern int isvalidforfastwrite(uint32_t addr);
 extern int flushes;
 extern int tlbs;
-extern int icache;
+extern int dcache;
 
 #endif //__CP15__

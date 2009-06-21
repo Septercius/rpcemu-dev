@@ -1,6 +1,6 @@
 //#define isblockvalid(l) (((l)&0xFFC00000)==0x3800000)
-int icache;
-#define isblockvalid(l) icache
+#define isblockvalid(l) (dcache)
+
 #define BLOCKS 1024
 
 //unsigned char codeblock[3][0x1000][1600];
