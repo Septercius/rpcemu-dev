@@ -14,26 +14,26 @@
 #define IDM_MOUSE_CAP      40065
 
 
-#define RadioButton1  1000
-#define RadioButton2  1001
-#define RadioButton3  1002
-#define RadioButton4  1003
-#define RadioButton5  1004
-#define RadioButton6  1005
-#define RadioButton7  1006
-#define RadioButton8  1007
-#define RadioButton9  1008
-#define RadioButton10 1009
-#define RadioButton11 1010
-#define RadioButton12 1011
+#define RadioButton_ARM610	1000
+#define RadioButton_ARM7500	1001
+#define RadioButton_ARM710	1002
+#define RadioButton_SA110	1003
+#define RadioButton_Mem_4	1004
+#define RadioButton_Mem_8	1005
+#define RadioButton_Mem_16	1006
+#define RadioButton_Mem_32	1007
+#define RadioButton_Mem_64	1008
+#define RadioButton_Mem_128	1009
+#define RadioButton_VRAM_0	1010
+#define RadioButton_VRAM_2	1011
 
-#define GroupBox1 1020
-#define GroupBox2 1021
-#define GroupBox3 1022
-#define GroupBox4 1023
+#define GroupBox_CPU		1020
+#define GroupBox_RAM		1021
+#define GroupBox_VRAM		1022
+#define GroupBox_Refresh	1023
 
-#define CheckBox1 1030
+#define CheckBox_Sound		1030
 
-#define Slider1 1040
+#define Slider_Refresh		1040
 
-#define Text1 1050
+#define Text_Refresh		1050
