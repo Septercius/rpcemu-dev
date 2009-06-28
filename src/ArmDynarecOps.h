@@ -223,9 +223,7 @@ static void opADDregS(uint32_t opcode)
 
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
-                armregs[cpsr]&=~0xC0000000;
-                if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
-                if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
+		arm_flags_long_multiply(mulres);
         }
         else
         {
@@ -298,9 +296,7 @@ static void opADCregS(uint32_t opcode)
 
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
-                armregs[cpsr]&=~0xC0000000;
-                if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
-                if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
+		arm_flags_long_multiply(mulres);
         }
         else
         {
@@ -369,9 +365,7 @@ static void opSBCregS(uint32_t opcode)
 
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
-                armregs[cpsr]&=~0xC0000000;
-                if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
-                if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
+		arm_flags_long_multiply(mulres);
         }
         else
         {
@@ -444,9 +438,7 @@ static void opRSCregS(uint32_t opcode)
 
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
-                armregs[cpsr]&=~0xC0000000;
-                if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
-                if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
+		arm_flags_long_multiply(mulres);
         }
         else
         {

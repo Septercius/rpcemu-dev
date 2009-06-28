@@ -103,5 +103,31 @@ setzn(uint32_t op)
 	*pcpsr = flags | ((*pcpsr) & 0x3fffffff);
 }
 
+/**
+ * Update the N and Z flags following a long multiply instruction.
+ *
+ * The Z flag will be set if the result equals 0.
+ * The N flag will be set if the result has bit 63 set.
+ *
+ * @param result The result of the long multiply instruction
+ */
+static inline void
+arm_flags_long_multiply(uint64_t result)
+{
+	uint32_t flags;
+
+	if (result == 0) {
+		flags = ZFLAG;
+	} else {
+		flags = 0;
+	}
+
+	/* N flag set if bit 63 of result is set.
+	   N flag in CPSR is bit 31, so shift down by 32 */
+	flags |= (((uint32_t) (result >> 32)) & NFLAG);
+
+	*pcpsr = ((*pcpsr) & 0x3fffffff) | flags;
+}
+
 #endif
 
