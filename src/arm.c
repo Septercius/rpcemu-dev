@@ -1494,12 +1494,12 @@ void execarm(int cycs)
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMULL */
 					{
-                                                uint64_t mula,mulb,mulres;
-                                                mula=(uint64_t)(uint32_t)armregs[MULRS];
-                                                mulb=(uint64_t)(uint32_t)armregs[MULRM];
-                                                mulres=mula*mulb;
-                                                armregs[MULRN]=mulres&0xFFFFFFFF;
-                                                armregs[MULRD]=mulres>>32;
+                                                uint64_t mula = (uint64_t) armregs[MULRS];
+                                                uint64_t mulb = (uint64_t) armregs[MULRM];
+                                                uint64_t mulres = mula * mulb;
+
+                                                armregs[MULRN] = (uint32_t) mulres;
+                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
                                         }
                                         else
                                         {
@@ -1524,12 +1524,12 @@ void execarm(int cycs)
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMULLS */
 					{
-                                                uint64_t mula,mulb,mulres;
-                                                mula=(uint64_t)(uint32_t)armregs[MULRS];
-                                                mulb=(uint64_t)(uint32_t)armregs[MULRM];
-                                                mulres=mula*mulb;
-                                                armregs[MULRN]=mulres&0xFFFFFFFF;
-                                                armregs[MULRD]=mulres>>32;
+                                                uint64_t mula = (uint64_t) armregs[MULRS];
+                                                uint64_t mulb = (uint64_t) armregs[MULRM];
+                                                uint64_t mulres = mula * mulb;
+
+                                                armregs[MULRN] = (uint32_t) mulres;
+                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
                                                 armregs[cpsr]&=~0xC0000000;
                                                 if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
                                                 if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
@@ -1559,18 +1559,14 @@ void execarm(int cycs)
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMLAL */
 					{
-                                                uint64_t mula,mulb,mulres;
-                                                uint32_t addr,addr2;
-                                                addr=armregs[MULRN];
-                                                addr2=armregs[MULRD];
-                                                mula=(uint64_t)(uint32_t)armregs[MULRS];
-                                                mulb=(uint64_t)(uint32_t)armregs[MULRM];
-                                                mulres=mula*mulb;
-                                                armregs[MULRN]=mulres&0xFFFFFFFF;
-                                                armregs[MULRD]=mulres>>32;
-                                                if ((armregs[MULRN]+addr)<armregs[MULRN]) armregs[MULRD]++;
-                                                armregs[MULRN]+=addr;
-                                                armregs[MULRD]+=addr2;
+                                                uint64_t mula = (uint64_t) armregs[MULRS];
+                                                uint64_t mulb = (uint64_t) armregs[MULRM];
+                                                uint64_t current = ((uint64_t) armregs[MULRD] << 32) |
+                                                                   armregs[MULRN];
+                                                uint64_t mulres = (mula * mulb) + current;
+
+                                                armregs[MULRN] = (uint32_t) mulres;
+                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
                                         }
                                         else
                                         {
@@ -1595,18 +1591,14 @@ void execarm(int cycs)
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMLALS */
 					{
-                                                uint64_t mula,mulb,mulres;
-                                                uint32_t addr,addr2;
-                                                addr=armregs[MULRN];
-                                                addr2=armregs[MULRD];
-                                                mula=(uint64_t)(uint32_t)armregs[MULRS];
-                                                mulb=(uint64_t)(uint32_t)armregs[MULRM];
-                                                mulres=mula*mulb;
-                                                armregs[MULRN]=mulres&0xFFFFFFFF;
-                                                armregs[MULRD]=mulres>>32;
-                                                if ((armregs[MULRN]+addr)<armregs[MULRN]) armregs[MULRD]++;
-                                                armregs[MULRN]+=addr;
-                                                armregs[MULRD]+=addr2;
+                                                uint64_t mula = (uint64_t) armregs[MULRS];
+                                                uint64_t mulb = (uint64_t) armregs[MULRM];
+                                                uint64_t current = ((uint64_t) armregs[MULRD] << 32) |
+                                                                   armregs[MULRN];
+                                                uint64_t mulres = (mula * mulb) + current;
+
+                                                armregs[MULRN] = (uint32_t) mulres;
+                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
                                                 armregs[cpsr]&=~0xC0000000;
                                                 if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
                                                 if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
@@ -1636,12 +1628,12 @@ void execarm(int cycs)
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMULL */
 					{
-                                                int64_t mula,mulb,mulres;
-                                                mula=(int64_t)(int32_t)armregs[MULRS];
-                                                mulb=(int64_t)(int32_t)armregs[MULRM];
-                                                mulres=mula*mulb;
-                                                armregs[MULRN]=mulres&0xFFFFFFFF;
-                                                armregs[MULRD]=mulres>>32;
+                                                int64_t mula = (int64_t) (int32_t) armregs[MULRS];
+                                                int64_t mulb = (int64_t) (int32_t) armregs[MULRM];
+                                                int64_t mulres = mula * mulb;
+
+                                                armregs[MULRN] = (uint32_t) mulres;
+                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
                                         }
                                         else
                                         {
@@ -1666,12 +1658,12 @@ void execarm(int cycs)
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMULLS */
 					{
-                                                int64_t mula,mulb,mulres;
-                                                mula=(int64_t)(int32_t)armregs[MULRS];
-                                                mulb=(int64_t)(int32_t)armregs[MULRM];
-                                                mulres=mula*mulb;
-                                                armregs[MULRN]=mulres&0xFFFFFFFF;
-                                                armregs[MULRD]=mulres>>32;
+                                                int64_t mula = (int64_t) (int32_t) armregs[MULRS];
+                                                int64_t mulb = (int64_t) (int32_t) armregs[MULRM];
+                                                int64_t mulres = mula * mulb;
+
+                                                armregs[MULRN] = (uint32_t) mulres;
+                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
                                                 armregs[cpsr]&=~0xC0000000;
                                                 if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
                                                 if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
@@ -1701,17 +1693,14 @@ void execarm(int cycs)
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMLAL */
 					{
-                                                int64_t mula,mulb,mulres;
-                                                addr=armregs[MULRN];
-                                                addr2=armregs[MULRD];
-                                                mula=(int64_t)(int32_t)armregs[MULRS];
-                                                mulb=(int64_t)(int32_t)armregs[MULRM];
-                                                mulres=mula*mulb;
-                                                armregs[MULRN]=mulres&0xFFFFFFFF;
-                                                armregs[MULRD]=mulres>>32;
-                                                if ((armregs[MULRN]+addr)<armregs[MULRN]) armregs[MULRD]++;
-                                                armregs[MULRN]+=addr;
-                                                armregs[MULRD]+=addr2;
+                                                int64_t mula = (int64_t) (int32_t) armregs[MULRS];
+                                                int64_t mulb = (int64_t) (int32_t) armregs[MULRM];
+                                                int64_t current = ((int64_t) armregs[MULRD] << 32) |
+                                                                   armregs[MULRN];
+                                                int64_t mulres = (mula * mulb) + current;
+
+                                                armregs[MULRN] = (uint32_t) mulres;
+                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
                                         }
                                         else
                                         {
@@ -1736,17 +1725,14 @@ void execarm(int cycs)
                                 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMLALS */
 					{
-                                                int64_t mula,mulb,mulres;
-                                                addr=armregs[MULRN];
-                                                addr2=armregs[MULRD];
-                                                mula=(int64_t)(int32_t)armregs[MULRS];
-                                                mulb=(int64_t)(int32_t)armregs[MULRM];
-                                                mulres=mula*mulb;
-                                                armregs[MULRN]=mulres&0xFFFFFFFF;
-                                                armregs[MULRD]=mulres>>32;
-                                                if ((armregs[MULRN]+addr)<armregs[MULRN]) armregs[MULRD]++;
-                                                armregs[MULRN]+=addr;
-                                                armregs[MULRD]+=addr2;
+                                                int64_t mula = (int64_t) (int32_t) armregs[MULRS];
+                                                int64_t mulb = (int64_t) (int32_t) armregs[MULRM];
+                                                int64_t current = ((int64_t) armregs[MULRD] << 32) |
+                                                                   armregs[MULRN];
+                                                int64_t mulres = (mula * mulb) + current;
+
+                                                armregs[MULRN] = (uint32_t) mulres;
+                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
                                                 armregs[cpsr]&=~0xC0000000;
                                                 if (!(armregs[MULRN]|armregs[MULRD])) armregs[cpsr]|=ZFLAG;
                                                 if (armregs[MULRD]&0x80000000) armregs[cpsr]|=NFLAG;
