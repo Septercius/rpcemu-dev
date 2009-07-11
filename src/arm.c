@@ -124,13 +124,13 @@ int prog32;
 #define GETREG(r) ((r==15) ? armregs[15]+4 : armregs[r])
 #define LDRRESULT(a,v) ((a&3)?(v>>((a&3)<<3))|(v<<(((a&3)^3)<<3)):v)
 
+#define refillpipeline()
+
 #include "arm_common.h"
 
 uint32_t ins=0;
 
 uint32_t pccache,*pccache2;
-
-#define refillpipeline()
 
 void updatemode(uint32_t m)
 {
@@ -1278,6 +1278,7 @@ void execarm(int cycs)
         int linecyc;
         int target;
         int c;
+	uint32_t dest;
         uint32_t templ,templ2,addr,addr2,mask;
         unsigned char temp;
 //        int RD;
@@ -1340,17 +1341,8 @@ void execarm(int cycs)
 					}
 					else
 					{
-					      templ = GETADDR(RN) & shift2(opcode);
-					      if (RD==15)
-					      {
-						     armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-						     refillpipeline();
-					      }
-					      else
-					      {
-						     armregs[RD]=templ;
-					      }
-					      //cycles--;
+						dest = GETADDR(RN) & shift2(opcode);
+						arm_write_dest(opcode, dest);
 					}
 					break;
 
@@ -1390,17 +1382,8 @@ void execarm(int cycs)
 					}
 					else
 					{
-					       templ = GETADDR(RN) ^ shift2(opcode);
-					       if (RD==15)
-					       {
-						      armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-						      refillpipeline();
-					       }
-					       else
-					       {
-						      armregs[RD]=templ;
-					       }
-					       //cycles--;
+						dest = GETADDR(RN) ^ shift2(opcode);
+						arm_write_dest(opcode, dest);
                                         }
                                         break;
 
@@ -1432,18 +1415,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x04: /* SUB reg */
-                                        templ = GETADDR(RN) - shift2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) - shift2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x05: /* SUBS reg */
@@ -1462,17 +1435,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x06: /* RSB reg */
-                                        templ = shift2(opcode) - GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = shift2(opcode) - GETADDR(RN);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x07: /* RSBS reg */
@@ -1504,17 +1468,8 @@ void execarm(int cycs)
                                         else
                                         {
                                 #endif
-                                        templ = GETADDR(RN) + shift2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) + shift2(opcode);
+                                        arm_write_dest(opcode, dest);
                                 #ifdef STRONGARM
                                         }
                                 #endif
@@ -1569,17 +1524,8 @@ void execarm(int cycs)
                                         else
                                         {
                                 #endif
-                                        templ = GETADDR(RN) + shift2(opcode) + CFSET;
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) + shift2(opcode) + CFSET;
+                                        arm_write_dest(opcode, dest);
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
@@ -1634,17 +1580,8 @@ void execarm(int cycs)
                                         else
                                         {
                                 #endif
-                                        templ = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
+                                        arm_write_dest(opcode, dest);
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
@@ -1699,17 +1636,8 @@ void execarm(int cycs)
                                         else
                                         {
                                 #endif
-                                        templ = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
+                                        arm_write_dest(opcode, dest);
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
@@ -1899,17 +1827,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x18: /* ORR reg */
-                                        templ = GETADDR(RN) | shift2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) | shift2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x19: /* ORRS reg */
@@ -1930,15 +1849,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x1A: /* MOV reg */
-                                        templ=shift2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=(armregs[15]&~r15mask)|((templ+4)&r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                           armregs[RD]=templ;
-                                        //cycles--;
+                                        dest = shift2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x1B: /* MOVS reg */
@@ -1959,17 +1871,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x1C: /* BIC reg */
-                                        templ = GETADDR(RN) & ~shift2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) & ~shift2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x1D: /* BICS reg */
@@ -1990,15 +1893,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x1E: /* MVN reg */
-                                        templ = ~shift2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=(armregs[15]&~r15mask)|((templ+4)&r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                           armregs[RD]=templ;
-                                        //cycles--;
+                                        dest = ~shift2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x1F: /* MVNS reg */
@@ -2016,17 +1912,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x20: /* AND imm */
-                                        templ = GETADDR(RN) & rotate2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) & rotate2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x21: /* ANDS imm */
@@ -2047,17 +1934,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x22: /* EOR imm */
-                                        templ = GETADDR(RN) ^ rotate2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) ^ rotate2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x23: /* EORS imm */
@@ -2078,17 +1956,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x24: /* SUB imm */
-                                        templ = GETADDR(RN) - rotate2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) - rotate2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x25: /* SUBS imm */
@@ -2111,17 +1980,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x26: /* RSB imm */
-                                        templ = rotate2(opcode) - GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = rotate2(opcode) - GETADDR(RN);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x27: /* RSBS imm */
@@ -2140,17 +2000,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x28: /* ADD imm */
-                                        templ = GETADDR(RN) + rotate2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) + rotate2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x29: /* ADDS imm */
@@ -2170,17 +2021,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x2A: /* ADC imm */
-                                        templ = GETADDR(RN) + rotate2(opcode) + CFSET;
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) + rotate2(opcode) + CFSET;
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x2B: /* ADCS imm */
@@ -2200,17 +2042,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x2C: /* SBC imm */
-                                        templ = GETADDR(RN) - rotate2(opcode) - ((CFSET) ? 0 : 1);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) - rotate2(opcode) - ((CFSET) ? 0 : 1);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x2D: /* SBCS imm */
@@ -2230,17 +2063,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x2E: /* RSC imm */
-                                        templ = rotate2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = rotate2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x2F: /* RSCS imm */
@@ -2370,17 +2194,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x38: /* ORR imm */
-                                        templ = GETADDR(RN) | rotate2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) | rotate2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x39: /* ORRS imm */
@@ -2404,15 +2219,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x3A: /* MOV imm */
-                                        templ=rotate2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=(armregs[15]&~r15mask)|(templ&r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                           armregs[RD]=templ;
-                                        //cycles--;
+                                        dest = rotate2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x3B: /* MOVS imm */
@@ -2431,17 +2239,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x3C: /* BIC imm */
-                                        templ = GETADDR(RN) & ~rotate2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                        {
-                                                armregs[RD]=templ;
-                                        }
-                                        //cycles--;
+                                        dest = GETADDR(RN) & ~rotate2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x3D: /* BICS imm */
@@ -2462,15 +2261,8 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x3E: /* MVN imm */
-                                        templ = ~rotate2(opcode);
-                                        if (RD==15)
-                                        {
-                                                armregs[15]=(armregs[15]&~r15mask)|((templ+4)&r15mask);
-                                                refillpipeline();
-                                        }
-                                        else
-                                           armregs[RD]=templ;
-                                        //cycles--;
+                                        dest = ~rotate2(opcode);
+                                        arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x3F: /* MVNS imm */

@@ -2,7 +2,7 @@
 
 static void opANDreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
 	if ((opcode & 0xf0) == 0x90) /* MUL */
 	{
@@ -11,16 +11,8 @@ static void opANDreg(uint32_t opcode)
 	}
 	else
 	{
-		templ = GETADDR(RN) & shift2(opcode);
-		if (RD==15)
-		{
-			armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-			refillpipeline();
-		}
-		else
-		{
-			armregs[RD]=templ;
-		}
+		dest = GETADDR(RN) & shift2(opcode);
+		arm_write_dest(opcode, dest);
 	}
 	//inscount++; //r//inscount++;
 }
@@ -56,7 +48,7 @@ static void opANDregS(uint32_t opcode)
 
 static void opEORreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
 	if ((opcode & 0xf0) == 0x90) /* MLA */
 	{
@@ -65,16 +57,8 @@ static void opEORreg(uint32_t opcode)
 	}
 	else
         {
-		templ = GETADDR(RN) ^ shift2(opcode);
-		if (RD==15)
-		{
-			armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-			refillpipeline();
-		}
-		else
-		{
-			armregs[RD]=templ;
-		}
+		dest = GETADDR(RN) ^ shift2(opcode);
+		arm_write_dest(opcode, dest);
         }
 	//inscount++; //r//inscount++;
 }
@@ -110,20 +94,10 @@ static void opEORregS(uint32_t opcode)
 
 static void opSUBreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = GETADDR(RN) - shift2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = GETADDR(RN) - shift2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opSUBregS(uint32_t opcode)
@@ -146,19 +120,10 @@ static void opSUBregS(uint32_t opcode)
 
 static void opRSBreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = shift2(opcode) - GETADDR(RN);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = shift2(opcode) - GETADDR(RN);
+	arm_write_dest(opcode, dest);
 }
 
 static void opRSBregS(uint32_t opcode)
@@ -181,7 +146,7 @@ static void opRSBregS(uint32_t opcode)
 
 static void opADDreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
 #ifdef STRONGARM
 	if ((opcode & 0xf0) == 0x90) /* UMULL */
@@ -196,14 +161,8 @@ static void opADDreg(uint32_t opcode)
         else
         {
 #endif
-                templ = GETADDR(RN) + shift2(opcode);
-                if (RD==15)
-                {
-                        armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                        refillpipeline();
-                }
-                else
-                   armregs[RD]=templ;
+		dest = GETADDR(RN) + shift2(opcode);
+		arm_write_dest(opcode, dest);
 #ifdef STRONGARM
         }
 #endif
@@ -248,7 +207,7 @@ static void opADDregS(uint32_t opcode)
 
 static void opADCreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
 #ifdef STRONGARM
 	if ((opcode & 0xf0) == 0x90) /* UMLAL */
@@ -265,16 +224,8 @@ static void opADCreg(uint32_t opcode)
         else
         {
 #endif
-                templ = GETADDR(RN) + shift2(opcode) + CFSET;
-                if (RD==15)
-                {
-                        armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                        refillpipeline();
-                }
-                else
-                {
-                        armregs[RD]=templ;
-                }
+		dest = GETADDR(RN) + shift2(opcode) + CFSET;
+		arm_write_dest(opcode, dest);
 #ifdef STRONGARM
         }
 #endif
@@ -321,7 +272,7 @@ static void opADCregS(uint32_t opcode)
 
 static void opSBCreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
 #ifdef STRONGARM
 	if ((opcode & 0xf0) == 0x90) /* SMULL */
@@ -336,16 +287,8 @@ static void opSBCreg(uint32_t opcode)
         else
         {
 #endif
-                templ = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
-                if (RD==15)
-                {
-                        armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                        refillpipeline();
-                }
-                else
-                {
-                        armregs[RD]=templ;
-                }
+		dest = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
+		arm_write_dest(opcode, dest);
 #ifdef STRONGARM
         }
 #endif
@@ -390,7 +333,7 @@ static void opSBCregS(uint32_t opcode)
 
 static void opRSCreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
 #ifdef STRONGARM
 	if ((opcode & 0xf0) == 0x90) /* SMLAL */
@@ -407,16 +350,8 @@ static void opRSCreg(uint32_t opcode)
         else
         {
 #endif
-                templ = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
-                if (RD==15)
-                {
-                        armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                        refillpipeline();
-                }
-                else
-                {
-                        armregs[RD]=templ;
-                }
+		dest = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
+		arm_write_dest(opcode, dest);
 #ifdef STRONGARM
         }
 #endif
@@ -629,19 +564,10 @@ static void opCMNreg(uint32_t opcode)
 
 static void opORRreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = GETADDR(RN) | shift2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = GETADDR(RN) | shift2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opORRregS(uint32_t opcode)
@@ -666,17 +592,10 @@ static void opORRregS(uint32_t opcode)
 
 static void opMOVreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ=shift2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=(armregs[15]&~r15mask)|((templ+4)&r15mask);
-                refillpipeline();
-        }
-        else
-           armregs[RD]=templ;
-	//inscount++; //r//inscount++;
+	dest = shift2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opMOVregS(uint32_t opcode)
@@ -699,19 +618,10 @@ static void opMOVregS(uint32_t opcode)
 
 static void opBICreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = GETADDR(RN) & ~shift2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = GETADDR(RN) & ~shift2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opBICregS(uint32_t opcode)
@@ -736,17 +646,10 @@ static void opBICregS(uint32_t opcode)
 
 static void opMVNreg(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = ~shift2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=(armregs[15]&~r15mask)|((templ+4)&r15mask);
-                refillpipeline();
-        }
-        else
-           armregs[RD]=templ;
-	//inscount++; //r//inscount++;
+	dest = ~shift2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opMVNregS(uint32_t opcode)
@@ -767,19 +670,10 @@ static void opMVNregS(uint32_t opcode)
 
 static void opANDimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = GETADDR(RN) & rotate2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = GETADDR(RN) & rotate2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opANDimmS(uint32_t opcode)
@@ -804,19 +698,10 @@ static void opANDimmS(uint32_t opcode)
 
 static void opEORimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = GETADDR(RN) ^ rotate2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = GETADDR(RN) ^ rotate2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opEORimmS(uint32_t opcode)
@@ -841,19 +726,10 @@ static void opEORimmS(uint32_t opcode)
 
 static void opSUBimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = GETADDR(RN) - rotate2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = GETADDR(RN) - rotate2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opSUBimmS(uint32_t opcode)
@@ -879,19 +755,10 @@ static void opSUBimmS(uint32_t opcode)
 
 static void opRSBimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = rotate2(opcode) - GETADDR(RN);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = rotate2(opcode) - GETADDR(RN);
+	arm_write_dest(opcode, dest);
 }
 
 static void opRSBimmS(uint32_t opcode)
@@ -914,19 +781,10 @@ static void opRSBimmS(uint32_t opcode)
 
 static void opADDimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = GETADDR(RN) + rotate2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = GETADDR(RN) + rotate2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opADDimmS(uint32_t opcode)
@@ -950,19 +808,10 @@ static void opADDimmS(uint32_t opcode)
 
 static void opADCimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = GETADDR(RN) + rotate2(opcode) + CFSET;
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = GETADDR(RN) + rotate2(opcode) + CFSET;
+	arm_write_dest(opcode, dest);
 }
 
 static void opADCimmS(uint32_t opcode)
@@ -986,19 +835,10 @@ static void opADCimmS(uint32_t opcode)
 
 static void opSBCimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = GETADDR(RN) - rotate2(opcode) - ((CFSET) ? 0 : 1);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = GETADDR(RN) - rotate2(opcode) - ((CFSET) ? 0 : 1);
+	arm_write_dest(opcode, dest);
 }
 
 static void opSBCimmS(uint32_t opcode)
@@ -1022,19 +862,10 @@ static void opSBCimmS(uint32_t opcode)
 
 static void opRSCimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = rotate2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = rotate2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
+	arm_write_dest(opcode, dest);
 }
 
 static void opRSCimmS(uint32_t opcode)
@@ -1174,19 +1005,10 @@ static void opCMNimm(uint32_t opcode)
 
 static void opORRimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = GETADDR(RN) | rotate2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = GETADDR(RN) | rotate2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opORRimmS(uint32_t opcode)
@@ -1212,17 +1034,10 @@ static void opORRimmS(uint32_t opcode)
 
 static void opMOVimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ=rotate2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=(armregs[15]&~r15mask)|(templ&r15mask);
-                refillpipeline();
-        }
-        else
-           armregs[RD]=templ;
-	//inscount++; //r//inscount++;
+	dest = rotate2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opMOVimmS(uint32_t opcode)
@@ -1243,19 +1058,10 @@ static void opMOVimmS(uint32_t opcode)
 
 static void opBICimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = GETADDR(RN) & ~rotate2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=((templ+4)&r15mask)|(armregs[15]&~r15mask);
-                refillpipeline();
-        }
-        else
-        {
-                armregs[RD]=templ;
-        }
-	//inscount++; //r//inscount++;
+	dest = GETADDR(RN) & ~rotate2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opBICimmS(uint32_t opcode)
@@ -1280,17 +1086,10 @@ static void opBICimmS(uint32_t opcode)
  
 static void opMVNimm(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t dest;
 
-        templ = ~rotate2(opcode);
-        if (RD==15)
-        {
-                armregs[15]=(armregs[15]&~r15mask)|((templ+4)&r15mask);
-                refillpipeline();
-        }
-        else
-           armregs[RD]=templ;
-	//inscount++; //r//inscount++;
+	dest = ~rotate2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opMVNimmS(uint32_t opcode)
