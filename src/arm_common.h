@@ -129,5 +129,23 @@ arm_flags_long_multiply(uint64_t result)
 	*pcpsr = ((*pcpsr) & 0x3fffffff) | flags;
 }
 
+/**
+ * Handle writes to Data Processing destination register with S flag clear
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @param dest   Value for destination register
+ */
+static inline void
+arm_write_dest(uint32_t opcode, uint32_t dest)
+{
+	uint32_t rd = RD;
+
+	if (rd == 15) {
+		dest = ((dest + 4) & r15mask) | (armregs[15] & ~r15mask);
+		refillpipeline();
+	}
+	armregs[rd] = dest;
+}
+
 #endif
 

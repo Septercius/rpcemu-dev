@@ -97,13 +97,13 @@ int prog32;
 #define GETREG(r) ((r==15) ? armregs[15]+4 : armregs[r])
 #define LDRRESULT(a,v) ((a&3)?(v>>((a&3)<<3))|(v<<(((a&3)^3)<<3)):v)
 
+#define refillpipeline() blockend=1;
+
 #include "arm_common.h"
 
 uint32_t ins=0;
 
 uint32_t pccache,*pccache2;
-
-#define refillpipeline() blockend=1;
 
 void updatemode(uint32_t m)
 {
