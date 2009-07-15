@@ -440,7 +440,7 @@ static void opTSTreg(uint32_t opcode)
 	//inscount++; //r//inscount++;
 }
 
-static void opMSRc(uint32_t opcode)
+static void opMSRcreg(uint32_t opcode)
 {
 	uint32_t templ;
 
@@ -533,7 +533,7 @@ static void opCMPreg(uint32_t opcode)
 	//inscount++; //r//inscount++;
 }
 
-static void opMSRs(uint32_t opcode)
+static void opMSRsreg(uint32_t opcode)
 {
         if (!(opcode&0xFF0)) /*MSR SPSR*/
         {
@@ -905,7 +905,7 @@ static void opTSTimm(uint32_t opcode)
 	//inscount++; //r//inscount++;
 }
 
-static void opMRSc(uint32_t opcode)
+static void opMSRcimm(uint32_t opcode)
 {
 	uint32_t templ;
 
