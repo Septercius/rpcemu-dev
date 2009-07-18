@@ -1,8 +1,23 @@
 #ifndef ARM_COMMON_H
 #define ARM_COMMON_H
 
+/** Evaulate to non-zero if 'mode' is a 32-bit mode */
+#define ARM_MODE_32(mode)	((mode) & 0x10)
+
+/** Evaluate to non-zero if 'mode' is a privileged mode */
+#define ARM_MODE_PRIV(mode)	((mode) & 0xf)
+
 #define checkneg(v)	(v & 0x80000000)
 #define checkpos(v)	(!(v & 0x80000000))
+
+/** A table used by MSR instructions to determine which fields can be modified
+    within a PSR */
+static const uint32_t msrlookup[16] = {
+	0x00000000, 0x000000ff, 0x0000ff00, 0x0000ffff,
+	0x00ff0000, 0x00ff00ff, 0x00ffff00, 0x00ffffff,
+	0xff000000, 0xff0000ff, 0xff00ff00, 0xff00ffff,
+	0xffff0000, 0xffff00ff, 0xffffff00, 0xffffffff
+};
 
 static inline void
 setadd(uint32_t op1, uint32_t op2, uint32_t result)
@@ -145,6 +160,54 @@ arm_write_dest(uint32_t opcode, uint32_t dest)
 		refillpipeline();
 	}
 	armregs[rd] = dest;
+}
+
+/**
+ * Handle writes to CPSR by MSR instruction
+ *
+ * Takes into account User/Privileged, and 26/32-bit modes. Handles change of
+ * processor mode if necessary.
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @param value  Value for CPSR
+ */
+static inline void
+arm_write_cpsr(uint32_t opcode, uint32_t value)
+{
+	uint32_t field_mask;
+
+	/* User mode can only change flags, so remove other fields from
+	   mask within 'opcode' */
+	if (!ARM_MODE_PRIV(mode)) {
+		opcode &= ~0x70000;
+	}
+
+	/* Look up which fields to write to CPSR */
+	field_mask = msrlookup[(opcode >> 16) & 0xf];
+
+	/* Write to CPSR */
+	armregs[16] = (armregs[16] & ~field_mask) | (value & field_mask);
+
+	if (!ARM_MODE_32(mode)) {
+		/* In 26-bit mode */
+		if (opcode & 0x80000) {
+			/* Also update flags within R15 */
+			armregs[15] = (armregs[15] & ~0xf0000000) |
+			              (value & 0xf0000000);
+		}
+
+		if (opcode & 0x10000) {
+			/* Also update mode and IRQ/FIQ bits within R15 */
+			armregs[15] = (armregs[15] & ~0x0c000003) |
+			              (value & 0x3) |
+			              ((value & 0xc0) << 20);
+		}
+	}
+
+	/* Have we changed processor mode? */
+	if ((armregs[16] & 0x1f) != mode) {
+		updatemode(armregs[16] & 0x1f);
+	}
 }
 
 #endif
