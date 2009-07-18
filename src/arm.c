@@ -599,14 +599,6 @@ static const int ldrlookup[4]={0,8,16,24};
 
 #define undefined() exception(UNDEFINED,8,4)
 
-static const uint32_t msrlookup[16]=
-{
-        0x00000000,0x000000FF,0x0000FF00,0x0000FFFF,
-        0x00FF0000,0x00FF00FF,0x00FFFF00,0x00FFFFFF,
-        0xFF000000,0xFF0000FF,0xFF00FF00,0xFF00FFFF,
-        0xFFFF0000,0xFFFF00FF,0xFFFFFF00,0xFFFFFFFF
-};
-
 static void bad_opcode(uint32_t opcode) 
 {
      error("Bad opcode %02X %08X at %07X\n",(opcode >> 20) & 0xFF, opcode, PC);
@@ -1719,34 +1711,13 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                case 0x12: /* MSR CPSR,reg */
-                                        if (!(opcode&0xFF0))
-                                        {
-                                                temp=armregs[16];
-                                                armregs[16]&=~msrlookup[(opcode>>16)&0xF];
-                                                armregs[16]|=(armregs[RM]&msrlookup[(opcode>>16)&0xF]);
-                                                templ=armregs[16];
-                                                if (opcode&0x10000)
-                                                {
-                                                        updatemode(armregs[16]&0x1F);
-                                                        if (!(mode&16)) {
-                                                           armregs[15]=(armregs[15]&~3)|(armregs[16]&3);
-                                                           armregs[15]=(armregs[15]&~0xC000000)|((armregs[16]&0xC0) << 20);
-                                                        }
-                                                }
-                                                if (opcode & 0x80000) {
-                                                        if (!(mode & 16)) {
-                                                                armregs[15] = (armregs[15] & ~0xf0000000) |
-                                                                              (armregs[16] & 0xf0000000);
-                                                        }
-                                                }
-                                                armregs[16]=templ;
-                                        }
-                                        else
-                                        {
+				case 0x12: /* MSR CPSR, reg */
+					if ((RD == 15) && ((opcode & 0xff0) == 0)) {
+						arm_write_cpsr(opcode, armregs[RM]);
+					} else {
 						bad_opcode(opcode);
-                                        }
-                                        break;
+					}
+					break;
                                         
                                 case 0x13: /* TEQ reg */
                                         if (RD==15)
@@ -2098,44 +2069,14 @@ void execarm(int cycs)
                                         }
                                         //cycles--;
                                         break;
-                                
-                                case 0x32: /* MSR CPSR,imm */
-/*                                        if ((opcode&0x3FF000)==0x28F000)
-                                        {
-                                                templ=rotate(opcode);
-                                                armregs[cpsr]=(armregs[cpsr]&~0xF0000000)|(templ&0xF0000000);
-                                        }*/
 
-					templ = rotate2(opcode);
-
-					if (mode & 0xF) {
-						if (opcode & 0x10000) {
-							armregs[16] = (armregs[16] & ~ 0xFF) | (templ & 0xFF);
-							if ((mode & 0x10) == 0) {
-								armregs[15] = (armregs[15] & ~ 0x3) | (templ & 0x3);
-								armregs[15] = (armregs[15] & ~ 0xC000000) | ((templ & 0xC0) << 20);
-							}
-						}
-						if (opcode & 0x20000)
-							armregs[16] = (armregs[16] & ~ 0xFF00) | (templ & 0xFF00);
-						if (opcode & 0x40000)
-							armregs[16] = (armregs[16] & ~ 0xFF0000) | (templ & 0xFF0000);
+				case 0x32: /* MSR CPSR, imm */
+					if (RD == 15) {
+						arm_write_cpsr(opcode, rotate2(opcode));
+					} else {
+						bad_opcode(opcode);
 					}
-
-                                        if (opcode & 0x80000) {
-						armregs[16] = (armregs[16] & ~ 0xFF000000) | (templ & 0xFF000000);
-						if ((mode & 0x10) == 0) {
-							armregs[15] = (armregs[15] & ~ 0xF0000000) | (templ & 0xF0000000);
-						}
-					}
-
-					if ((armregs[16] & 0x1F) != mode) {
-						updatemode(armregs[16] & 0x1F);
-					}
-
-
-                                        //cycles--;
-                                        break;
+					break;
 
                                 case 0x33: /* TEQ imm */
                                         if (RD==15)

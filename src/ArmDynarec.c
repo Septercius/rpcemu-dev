@@ -579,14 +579,6 @@ static const int ldrlookup[4]={0,8,16,24};
 
 #define undefined() exception(UNDEFINED,8,4)
 
-static const uint32_t msrlookup[16]=
-{
-        0x00000000,0x000000FF,0x0000FF00,0x0000FFFF,
-        0x00FF0000,0x00FF00FF,0x00FFFF00,0x00FFFFFF,
-        0xFF000000,0xFF0000FF,0xFF00FF00,0xFF00FFFF,
-        0xFFFF0000,0xFFFF00FF,0xFFFFFF00,0xFFFFFFFF
-};
-
 static void bad_opcode(uint32_t opcode) 
 {
      error("Bad opcode %02X %08X at %07X\n",(opcode >> 20) & 0xFF, opcode, PC);

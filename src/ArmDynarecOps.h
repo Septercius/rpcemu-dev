@@ -442,35 +442,11 @@ static void opTSTreg(uint32_t opcode)
 
 static void opMSRcreg(uint32_t opcode)
 {
-	uint32_t templ;
-
-        if (!(opcode&0xFF0))
-        {
-//                temp=armregs[16];
-                armregs[16]&=~msrlookup[(opcode>>16)&0xF];
-                armregs[16]|=(armregs[RM]&msrlookup[(opcode>>16)&0xF]);
-                templ=armregs[16];
-                if (opcode&0x10000)
-                {
-                        updatemode(armregs[16]&0x1F);
-                        if (!(mode&16)) {
-                           armregs[15]=(armregs[15]&~3)|(armregs[16]&3);
-                           armregs[15]=(armregs[15]&~0xC000000)|((armregs[16]&0xC0) << 20);
-                        }
-                }
-                if (opcode & 0x80000) {
-                        if (!(mode & 16)) {
-                                armregs[15] = (armregs[15] & ~0xf0000000) |
-                                              (armregs[16] & 0xf0000000);
-                        }
-                }
-                armregs[16]=templ;
-        }
-        else
-        {
+	if ((RD == 15) && ((opcode & 0xff0) == 0)) {
+		arm_write_cpsr(opcode, armregs[RM]);
+	} else {
 		bad_opcode(opcode);
-        }
-	//inscount++; //r//inscount++;
+	}
 }
 
 static void opTEQreg(uint32_t opcode)
@@ -907,40 +883,11 @@ static void opTSTimm(uint32_t opcode)
 
 static void opMSRcimm(uint32_t opcode)
 {
-	uint32_t templ;
-
-	templ = rotate2(opcode);
-					if (mode & 0xF) {
-						if (opcode & 0x10000) {
-							armregs[16] = (armregs[16] & ~ 0xFF) | (templ & 0xFF);
-							if ((mode & 0x10) == 0) {
-								armregs[15] = (armregs[15] & ~ 0x3) | (templ & 0x3);
-								armregs[15] = (armregs[15] & ~ 0xC000000) | ((templ & 0xC0) << 20);
-							}
-						}
-						if (opcode & 0x20000)
-							armregs[16] = (armregs[16] & ~ 0xFF00) | (templ & 0xFF00);
-						if (opcode & 0x40000)
-							armregs[16] = (armregs[16] & ~ 0xFF0000) | (templ & 0xFF0000);
-					}
-
-                                        if (opcode & 0x80000) {
-						armregs[16] = (armregs[16] & ~ 0xFF000000) | (templ & 0xFF000000);
-						if ((mode & 0x10) == 0) {
-							armregs[15] = (armregs[15] & ~ 0xF0000000) | (templ & 0xF0000000);
-						}
-					}
-
-//					if (output)
-//						rpclog("%08x - %08x\n", armregs[15], armregs[16]);
-
-					if ((armregs[16] & 0x1F) != mode) {
-//						if (output)
-//							rpclog("changing mode to %02x (was %02x)\n", armregs[16] & 0x1F, mode);
-
-						updatemode(armregs[16] & 0x1F);
-					}
-	//inscount++; //r//inscount++;
+	if (RD == 15) {
+		arm_write_cpsr(opcode, rotate2(opcode));
+	} else {
+		bad_opcode(opcode);
+	}
 }
 
 static void opTEQimm(uint32_t opcode)
