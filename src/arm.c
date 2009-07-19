@@ -3377,33 +3377,29 @@ void execarm(int cycs)
                                         cycles-=2;
                                         break;
 
-                                        case 0xB0: case 0xB1: case 0xB2: case 0xB3: /*BL*/
-                                        case 0xB4: case 0xB5: case 0xB6: case 0xB7:
-                                        case 0xB8: case 0xB9: case 0xBA: case 0xBB:
-                                        case 0xBC: case 0xBD: case 0xBE: case 0xBF:
-                                        templ=(opcode&0xFFFFFF)<<2;
-                                        if (templ&0x2000000) templ|=0xFC000000;
+                                case 0xA0: case 0xA1: case 0xA2: case 0xA3: /* B */
+                                case 0xA4: case 0xA5: case 0xA6: case 0xA7:
+                                case 0xA8: case 0xA9: case 0xAA: case 0xAB:
+                                case 0xAC: case 0xAD: case 0xAE: case 0xAF:
+                                        /* Extract offset bits, and sign-extend */
+                                        templ = (opcode << 8);
+                                        templ = (uint32_t) ((int32_t) templ >> 6);
+                                        armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
+                                        break;
+
+                                case 0xB0: case 0xB1: case 0xB2: case 0xB3: /* BL */
+                                case 0xB4: case 0xB5: case 0xB6: case 0xB7:
+                                case 0xB8: case 0xB9: case 0xBA: case 0xBB:
+                                case 0xBC: case 0xBD: case 0xBE: case 0xBF:
+                                        /* Extract offset bits, and sign-extend */
+                                        templ = (opcode << 8);
+                                        templ = (uint32_t) ((int32_t) templ >> 6);
                                         armregs[14]=armregs[15]-4;
                                         armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
                                         refillpipeline();
                                         //cycles-=3;
                                         break;
 
-                                        case 0xA0: case 0xA1: case 0xA2: case 0xA3: /*B*/
-                                        case 0xA4: case 0xA5: case 0xA6: case 0xA7:
-                                        case 0xA8: case 0xA9: case 0xAA: case 0xAB:
-                                        case 0xAC: case 0xAD: case 0xAE: //case 0xAF:
-                                        templ=(opcode&0xFFFFFF)<<2;
-                                        if (templ&0x2000000) templ|=0xFC000000;
-                                        armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                        break;
-#if 1
-                                        case 0xAF: /*B*/
-                                        templ=((opcode&0xFFFFFF)<<2)|0xFC000000;
-//                                        if (templ&0x2000000) templ|=0xFC000000;
-                                        armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
-                                        break;
-#endif
                                         case 0xE0: case 0xE2: case 0xE4: case 0xE6: /*MCR*/
                                         case 0xE8: case 0xEA: case 0xEC: case 0xEE:
 #ifdef FPA

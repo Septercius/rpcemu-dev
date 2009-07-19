@@ -1599,9 +1599,10 @@ static void opB(uint32_t opcode)
 {
 	uint32_t templ;
 
-	//inscount++; //r//inscount++;
-        templ=(opcode&0xFFFFFF)<<2;
-        if (templ&0x2000000) templ|=0xFC000000;
+	/* Extract offset bits, and sign-extend */
+	templ = (opcode << 8);
+	templ = (uint32_t) ((int32_t) templ >> 6);
+
         armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
         blockend=1;
 }
@@ -1610,9 +1611,10 @@ static void opBL(uint32_t opcode)
 {
 	uint32_t templ;
 
-	//inscount++; //r//inscount++;
-        templ=(opcode&0xFFFFFF)<<2;
-        if (templ&0x2000000) templ|=0xFC000000;
+	/* Extract offset bits, and sign-extend */
+	templ = (opcode << 8);
+	templ = (uint32_t) ((int32_t) templ >> 6);
+
         armregs[14]=armregs[15]-4;
         armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
         refillpipeline();
