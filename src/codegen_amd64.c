@@ -180,7 +180,6 @@ addbyte(0); addbyte(0); addbyte(0);
 	addbyte(0x45); addbyte(0x8B); addbyte(0x67); addbyte(15<<2); /*MOVL R15,%r12d*/
 //	printf("New block %08X %08X %08X\n",blocknum,l,codeblockpc[blocknum]);
 }
-uint32_t opcode;
 
 static int recompreadmemb(uint32_t addr)
 {

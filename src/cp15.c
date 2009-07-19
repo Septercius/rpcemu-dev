@@ -18,7 +18,7 @@ uint32_t vwaddrls[1024] = {0}, vwaddrphys[1024] = {0};
 static int tlbcachepos = 0;
 int tlbs = 0, flushes = 0;
 uint32_t pccache = 0;
-uint32_t opcode = 0;
+
 static struct cp15
 {
         uint32_t tlbbase,dacr;
