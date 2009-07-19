@@ -511,17 +511,12 @@ static void opCMPreg(uint32_t opcode)
 
 static void opMSRsreg(uint32_t opcode)
 {
-        if (!(opcode&0xFF0)) /*MSR SPSR*/
-        {
-//                temp=spsr[mode&15];
-                spsr[mode&15]&=~msrlookup[(opcode>>16)&0xF];
-                spsr[mode&15]|=(armregs[RM]&msrlookup[(opcode>>16)&0xF]);
-        }
-        else
-        {
+	if ((RD == 15) && ((opcode & 0xff0) == 0)) {
+		/* MSR SPSR, reg */
+		arm_write_spsr(opcode, armregs[RM]);
+	} else {
 		bad_opcode(opcode);
-        }
-	//inscount++; //r//inscount++;
+	}
 }
 
 static void opCMNreg(uint32_t opcode)

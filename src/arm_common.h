@@ -210,5 +210,29 @@ arm_write_cpsr(uint32_t opcode, uint32_t value)
 	}
 }
 
+/**
+ * Handle writes to SPSR by MSR instruction
+ *
+ * Takes into account User/Privileged modes.
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @param value  Value for SPSR
+ */
+static inline void
+arm_write_spsr(uint32_t opcode, uint32_t value)
+{
+	uint32_t field_mask;
+
+	/* Only privileged modes have an SPSR */
+	if (ARM_MODE_PRIV(mode)) {
+		/* Look up which fields to write to SPSR */
+		field_mask = msrlookup[(opcode >> 16) & 0xf];
+
+		/* Write to SPSR for current mode */
+		spsr[mode & 0xf] = (spsr[mode & 0xf] & ~field_mask) |
+		                   (value & field_mask);
+	}
+}
+
 #endif
 
