@@ -339,7 +339,6 @@ void removeblock(void)
 }
 
 int lastflagchange=0;
-uint32_t opcode;
 
 static const int recompileinstructions[256]=
 {

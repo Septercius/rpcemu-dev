@@ -96,7 +96,6 @@ static uint32_t spsr[16];
 uint32_t armregs[18];
 uint32_t mode;
 int databort;
-uint32_t opcode;
 int prog32;
 
 
@@ -242,7 +241,6 @@ void updatemode(uint32_t m)
 
             default:
                 error("Bad mode %i\n",mode);
-                rpclog("%i : %07X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X  %08X %08X %08X - %08X %08X %08X %i R10=%08X R11=%08X R12=%08X %08X %08X %08X %08X\n",ins,PC,armregs[0],armregs[1],armregs[2],armregs[3],armregs[4],armregs[5],armregs[6],armregs[7],armregs[8],armregs[9],armregs[12],armregs[13],armregs[14],armregs[15],armregs[16],opcode,mode,armregs[10],armregs[11],armregs[12],spsr[mode&15],armregs[16],armregs[15],armregs[14]);
                 dumpregs();
                 exit(-1);
         }
@@ -1270,6 +1268,7 @@ void execarm(int cycs)
         int linecyc;
         int target;
         int c;
+	uint32_t opcode;
 	uint32_t dest;
         uint32_t templ,templ2,addr,addr2,mask;
         unsigned char temp;
