@@ -1271,7 +1271,6 @@ void execarm(int cycs)
 	uint32_t opcode;
 	uint32_t dest;
         uint32_t templ,templ2,addr,addr2,mask;
-        unsigned char temp;
 //        int RD;
         cycles+=cycs;
         while (cycles>0)
@@ -1769,18 +1768,13 @@ void execarm(int cycs)
                                         //cycles--;
                                         break;
 
-                                case 0x16: /* MSR SPSR,reg */
-                                        if ((opcode & 0xff0) == 0)
-                                        {
-                                                temp=spsr[mode&15];
-                                                spsr[mode&15]&=~msrlookup[(opcode>>16)&0xF];
-                                                spsr[mode&15]|=(armregs[RM]&msrlookup[(opcode>>16)&0xF]);
-                                        }
-                                        else
-                                        {
+                                case 0x16: /* MSR SPSR, reg */
+					if ((RD == 15) && ((opcode & 0xff0) == 0)) {
+						arm_write_spsr(opcode, armregs[RM]);
+					} else {
 						bad_opcode(opcode);
-                                        }
-                                        break;
+					}
+					break;
 
                                 case 0x17: /* CMN reg */
                                         if (RD==15)
