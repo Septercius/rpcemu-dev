@@ -879,12 +879,18 @@ void execarm(int cycs)
                                 else
                                 {
                                         blockend=0;
+                                        /* Initialise 'opcode' to invalid value */
+                                        opcode = 0xffffffff;
                                         if ((PC>>12)!=pccache)
                                         {
                                                 pccache=PC>>12;
                                                 pccache2=getpccache(PC);
-                                                if (pccache2==NULL) { opcode=pccache=0xFFFFFFFF; armirq|=0x80; }
-                                                else                  opcode=pccache2[PC>>2];
+                                                if (pccache2 == NULL) {
+                                                        pccache = 0xffffffff;
+                                                        armirq |= 0x80;
+                                                } else {
+                                                        opcode = pccache2[PC >> 2];
+                                                }
                                         }
                                         if (!(armirq&0x80)) 
 					{
@@ -943,8 +949,11 @@ void execarm(int cycs)
                                                 rinscount++;
                                                 c++;
                                         }
-                                        if (!(armirq&0x80)) endblock(c,pcpsr);
-                                        else                removeblock();
+                                        if (!(armirq & 0x80)) {
+                                                endblock(opcode, c, pcpsr);
+                                        } else {
+                                                removeblock();
+                                        }
                                 }
                         linecyc--;
                         }
