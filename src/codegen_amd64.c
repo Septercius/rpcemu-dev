@@ -1091,7 +1091,8 @@ void removeblock(void)
 }
 
 int linecyc;
-void endblock(int c, uint32_t *pcpsr)
+
+void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
 {
         /*asm("decl 0x12345678;");
 	asm("testb $0xFF,0x12345678;");
