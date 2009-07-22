@@ -107,19 +107,6 @@ void fatal(const char *format, ...)
    abort();
 }
 
-static FILE *arclog;
-void rpclog(const char *format, ...)
-{
-   char buf[256];
-//   return;
-if (!arclog) arclog=fopen("rpclog.txt","wt");
-   va_list ap;
-   va_start(ap, format);
-   vsprintf(buf, format, ap);
-   va_end(ap);
-   fputs(buf,arclog);
-}
-
 static void vblupdate(void)
 {
         if (infocus) drawscre++;

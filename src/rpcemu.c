@@ -2,7 +2,9 @@
   Main loop
   Should be platform independent*/
 #include <assert.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <allegro.h>
 #include "rpcemu.h"
 #include "mem.h"
@@ -51,6 +53,8 @@ int drawscre = 0;
 int mousecapture = 0;
 int quited = 0;
 
+static FILE *arclog; /* Log file handle */
+
 static void loadconfig(void);
 static void saveconfig(void);
 
@@ -90,6 +94,33 @@ void UNIMPLEMENTEDFL(const char *file, unsigned line, const char *section,
 	        section, file, line, buffer);
 }
 #endif /* _DEBUG */
+
+/**
+ * Write a message to the RPCEmu log file rpclog.txt
+ *
+ * @param format printf style format of message
+ * @param ...    format specific arguments
+ */
+void
+rpclog(const char *format, ...)
+{
+	va_list arg_list;
+
+	assert(format);
+
+	if (arclog == NULL) {
+		arclog = fopen("rpclog.txt", "wt");
+		if (arclog == NULL) {
+			return;
+		}
+	}
+
+	va_start(arg_list, format);
+	vfprintf(arclog, format, arg_list);
+	va_end(arg_list);
+
+	fflush(arclog);
+}
 
 void resetrpc(void)
 {

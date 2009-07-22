@@ -70,21 +70,6 @@ void fatal(const char *format, ...)
    abort();
 }
 
-static FILE *arclog;
-void rpclog(const char *format, ...)
-{
-   char buf[1024];
-//return;
-   if (!arclog) arclog=fopen("rlog.txt","wt");
-   if (!arclog) return;
-   va_list ap;
-   va_start(ap, format);
-   vsprintf(buf, format, ap);
-   va_end(ap);
-   fputs(buf,arclog);
-   fflush(arclog);
-}
-
 static void sndupdate(void)
 {
         int nextlen;
