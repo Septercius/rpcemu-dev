@@ -15,8 +15,14 @@
 
 #define ROM_WEB_SITE_STRING "For information on how to acquire ROM images please visit\n" ROM_WEB_SITE
 
-/* qsort comparison function for alphabetical sorting of
-   C char *pointers. From the qsort() manpage */
+/**
+ * qsort comparison function for alphabetical sorting of
+ *  C char *pointers. From the qsort() manpage
+ *
+ * @param p1 First item to compare
+ * @param p2 Second item to compare
+ * @return Integer less than, equal to, or greater than zero
+ */
 static int cmpstringp(const void *p1, const void *p2)
 {
         /* The actual arguments to this function are "pointers to
@@ -29,7 +35,9 @@ static int cmpstringp(const void *p1, const void *p2)
         return strcmp(*pstr1, *pstr2);
 }
 
-// Load the ROM images, call fatal() on error.
+/**
+ * Load the ROM images, calls fatal() on error.
+ */
 void loadroms(void)
 {
         int finished;
