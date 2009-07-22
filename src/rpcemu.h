@@ -133,20 +133,22 @@ extern int rinscount;
 extern int cyccount;
 
 /* rpc-[linux|win].c */
+extern void fatal(const char *format, ...);
 extern void error(const char *format, ...);
-extern void rpclog(const char *format, ...);
 extern void updatewindowsize(uint32_t x, uint32_t y);
 extern void wakeupsoundthread(void);
 extern void updateirqs(void);
 
 extern char exname[512];
 extern int timetolive;
+
 /*rpcemu.c*/
-extern void fatal(const char *format, ...);
 extern int startrpcemu(void);
 extern void execrpcemu(void);
 extern void endrpcemu(void);
 extern void resetrpc(void);
+extern void rpclog(const char *format, ...);
+
 extern int mousecapture;
 extern int drawscre;
 extern int quited;
