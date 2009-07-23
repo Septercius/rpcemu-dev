@@ -5,6 +5,7 @@
   Since I'm the only maintainer of this file, it's a complete mess.*/
 
 //int ins;
+#include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <allegro.h>
@@ -91,7 +92,7 @@ static void vblupdate(void)
 }
 
 /*  Declare Windows procedure  */
-static LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
+static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 static RECT oldclip, arcclip;
 
 /*  Make the class name into a global variable  */
@@ -121,6 +122,13 @@ static void initmenu(void)
         }
 }
 
+/**
+ * Called from VIDC code when the RISC OS mode has changed.
+ * Update windows size to hold it.
+ *
+ * @param x X size in pixels
+ * @param y Y size in pixels
+ */
 void updatewindowsize(uint32_t x, uint32_t y)
 {
         RECT r;
@@ -262,7 +270,8 @@ void vidcreleasemutex(void)
 }
 
 
-static HINSTANCE hinstance;
+static HINSTANCE hinstance; /**< Handle to current program instance */
+
 /*You can start paying attention again now*/
 int WINAPI WinMain (HINSTANCE hThisInstance,
                     HINSTANCE hPrevInstance,
@@ -432,11 +441,21 @@ infocus=1;
         return messages.wParam;
 }
 
+/**
+ * Creates an 'Open' dialog box to allow the user to choose a floppy image
+ *
+ * @param hwnd Handle to top level application window
+ * @param drive Hardware floppy drive number (0 or 1)
+ */
 static void changedisc(HWND hwnd, int drive)
 {
         char fn[512];
         char start[512];
         OPENFILENAME ofn;
+
+        assert(hwnd);
+        assert(drive == 0 || drive == 1);
+
         fn[0]=0;
         start[0]=0;
         ofn.lStructSize = sizeof(OPENFILENAME);
@@ -467,6 +486,12 @@ static void changedisc(HWND hwnd, int drive)
         }
 }
 
+/**
+ * Creates an 'Open' dialog box to allow the user to choose a CDROM image
+ *
+ * @param hwnd Handle to top level application window
+ * @return 1 if a Filename was picked, 0 otherwise
+ */
 static int selectiso(HWND hwnd)
 {
         char fn[512];
@@ -509,6 +534,15 @@ static int soundenabled2;
 static int refresh2;
 static int chngram = 0;
 
+/**
+ * Dialog procedure to handle evens on the configuration window
+ *
+ * @param hdlg    Handle to current program instance
+ * @param message Event type this dialog has just received
+ * @param wParam  message specific data
+ * @param lParam  message specific data
+ * @return
+ */
 static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
         static CPUModel model2 = CPUModel_ARM7500;
@@ -706,7 +740,16 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
         return FALSE;
 }
 
-static LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+/**
+ * Window procedure to handle events on the main program window
+ *
+ * @param hdlg    Handle to current program instance
+ * @param message Event type this window has just received
+ * @param wParam  message specific data
+ * @param lParam  message specific data
+ * @return
+ */
+static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
         HMENU hmenu;
         switch (message)                  /* handle the messages */
