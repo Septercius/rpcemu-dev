@@ -29,25 +29,25 @@ void initsound(void)
 {
         if (soundon)
         {
-                stop_audio_stream(as);
+                stop_audio_stream(as); /* allegro */
         }
         else
         {
-                install_sound(DIGI_AUTODETECT,MIDI_NONE,0);
+                install_sound(DIGI_AUTODETECT, MIDI_NONE, 0); /* allegro */
                 samplefreq=44100;
                 soundon=1;
         }
         if (config.soundenabled) {
-                as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 255, 128);
+                as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 255, 128); /* allegro */
         } else {
-                as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 0, 128);
+                as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 0, 128); /* allegro */
         }
 }
 
 void closesound(void)
 {
-        stop_audio_stream(as);
-        as=play_audio_stream(BUFFERLEN,16,1,samplefreq,0,128);
+        stop_audio_stream(as); /* allegro */
+        as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 0, 128); /* allegro */
 //        remove_sound();
 }
 
@@ -75,20 +75,20 @@ void changesamplefreq(int newsamplefreq)
 //                stop_audio_stream(as);
 //                as=play_audio_stream(BUFFERLEN,16,1,samplefreq,255,128);
 
-                voice_set_frequency(as->voice,samplefreq);
+                voice_set_frequency(as->voice, samplefreq); /* allegro */
                 oldsamplefreq=samplefreq;
         }
 }
 
 void stopsound(void)
 {
-        voice_set_volume(as->voice,0);
+        voice_set_volume(as->voice, 0); /* allegro */
 }
 
 void continuesound(void)
 {
-        voice_set_frequency(as->voice,samplefreq);
-        voice_set_volume(as->voice,255);
+        voice_set_frequency(as->voice, samplefreq); /* allegro */
+        voice_set_volume(as->voice, 255);  /* allegro */
 }
 
 void updatesoundirq(void)
@@ -159,7 +159,7 @@ int updatesoundbuffer(void)
                 {
                         for (c=0;c<(BUFFERLEN<<1);c++)
                                 p[c]=bigsoundbuffer[bigsoundbuffertail][c]^0x8000;
-                        free_audio_stream_buffer(as);
+                        free_audio_stream_buffer(as); /* allegro */
 //                        rpclog("Writing buffer %i\n",bigsoundbuffertail);
 //                      fwrite(bigsoundbuffer[bigsoundbufferhead^1],BUFFERLEN<<2,1,sndfile);
                         bigsoundbuffertail++;
