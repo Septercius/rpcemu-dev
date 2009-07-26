@@ -2857,8 +2857,8 @@ void execarm(int cycs)
 
 
 #else
-                                        case 0x42: case 0x4A: /*STRT*/
-                                        case 0x62: case 0x6A:
+				case 0x42: case 0x4a: /*STRT*/
+				case 0x62: case 0x6a:
                                         addr=GETADDR(RN);
                                         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
@@ -2884,7 +2884,7 @@ void execarm(int cycs)
                                         //cycles-=2;
                                         break;
 
-                                        case 0x43: case 0x4B: /*LDRT*/
+				case 0x43: case 0x4b: /*LDRT*/
                                         addr=GETADDR(RN);
                                         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
@@ -2913,7 +2913,7 @@ void execarm(int cycs)
                                         //cycles-=3;
                                         break;
 
-                                        case 0x66: case 0x6E: /*STRBT*/
+				case 0x66: case 0x6e: /*STRBT*/
                                         addr=GETADDR(RN);
                                         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
@@ -2939,7 +2939,7 @@ void execarm(int cycs)
                                         //cycles-=2;
                                         break;
 
-                                        case 0x47: case 0x4F: /*LDRBT*/
+				case 0x47: case 0x4f: /*LDRBT*/
                                         addr=GETADDR(RN);
                                         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
@@ -2966,20 +2966,20 @@ void execarm(int cycs)
                                         //cycles-=3;
                                         break;
 //#if 0
-                                        case 0x46: /*STRB RD,[RN],-#*/
+				case 0x46: /*STRB RD,[RN],-#*/
                                         writememb(armregs[RN],armregs[RD]);
                                         if (armirq&0x40) break;
                                         armregs[RN]-=(opcode&0xFFF);
                                         break;
 
-			             case 0x4C: /*STRB RD,[RN],#*/
-                                     writememb(armregs[RN],armregs[RD]);
-		                     if (armirq&0x40) break;
-        			     armregs[RN]+=(opcode&0xFFF);
-			             //cycles-=2;
-			             break;
+				case 0x4c: /*STRB RD,[RN],#*/
+					writememb(armregs[RN],armregs[RD]);
+					if (armirq&0x40) break;
+					armregs[RN]+=(opcode&0xFFF);
+					//cycles-=2;
+					break;
 
-                			case 0x59: /*LDR RD,[RN,#]*/
+				case 0x59: /*LDR RD,[RN,#]*/
                                         addr=GETADDR(RN)+(opcode&0xFFF);
                                         templ=readmeml(addr&~3);
                         		if (addr&3) templ=ldrresult(templ,addr);
@@ -2987,7 +2987,7 @@ void execarm(int cycs)
                 			LOADREG(RD,templ);
                 			break;
 
-                			case 0x79: /*LDR RD,[RN,shift]*/
+				case 0x79: /*LDR RD,[RN,shift]*/
                 			addr=GETADDR(RN)+shift_ldrstr(opcode);
                                         templ=readmeml(addr&~3);
                         		if (addr&3) templ=ldrresult(templ,addr);
@@ -2995,7 +2995,7 @@ void execarm(int cycs)
                 			LOADREG(RD,templ);
                 			break;
 
-                			case 0x7D: /*LDRB RD,[RN,shift]*/
+				case 0x7d: /*LDRB RD,[RN,shift]*/
                 			addr=GETADDR(RN)+shift_ldrstr(opcode);
                                         templ=readmemb(addr);
                                         if (armirq&0x40) break;
@@ -3003,10 +3003,10 @@ void execarm(int cycs)
                 			break;
 //#endif
 
-                                        case 0x60: case 0x68:
-                                        case 0x70: case 0x72: case 0x78: case 0x7A:
-                                        case 0x40: case 0x48: /*STR*/
-                                        case 0x50: case 0x52: case 0x58: case 0x5A:
+				case 0x60: case 0x68:
+				case 0x70: case 0x72: case 0x78: case 0x7a:
+				case 0x40: case 0x48: /*STR*/
+				case 0x50: case 0x52: case 0x58: case 0x5a:
                                         if ((opcode&0x2000010)==0x2000010)
                                         {
                                                 undefined();
@@ -3039,10 +3039,10 @@ void execarm(int cycs)
                                         //cycles-=2;
                                         break;
 
-                                        case 0x41: case 0x49: /*LDR*/
-                                        case 0x51: case 0x53: /*case 0x59: */case 0x5B:
-                                        case 0x61: case 0x69:
-                                        case 0x71: case 0x73: /*case 0x79:*/ case 0x7B:
+				case 0x41: case 0x49: /*LDR*/
+				case 0x51: case 0x53: /*case 0x59: */case 0x5b:
+				case 0x61: case 0x69:
+				case 0x71: case 0x73: /*case 0x79:*/ case 0x7b:
                                         if ((opcode&0x2000010)==0x2000010)
                                         {
                                                 undefined();
@@ -3071,15 +3071,16 @@ void execarm(int cycs)
                                         LOADREG(RD,templ);
                                         break;
 
-                                        case 0x65: case 0x6D:
-                                        case 0x75: case 0x77: /*case 0x7D:*/ case 0x7F:
+				case 0x65: case 0x6d:
+				case 0x75: case 0x77: /*case 0x7d:*/ case 0x7f:
                                         if (opcode&0x10)
                                         {
                                                 undefined();
                                                 break;
                                         }
-                                        case 0x45: case 0x4D: /*LDRB*/
-                                        case 0x55: case 0x57: case 0x5D: case 0x5F:
+                                        /* Fall-through */
+				case 0x45: case 0x4d: /*LDRB*/
+				case 0x55: case 0x57: case 0x5d: case 0x5f:
                                         addr=GETADDR(RN);
                                         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
@@ -3100,15 +3101,16 @@ void execarm(int cycs)
                                         //cycles-=3;
                                         break;
 
-                                        case 0x64: case 0x6C:
-                                        case 0x74: case 0x76: case 0x7C: case 0x7E:
+				case 0x64: case 0x6c:
+				case 0x74: case 0x76: case 0x7c: case 0x7e:
                                         if (opcode&0x10)
                                         {
                                                 undefined();
                                                 break;
                                         }
-                                        case 0x44: /*case 0x4C:*/ case 0x4E: /*STRB*/
-                                        case 0x54: case 0x56: case 0x5C: case 0x5E:
+                                        /* Fall-through */
+				case 0x44: /*case 0x4c:*/ case 0x4e: /*STRB*/
+				case 0x54: case 0x56: case 0x5c: case 0x5e:
                                         addr=GETADDR(RN);
                                         if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
                                         else                  addr2=opcode&0xFFF;
