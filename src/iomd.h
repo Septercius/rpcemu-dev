@@ -6,6 +6,12 @@ typedef struct {
         uint8_t mask;
 } iomd_irq;
 
+typedef struct {
+	uint32_t in_latch;
+	int32_t  counter;
+	uint32_t out_latch;
+} iomd_timer;
+
 struct iomd
 {
         iomd_irq irqa;
@@ -16,7 +22,8 @@ struct iomd
         iomd_irq irqdma;
         unsigned char romcr0,romcr1;
         uint32_t vidstart,vidend,vidcur,vidinit;
-        int t0l,t1l,t0c,t1c,t0r,t1r;
+        iomd_timer t0;
+        iomd_timer t1;
         unsigned char ctrl;
         unsigned char vidcr;
         unsigned char sndstat;
