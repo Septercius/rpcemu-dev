@@ -1054,26 +1054,31 @@ static int opSTRT(uint32_t opcode)
 	uint32_t templ;
 	uint32_t addr, addr2;
 
-	//inscount++; //r//inscount++;
-        addr=GETADDR(RN);
-        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
-        else                  addr2=opcode&0xFFF;
-        if (!(opcode&0x800000))  addr2=-addr2;
-        if (opcode&0x1000000)
-           addr+=addr2;
-        addr&=~3;
-        templ=memmode;
-        memmode=0;
-        writememl(addr,armregs[RD]);
-        memmode=templ;
-        if (armirq&0x40) return 1;
-        if (!(opcode&0x1000000))
-        {
-                addr+=addr2;
-                armregs[RN]=addr;
-        }
-        else if (opcode&0x200000) armregs[RN]=addr;
-        return 0;
+	addr = GETADDR(RN);
+
+	/* Temporarily switch to user permissions */
+	templ = memmode;
+	memmode = 0;
+	writememl(addr & ~3, armregs[RD]);
+	memmode = templ;
+
+	/* Check for Abort */
+	if (armirq & 0x40)
+		return 1;
+
+	/* Writeback */
+	if (opcode & 0x2000000) {
+		addr2 = shift_ldrstr(opcode);
+	} else {
+		addr2 = opcode & 0xfff;
+	}
+	if (!(opcode & 0x800000)) {
+		addr2 = -addr2;
+	}
+	addr += addr2;
+	armregs[RN] = addr;
+
+	return 0;
 }
 
 static int opLDRT(uint32_t opcode)

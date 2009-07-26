@@ -2857,32 +2857,34 @@ void execarm(int cycs)
 
 
 #else
-				case 0x42: case 0x4a: /*STRT*/
-				case 0x62: case 0x6a:
-                                        addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
-                                        else                  addr2=opcode&0xFFF;
-                                        if (!(opcode&0x800000))  addr2=-addr2;
-                                        if (opcode&0x1000000)
-                                        {
-                                                addr+=addr2;
-                                        }
-                                        templ=memmode;
-                                        memmode=0;
-                                        writememl(addr,armregs[RD]);
-                                        memmode=templ;
-                                        if (armirq&0x40) break;
-                                        if (!(opcode&0x1000000))
-                                        {
-                                                addr+=addr2;
-                                                armregs[RN]=addr;
-                                        }
-                                        else
-                                        {
-                                                if (opcode&0x200000) armregs[RN]=addr;
-                                        }
-                                        //cycles-=2;
-                                        break;
+				case 0x42: /* STRT Rd, [Rn], #-imm   */
+				case 0x4a: /* STRT Rd, [Rn], #+imm   */
+				case 0x62: /* STRT Rd, [Rn], -reg... */
+				case 0x6a: /* STRT Rd, [Rn], +reg... */
+					addr = GETADDR(RN);
+
+					/* Temp switch to user permissions */
+					templ = memmode;
+					memmode = 0;
+					writememl(addr & ~3, armregs[RD]);
+					memmode = templ;
+
+					/* Check for Abort */
+					if (armirq & 0x40)
+						break;
+
+					/* Writeback */
+					if (opcode & 0x2000000) {
+						addr2 = shift_ldrstr(opcode);
+					} else {
+						addr2 = opcode & 0xfff;
+					}
+					if (!(opcode & 0x800000)) {
+						addr2 = -addr2;
+					}
+					addr += addr2;
+					armregs[RN] = addr;
+					break;
 
 				case 0x43: case 0x4b: /*LDRT*/
                                         addr=GETADDR(RN);
