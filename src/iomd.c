@@ -194,17 +194,18 @@ static void gentimerirq(void)
 {
         if (!infocus) return;
 //        rpclog("IRQ %i\n",inscount);
-        iomd.t0c-=4000;//10000;
-        while (iomd.t0c<0 && iomd.t0l)
+
+        iomd.t0.counter -= 4000; // 10000;
+        while (iomd.t0.counter < 0 && iomd.t0.in_latch)
         {
-                iomd.t0c+=iomd.t0l;
+                iomd.t0.counter += iomd.t0.in_latch;
                 iomd.irqa.status |= 0x20;
                 updateirqs();
         }
-        iomd.t1c-=4000;//10000;
-        while (iomd.t1c<0 && iomd.t1l)
+        iomd.t1.counter -= 4000; // 10000;
+        while (iomd.t1.counter < 0 && iomd.t1.in_latch)
         {
-                iomd.t1c+=iomd.t1l;
+                iomd.t1.counter += iomd.t1.in_latch;
                 iomd.irqa.status |= 0x40;
                 updateirqs();
         }
@@ -299,42 +300,44 @@ void writeiomd(uint32_t addr, uint32_t val)
                 return;
 
         case IOMD_0x040_T0LOW: /* Timer 0 low bits */
-                iomd.t0l = (iomd.t0l & 0xFF00) | (val & 0xFF);
+                iomd.t0.in_latch = (iomd.t0.in_latch & 0xff00) | (val & 0xff);
                 break;
         case IOMD_0x044_T0HIGH: /* Timer 0 high bits */
-                iomd.t0l = (iomd.t0l & 0xFF) | ((val & 0xFF) << 8);
+                iomd.t0.in_latch = (iomd.t0.in_latch & 0xff) | ((val & 0xff) << 8);
                 break;
         case IOMD_0x048_T0GO: /* Timer 0 Go command */
-                iomd.t0c = iomd.t0l - 1;
-                settimera(iomd.t0l);
+                iomd.t0.counter = iomd.t0.in_latch - 1;
+                settimera(iomd.t0.in_latch);
                 break;
         case IOMD_0x04C_T0LAT: /* Timer 0 Latch command */
                 readinc ^= 1;
-                iomd.t0r = iomd.t0c;
+                iomd.t0.out_latch = iomd.t0.counter;
                 if (readinc) {
-                        iomd.t0c--;
-                        if (iomd.t0c < 0)
-                                iomd.t0c += iomd.t0l;
+                        iomd.t0.counter--;
+                        if (iomd.t0.counter < 0) {
+                                iomd.t0.counter += iomd.t0.in_latch;
+                        }
                 }
                 break;
 
         case IOMD_0x050_T1LOW: /* Timer 1 low bits */
-                iomd.t1l = (iomd.t1l & 0xFF00) | (val & 0xFF);
+                iomd.t1.in_latch = (iomd.t1.in_latch & 0xff00) | (val & 0xff);
                 break;
         case IOMD_0x054_T1HIGH: /* Timer 1 high bits */
-                iomd.t1l = (iomd.t1l & 0xFF) | ((val & 0xFF) << 8);
+                iomd.t1.in_latch = (iomd.t1.in_latch & 0xff) | ((val & 0xff) << 8);
                 break;
         case IOMD_0x058_T1GO: /* Timer 1 Go command */
-                iomd.t1c = iomd.t1l - 1;
-                settimerb(iomd.t1l);
+                iomd.t1.counter = iomd.t1.in_latch - 1;
+                settimerb(iomd.t1.in_latch);
                 break;
         case IOMD_0x05C_T1LAT: /* Timer 1 Latch command */
                 readinc ^= 1;
-                iomd.t1r = iomd.t1c;
+                iomd.t1.out_latch = iomd.t1.counter;
                 if (readinc) {
-                        iomd.t1c--;
-                        if (iomd.t1c < 0)
-                                iomd.t1c += iomd.t1l;
+                        iomd.t1.counter--;
+                        if (iomd.t1.counter < 0) {
+                                iomd.t1.counter += iomd.t1.in_latch;
+                        }
                 }
                 break;
 
@@ -495,14 +498,14 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.fiq.mask;
 
         case IOMD_0x040_T0LOW: /* Timer 0 low bits */
-                return iomd.t0r & 0xFF;
+                return iomd.t0.out_latch & 0xff;
         case IOMD_0x044_T0HIGH: /* Timer 0 high bits */
-                return iomd.t0r >> 8;
+                return iomd.t0.out_latch >> 8;
 
         case IOMD_0x050_T1LOW: /* Timer 1 low bits */
-                return iomd.t1r & 0xFF;
+                return iomd.t1.out_latch & 0xff;
         case IOMD_0x054_T1HIGH: /* Timer 1 high bits */
-                return iomd.t1r >> 8;
+                return iomd.t1.out_latch >> 8;
 
         case IOMD_0x060_IRQSTC: /* IRQC status (ARM7500/FE) */
                 return iomd.irqc.status;
@@ -620,7 +623,10 @@ void resetiomd(void)
         remove_int(timerairq);
         remove_int(timerbirq);
         soundcount=100000;
-        iomd.t0c=iomd.t1c=iomd.t0l=iomd.t1l=0xFFFF;
+        iomd.t0.counter = 0xffff;
+        iomd.t1.counter = 0xffff;
+        iomd.t0.in_latch = 0xffff;
+        iomd.t1.in_latch = 0xffff;
         #ifndef OLDTIMER
         install_int_ex(gentimerirq,BPS_TO_TIMER(500));
         #endif
@@ -633,15 +639,15 @@ void endiomd(void)
 
 void updateiomdtimers(void)
 {
-        if (iomd.t0c<0)
+        if (iomd.t0.counter < 0)
         {
-                iomd.t0c+=iomd.t0l;
+                iomd.t0.counter += iomd.t0.in_latch;
                 iomd.irqa.status |= 0x20;
                 updateirqs();
         }
-        if (iomd.t1c<0)
+        if (iomd.t1.counter < 0)
         {
-                iomd.t1c+=iomd.t1l;
+                iomd.t1.counter += iomd.t1.in_latch;
                 iomd.irqa.status |= 0x40;
                 updateirqs();
         }
