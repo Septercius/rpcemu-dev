@@ -1126,25 +1126,31 @@ static int opSTRBT(uint32_t opcode)
 	uint32_t templ;
 	uint32_t addr, addr2;
 
-	//inscount++; //r//inscount++;
-        addr=GETADDR(RN);
-        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
-        else                  addr2=opcode&0xFFF;
-        if (!(opcode&0x800000))  addr2=-addr2;
-        if (opcode&0x1000000)
-           addr+=addr2;
-        templ=memmode;
-        memmode=0;
-        writememb(addr,armregs[RD]);
-        memmode=templ;
-        if (armirq&0x40) return 1;
-        if (!(opcode&0x1000000))
-        {
-                addr+=addr2;
-                armregs[RN]=addr;
-        }
-        else if (opcode&0x200000) armregs[RN]=addr;
-        return 0;
+	addr = GETADDR(RN);
+
+	/* Temporarily switch to user permissions */
+	templ = memmode;
+	memmode = 0;
+	writememb(addr, armregs[RD]);
+	memmode = templ;
+
+	/* Check for Abort */
+	if (armirq & 0x40)
+		return 1;
+
+	/* Writeback */
+	if (opcode & 0x2000000) {
+		addr2 = shift_ldrstr(opcode);
+	} else {
+		addr2 = opcode & 0xfff;
+	}
+	if (!(opcode & 0x800000)) {
+		addr2 = -addr2;
+	}
+	addr += addr2;
+	armregs[RN] = addr;
+
+	return 0;
 }
 
 static int opLDRBT(uint32_t opcode)
@@ -1171,19 +1177,6 @@ static int opLDRBT(uint32_t opcode)
         }
         else if (opcode&0x200000) armregs[RN]=addr;
         LOADREG(RD,templ2);
-        return 0;
-}
-
-static int opSTRB46(uint32_t opcode)
-{
-	//inscount++; //r//inscount++;
-	writememb(armregs[RN],armregs[RD]);
-	if (armirq&0x40)
-        {
-                rpclog("Data abort! %07X\n",PC);
-                return 1;
-        }
-        armregs[RN]-=(opcode&0xFFF);
         return 0;
 }
 
