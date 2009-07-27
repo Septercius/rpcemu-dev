@@ -2886,34 +2886,42 @@ void execarm(int cycs)
 					armregs[RN] = addr;
 					break;
 
-				case 0x43: case 0x4b: /*LDRT*/
-                                        addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
-                                        else                  addr2=opcode&0xFFF;
-                                        if (!(opcode&0x800000))  addr2=-addr2;
-                                        if (opcode&0x1000000)
-                                        {
-                                                addr+=addr2;
-                                        }
-                                        templ=memmode;
-                                        memmode=0;
-                                        templ2=readmeml(addr&~3);
-                                        memmode=templ;
-                                        if (armirq&0x40) break;
-                                        if (addr&3) templ2=ldrresult(templ2,addr);
-//                                        if (RD==15) refillpipeline();
-                                        if (!(opcode&0x1000000))
-                                        {
-                                                addr+=addr2;
-                                                armregs[RN]=addr;
-                                        }
-                                        else
-                                        {
-                                                if (opcode&0x200000) armregs[RN]=addr;
-                                        }
-                                        LOADREG(RD,templ2);
-                                        //cycles-=3;
-                                        break;
+				case 0x43: /* LDRT Rd, [Rn], #-imm   */
+				case 0x4b: /* LDRT Rd, [Rn], #+imm   */
+				case 0x63: /* LDRT Rd, [Rn], -reg... */
+				case 0x6b: /* LDRT Rd, [Rn], +reg... */
+					addr = GETADDR(RN);
+
+					/* Temp switch to user permissions */
+					templ = memmode;
+					memmode = 0;
+					templ2 = readmeml(addr & ~3);
+					memmode = templ;
+
+					/* Check for Abort */
+					if (armirq & 0x40)
+						break;
+
+					/* Rotate if load is unaligned */
+					if (addr & 3) {
+						templ2 = ldrresult(templ2, addr);
+					}
+
+					/* Writeback */
+					if (opcode & 0x2000000) {
+						addr2 = shift_ldrstr(opcode);
+					} else {
+						addr2 = opcode & 0xfff;
+					}
+					if (!(opcode & 0x800000)) {
+						addr2 = -addr2;
+					}
+					addr += addr2;
+					armregs[RN] = addr;
+
+					/* Write Rd */
+					LOADREG(RD, templ2);
+					break;
 
 				case 0x66: case 0x6e: /*STRBT*/
                                         addr=GETADDR(RN);
