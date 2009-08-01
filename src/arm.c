@@ -2952,32 +2952,38 @@ void execarm(int cycs)
 					armregs[RN] = addr;
 					break;
 
-				case 0x47: case 0x4f: /*LDRBT*/
-                                        addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
-                                        else                  addr2=opcode&0xFFF;
-                                        if (!(opcode&0x800000))  addr2=-addr2;
-                                        if (opcode&0x1000000)
-                                        {
-                                                addr+=addr2;
-                                        }
-                                        templ=memmode;
-                                        memmode=0;
-                                        templ2=readmemb(addr);
-                                        memmode=templ;
-                                        if (armirq&0x40) break;
-                                        if (!(opcode&0x1000000))
-                                        {
-                                                addr+=addr2;
-                                                armregs[RN]=addr;
-                                        }
-                                        else
-                                        {
-                                                if (opcode&0x200000) armregs[RN]=addr;
-                                        }
-                                        LOADREG(RD,templ2);
-                                        //cycles-=3;
-                                        break;
+				case 0x47: /* LDRBT Rd, [Rn], #-imm   */
+				case 0x4f: /* LDRBT Rd, [Rn], #+imm   */
+				case 0x67: /* LDRBT Rd, [Rn], -reg... */
+				case 0x6f: /* LDRBT Rd, [Rn], +reg... */
+					addr = GETADDR(RN);
+
+					/* Temp switch to user permissions */
+					templ = memmode;
+					memmode = 0;
+					templ2 = readmemb(addr);
+					memmode = templ;
+
+					/* Check for Abort */
+					if (armirq & 0x40)
+						break;
+
+					/* Writeback */
+					if (opcode & 0x2000000) {
+						addr2 = shift_ldrstr(opcode);
+					} else {
+						addr2 = opcode & 0xfff;
+					}
+					if (!(opcode & 0x800000)) {
+						addr2 = -addr2;
+					}
+					addr += addr2;
+					armregs[RN] = addr;
+
+					/* Write Rd */
+					LOADREG(RD, templ2);
+					break;
+
 //#if 0
 				case 0x4c: /*STRB RD,[RN],#*/
 					writememb(armregs[RN],armregs[RD]);
