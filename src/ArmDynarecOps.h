@@ -1158,26 +1158,34 @@ static int opLDRBT(uint32_t opcode)
 	uint32_t templ, templ2;
 	uint32_t addr, addr2;
 
-	//inscount++; //r//inscount++;
-        addr=GETADDR(RN);
-        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
-        else                  addr2=opcode&0xFFF;
-        if (!(opcode&0x800000))  addr2=-addr2;
-        if (opcode&0x1000000)
-           addr+=addr2;
-        templ=memmode;
-        memmode=0;
-        templ2=readmemb(addr);
-        memmode=templ;
-        if (armirq&0x40) return 1;
-        if (!(opcode&0x1000000))
-        {
-                addr+=addr2;
-                armregs[RN]=addr;
-        }
-        else if (opcode&0x200000) armregs[RN]=addr;
-        LOADREG(RD,templ2);
-        return 0;
+	addr = GETADDR(RN);
+
+	/* Temporarily switch to user permissions */
+	templ = memmode;
+	memmode = 0;
+	templ2 = readmemb(addr);
+	memmode = templ;
+
+	/* Check for Abort */
+	if (armirq & 0x40)
+		return 1;
+
+	/* Writeback */
+	if (opcode & 0x2000000) {
+		addr2 = shift_ldrstr(opcode);
+	} else {
+		addr2 = opcode & 0xfff;
+	}
+	if (!(opcode & 0x800000)) {
+		addr2 = -addr2;
+	}
+	addr += addr2;
+	armregs[RN] = addr;
+
+	/* Write Rd */
+	LOADREG(RD, templ2);
+
+	return 0;
 }
 
 static int opSTRB4C(uint32_t opcode)
