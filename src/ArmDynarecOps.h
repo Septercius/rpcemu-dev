@@ -1188,19 +1188,6 @@ static int opLDRBT(uint32_t opcode)
 	return 0;
 }
 
-static int opSTRB4C(uint32_t opcode)
-{
-	//inscount++; //r//inscount++;
-	writememb(armregs[RN],armregs[RD]);
-	if (armirq&0x40)
-        {
-                rpclog("Data abort! %07X\n",PC);
-                return 1;
-        }
-        armregs[RN]+=(opcode&0xFFF);
-        return 0;
-}
-
 static int opLDRB7D(uint32_t opcode)
 {
 	uint32_t templ;
@@ -1317,6 +1304,51 @@ static int opLDR(uint32_t opcode)
 	return 0;
 }
 
+static int opSTRB(uint32_t opcode)
+{
+	uint32_t addr, addr2;
+
+	if ((opcode & 0x2000010) == 0x2000010) {
+		undefined();
+		return 0;
+	}
+
+	addr = GETADDR(RN);
+
+	/* Calculate offset */
+	if (opcode & 0x2000000) {
+		addr2 = shift_ldrstr(opcode);
+	} else {
+		addr2 = opcode & 0xfff;
+	}
+	if (!(opcode & 0x800000)) {
+		addr2 = -addr2;
+	}
+
+	/* Pre-indexed */
+	if (opcode & 0x1000000) {
+		addr += addr2;
+	}
+
+	/* Store */
+	writememb(addr, armregs[RD]);
+
+	/* Check for Abort */
+	if (armirq & 0x40)
+		return 1;
+
+	if (!(opcode & 0x1000000)) {
+		/* Post-indexed */
+		addr += addr2;
+		armregs[RN] = addr;
+	} else if (opcode & 0x200000) {
+		/* Pre-indexed with writeback */
+		armregs[RN] = addr;
+	}
+
+	return 0;
+}
+
 static int opLDRB(uint32_t opcode)
 {
 	uint32_t templ;
@@ -1337,28 +1369,6 @@ static int opLDRB(uint32_t opcode)
         }
         else if (opcode&0x200000) armregs[RN]=addr;
         armregs[RD]=templ;
-        return 0;
-}
-
-static int opSTRB(uint32_t opcode)
-{
-	uint32_t addr, addr2;
-
-	//inscount++; //r//inscount++;
-        addr=GETADDR(RN);
-        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
-        else                  addr2=opcode&0xFFF;
-        if (!(opcode&0x800000))  addr2=-addr2;
-        if (opcode&0x1000000)
-           addr+=addr2;
-        writememb(addr,armregs[RD]);
-        if (armirq&0x40) return 1;
-        if (!(opcode&0x1000000))
-        {
-                addr+=addr2;
-                armregs[RN]=addr;
-        }
-        else if (opcode&0x200000) armregs[RN]=addr;
         return 0;
 }
 
