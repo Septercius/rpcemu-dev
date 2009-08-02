@@ -2992,22 +2992,6 @@ void execarm(int cycs)
 					//cycles-=2;
 					break;
 
-				case 0x59: /*LDR RD,[RN,#]*/
-                                        addr=GETADDR(RN)+(opcode&0xFFF);
-                                        templ=readmeml(addr&~3);
-                        		if (addr&3) templ=ldrresult(templ,addr);
-                               		if (armirq&0x40) break;
-                			LOADREG(RD,templ);
-                			break;
-
-				case 0x79: /*LDR RD,[RN,shift]*/
-                			addr=GETADDR(RN)+shift_ldrstr(opcode);
-                                        templ=readmeml(addr&~3);
-                        		if (addr&3) templ=ldrresult(templ,addr);
-                        		if (armirq&0x40) break;
-                			LOADREG(RD,templ);
-                			break;
-
 				case 0x7d: /*LDRB RD,[RN,shift]*/
                 			addr=GETADDR(RN)+shift_ldrstr(opcode);
                                         templ=readmemb(addr);
@@ -3071,37 +3055,64 @@ void execarm(int cycs)
 					}
 					break;
 
-				case 0x41: case 0x49: /*LDR*/
-				case 0x51: case 0x53: /*case 0x59: */case 0x5b:
-				case 0x61: case 0x69:
-				case 0x71: case 0x73: /*case 0x79:*/ case 0x7b:
-                                        if ((opcode&0x2000010)==0x2000010)
-                                        {
-                                                undefined();
-                                                break;
-                                        }
-                                        addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
-                                        else                  addr2=opcode&0xFFF;
-                                        if (!(opcode&0x800000))  addr2=-addr2;
-                                        if (opcode&0x1000000)
-                                        {
-                                                addr+=addr2;
-                                        }
-                                        templ=readmeml(addr&~3);
-                                        if (addr&3) templ=ldrresult(templ,addr);
-                                        if (armirq&0x40) break;
-                                        if (!(opcode&0x1000000))
-                                        {
-                                                addr+=addr2;
-                                                armregs[RN]=addr;
-                                        }
-                                        else
-                                        {
-                                                if (opcode&0x200000) armregs[RN]=addr;
-                                        }
-                                        LOADREG(RD,templ);
-                                        break;
+				case 0x61: /* LDR Rd, [Rn], -reg...  */
+				case 0x69: /* LDR Rd, [Rn], +reg...  */
+				case 0x71: /* LDR Rd, [Rn, -reg...]  */
+				case 0x73: /* LDR Rd, [Rn, -reg...]! */
+				case 0x79: /* LDR Rd, [Rn, +reg...]  */
+				case 0x7b: /* LDR Rd, [Rn, +reg...]! */
+					if (opcode & 0x10) {
+						undefined();
+						break;
+					}
+					/* Fall-through */
+				case 0x41: /* LDR Rd, [Rn], #-imm  */
+				case 0x49: /* LDR Rd, [Rn], #+imm  */
+				case 0x51: /* LDR Rd, [Rn, #-imm]  */
+				case 0x53: /* LDR Rd, [Rn, #-imm]! */
+				case 0x59: /* LDR Rd, [Rn, #+imm]  */
+				case 0x5b: /* LDR Rd, [Rn, #+imm]! */
+					addr = GETADDR(RN);
+
+					/* Calculate offset */
+					if (opcode & 0x2000000) {
+						addr2 = shift_ldrstr(opcode);
+					} else {
+						addr2 = opcode & 0xfff;
+					}
+					if (!(opcode & 0x800000)) {
+						addr2 = -addr2;
+					}
+
+					/* Pre-indexed */
+					if (opcode & 0x1000000) {
+						addr += addr2;
+					}
+
+					/* Load */
+					templ = readmeml(addr & ~3);
+
+					/* Check for Abort */
+					if (armirq & 0x40)
+						break;
+
+					/* Rotate if load is unaligned */
+					if (addr & 3) {
+						templ = ldrresult(templ, addr);
+					}
+
+					if (!(opcode & 0x1000000)) {
+						/* Post-indexed */
+						addr += addr2;
+						armregs[RN] = addr;
+					} else if (opcode & 0x200000) {
+						/* Pre-indexed with writeback */
+						armregs[RN] = addr;
+					}
+
+					/* Write Rd */
+					LOADREG(RD, templ);
+					break;
 
 				case 0x65: case 0x6d:
 				case 0x75: case 0x77: /*case 0x7d:*/ case 0x7f:
