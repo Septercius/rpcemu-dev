@@ -1244,33 +1244,51 @@ static int opLDRB7D(uint32_t opcode)
 
 static int opSTR(uint32_t opcode)
 {
-	uint32_t addr, addr2;
+	uint32_t addr, addr2, value;
 
-	//inscount++; //r//inscount++;
-//        if (ins==6020942) rpclog("STR %08X %i\n",PC,blockend);
-        if ((opcode&0x2000010)==0x2000010)
-        {
-                undefined();
-                return 1;
-        }
-        addr=GETADDR(RN);
-        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
-        else                  addr2=opcode&0xFFF;
-        if (!(opcode&0x800000))  addr2=-addr2;
-        if (opcode&0x1000000)
-           addr+=addr2;
-        addr&=~3;
-        if (RD==15) { writememl(addr,armregs[RD]+r15diff); }
-        else        { writememl(addr,armregs[RD]); }
-        if (armirq&0x40) return 1;
-        if (!(opcode&0x1000000))
-        {
-                addr+=addr2;
-                armregs[RN]=addr;
-        }
-        else if (opcode&0x200000) armregs[RN]=addr;
-        return 0;
-//        if (ins==6020942) rpclog("STR complete %i\n",blockend);
+	if ((opcode & 0x2000010) == 0x2000010) {
+		undefined();
+		return 0;
+	}
+
+	addr = GETADDR(RN);
+
+	/* Calculate offset */
+	if (opcode & 0x2000000) {
+		addr2 = shift_ldrstr(opcode);
+	} else {
+		addr2 = opcode & 0xfff;
+	}
+	if (!(opcode & 0x800000)) {
+		addr2 = -addr2;
+	}
+
+	/* Pre-indexed */
+	if (opcode & 0x1000000) {
+		addr += addr2;
+	}
+
+	/* Store */
+	value = armregs[RD];
+	if (RD == 15) {
+		value += r15diff;
+	}
+	writememl(addr & ~3, value);
+
+	/* Check for Abort */
+	if (armirq & 0x40)
+		return 1;
+
+	if (!(opcode & 0x1000000)) {
+		/* Post-indexed */
+		addr += addr2;
+		armregs[RN] = addr;
+	} else if (opcode & 0x200000) {
+		/* Pre-indexed with writeback */
+		armregs[RN] = addr;
+	}
+
+	return 0;
 }
 
 static int opLDR(uint32_t opcode)
