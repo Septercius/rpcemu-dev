@@ -3016,41 +3016,60 @@ void execarm(int cycs)
                 			break;
 //#endif
 
-				case 0x60: case 0x68:
-				case 0x70: case 0x72: case 0x78: case 0x7a:
-				case 0x40: case 0x48: /*STR*/
-				case 0x50: case 0x52: case 0x58: case 0x5a:
-                                        if ((opcode&0x2000010)==0x2000010)
-                                        {
-                                                undefined();
-                                                break;
-                                        }
-                                        addr=GETADDR(RN);
-                                        if (opcode&0x2000000) addr2=shift_ldrstr(opcode);
-                                        else                  addr2=opcode&0xFFF;
-                                        if (!(opcode&0x800000))  addr2=-addr2;
-                                        if (opcode&0x1000000)
-                                        {
-                                                addr+=addr2;
-                                        }
-                                        if (RD==15) { writememl(addr&~3,armregs[RD]+r15diff); }
-                                        else        { writememl(addr&~3,armregs[RD]); }
-                                        if (armirq&0x40)
-                                        {
-//                                                rpclog("Data abort\n");
-                                                break;
-                                        }
-                                        if (!(opcode&0x1000000))
-                                        {
-                                                addr+=addr2;
-                                                armregs[RN]=addr;
-                                        }
-                                        else
-                                        {
-                                                if (opcode&0x200000) armregs[RN]=addr;
-                                        }
-                                        //cycles-=2;
-                                        break;
+				case 0x60: /* STR Rd, [Rn], -reg...  */
+				case 0x68: /* STR Rd, [Rn], +reg...  */
+				case 0x70: /* STR Rd, [Rn, -reg...]  */
+				case 0x72: /* STR Rd, [Rn, -reg...]! */
+				case 0x78: /* STR Rd, [Rn, +reg...]  */
+				case 0x7a: /* STR Rd, [Rn, +reg...]! */
+					if (opcode & 0x10) {
+						undefined();
+						break;
+					}
+					/* Fall-through */
+				case 0x40: /* STR Rd, [Rn], #-imm  */
+				case 0x48: /* STR Rd, [Rn], #+imm  */
+				case 0x50: /* STR Rd, [Rn, #-imm]  */
+				case 0x52: /* STR Rd, [Rn, #-imm]! */
+				case 0x58: /* STR Rd, [Rn, #+imm]  */
+				case 0x5a: /* STR Rd, [Rn, #+imm]! */
+					addr = GETADDR(RN);
+
+					/* Calculate offset */
+					if (opcode & 0x2000000) {
+						addr2 = shift_ldrstr(opcode);
+					} else {
+						addr2 = opcode & 0xfff;
+					}
+					if (!(opcode & 0x800000)) {
+						addr2 = -addr2;
+					}
+
+					/* Pre-indexed */
+					if (opcode & 0x1000000) {
+						addr += addr2;
+					}
+
+					/* Store */
+					templ = armregs[RD];
+					if (RD == 15) {
+						templ += r15diff;
+					}
+					writememl(addr & ~3, templ);
+
+					/* Check for Abort */
+					if (armirq & 0x40)
+						break;
+
+					if (!(opcode & 0x1000000)) {
+						/* Post-indexed */
+						addr += addr2;
+						armregs[RN] = addr;
+					} else if (opcode & 0x200000) {
+						/* Pre-indexed with writeback */
+						armregs[RN] = addr;
+					}
+					break;
 
 				case 0x41: case 0x49: /*LDR*/
 				case 0x51: case 0x53: /*case 0x59: */case 0x5b:
