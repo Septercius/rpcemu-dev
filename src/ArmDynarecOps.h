@@ -1393,7 +1393,7 @@ static int opLDRB(uint32_t opcode)
                                 if (opcode&mask) \
                                 { \
                                         if (!(addr&0xC)) cycles--; \
-                                        if (c==15) { writememl(addr,armregs[c]+4); } \
+                                        if (c==15) { writememl(addr,armregs[c]+r15diff); } \
                                         else       { writememl(addr,armregs[c]); } \
                                         addr+=4; \
                                         cycles--; \
@@ -1417,7 +1417,7 @@ static int opLDRB(uint32_t opcode)
                         if (opcode&0x8000) \
                         { \
                                 if (!(addr&0xC)) cycles--; \
-                                writememl(addr,armregs[15]+4); \
+                                writememl(addr,armregs[15]+r15diff); \
                                 cycles--; \
                         }
 
@@ -1427,7 +1427,7 @@ static int opLDRB(uint32_t opcode)
                                 if (opcode&mask) \
                                 { \
                                         if (!(addr&0xC)) cycles--; \
-                                        if (c==15) { writememl(addr,armregs[c]+4); } \
+                                        if (c==15) { writememl(addr,armregs[c]+r15diff); } \
                                         else       { writememl(addr,*usrregs[c]); } \
                                         addr+=4; \
                                         cycles--; \
@@ -1451,7 +1451,7 @@ static int opLDRB(uint32_t opcode)
                         if (opcode&0x8000) \
                         { \
                                 if (!(addr&0xC)) cycles--; \
-                                writememl(addr,armregs[15]+4); \
+                                writememl(addr,armregs[15]+r15diff); \
                                 cycles--; \
                         }
 
