@@ -1,6 +1,56 @@
 #ifndef __IOMD__
 #define __IOMD__
 
+/* The individual bits of the IRQ registers */
+#define IOMD_IRQA_PARALLEL		0x01
+// Unused				0x02
+#define IOMD_IRQA_FLOPPY_INDEX		0x04
+#define IOMD_IRQA_FLYBACK		0x08
+#define IOMD_IRQA_POWER_ON_RESET	0x10
+#define IOMD_IRQA_TIMER_0		0x20
+#define IOMD_IRQA_TIMER_1		0x40
+#define IOMD_IRQA_FORCE_BIT		0x80
+
+#define IOMD_IRQB_PODULE_FIQ_AS_IRQ	0x01 /* Podule FIQ downgraded to IRQ */
+#define IOMD_IRQB_IDE			0x02
+// Unused				0x04
+// Unused				0x08
+#define IOMD_IRQB_FLOPPY		0x10
+#define IOMD_IRQB_PODULE		0x20
+#define IOMD_IRQB_KEYBOARD_TX		0x40
+#define IOMD_IRQB_KEYBOARD_RX		0x80
+
+/* IRQC and IRQD are ARM7500 and ARM7500FE only
+   IRQC is unused */
+#define IOMD_IRQD_MOUSE_RX		0x01
+#define IOMD_IRQD_MOUSE_TX		0x02
+// Unused				0x04
+#define IOMD_IRQD_EVENT_1		0x08
+#define IOMD_IRQD_EVENT_2		0x10
+// Unused				0x20
+// Unused				0x40
+// Unused				0x80
+
+/* Fast interupt register */
+#define IOMD_FIQ_FLOPPY_DMA_REQUEST	0x01
+// Unused				0x02
+// Unused				0x04
+// Unused				0x08
+#define IOMD_FIQ_SERIAL			0x10
+// Unused				0x20
+#define IOMD_FIQ_PODULE			0x40
+#define IOMD_FIQ_FORCE_BIT		0x80
+
+/* IRQ DMA request register */
+#define IOMD_IRQDMA_IO_0		0x01
+#define IOMD_IRQDMA_IO_1		0x02
+#define IOMD_IRQDMA_IO_2		0x04
+#define IOMD_IRQDMA_IO_3		0x08
+#define IOMD_IRQDMA_SOUND_0		0x10
+#define IOMD_IRQDMA_SOUND_1		0x20
+// Unused				0x40
+// Unused				0x80
+
 typedef struct {
         uint8_t status;
         uint8_t mask;
