@@ -3067,7 +3067,7 @@ void execarm(int cycs)
                         if (fdci<=0)
                         {
                                 fdci=20000;
-                                iomd.irqa.status |= 4;
+                                iomd.irqa.status |= IOMD_IRQA_FLOPPY_INDEX;
                                 updateirqs();
                         }
                 }

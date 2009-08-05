@@ -55,19 +55,19 @@ podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t va
 void rethinkpoduleints(void)
 {
         int c;
-        iomd.irqb.status &= ~0x21; /*1 is FIQ downgrade, 0x20 is IRQ*/
-        iomd.fiq.status &= ~0x40; /*0x40 is FIQ*/
+        iomd.irqb.status &= ~(IOMD_IRQB_PODULE | IOMD_IRQB_PODULE_FIQ_AS_IRQ);
+        iomd.fiq.status  &= ~IOMD_FIQ_PODULE;
         for (c=0;c<8;c++)
         {
                 if (podules[c].irq)
                 {
 //                        rpclog("Podule IRQ! %02X\n", iomd.irqb.mask);
-                        iomd.irqb.status |= 0x20;
+                        iomd.irqb.status |= IOMD_IRQB_PODULE;
                 }
                 if (podules[c].fiq)
                 {
-                        iomd.irqb.status |= 1;
-                        iomd.fiq.status |= 0x40;
+                        iomd.irqb.status |= IOMD_IRQB_PODULE_FIQ_AS_IRQ;
+                        iomd.fiq.status  |= IOMD_FIQ_PODULE;
                 }
         }
         updateirqs();

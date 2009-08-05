@@ -296,7 +296,7 @@ uint8_t readfdc(uint32_t addr)
         switch (addr)
         {
         case 0x3f4: /* Main Status Register (MSR) */
-                iomd.irqb.status &= ~0x10;
+                iomd.irqb.status &= ~IOMD_IRQB_FLOPPY;
                 updateirqs();
                 // printf("Status : %02X %07X\n", fdc.status, PC);
                 return fdc.status;
@@ -327,7 +327,7 @@ static void fdcsend(uint8_t val)
 //        printf("New FDC data %02X %02X %i %i\n",val,fdc.command,fdc.incommand,fdc.commandpos);
         fdc.data=val;
         fdc.status=0xD0;
-        iomd.irqb.status |= 0x10;
+        iomd.irqb.status |= IOMD_IRQB_FLOPPY;
         updateirqs();
 }
 
@@ -342,7 +342,7 @@ static void fdcsenddata(uint8_t val)
 {
 //        printf("New FDC DMA data %02X %02X %i %i  %i %i %i\n",val,fdc.command,fdc.incommand,fdc.commandpos,fdc.side,fdc.track,fdc.sector);
         fdc.dmadat=val;
-        iomd.fiq.status |= 1;
+        iomd.fiq.status |= IOMD_FIQ_FLOPPY_DMA_REQUEST;
         updateirqs();
 //        timetolive=50;
 }
@@ -353,7 +353,7 @@ void callbackfdc(void)
   //        int maxsector=5;
         if (fdc.reset)
         {
-                iomd.irqb.status |= 0x10;
+                iomd.irqb.status |= IOMD_IRQB_FLOPPY;
                 updateirqs();
                 fdc.reset=0;
                 fdc.status=0x80;
@@ -386,7 +386,7 @@ void callbackfdc(void)
                 fdc.incommand=0;
                 fdc.status=0x80;
                 fdc.params=fdc.curparam=0;
-                iomd.irqb.status |= 0x10;
+                iomd.irqb.status |= IOMD_IRQB_FLOPPY;
                 updateirqs();
                 fdc.st0=0x20;
 //                printf("Recalibrate complete\n");
@@ -417,7 +417,7 @@ void callbackfdc(void)
                 fdc.incommand=0;
                 fdc.status=0x80;
                 fdc.params=fdc.curparam=0;
-                iomd.irqb.status |= 0x10;
+                iomd.irqb.status |= IOMD_IRQB_FLOPPY;
                 updateirqs();
                 fdc.st0=0x20;
                 break;
@@ -487,7 +487,7 @@ void callbackfdc(void)
                         else
                         {
 //                                printf("FIQ\n");
-                                iomd.fiq.status |= 1;
+                                iomd.fiq.status |= IOMD_FIQ_FLOPPY_DMA_REQUEST;
                                 updateirqs();
                         }
                         fdccallback=0;
@@ -567,7 +567,7 @@ void callbackfdc(void)
 //                   fdccallback=50;
                 break;
                 case 0x0A:
-                iomd.irqb.status |= 0x10;
+                iomd.irqb.status |= IOMD_IRQB_FLOPPY;
                 updateirqs();
                 fdc.st0=0x40|(fdc.parameters[0]&7);
                 fdc.st1=1;
@@ -581,7 +581,7 @@ void callbackfdc(void)
 uint8_t readfdcdma(uint32_t addr)
 {
 //        printf("Read FDC DMA %08X\n",addr);
-        iomd.fiq.status &= ~1;
+        iomd.fiq.status &= ~IOMD_FIQ_FLOPPY_DMA_REQUEST;
         updateirqs();
         fdccallback=100;
         if (!fdc.commandpos) fdccallback=2000;
@@ -599,7 +599,7 @@ uint8_t readfdcdma(uint32_t addr)
 
 void writefdcdma(uint32_t addr, uint8_t val)
 {
-        iomd.fiq.status &= ~1;
+        iomd.fiq.status &= ~IOMD_FIQ_FLOPPY_DMA_REQUEST;
         updateirqs();
         fdccallback=200;
         if (!fdc.commandpos) fdccallback=2000;
