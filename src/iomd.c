@@ -199,14 +199,14 @@ static void gentimerirq(void)
         while (iomd.t0.counter < 0 && iomd.t0.in_latch)
         {
                 iomd.t0.counter += iomd.t0.in_latch;
-                iomd.irqa.status |= 0x20;
+                iomd.irqa.status |= IOMD_IRQA_TIMER_0;
                 updateirqs();
         }
         iomd.t1.counter -= 4000; // 10000;
         while (iomd.t1.counter < 0 && iomd.t1.in_latch)
         {
                 iomd.t1.counter += iomd.t1.in_latch;
-                iomd.irqa.status |= 0x40;
+                iomd.irqa.status |= IOMD_IRQA_TIMER_1;
                 updateirqs();
         }
         if (soundinited && sndon)
@@ -224,7 +224,7 @@ static void gentimerirq(void)
 
 static void timerairq(void)
 {
-        iomd.irqa.status |= 0x20;
+        iomd.irqa.status |= IOMD_IRQA_TIMER_0;
         updateirqs();
 }
 
@@ -241,7 +241,7 @@ static void settimera(int latch)
 
 static void timerbirq(void)
 {
-        iomd.irqa.status |= 0x40;
+        iomd.irqa.status |= IOMD_IRQA_TIMER_1;
         updateirqs();
 }
 
@@ -398,7 +398,7 @@ void writeiomd(uint32_t addr, uint32_t val)
         case IOMD_0x18C_SD0ENDB: /* Sound DMA 0 EndB */
                 // rpclog("Write sound DMA %08X %02X\n",addr,val);
                 iomd.sndstat&=1;
-                iomd.irqdma.status &= ~0x10;
+                iomd.irqdma.status &= ~IOMD_IRQDMA_SOUND_0;
                 updateirqs();
                 soundaddr[(addr>>2)&3]=val;
                 // rpclog("Buffer A start %08X len %08X\nBuffer B start %08X len %08X\n",
@@ -411,7 +411,7 @@ void writeiomd(uint32_t addr, uint32_t val)
                 {
                         iomd.sndstat=6;
                         soundinited=1;
-                        iomd.irqdma.status |= 0x10;
+                        iomd.irqdma.status |= IOMD_IRQDMA_SOUND_0;
                         updateirqs();
                 }
                 sndon=val&0x20;
@@ -515,9 +515,9 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.irqc.mask;
 
         case IOMD_0x070_IRQSTD: /* IRQD status (ARM7500/FE) */
-                return iomd.irqd.status | 0x18;
+                return iomd.irqd.status | (IOMD_IRQD_EVENT_1 | IOMD_IRQD_EVENT_2);
         case IOMD_0x074_IRQRQD: /* IRQD request/clear (ARM7500/FE) */
-                return (iomd.irqd.status | 0x18) & iomd.irqd.mask;
+                return (iomd.irqd.status | (IOMD_IRQD_EVENT_1 | IOMD_IRQD_EVENT_2)) & iomd.irqd.mask;
         case IOMD_0x078_IRQMSKD: /* IRQD mask (ARM7500/FE) */
                 return iomd.irqd.mask;
 
@@ -611,7 +611,7 @@ void resetiomd(void)
         remove_int(gentimerirq);
         iomd.romcr0=iomd.romcr1=0x40;
         iomd.sndstat=6;
-        iomd.irqa.status = 0x10;
+        iomd.irqa.status = IOMD_IRQA_POWER_ON_RESET;
         iomd.irqb.status = 0;
         iomd.irqc.status = 0;
         iomd.irqd.status = 0;
@@ -642,13 +642,13 @@ void updateiomdtimers(void)
         if (iomd.t0.counter < 0)
         {
                 iomd.t0.counter += iomd.t0.in_latch;
-                iomd.irqa.status |= 0x20;
+                iomd.irqa.status |= IOMD_IRQA_TIMER_0;
                 updateirqs();
         }
         if (iomd.t1.counter < 0)
         {
                 iomd.t1.counter += iomd.t1.in_latch;
-                iomd.irqa.status |= 0x40;
+                iomd.irqa.status |= IOMD_IRQA_TIMER_1;
                 updateirqs();
         }
 }
@@ -658,7 +658,7 @@ void iomdvsync(int vsync)
         if (vsync)
         {
 //                rpclog("Vsync high\n");
-                iomd.irqa.status |= 8;
+                iomd.irqa.status |= IOMD_IRQA_FLYBACK;
                 updateirqs();
                 flyback=1;
         }

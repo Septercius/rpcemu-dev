@@ -85,7 +85,7 @@ void vidcreleasemutex(void)
 
 void sndint(void)
 {
-        iomd.irqdma.status |= 0x10;
+        iomd.irqdma.status |= IOMD_IRQDMA_SOUND_0;
         updateirqs();
         iomd.sndstat|=6;
         iomd.sndstat^=1;

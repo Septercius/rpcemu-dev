@@ -75,7 +75,7 @@ static void sndupdate(void)
 {
         int nextlen;
         float temp;
-        iomd.irqdma.status |= 0x10;
+        iomd.irqdma.status |= IOMD_IRQDMA_SOUND_0;
         updateirqs();
         iomd.sndstat^=1;
         iomd.sndstat|=6;

@@ -159,7 +159,7 @@ static void keyboardsend(unsigned char v)
 {
 //        rpclog("Keyboard send %02X\n",v);
         iomd.keydat=v;
-        iomd.irqb.status |= 0x80;
+        iomd.irqb.status |= IOMD_IRQB_KEYBOARD_RX;
         updateirqs();
         kbdstat|=0x20;
         if (calculateparity(v)) kbdstat|=4;
@@ -172,7 +172,7 @@ void keycallback(void)
 
         if (kbdreset==1)
         {
-                iomd.irqb.status |= 0x40;
+                iomd.irqb.status |= IOMD_IRQB_KEYBOARD_TX;
                 updateirqs();
                 kbdreset=0;
                 kbdstat|=0x80;
@@ -228,7 +228,7 @@ uint8_t
 keyboard_data_read(void)
 {
         kbdstat&=~0x20;
-        iomd.irqb.status &= ~0x80;
+        iomd.irqb.status &= ~IOMD_IRQB_KEYBOARD_RX;
         updateirqs();
         if (kbdcommand==0xFE) kcallback=5*4;
 //        rpclog("Read keyboard data %02X %07X\n",iomd.keydat,PC);
@@ -257,7 +257,7 @@ void writems(unsigned char v)
                 timetolive=50;
         }*/
         msstat=(msstat&0x3F)|0x40;
-        iomd.irqd.status &= ~2;
+        iomd.irqd.status &= ~IOMD_IRQD_MOUSE_TX;
         updateirqs();
         justsent=1;
         if (msincommand)
@@ -338,7 +338,7 @@ unsigned char readmousedata(void)
 {
         unsigned char temp=iomd.msdat;
         msstat&=~0x20;
-        iomd.irqd.status &= ~0x1;
+        iomd.irqd.status &= ~IOMD_IRQD_MOUSE_RX;
         updateirqs();
         if (mspacketpos<3 && mscommand==0xFE) mcallback=20;
 //        printf("Read mouse data %02X\n",iomd.msdat);
@@ -350,7 +350,7 @@ unsigned char readmousedata(void)
 static void mousesend(unsigned char v)
 {
         iomd.msdat=v;
-        iomd.irqd.status |= 1;
+        iomd.irqd.status |= IOMD_IRQD_MOUSE_RX;
         updateirqs();
         msstat|=0x20;
 //        printf("Send data %02X\n",v);
@@ -364,13 +364,13 @@ void mscallback(void)
         msstat=(msstat&0x3F)|0x80;
         if (justsent)
         {
-                iomd.irqd.status |= 2;
+                iomd.irqd.status |= IOMD_IRQD_MOUSE_TX;
                 updateirqs();
                 justsent=0;
         }
         if (msreset==1)
         {
-                iomd.irqd.status |= 2;
+                iomd.irqd.status |= IOMD_IRQD_MOUSE_TX;
                 updateirqs();
                 msreset=3;
                 msstat|=0x80;

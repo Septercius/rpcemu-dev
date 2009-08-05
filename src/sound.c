@@ -118,7 +118,7 @@ void updatesoundirq(void)
         len=(end-start)>>2;
         soundlatch=(int)((float)((float)len/(float)samplefreq)*2000000.0f);
 //        rpclog("soundlatch is %08X %i %03X %i %04X %04X %i\n",soundlatch,soundlatch,len,len,start,end,offset);
-                                        iomd.irqdma.status |= 0x10;
+                                        iomd.irqdma.status |= IOMD_IRQDMA_SOUND_0;
                                         updateirqs();
                                         iomd.sndstat|=6;
                                         iomd.sndstat^=1;
