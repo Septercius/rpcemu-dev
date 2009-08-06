@@ -280,6 +280,7 @@ void writeiomd(uint32_t addr, uint32_t val)
 
         case IOMD_0x014_IRQRQA: /* IRQA request/clear */
                 iomd.irqa.status &= ~val;
+                iomd.irqa.status |= IOMD_IRQA_FORCE_BIT; /* Bit 7 always active on IRQA */
                 updateirqs();
                 return;
         case IOMD_0x018_IRQMSKA: /* IRQA mask */
@@ -515,9 +516,9 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.irqc.mask;
 
         case IOMD_0x070_IRQSTD: /* IRQD status (ARM7500/FE) */
-                return iomd.irqd.status | (IOMD_IRQD_EVENT_1 | IOMD_IRQD_EVENT_2);
+                return iomd.irqd.status;
         case IOMD_0x074_IRQRQD: /* IRQD request/clear (ARM7500/FE) */
-                return (iomd.irqd.status | (IOMD_IRQD_EVENT_1 | IOMD_IRQD_EVENT_2)) & iomd.irqd.mask;
+                return iomd.irqd.status & iomd.irqd.mask;
         case IOMD_0x078_IRQMSKD: /* IRQD mask (ARM7500/FE) */
                 return iomd.irqd.mask;
 
@@ -611,15 +612,21 @@ void resetiomd(void)
         remove_int(gentimerirq);
         iomd.romcr0=iomd.romcr1=0x40;
         iomd.sndstat=6;
-        iomd.irqa.status = IOMD_IRQA_POWER_ON_RESET;
-        iomd.irqb.status = 0;
-        iomd.irqc.status = 0;
-        iomd.irqd.status = 0;
-        iomd.irqa.mask = 0;
-        iomd.irqb.mask = 0;
-        iomd.irqc.mask = 0;
-        iomd.irqd.mask = 0;
+
+        iomd.irqa.status   = IOMD_IRQA_FORCE_BIT | IOMD_IRQA_POWER_ON_RESET;
+        iomd.irqb.status   = 0;
+        iomd.irqc.status   = 0;
+        iomd.irqd.status   = IOMD_IRQD_EVENT_1 | IOMD_IRQD_EVENT_2;
+        iomd.fiq.status    = IOMD_FIQ_FORCE_BIT;
+        iomd.irqdma.status = 0;
+
+        iomd.irqa.mask   = 0;
+        iomd.irqb.mask   = 0;
+        iomd.irqc.mask   = 0;
+        iomd.irqd.mask   = 0;
+        iomd.fiq.mask    = 0;
         iomd.irqdma.mask = 0;
+
         remove_int(timerairq);
         remove_int(timerbirq);
         soundcount=100000;
