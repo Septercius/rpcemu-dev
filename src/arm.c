@@ -172,14 +172,12 @@ void updatemode(uint32_t m)
                 break;
         }
         mode=m;
-        memmode=1;
 
         switch (m&15)
         {
             case USER:
                 for (c=8;c<15;c++) armregs[c]=userregs[c];
                 for (c=0;c<15;c++) usrregs[c]=&armregs[c];
-                memmode=0;
                 break;
 
             case IRQ:
@@ -188,14 +186,12 @@ void updatemode(uint32_t m)
                 armregs[14]=irqregs[1];
                 for (c=0;c<13;c++) usrregs[c]=&armregs[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
-                memmode=2;
                 break;
             
             case FIQ:
                 for (c=8;c<15;c++) armregs[c]=fiqregs[c];
                 for (c=0;c<8;c++)  usrregs[c]=&armregs[c];
                 for (c=8;c<15;c++) usrregs[c]=&userregs[c];
-                memmode=2;
                 break;
 
             case SUPERVISOR:
@@ -204,7 +200,6 @@ void updatemode(uint32_t m)
                 armregs[14]=superregs[1];
                 for (c=0;c<13;c++) usrregs[c]=&armregs[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
-                memmode=2;
                 break;
             
             case ABORT:
@@ -213,7 +208,6 @@ void updatemode(uint32_t m)
                 armregs[14]=abortregs[1];
                 for (c=0;c<13;c++) usrregs[c]=&armregs[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
-                memmode=2;
                 break;
 
             case UNDEFINED:
@@ -222,7 +216,6 @@ void updatemode(uint32_t m)
                 armregs[14]=undefregs[1];
                 for (c=0;c<13;c++) usrregs[c]=&armregs[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
-                memmode=2;
                 break;
  
             case SYSTEM:
@@ -231,7 +224,6 @@ void updatemode(uint32_t m)
                 armregs[14]=systemregs[1];
                 for (c=0;c<13;c++) usrregs[c]=&armregs[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
-                memmode=2;
                 break;
 
             default:
@@ -271,6 +263,9 @@ void updatemode(uint32_t m)
                         armregs[15]|=((armregs[16]&0xC0)<<20);
                 }
         }
+
+	/* Update memory access mode based on privilege level of ARM mode */
+	memmode = ARM_MODE_PRIV(mode) ? 1 : 0;
 }
 
 static int stmlookup[256];
