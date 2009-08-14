@@ -12,8 +12,6 @@
 #include "cmos.h"
 #include "podules.h"
 
-//#define OLDTIMER
-
 /* Defines for IOMD registers */
 #define IOMD_0x000_IOCR     0x000 /* I/O control */
 #define IOMD_0x004_KBDDAT   0x004 /* Keyboard data */
@@ -190,10 +188,16 @@ void updateirqs(void)
         }
 }
 
+/**
+ * Handle the regularly ticking interrupts, the two
+ * IOMD timers, the sound interrupt and podule
+ * interrupts
+ *
+ * Called (theoretically) 500 times a second IMPROVE.
+ */
 static void gentimerirq(void)
 {
         if (!infocus) return;
-//        rpclog("IRQ %i\n",inscount);
 
         iomd.t0.counter -= 4000; // 10000;
         while (iomd.t0.counter < 0 && iomd.t0.in_latch)
@@ -202,6 +206,7 @@ static void gentimerirq(void)
                 iomd.irqa.status |= IOMD_IRQA_TIMER_0;
                 updateirqs();
         }
+
         iomd.t1.counter -= 4000; // 10000;
         while (iomd.t1.counter < 0 && iomd.t1.in_latch)
         {
@@ -209,6 +214,7 @@ static void gentimerirq(void)
                 iomd.irqa.status |= IOMD_IRQA_TIMER_1;
                 updateirqs();
         }
+
         if (soundinited && sndon)
         {
                 soundcount-=4000;//10000;
@@ -219,44 +225,17 @@ static void gentimerirq(void)
 //                        rpclog("soundcount now %i %i\n",soundcount,soundlatch);
                 }
         }
+
+        /* Update Podule interrupts */
         runpoduletimers(2);
 }
 
-static void timerairq(void)
-{
-        iomd.irqa.status |= IOMD_IRQA_TIMER_0;
-        updateirqs();
-}
-
-static void settimera(int latch)
-{
-        latch++;
-        #ifdef OLDTIMER
-        if ((latch/2000)==0)
-           install_int_ex(timerairq,latch/2);
-        else
-           install_int_ex(timerairq,MSEC_TO_TIMER(latch/2000));
-        #endif
-}
-
-static void timerbirq(void)
-{
-        iomd.irqa.status |= IOMD_IRQA_TIMER_1;
-        updateirqs();
-}
-
-static void settimerb(int latch)
-{
-        latch++;
-        #ifdef OLDTIMER
-        if ((latch/2000)==0)
-           install_int_ex(timerbirq,latch/2);
-        else
-           install_int_ex(timerbirq,MSEC_TO_TIMER(latch/2000));
-        #endif
-}
-
-
+/**
+ * Handle writes to the IOMD memory space
+ *
+ * @param addr Absolute memory address in IOMD space
+ * @param val Value to write to that addresses' function
+ */
 void writeiomd(uint32_t addr, uint32_t val)
 {
         static int readinc = 0;
@@ -308,7 +287,6 @@ void writeiomd(uint32_t addr, uint32_t val)
                 break;
         case IOMD_0x048_T0GO: /* Timer 0 Go command */
                 iomd.t0.counter = iomd.t0.in_latch - 1;
-                settimera(iomd.t0.in_latch);
                 break;
         case IOMD_0x04C_T0LAT: /* Timer 0 Latch command */
                 readinc ^= 1;
@@ -329,7 +307,6 @@ void writeiomd(uint32_t addr, uint32_t val)
                 break;
         case IOMD_0x058_T1GO: /* Timer 1 Go command */
                 iomd.t1.counter = iomd.t1.in_latch - 1;
-                settimerb(iomd.t1.in_latch);
                 break;
         case IOMD_0x05C_T1LAT: /* Timer 1 Latch command */
                 readinc ^= 1;
@@ -466,6 +443,12 @@ void writeiomd(uint32_t addr, uint32_t val)
         }
 }
 
+/**
+ * Handle reads from IOMD memory space
+ *
+ * @param addr Absolute memory address in IOMD space
+ * @return Value associated with that memory address function
+ */
 uint32_t readiomd(uint32_t addr)
 {
         switch (addr&0x1FC)
@@ -627,16 +610,12 @@ void resetiomd(void)
         iomd.fiq.mask    = 0;
         iomd.irqdma.mask = 0;
 
-        remove_int(timerairq);
-        remove_int(timerbirq);
         soundcount=100000;
         iomd.t0.counter = 0xffff;
         iomd.t1.counter = 0xffff;
         iomd.t0.in_latch = 0xffff;
         iomd.t1.in_latch = 0xffff;
-        #ifndef OLDTIMER
-        install_int_ex(gentimerirq,BPS_TO_TIMER(500));
-        #endif
+        install_int_ex(gentimerirq, BPS_TO_TIMER(500)); /* 500 Hz */
 }
 
 void endiomd(void)
