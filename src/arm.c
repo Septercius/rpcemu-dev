@@ -86,7 +86,7 @@ static uint32_t *pcpsr;
 
 uint32_t *usrregs[16];
 static uint32_t userregs[17], superregs[17], fiqregs[17], irqregs[17];
-static uint32_t abortregs[17], undefregs[17], systemregs[17];
+static uint32_t abortregs[17], undefregs[17];
 static uint32_t spsr[16];
 uint32_t armregs[18];
 uint32_t mode;
@@ -134,6 +134,7 @@ void updatemode(uint32_t m)
         switch (mode&15) /*Store back registers*/
         {
             case USER:
+            case SYSTEM: /* System (ARMv4) shares same bank as User mode */
                 for (c=8;c<15;c++) userregs[c]=armregs[c];
                 break;
 
@@ -164,18 +165,13 @@ void updatemode(uint32_t m)
                 undefregs[0]=armregs[13];
                 undefregs[1]=armregs[14];
                 break;
-
-            case SYSTEM:
-                for (c=8;c<13;c++) userregs[c]=armregs[c];
-                systemregs[0]=armregs[13];
-                systemregs[1]=armregs[14];
-                break;
         }
         mode=m;
 
         switch (m&15)
         {
             case USER:
+            case SYSTEM:
                 for (c=8;c<15;c++) armregs[c]=userregs[c];
                 for (c=0;c<15;c++) usrregs[c]=&armregs[c];
                 break;
@@ -214,14 +210,6 @@ void updatemode(uint32_t m)
                 for (c=8;c<13;c++) armregs[c]=userregs[c];
                 armregs[13]=undefregs[0];
                 armregs[14]=undefregs[1];
-                for (c=0;c<13;c++) usrregs[c]=&armregs[c];
-                for (c=13;c<15;c++) usrregs[c]=&userregs[c];
-                break;
- 
-            case SYSTEM:
-                for (c=8;c<13;c++) armregs[c]=userregs[c];
-                armregs[13]=systemregs[0];
-                armregs[14]=systemregs[1];
                 for (c=0;c<13;c++) usrregs[c]=&armregs[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
