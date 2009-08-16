@@ -2675,10 +2675,10 @@ void execarm(int cycs)
                                 } \
                         }
 
-                                        case 0x80: /*STMDA*/
-                                        case 0x82: /*STMDA !*/
-                                        case 0x90: /*STMDB*/
-                                        case 0x92: /*STMDB !*/
+				case 0x80: /* STMDA */
+				case 0x82: /* STMDA ! */
+				case 0x90: /* STMDB */
+				case 0x92: /* STMDB ! */
                                         templ=armregs[RN];
                                         addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
                                         if (!(opcode&0x1000000)) addr+=4;
@@ -2688,10 +2688,11 @@ void execarm(int cycs)
                                         if (armirq&0x40) armregs[RN]=templ;
                                         cycles--;
                                         break;
-                                        case 0x88: /*STMIA*/
-                                        case 0x8A: /*STMIA !*/
-                                        case 0x98: /*STMIB*/
-                                        case 0x9A: /*STMIB !*/
+
+				case 0x88: /* STMIA */
+				case 0x8a: /* STMIA ! */
+				case 0x98: /* STMIB */
+				case 0x9a: /* STMIB ! */
                                         templ=armregs[RN];
                                         addr=armregs[RN]&~3;
                                         if (opcode&0x1000000) addr+=4;
@@ -2701,10 +2702,11 @@ void execarm(int cycs)
                                         if (armirq&0x40) armregs[RN]=templ;
                                         cycles--;
                                         break;
-                                        case 0x84: /*STMDA ^*/
-                                        case 0x86: /*STMDA ^!*/
-                                        case 0x94: /*STMDB ^*/
-                                        case 0x96: /*STMDB ^!*/
+
+				case 0x84: /* STMDA ^ */
+				case 0x86: /* STMDA ^! */
+				case 0x94: /* STMDB ^ */
+				case 0x96: /* STMDB ^! */
                                         templ=armregs[RN];
                                         addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
                                         if (!(opcode&0x1000000)) addr+=4;
@@ -2714,10 +2716,11 @@ void execarm(int cycs)
                                         if (armirq&0x40) armregs[RN]=templ;
                                         cycles--;
                                         break;
-                                        case 0x8C: /*STMIA ^*/
-                                        case 0x8E: /*STMIA ^!*/
-                                        case 0x9C: /*STMIB ^*/
-                                        case 0x9E: /*STMIB ^!*/
+
+				case 0x8c: /* STMIA ^ */
+				case 0x8e: /* STMIA ^! */
+				case 0x9c: /* STMIB ^ */
+				case 0x9e: /* STMIB ^! */
                                         templ=armregs[RN];
                                         addr=armregs[RN]&~3;
                                         if (opcode&0x1000000) addr+=4;
@@ -2728,10 +2731,10 @@ void execarm(int cycs)
                                         cycles--;
                                         break;
 
-                                        case 0x81: /*LDMDA*/
-                                        case 0x83: /*LDMDA !*/
-                                        case 0x91: /*LDMDB*/
-                                        case 0x93: /*LDMDB !*/
+				case 0x81: /* LDMDA */
+				case 0x83: /* LDMDA ! */
+				case 0x91: /* LDMDB */
+				case 0x93: /* LDMDB ! */
                                         templ=armregs[RN];
                                         addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
                                         if (!(opcode&0x1000000)) addr+=4;
@@ -2740,10 +2743,11 @@ void execarm(int cycs)
                                         if (armirq&0x40) armregs[RN]=templ;
                                         cycles-=2;
                                         break;
-                                        case 0x89: /*LDMIA*/
-                                        case 0x8B: /*LDMIA !*/
-                                        case 0x99: /*LDMIB*/
-                                        case 0x9B: /*LDMIB !*/
+
+				case 0x89: /* LDMIA */
+				case 0x8b: /* LDMIA ! */
+				case 0x99: /* LDMIB */
+				case 0x9b: /* LDMIB ! */
                                         templ=armregs[RN];
                                         addr=armregs[RN]&~3;
                                         if (opcode&0x1000000) addr+=4;
@@ -2752,10 +2756,11 @@ void execarm(int cycs)
                                         if (armirq&0x40) armregs[RN]=templ;
                                         cycles-=2;
                                         break;
-                                        case 0x85: /*LDMDA ^*/
-                                        case 0x87: /*LDMDA ^!*/
-                                        case 0x95: /*LDMDB ^*/
-                                        case 0x97: /*LDMDB ^!*/
+
+				case 0x85: /* LDMDA ^ */
+				case 0x87: /* LDMDA ^! */
+				case 0x95: /* LDMDB ^ */
+				case 0x97: /* LDMDB ^! */
                                         templ=armregs[RN];
                                         addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
                                         if (!(opcode&0x1000000)) addr+=4;
@@ -2764,10 +2769,11 @@ void execarm(int cycs)
                                         if (armirq&0x40) armregs[RN]=templ;
                                         cycles-=2;
                                         break;
-                                        case 0x8D: /*LDMIA ^*/
-                                        case 0x8F: /*LDMIA ^!*/
-                                        case 0x9D: /*LDMIB ^*/
-                                        case 0x9F: /*LDMIB ^!*/
+
+				case 0x8d: /* LDMIA ^ */
+				case 0x8f: /* LDMIA ^! */
+				case 0x9d: /* LDMIB ^ */
+				case 0x9f: /* LDMIB ^! */
                                         templ=armregs[RN];
                                         addr=armregs[RN]&~3;
                                         if (opcode&0x1000000) addr+=4;
