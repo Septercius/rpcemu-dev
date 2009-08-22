@@ -13,6 +13,10 @@
 #include "podules.h"
 #include "fdc.h"
 
+/* References -
+   Acorn Risc PC - Technical Reference Manual
+*/
+
 uint32_t *ram = NULL, *ram2 = NULL, *rom = NULL, *vram = NULL;
 uint8_t *ramb = NULL, *ramb2 = NULL, *romb = NULL, *vramb = NULL;
 
@@ -171,13 +175,16 @@ uint32_t readmemfl(uint32_t addr)
             case 0x03000000: /*IO*/
                 if (!(addr&0xC00000))
                 {
+                        /* 03000000 - 033fffff */
                         uint32_t bank = (addr >> 16) & 7;
 
                         switch (bank)
                         {
-                                case 0:
+                        case 0:
+                                /* IOMD Registers */
                                 return readiomd(addr);
-                                case 1: case 2:
+                        case 1:
+                        case 2:
                                 if (addr==0x3310000)
                                    return mouse_buttons_read();
                                 if (addr >= 0x3010000 && addr < 0x3012000) {
@@ -190,9 +197,11 @@ uint32_t readmemfl(uint32_t addr)
                                         return superio_read(addr);
                                 }
                                 break;
-                                case 4:
+                        case 4:
+                                /* Podule space 0, 1, 2, 3 */
                                 return readpodulew((addr&0xC000)>>14,0,addr&0x3FFF);
-                                case 7:
+                        case 7:
+                                /* Podule space 4, 5, 6, 7 */
                                 return readpodulew(((addr&0xC000)>>14)+4,0,addr&0x3FFF);
                         }
                 }
@@ -207,6 +216,7 @@ uint32_t readmemfl(uint32_t addr)
             case 0x0D000000:
             case 0x0E000000:
             case 0x0F000000:
+                /* EASI space */
 //                        rpclog("EASI readl %08X\n",addr);
                 return readpodulel((addr>>24)&7,1,addr&0xFFFFFF);
 
@@ -308,13 +318,16 @@ uint32_t readmemfb(uint32_t addr)
                 case 0x03000000: /*IO*/
                 if (!(addr&0xC00000))
                 {
+                        /* 03000000 - 033fffff */
                         uint32_t bank = (addr >> 16) & 7;
 
                         switch (bank)
                         {
-                                case 0:
+                        case 0:
+                                /* IOMD Registers */
                                 return readiomd(addr);
-                                case 1: case 2:
+                        case 1:
+                        case 2:
                                 if (addr==0x03310000)
                                    return mouse_buttons_read();
                                 if (addr>=0x03012000 && addr<=0x0302A000)
@@ -326,9 +339,11 @@ uint32_t readmemfb(uint32_t addr)
                                         return superio_read(addr);
                                 }
                                 break;
-                                case 4:
+                        case 4:
+                                /* Podule space 0, 1, 2, 3 */
                                 return readpoduleb((addr&0xC000)>>14,0,addr&0x3FFF);
-                                case 7:
+                        case 7:
+                                /* Podule space 4, 5, 6, 7 */
                                 return readpoduleb(((addr&0xC000)>>14)+4,0,addr&0x3FFF);
                         }
                 }
@@ -342,6 +357,7 @@ uint32_t readmemfb(uint32_t addr)
                 case 0x0D000000:
                 case 0x0E000000:
                 case 0x0F000000:
+                    /* EASI space */
 //                        rpclog("EASI readb %08X\n",addr);
                     return readpoduleb((addr>>24)&7,1,addr&0xFFFFFF);
 
