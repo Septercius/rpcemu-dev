@@ -12,6 +12,12 @@
 #include "cmos.h"
 #include "podules.h"
 
+/* References -
+   Acorn Risc PC - Technical Reference Manual
+   ARM7500 Data Sheet
+   ARM7500FE Data Sheet
+*/
+
 /* Defines for IOMD registers */
 #define IOMD_0x000_IOCR     0x000 /* I/O control */
 #define IOMD_0x004_KBDDAT   0x004 /* Keyboard data */
@@ -199,7 +205,7 @@ static void gentimerirq(void)
 {
         if (!infocus) return;
 
-        iomd.t0.counter -= 4000; // 10000;
+        iomd.t0.counter -= 4000; /* 4000 * 500Hz = 2MHz (the IO clock speed) */
         while (iomd.t0.counter < 0 && iomd.t0.in_latch)
         {
                 iomd.t0.counter += iomd.t0.in_latch;
@@ -207,7 +213,7 @@ static void gentimerirq(void)
                 updateirqs();
         }
 
-        iomd.t1.counter -= 4000; // 10000;
+        iomd.t1.counter -= 4000;
         while (iomd.t1.counter < 0 && iomd.t1.in_latch)
         {
                 iomd.t1.counter += iomd.t1.in_latch;
@@ -217,7 +223,7 @@ static void gentimerirq(void)
 
         if (soundinited && sndon)
         {
-                soundcount-=4000;//10000;
+                soundcount -= 4000;
                 if (soundcount<0)
                 {
                         updatesoundirq();
@@ -227,7 +233,7 @@ static void gentimerirq(void)
         }
 
         /* Update Podule interrupts */
-        runpoduletimers(2);
+        runpoduletimers(2); /* 2ms * 500 = 1 sec */
 }
 
 /**
@@ -566,13 +572,33 @@ uint32_t readiomd(uint32_t addr)
         exit(-1);
 }
 
+/**
+ * Read the state of the Quadrature (bus) mouse
+ * found on the RPC.
+ *
+ * Also contains the monitor ID bit IMPROVE
+ */
 uint8_t mouse_buttons_read(void)
 {
-        unsigned char temp=0;
-        if (mouse_b&1) temp|=0x40;
-        if ((mouse_b&4) || key[KEY_MENU] || key[KEY_ALTGR]) temp|=0x20;
-        if ((mouse_b&2)) temp|=0x10;
-        return temp^0x70;
+        unsigned char temp = 0;
+
+        /* 'mouse_b' and 'key' are Allegro variables containing
+           the current host OS mouse and keyboard state */
+
+        /* Left (select) */
+        if (mouse_b & 1) {
+               temp |= 0x40; // bit 7
+        }
+        /* Middle (menu) */
+        if ((mouse_b & 4) || key[KEY_MENU] || key[KEY_ALTGR]) {
+               temp |= 0x20; // bit 6
+        }
+        /* Right (adjust) */
+        if ((mouse_b & 2)) {
+               temp |= 0x10; // bit 5
+        }
+
+        return temp ^ 0x70; // bit 5 6 and 7
 }
 
 void dumpiomd(void)
@@ -590,6 +616,12 @@ void dumpiomd(void)
               iomd.irqd.mask);
 }
 
+/**
+ * Initialise the power-on state of the IOMD chip
+ *
+ * Called on program startup and on program reset when
+ * the configuration is changed.
+ */
 void resetiomd(void)
 {
         remove_int(gentimerirq);
@@ -618,6 +650,9 @@ void resetiomd(void)
         install_int_ex(gentimerirq, BPS_TO_TIMER(500)); /* 500 Hz */
 }
 
+/**
+ * Called on program shutdown, free up any resources
+ */
 void endiomd(void)
 {
         remove_int(gentimerirq);
