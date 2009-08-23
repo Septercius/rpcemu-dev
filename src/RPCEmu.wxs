@@ -71,6 +71,7 @@
 	  	    <Component Id='PoduleromsDirectory' Guid='8BF55C3B-E68D-4A64-A5BF-278D0E848DEF'>
               <File Id='hostfs' Name='hostfs' LongName='hostfs,ffa' DiskId='1' Source='..\riscos-progs\HostFS\hostfs,ffa' Vital='yes' />
               <File Id='hostfsfiler' Name='hostfsfi' LongName='hostfsfiler,ffa' DiskId='1' Source='..\riscos-progs\HostFS\hostfsfiler,ffa' Vital='yes' />
+              <File Id='syncclock' Name='synccloc' LongName='SyncClock,ffa' DiskId='1' Source='..\riscos-progs\SyncClock\SyncClock,ffa' Vital='yes' />
 			</Component>
 		  </Directory>
 		  
