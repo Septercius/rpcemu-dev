@@ -1,23 +1,23 @@
 <?xml version='1.0' encoding='windows-1252'?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2003/01/wi'>
   <Product Name='RPCEmu' Id='????????-????-????-????-????????????'
-    Language='1033' Codepage='1252' Version='0.8.4' Manufacturer='Various'
+    Language='1033' Codepage='1252' Version='0.8.5' Manufacturer='Various'
 	UpgradeCode='6F6DCB0A-0F3C-4D42-B746-47D14825163E'>
 
     <Package Id='????????-????-????-????-????????????' Keywords='Installer'
-      Description="RPCEmu 0.8.4 Installer"
+      Description="RPCEmu 0.8.5 Installer"
       Comments='RPCEmu is an open source project' Manufacturer='Various'
       InstallerVersion='100' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
 
     <Upgrade Id='6F6DCB0A-0F3C-4D42-B746-47D14825163E'><!-- Id is upgrade code -->
       <UpgradeVersion OnlyDetect='no' Property='PROJECT_UPGRADE'
-        Maximum='0.8.4' IncludeMaximum='no' RemoveFeatures='all'/>
+        Maximum='0.8.5' IncludeMaximum='no' RemoveFeatures='all'/>
       <UpgradeVersion OnlyDetect='yes' Property='PROJECT_DOWNGRADE'
-        Minimum='0.8.4' IncludeMinimum='no'/>
+        Minimum='0.8.5' IncludeMinimum='no'/>
     </Upgrade>
 
     <Media Id='1' Cabinet='Sample.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
-    <Property Id='DiskPrompt' Value="RPCEmu 0.8.4 Installation [1]" />
+    <Property Id='DiskPrompt' Value="RPCEmu 0.8.5 Installation [1]" />
 
 
     <CustomAction Id='NoDownGrade' Error='A later version of RPCEmu is already installed.' />
