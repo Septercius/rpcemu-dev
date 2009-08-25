@@ -51,20 +51,6 @@ void closesound(void)
 //        remove_sound();
 }
 
-int getbufferlen(void)
-{
-        int offset=(iomd.sndstat&1)<<1,start,end;
-        start=soundaddr[offset]&0xFF0;
-        end=(soundaddr[offset+1]&0xFF0)+16;
-        return end-start;
-}
-
-
-int getsamplefreq(void)
-{
-        return samplefreq;
-}
-
 void changesamplefreq(int newsamplefreq)
 {
         samplefreq = newsamplefreq;
