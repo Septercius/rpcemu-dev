@@ -149,7 +149,6 @@ static void releasemousecapture(void)
 /*Plus, it's just all been made obsolete! See sound.c*/
 static int quitblitter=0;
 static int blitrunning=0,soundrunning=0;
-/* static int vidrunning=0 */
 static HANDLE waitobject,soundobject;
 static CRITICAL_SECTION vidcmutex;
 
@@ -184,7 +183,7 @@ void vidcendthread(void)
 static void _soundthread(PVOID pvoid)
 {
         int c;
-//        timeBeginPeriod(1);
+
         soundrunning=1;
         while (!quitblitter)
         {
@@ -321,8 +320,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         install_keyboard();
         install_timer();
         install_mouse();
-infocus=0;
-//        arclog=fopen("arclog.txt","wt");
+        infocus = 0;
+
         if (startrpcemu())
            return -1;
         opendlls();
@@ -334,14 +333,11 @@ infocus=0;
         
         if (config.mousehackon) CheckMenuItem(menu,IDM_MOUSE_FOL,MF_CHECKED);
         else             CheckMenuItem(menu,IDM_MOUSE_CAP,MF_CHECKED);
-//        iso_open();
-//        ioctl_close();
-//        ioctl_gettoc();
-//        ioctl_readsector();
+
         atexit(releasemousecapture);
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
-//        timeBeginPeriod(1);
+
 //        if (config.soundenabled)
 //        {
                 initsound();
@@ -352,7 +348,7 @@ infocus=0;
         atexit(_closesoundthread);
 
 //        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
-infocus=1;
+        infocus = 1;
         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
         drawscre=0;
         while (!quited)
@@ -384,7 +380,6 @@ infocus=1;
                         if (messages.message==WM_QUIT)
                         {
                                 quited=1;
-//                                closevideo();
                         }
                         /* Translate virtual-key messages into character messages */
                         TranslateMessage(&messages);
@@ -398,25 +393,9 @@ infocus=1;
                 ClipCursor(&oldclip);
                 mousecapture=0;
         }
-        #ifdef BLITTER_THREAD
-        quitblitter=1;
-        wakeupblitterthread();
-        while (blitrunning)
-              sleep(1);
-//        if (config.soundenabled)
-//        {
-                wakeupsoundthread();
-                while (soundrunning)
-                      sleep(1);
-//        }
-//        while (vidrunning)
-//              sleep(1);
-        #endif
-//        closevideo();
-//        timeEndPeriod(1);
+
         dumpregs();
         endrpcemu();
-//        fclose(arclog);
         
         /* The program return-value is 0 - The value that PostQuitMessage() gave */
         return messages.wParam;
