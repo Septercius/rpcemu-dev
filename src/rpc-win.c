@@ -71,21 +71,6 @@ void fatal(const char *format, ...)
    abort();
 }
 
-static void sndupdate(void)
-{
-        int nextlen;
-        float temp;
-        iomd.irqdma.status |= IOMD_IRQDMA_SOUND_0;
-        updateirqs();
-        iomd.sndstat^=1;
-        iomd.sndstat|=6;
-        nextlen=getbufferlen()>>2;
-        temp=((float)nextlen/(float)getsamplefreq())*1000.0f;
-        nextlen=(int)temp;
-        if (nextlen<10) nextlen=10;
-        install_int_ex(sndupdate,MSEC_TO_TIMER(nextlen));
-}
-
 static void vblupdate(void)
 {
         drawscre++;
@@ -360,16 +345,12 @@ infocus=0;
 //        if (config.soundenabled)
 //        {
                 initsound();
-//                install_sound(DIGI_AUTODETECT,0,0);
-//                _beginthread(soundthread,0,NULL);
-/*        }
-        else
-        {
-                install_int_ex(sndupdate,BPS_TO_TIMER(10));
-        }*/
-                soundobject=CreateEvent(NULL, FALSE, FALSE, NULL);
-                soundthread=(HANDLE)_beginthread(_soundthread,0,NULL);
-                atexit(_closesoundthread);
+//        }
+
+        soundobject=CreateEvent(NULL, FALSE, FALSE, NULL);
+        soundthread=(HANDLE)_beginthread(_soundthread,0,NULL);
+        atexit(_closesoundthread);
+
 //        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 infocus=1;
         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
@@ -611,7 +592,6 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         if (config.soundenabled && !soundenabled2)
                         {
                                 closesound();
-                                install_int_ex(sndupdate,BPS_TO_TIMER(10));
                         }
                         if (soundenabled2 && !config.soundenabled)
                         {
