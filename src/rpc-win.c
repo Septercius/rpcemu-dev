@@ -201,7 +201,15 @@ static void _soundthread(PVOID pvoid)
         soundrunning=0;
 }
 
-static void _closesoundthread(void)
+static void startsoundthread(void)
+{
+	HANDLE soundthread;
+
+	soundobject = CreateEvent(NULL, FALSE, FALSE, NULL);
+	soundthread = (HANDLE) _beginthread(_soundthread, 0, NULL);
+}
+
+static void closesoundthread(void)
 {
         if (soundrunning)
         {
@@ -266,7 +274,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         MSG messages = {0};     /* Here messages to the application are saved */
         WNDCLASSEX wincl;        /* Data structure for the windowclass */
         char s[128];
-        HANDLE soundthread;
 
         hinstance=hThisInstance;
         /* The Window structure */
@@ -343,9 +350,9 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                 initsound();
 //        }
 
-        soundobject=CreateEvent(NULL, FALSE, FALSE, NULL);
-        soundthread=(HANDLE)_beginthread(_soundthread,0,NULL);
-        atexit(_closesoundthread);
+        startsoundthread();
+
+        atexit(closesoundthread);
 
 //        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
         infocus = 1;
@@ -715,7 +722,6 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
         {
         case WM_CREATE:
                 strcpy(config.isoname, "");
-//                _beginthread(soundthread,0,NULL);
                 return 0;
 
         case WM_COMMAND:
