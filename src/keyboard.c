@@ -30,6 +30,20 @@
 #define KBD_REPLY_POR		0xaa	/* Power on reset */
 #define KBD_REPLY_ACK		0xfa	/* Command ACK */
 
+/* Mouse Commands */
+#define AUX_SET_SCALE11		0xe6	/* Set 1:1 scaling */
+#define AUX_SET_SCALE21		0xe7	/* Set 2:1 scaling */
+#define AUX_SET_RES		0xe8	/* Set resolution */
+#define AUX_GET_TYPE		0xf2	/* Get type */
+#define AUX_SET_SAMPLE		0xf3	/* Set sample rate */
+#define AUX_ENABLE_DEV		0xf4	/* Enable aux device */
+#define AUX_RESEND		0xfe	/* Resend last packet */
+#define AUX_RESET		0xff	/* Reset aux device */
+
+/* Mouse Replies */
+#define AUX_TEST_OK		0xaa	/* Self-test passed */
+#define AUX_ACK			0xfa	/* Command byte acknowledge */
+
 #define PS2_QUEUE_SIZE 256
 
 typedef struct {
@@ -252,7 +266,7 @@ void writemsenable(int v)
 void writems(unsigned char v)
 {
 //        printf("Write mouse %02X %08X  %02X\n",v,PC,msincommand);
-/*        if (v==0xFE)
+/*        if (v == AUX_RESEND)
         {
                 timetolive=50;
         }*/
@@ -264,8 +278,8 @@ void writems(unsigned char v)
         {
                 switch (msincommand)
                 {
-                        case 0xE8:
-                        case 0xF3:
+                case AUX_SET_RES:
+                case AUX_SET_SAMPLE:
                         mspacketpos=1;
                         mcallback=20;
                         return;
@@ -276,51 +290,51 @@ void writems(unsigned char v)
                 mscommand=v;
                 switch (v)
                 {
-                        case 0xFF:
+                case AUX_RESET:
                         msreset=2;
                         mcallback=20;
                         mousepoll=0;
                         break;
-                        case 0xFE:
+                case AUX_RESEND:
                         msreset=0;
                         mcallback=150;
                         mspacketpos=0;
                         break;
-                        case 0xF4:
+                case AUX_ENABLE_DEV:
                         mcallback=20;
                         msreset=0;
                         break;
-                        case 0xF3:
-                        msincommand=0xF3;
+                case AUX_SET_SAMPLE:
+                        msincommand = AUX_SET_SAMPLE;
                         msreset=0;
                         mcallback=20;
                         mspacketpos=0;
                         break;
-                        case 0xF2:
+                case AUX_GET_TYPE:
                         msincommand=1;
                         msreset=0;
                         mcallback=20;
                         mspacketpos=0;
                         break;
-                        case 0xE8:
-                        msincommand=0xE8;
+                case AUX_SET_RES:
+                        msincommand = AUX_SET_RES;
                         msreset=0;
                         mcallback=20;
                         mspacketpos=0;
                         break;
-                        case 0xE7:
-                        msincommand=0xE7;
+                case AUX_SET_SCALE21:
+                        msincommand = AUX_SET_SCALE21;
                         msreset=0;
                         mcallback=20;
                         mspacketpos=0;
                         break;
-                        case 0xE6:
-                        msincommand=0xE6;
+                case AUX_SET_SCALE11:
+                        msincommand = AUX_SET_SCALE11;
                         msreset=0;
                         mcallback=20;
                         mspacketpos=0;
                         break;
-                        default:
+                default:
                         error("Bad mouse command %02X\n",v);
                         dumpregs();
                         exit(-1);
@@ -340,7 +354,9 @@ unsigned char readmousedata(void)
         msstat&=~0x20;
         iomd.irqd.status &= ~IOMD_IRQD_MOUSE_RX;
         updateirqs();
-        if (mspacketpos<3 && mscommand==0xFE) mcallback=20;
+        if (mspacketpos < 3 && mscommand == AUX_RESEND) {
+                mcallback = 20;
+        }
 //        printf("Read mouse data %02X\n",iomd.msdat);
 //        timetolive=500;
         iomd.msdat=0;
@@ -379,13 +395,13 @@ void mscallback(void)
         else if (msreset==2)
         {
                 msreset=3;
-                mousesend(0xFA);
+                mousesend(AUX_ACK);
                 mcallback=40;
         }
         else if (msreset==3)
         {
                 mcallback=20;
-                mousesend(0xAA);
+                mousesend(AUX_TEST_OK);
                 msreset=4;
         }
         else if (msreset==4)
@@ -396,18 +412,18 @@ void mscallback(void)
         }
         else switch (mscommand)
         {
-                case 0xE8:
-                case 0xF3:
+        case AUX_SET_RES:
+        case AUX_SET_SAMPLE:
 //                printf("%02X callback %i\n",mscommand,mspacketpos);
-                mousesend(0xFA);
+                mousesend(AUX_ACK);
                 if (mspacketpos) msincommand=0;
                 break;
-                case 0xF2:
+        case AUX_GET_TYPE:
                 if (msincommand==1)
                 {
                         msincommand=2;
                         mcallback=20;
-                        mousesend(0xFA);
+                        mousesend(AUX_ACK);
                 }
                 else
                 {
@@ -415,11 +431,11 @@ void mscallback(void)
                         msincommand=0;
                 }
                 break;
-                case 0xF4:
-                mousesend(0xFA);
+        case AUX_ENABLE_DEV:
+                mousesend(AUX_ACK);
                 mousepoll=1;
                 break;
-                case 0xFE:
+        case AUX_RESEND:
                 mousesend(mspacket[mspacketpos++]);
                 if (mspacketpos>=3)
                 {
@@ -431,9 +447,9 @@ void mscallback(void)
                 }                                       */
 //                printf("Callback now %i\n",mcallback);
                 break;
-                case 0xE6:
-                case 0xE7:
-                mousesend(0xFA);
+        case AUX_SET_SCALE11:
+        case AUX_SET_SCALE21:
+                mousesend(AUX_ACK);
                 msincommand=0;
                 break;
         }
@@ -475,7 +491,7 @@ void pollmouse(void)
         mspacket[1]=x&255;
         mspacket[2]=y&255;
         mcallback=20;
-        mscommand=0xFE;
+        mscommand = AUX_RESEND;
         mspacketpos=0;
 }
 
