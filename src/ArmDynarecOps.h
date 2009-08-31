@@ -1392,11 +1392,9 @@ static int opLDRB(uint32_t opcode)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (!(addr&0xC)) cycles--; \
                                         if (c==15) { writememl(addr,armregs[c]+r15diff); } \
                                         else       { writememl(addr,armregs[c]); } \
                                         addr+=4; \
-                                        cycles--; \
                                         break; \
                                 } \
                                 mask<<=1; \
@@ -1407,18 +1405,14 @@ static int opLDRB(uint32_t opcode)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (!(addr&0xC)) cycles--; \
                                         writememl(addr,armregs[c]); \
                                         addr+=4; \
-                                        cycles--; \
                                 } \
                                 mask<<=1; \
                         } \
                         if (opcode&0x8000) \
                         { \
-                                if (!(addr&0xC)) cycles--; \
                                 writememl(addr,armregs[15]+r15diff); \
-                                cycles--; \
                         }
 
 #define STMfirstS()     mask=1; \
@@ -1426,11 +1420,9 @@ static int opLDRB(uint32_t opcode)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (!(addr&0xC)) cycles--; \
                                         if (c==15) { writememl(addr,armregs[c]+r15diff); } \
                                         else       { writememl(addr,*usrregs[c]); } \
                                         addr+=4; \
-                                        cycles--; \
                                         break; \
                                 } \
                                 mask<<=1; \
@@ -1441,18 +1433,14 @@ static int opLDRB(uint32_t opcode)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (!(addr&0xC)) cycles--; \
                                         writememl(addr,*usrregs[c]); \
                                         addr+=4; \
-                                        cycles--; \
                                 } \
                                 mask<<=1; \
                         } \
                         if (opcode&0x8000) \
                         { \
-                                if (!(addr&0xC)) cycles--; \
                                 writememl(addr,armregs[15]+r15diff); \
-                                cycles--; \
                         }
 
 #define LDMall()        mask=1; \
@@ -1460,18 +1448,14 @@ static int opLDRB(uint32_t opcode)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (!(addr&0xC)) cycles--; \
                                         armregs[c]=readmeml(addr); \
                                         addr+=4; \
-                                        cycles--; \
                                 } \
                                 mask<<=1; \
                         } \
                         if (opcode&0x8000) \
                         { \
-                                if (!(addr&0xC)) cycles--; \
                                 armregs[15]=(armregs[15]&~r15mask)|((readmeml(addr)+4)&r15mask); \
-                                cycles--; \
                                 refillpipeline(); \
                         }
 
@@ -1482,19 +1466,15 @@ static int opLDRB(uint32_t opcode)
                                 { \
                                         if (opcode&mask) \
                                         { \
-                                                if (!(addr&0xC)) cycles--; \
                                                 armregs[c]=readmeml(addr); \
                                                 addr+=4; \
-                                                cycles--; \
                                         } \
                                         mask<<=1; \
                                 } \
-                                if (!(addr&0xC)) cycles--; \
                                 if ((armregs[15]&3) || (mode&16)) armregs[15]=(readmeml(addr)+4); \
                                 else                              armregs[15]=(armregs[15]&0x0C000003)|((readmeml(addr)+4)&0xF3FFFFFC); \
                                 if (mode&16) armregs[cpsr]=spsr[mode&15]; \
                                 if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask); \
-                                cycles--; \
                                 refillpipeline(); \
                         } \
                         else \
@@ -1503,10 +1483,8 @@ static int opLDRB(uint32_t opcode)
                                 { \
                                         if (opcode&mask) \
                                         { \
-                                                if (!(addr&0xC)) cycles--; \
                                                 *usrregs[c]=readmeml(addr); \
                                                 addr+=4; \
-                                                cycles--; \
                                         } \
                                         mask<<=1; \
                                 } \
