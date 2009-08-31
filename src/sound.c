@@ -10,13 +10,12 @@
 int getbufferlen(void);
 
 uint32_t soundaddr[4];
-static int samplefreq;
+static int samplefreq = 44100;
 int soundinited,soundlatch,soundcount;
 static unsigned short bigsoundbuffer[8][44100<<1];
 static int bigsoundpos=0;
 static int bigsoundbufferhead=0; // sound buffer being written to
 static int bigsoundbuffertail=0; // sound buffer being read from
-static int oldsamplefreq=44100;
 static int soundon=0;
 static AUDIOSTREAM *as;
 
@@ -53,17 +52,12 @@ void closesound(void)
 
 void changesamplefreq(int newsamplefreq)
 {
-        samplefreq = newsamplefreq;
-        if (samplefreq!=oldsamplefreq)
-        {
-        
-//                rpclog("Change sample freq from %i to %i\n",oldsamplefreq,samplefreq);
-//                stop_audio_stream(as);
-//                as=play_audio_stream(BUFFERLEN,16,1,samplefreq,255,128);
+	if (newsamplefreq != samplefreq) {
+		// rpclog("Change sample freq from %i to %i\n", samplefreq, newsamplefreq);
+		samplefreq = newsamplefreq;
 
-                voice_set_frequency(as->voice, samplefreq); /* allegro */
-                oldsamplefreq=samplefreq;
-        }
+		voice_set_frequency(as->voice, samplefreq); /* allegro */
+	}
 }
 
 void stopsound(void)
