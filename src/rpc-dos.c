@@ -17,7 +17,7 @@ int updatemips=0;
 static uint32_t mipscount;
 float mipstotal;
 
-void wakeupsoundthread(void)
+void sound_thread_wakeup(void)
 {
 }
 
@@ -83,14 +83,6 @@ void vidcreleasemutex(void)
 {
 }
 
-void sndint(void)
-{
-        iomd.irqdma.status |= IOMD_IRQDMA_SOUND_0;
-        updateirqs();
-        iomd.sndstat|=6;
-        iomd.sndstat^=1;
-}
-
 void updatewindowsize(uint32_t x, uint32_t y)
 {
   //printf("updatewindowsize: %u %u\n", x, y);
@@ -126,8 +118,7 @@ infocus=0;
 	//startblitthread();
         install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
-        if (config.soundenabled) initsound();
-        else              install_int_ex(sndint,BPS_TO_TIMER(50));
+
         infocus=1;
         while (!quited)
         {

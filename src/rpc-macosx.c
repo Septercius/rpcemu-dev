@@ -22,17 +22,22 @@ static pthread_mutex_t sound_mutex = PTHREAD_MUTEX_INITIALIZER;
 static uint32_t mipscount;
 static float mipstotal;
 
-static void *_soundthread(void *p)
+/**
+ * Function called in sound thread to block
+ * on waiting for sound data and trigger copying
+ * it to Allegro's sound output buffer
+ */
+static void *sound_thread_function(void *p)
 {
 	int c;
 
-        if (pthread_mutex_lock(&sound_mutex))
+	if (pthread_mutex_lock(&sound_mutex))
 	{
 		fatal("Cannot lock mutex");
 	}
 	while (!quited)
 	{
-                if (pthread_cond_wait(&sound_cond, &sound_mutex))
+		if (pthread_cond_wait(&sound_cond, &sound_mutex))
 		{
 			fatal("pthread_cond_wait failed");
 		}
@@ -43,12 +48,17 @@ static void *_soundthread(void *p)
 			} while(c);
 		}
 	}
-        pthread_mutex_unlock(&sound_mutex);
+	pthread_mutex_unlock(&sound_mutex);
 
 	return NULL;
 }
 
-void wakeupsoundthread(void)
+/**
+ * A signal sent to the sound thread to let it
+ * know that more data is available to be put in the
+ * output buffer
+ */
+void sound_thread_wakeup(void)
 {
     if (pthread_cond_signal(&sound_cond))
     {
@@ -56,15 +66,22 @@ void wakeupsoundthread(void)
     }
 }
 
-void closesoundthread(void)
+/**
+ * Called on program shutdown to tidy up the sound thread
+ */
+void sound_thread_close(void)
 {
-	wakeupsoundthread();
+	sound_thread_wakeup();
 	pthread_join(sound_thread, NULL);
 }
 
-static void startsoundthread(void)
+/**
+ * Called on program startup. Create a thread for copying sound
+ * data into Allegro's sound output buffer
+ */
+void sound_thread_start(void)
 {
-    if (pthread_create(&sound_thread,NULL,_soundthread,NULL))
+    if (pthread_create(&sound_thread, NULL, sound_thread_function, NULL))
     {
         fatal("Couldn't create vidc thread");
     }
@@ -214,8 +231,7 @@ int main (int argc, char ** argv)
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
-	startsoundthread();
-        if (config.soundenabled) initsound();
+
         infocus=1;
 
         while (!quited)

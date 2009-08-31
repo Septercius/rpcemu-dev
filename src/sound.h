@@ -1,7 +1,7 @@
 #ifndef __SOUND__
 #define __SOUND__
 
-extern void initsound(void);
+extern void sound_init(void);
 extern void closesound(void);
 extern void changesamplefreq(int newsamplefreq);
 extern int soundbufferfull;

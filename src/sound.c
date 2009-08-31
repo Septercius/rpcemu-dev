@@ -25,7 +25,7 @@ static AUDIOSTREAM *as;
 
 //static FILE *sndfile; // used for debugging
 
-void initsound(void)
+void sound_init(void)
 {
         if (soundon)
         {
@@ -95,7 +95,7 @@ void updatesoundirq(void)
         {
                 soundcount+=4000;
                 // kick the sound thread to clear the list
-                wakeupsoundthread();
+                sound_thread_wakeup();
                 return;
         }
         page=soundaddr[offset]&0xFFFFF000;
@@ -119,7 +119,7 @@ void updatesoundirq(void)
                         bigsoundbufferhead++;
                         bigsoundbufferhead&=7;
                         bigsoundpos=0;
-                        wakeupsoundthread();
+                        sound_thread_wakeup();
                 }
         }
 //        fwrite(bigsoundbuffer,len<<2,1,sndfile);

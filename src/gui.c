@@ -341,7 +341,7 @@ static int menusettings(void)
                         config.soundenabled = 0;
                 }
                 if (!config.soundenabled && (configuregui[CONF_SOUND].flags & D_SELECTED)) {
-                        initsound();
+                        sound_init();
                         config.soundenabled = 1;
                 }
         }
