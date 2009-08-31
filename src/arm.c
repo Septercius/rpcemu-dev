@@ -2555,11 +2555,9 @@ void execarm(int cycs)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (!(addr&0xC)) cycles--; \
                                         if (c==15) { writememl(addr,armregs[c]+r15diff); } \
                                         else       { writememl(addr,armregs[c]); } \
                                         addr+=4; \
-                                        cycles--; \
                                         break; \
                                 } \
                                 mask<<=1; \
@@ -2570,18 +2568,14 @@ void execarm(int cycs)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (!(addr&0xC)) cycles--; \
                                         writememl(addr,armregs[c]); \
                                         addr+=4; \
-                                        cycles--; \
                                 } \
                                 mask<<=1; \
                         } \
                         if (opcode&0x8000) \
                         { \
-                                if (!(addr&0xC)) cycles--; \
                                 writememl(addr,armregs[15]+r15diff); \
-                                cycles--; \
                         }
 
 #define STMfirstS()     mask=1; \
@@ -2589,11 +2583,9 @@ void execarm(int cycs)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (!(addr&0xC)) cycles--; \
                                         if (c==15) { writememl(addr,armregs[c]+r15diff); } \
                                         else       { writememl(addr,*usrregs[c]); } \
                                         addr+=4; \
-                                        cycles--; \
                                         break; \
                                 } \
                                 mask<<=1; \
@@ -2604,18 +2596,14 @@ void execarm(int cycs)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (!(addr&0xC)) cycles--; \
                                         writememl(addr,*usrregs[c]); \
                                         addr+=4; \
-                                        cycles--; \
                                 } \
                                 mask<<=1; \
                         } \
                         if (opcode&0x8000) \
                         { \
-                                if (!(addr&0xC)) cycles--; \
                                 writememl(addr,armregs[15]+r15diff); \
-                                cycles--; \
                         }
 
 #define LDMall()        mask=1; \
@@ -2623,18 +2611,14 @@ void execarm(int cycs)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (!(addr&0xC)) cycles--; \
                                         armregs[c]=readmeml(addr); \
                                         addr+=4; \
-                                        cycles--; \
                                 } \
                                 mask<<=1; \
                         } \
                         if (opcode&0x8000) \
                         { \
-                                if (!(addr&0xC)) cycles--; \
                                 armregs[15]=(armregs[15]&~r15mask)|((readmeml(addr)+4)&r15mask); \
-                                cycles--; \
                                 refillpipeline(); \
                         }
 
@@ -2645,19 +2629,15 @@ void execarm(int cycs)
                                 { \
                                         if (opcode&mask) \
                                         { \
-                                                if (!(addr&0xC)) cycles--; \
                                                 armregs[c]=readmeml(addr); \
                                                 addr+=4; \
-                                                cycles--; \
                                         } \
                                         mask<<=1; \
                                 } \
-                                if (!(addr&0xC)) cycles--; \
                                 if ((armregs[15]&3) || (mode&16)) armregs[15]=(readmeml(addr)+4); \
                                 else                              armregs[15]=(armregs[15]&0x0C000003)|((readmeml(addr)+4)&0xF3FFFFFC); \
                                 if (mode&16) armregs[cpsr]=spsr[mode&15]; \
                                 if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask); \
-                                cycles--; \
                                 refillpipeline(); \
                         } \
                         else \
@@ -2666,10 +2646,8 @@ void execarm(int cycs)
                                 { \
                                         if (opcode&mask) \
                                         { \
-                                                if (!(addr&0xC)) cycles--; \
                                                 *usrregs[c]=readmeml(addr); \
                                                 addr+=4; \
-                                                cycles--; \
                                         } \
                                         mask<<=1; \
                                 } \
@@ -2686,7 +2664,6 @@ void execarm(int cycs)
                                         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
                                         STMall()
                                         if (armirq&0x40) armregs[RN]=templ;
-                                        cycles--;
                                         break;
 
 				case 0x88: /* STMIA */
@@ -2700,7 +2677,6 @@ void execarm(int cycs)
                                         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
                                         STMall();
                                         if (armirq&0x40) armregs[RN]=templ;
-                                        cycles--;
                                         break;
 
 				case 0x84: /* STMDA ^ */
@@ -2714,7 +2690,6 @@ void execarm(int cycs)
                                         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
                                         STMallS()
                                         if (armirq&0x40) armregs[RN]=templ;
-                                        cycles--;
                                         break;
 
 				case 0x8c: /* STMIA ^ */
@@ -2728,7 +2703,6 @@ void execarm(int cycs)
                                         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
                                         STMallS();
                                         if (armirq&0x40) armregs[RN]=templ;
-                                        cycles--;
                                         break;
 
 				case 0x81: /* LDMDA */
@@ -2741,7 +2715,6 @@ void execarm(int cycs)
                                         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
                                         LDMall();
                                         if (armirq&0x40) armregs[RN]=templ;
-                                        cycles-=2;
                                         break;
 
 				case 0x89: /* LDMIA */
@@ -2754,7 +2727,6 @@ void execarm(int cycs)
                                         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
                                         LDMall();
                                         if (armirq&0x40) armregs[RN]=templ;
-                                        cycles-=2;
                                         break;
 
 				case 0x85: /* LDMDA ^ */
@@ -2767,7 +2739,6 @@ void execarm(int cycs)
                                         if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
                                         LDMallS();
                                         if (armirq&0x40) armregs[RN]=templ;
-                                        cycles-=2;
                                         break;
 
 				case 0x8d: /* LDMIA ^ */
@@ -2780,7 +2751,6 @@ void execarm(int cycs)
                                         if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
                                         LDMallS();
                                         if (armirq&0x40) armregs[RN]=templ;
-                                        cycles-=2;
                                         break;
 
                                 case 0xA0: case 0xA1: case 0xA2: case 0xA3: /* B */
