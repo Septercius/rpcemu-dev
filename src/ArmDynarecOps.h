@@ -502,20 +502,20 @@ static void opSWPbyte(uint32_t opcode)
 
 static void opCMPreg(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, rhs;
 
         lhs = GETADDR(RN);
+        rhs = shift2(opcode);
         if (RD==15)
         {
                 opcode&=~0x100000;
                 armregs[15]&=0x3FFFFFC;
-                armregs[15] |= ((lhs - shift2(opcode)) & 0xFC000003);
+                armregs[15] |= ((lhs - rhs) & 0xFC000003);
                 if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
         }
         else
         {
-                templ=shift2(opcode);
-                setsub(lhs, templ, lhs - templ);
+                setsub(lhs, rhs, lhs - rhs);
         }
 	//inscount++; //r//inscount++;
 }
@@ -532,17 +532,18 @@ static void opMSRsreg(uint32_t opcode)
 
 static void opCMNreg(uint32_t opcode)
 {
-	uint32_t lhs;
+	uint32_t lhs, rhs;
 
         lhs = GETADDR(RN);
+        rhs = shift2(opcode);
         if (RD==15)
         {
                 opcode&=~0x100000;
                 armregs[15]&=0x3FFFFFC;
-                armregs[15] |= ((lhs + shift2(opcode)) & 0xFC000003);
+                armregs[15] |= ((lhs + rhs) & 0xFC000003);
                 if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
         } else {
-                setadd(lhs, shift2(opcode), lhs + shift2(opcode));
+                setadd(lhs, rhs, lhs + rhs);
         }
 	//inscount++; //r//inscount++;
 }
@@ -938,37 +939,38 @@ static void opTEQimm(uint32_t opcode)
 
 static void opCMPimm(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, rhs;
 
         lhs = GETADDR(RN);
+        rhs = rotate2(opcode);
         if (RD==15)
         {
                 opcode&=~0x100000;
                 armregs[15]&=0x3FFFFFC;
-                armregs[15] |= ((lhs - rotate2(opcode)) & 0xFC000003);
+                armregs[15] |= ((lhs - rhs) & 0xFC000003);
                 if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
         }
         else
         {
-                templ=rotate2(opcode);
-                setsub(lhs, templ, lhs - templ);
+                setsub(lhs, rhs, lhs - rhs);
         }
 	//inscount++; //r//inscount++;
 }
 
 static void opCMNimm(uint32_t opcode)
 {
-	uint32_t lhs;
+	uint32_t lhs, rhs;
 
         lhs = GETADDR(RN);
+        rhs = rotate2(opcode);
         if (RD==15)
         {
                 opcode&=~0x100000;
                 armregs[15]&=0x3FFFFFC;
-                armregs[15] |= ((lhs + rotate2(opcode)) & 0xFC000003);
+                armregs[15] |= ((lhs + rhs) & 0xFC000003);
                 if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
         } else {
-                setadd(lhs, rotate2(opcode), lhs + rotate2(opcode));
+                setadd(lhs, rhs, lhs + rhs);
         }
 	//inscount++; //r//inscount++;
 }
