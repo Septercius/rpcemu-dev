@@ -136,8 +136,11 @@ extern int cyccount;
 extern void fatal(const char *format, ...);
 extern void error(const char *format, ...);
 extern void updatewindowsize(uint32_t x, uint32_t y);
-extern void wakeupsoundthread(void);
 extern void updateirqs(void);
+
+extern void sound_thread_wakeup(void);
+extern void sound_thread_start(void);
+extern void sound_thread_close(void);
 
 extern char exname[512];
 extern int timetolive;

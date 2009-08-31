@@ -171,7 +171,10 @@ int startrpcemu(void)
         initvideo();
 //printf("Video inited!\n");
         loadconfig();
-        initsound();
+
+        sound_thread_start();
+        sound_init();
+
         mem_reset(config.rammask + 1);
         initcodeblocks();
         iso_init();
@@ -182,6 +185,7 @@ int startrpcemu(void)
         //initics();
 //        iso_open("e:/au_cd8.iso");
 //        config.cdromtype = CDROM_ISO;
+
         return 0;
 }
 
@@ -212,6 +216,7 @@ void execrpcemu(void)
 
 void endrpcemu(void)
 {
+        sound_thread_close();
         closevideo();
         endiomd();
         saveadf(discname[0], 0);

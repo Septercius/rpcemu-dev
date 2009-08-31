@@ -180,7 +180,12 @@ void vidcendthread(void)
 #endif
 }
 
-static void _soundthread(PVOID pvoid)
+/**
+ * Function called in sound thread to block
+ * on waiting for sound data and trigger copying
+ * it to Allegro's sound output buffer
+ */
+static void sound_thread_function(PVOID pvoid)
 {
         int c;
 
@@ -201,19 +206,26 @@ static void _soundthread(PVOID pvoid)
         soundrunning=0;
 }
 
-static void startsoundthread(void)
+/**
+ * Called on program startup. Create a thread for copying sound
+ * data into Allegro's sound output buffer
+ */
+void sound_thread_start(void)
 {
 	HANDLE soundthread;
 
 	soundobject = CreateEvent(NULL, FALSE, FALSE, NULL);
-	soundthread = (HANDLE) _beginthread(_soundthread, 0, NULL);
+	soundthread = (HANDLE) _beginthread(sound_thread_function, 0, NULL);
 }
 
-static void closesoundthread(void)
+/**
+ * Called on program shutdown to tidy up the sound thread
+ */
+void sound_thread_close(void)
 {
         if (soundrunning)
         {
-                wakeupsoundthread();
+                sound_thread_wakeup();
                 quitblitter=1;
                 while (soundrunning)
                       sleep(1);
@@ -229,7 +241,12 @@ void vidcwakeupthread(void)
 #endif
 }
 
-void wakeupsoundthread(void)
+/**
+ * A signal sent to the sound thread to let it
+ * know that more data is available to be put in the
+ * output buffer
+ */
+void sound_thread_wakeup(void)
 {
         SetEvent(soundobject);
 }
@@ -344,15 +361,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         atexit(releasemousecapture);
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
-
-//        if (config.soundenabled)
-//        {
-                initsound();
-//        }
-
-        startsoundthread();
-
-        atexit(closesoundthread);
 
 //        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
         infocus = 1;
@@ -581,7 +589,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         }
                         if (soundenabled2 && !config.soundenabled)
                         {
-                                initsound();
+                                sound_init();
                         }
                         config.soundenabled = soundenabled2;
                         if (config.model != model2 || config.vrammask != vrammask2 || chngram)
