@@ -1327,10 +1327,7 @@ void execarm(int cycs)
 					       lhs = GETADDR(RN);
 					       if (RD==15)
 					       {
-						       templ=shift2(opcode);
-						       armregs[15] = (lhs & templ) + 4;
-						       refillpipeline();
-					               if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+					               arm_write_r15(opcode, lhs & shift2(opcode));
 					       }
 					       else
 					       {
@@ -1369,10 +1366,7 @@ void execarm(int cycs)
                                                 lhs = GETADDR(RN);
                                                 if (RD==15)
                                                 {
-                                                        templ=shift2(opcode);
-                                                        armregs[15] = (lhs ^ templ) + 4;
-                                                        refillpipeline();
-                                                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                        arm_write_r15(opcode, lhs ^ shift2(opcode));
                                                 }
                                                 else
                                                 {
@@ -1394,8 +1388,7 @@ void execarm(int cycs)
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15] = (lhs - templ) + 4;
-                                                refillpipeline();
+                                                arm_write_r15(opcode, lhs - templ);
                                         }
                                         else
                                         {
@@ -1415,8 +1408,7 @@ void execarm(int cycs)
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15] = (templ - lhs) + 4;
-                                                refillpipeline();
+                                                arm_write_r15(opcode, templ - lhs);
                                         }
                                         else
                                         {
@@ -1466,9 +1458,7 @@ void execarm(int cycs)
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15] = lhs + templ + 4;
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                arm_write_r15(opcode, lhs + templ);
                                         }
                                         else
                                         {
@@ -1526,8 +1516,7 @@ void execarm(int cycs)
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15] = lhs + templ + templ2 + 4;
-                                                refillpipeline();
+                                                arm_write_r15(opcode, lhs + templ + templ2);
                                         }
                                         else
                                         {
@@ -1581,8 +1570,7 @@ void execarm(int cycs)
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15] = (lhs - (templ + templ2)) + 4;
-                                                refillpipeline();
+                                                arm_write_r15(opcode, lhs - (templ + templ2));
                                         }
                                         else
                                         {
@@ -1640,8 +1628,7 @@ void execarm(int cycs)
                                         templ=shift2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15] = (templ - (lhs + templ2)) + 4;
-                                                refillpipeline();
+                                                arm_write_r15(opcode, templ - (lhs + templ2));
                                         }
                                         else
                                         {
@@ -1790,10 +1777,7 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                templ=shift2(opcode);
-                                                armregs[15] = (lhs | templ) + 4;
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                arm_write_r15(opcode, lhs | shift2(opcode));
                                         }
                                         else
                                         {
@@ -1812,11 +1796,7 @@ void execarm(int cycs)
                                 case 0x1B: /* MOVS reg */
                                         if (RD==15)
                                         {
-                                                armregs[15]=shift2(opcode)+4;
-                                                if (mode&0x10)
-                                                   armregs[16]=spsr[mode&15];
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                arm_write_r15(opcode, shift2(opcode));
                                         }
                                         else
                                         {
@@ -1835,10 +1815,7 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                templ=shift2(opcode);
-                                                armregs[15] = (lhs & ~templ) + 4;
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                arm_write_r15(opcode, lhs & ~shift2(opcode));
                                         }
                                         else
                                         {
@@ -1857,8 +1834,7 @@ void execarm(int cycs)
                                 case 0x1F: /* MVNS reg */
                                         if (RD==15)
                                         {
-                                                armregs[15]=(~shift2(opcode))+4;
-                                                refillpipeline();
+                                                arm_write_r15(opcode, ~shift2(opcode));
                                         }
                                         else
                                         {
@@ -1877,10 +1853,7 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                templ=rotate2(opcode);
-                                                armregs[15] = (lhs & templ) + 4;
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                arm_write_r15(opcode, lhs & rotate2(opcode));
                                         }
                                         else
                                         {
@@ -1900,10 +1873,7 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                templ=rotate2(opcode);
-                                                armregs[15] = (lhs ^ templ) + 4;
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                arm_write_r15(opcode, lhs ^ rotate2(opcode));
                                         }
                                         else
                                         {
@@ -1924,10 +1894,7 @@ void execarm(int cycs)
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                if (mode&16) armregs[16]=spsr[mode&15];
-                                                armregs[15] = (lhs - templ) + 4;
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                arm_write_r15(opcode, lhs - templ);
                                         }
                                         else
                                         {
@@ -1947,8 +1914,7 @@ void execarm(int cycs)
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15] = (templ - lhs) + 4;
-                                                refillpipeline();
+                                                arm_write_r15(opcode, templ - lhs);
                                         }
                                         else
                                         {
@@ -1968,9 +1934,7 @@ void execarm(int cycs)
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15] = lhs + templ + 4;
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                arm_write_r15(opcode, lhs + templ);
                                         }
                                         else
                                         {
@@ -1991,8 +1955,7 @@ void execarm(int cycs)
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15] = lhs + templ + templ2 + 4;
-                                                refillpipeline();
+                                                arm_write_r15(opcode, lhs + templ + templ2);
                                         }
                                         else
                                         {
@@ -2013,8 +1976,7 @@ void execarm(int cycs)
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15] = (lhs - (templ + templ2)) + 4;
-                                                refillpipeline();
+                                                arm_write_r15(opcode, lhs - (templ + templ2));
                                         }
                                         else
                                         {
@@ -2035,8 +1997,7 @@ void execarm(int cycs)
                                         templ=rotate2(opcode);
                                         if (RD==15)
                                         {
-                                                armregs[15] = (templ - (lhs + templ2)) + 4;
-                                                refillpipeline();
+                                                arm_write_r15(opcode, templ - (lhs + templ2));
                                         }
                                         else
                                         {
@@ -2139,13 +2100,7 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                templ=rotate2(opcode);
-                                                if (armregs[15]&3)
-                                                   armregs[15] = (lhs | templ) + 4;
-                                                else
-                                                   armregs[15] = (((lhs | templ) + 4) & 0xF3FFFFFC) | (armregs[15] & 0xC000003);
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                arm_write_r15(opcode, lhs | rotate2(opcode));
                                         }
                                         else
                                         {
@@ -2164,9 +2119,7 @@ void execarm(int cycs)
                                 case 0x3B: /* MOVS imm */
                                         if (RD==15)
                                         {
-                                                armregs[15]=rotate2(opcode)+4;
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                arm_write_r15(opcode, rotate2(opcode));
                                         }
                                         else
                                         {
@@ -2185,10 +2138,7 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                templ=rotate2(opcode);
-                                                armregs[15] = (lhs & ~templ) + 4;
-                                                refillpipeline();
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                                arm_write_r15(opcode, lhs & ~rotate2(opcode));
                                         }
                                         else
                                         {
@@ -2207,8 +2157,7 @@ void execarm(int cycs)
                                 case 0x3F: /* MVNS imm */
                                         if (RD==15)
                                         {
-                                                armregs[15]=(~rotate2(opcode))+4;
-                                                refillpipeline();
+                                                arm_write_r15(opcode, ~rotate2(opcode));
                                         }
                                         else
                                         {
