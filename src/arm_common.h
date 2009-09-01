@@ -163,6 +163,45 @@ arm_write_dest(uint32_t opcode, uint32_t dest)
 }
 
 /**
+ * Handle writes to R15 for data processing instructions with S flag set
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @param dest   Value for R15
+ */
+static inline void
+arm_write_r15(uint32_t opcode, uint32_t dest)
+{
+	uint32_t mask;
+
+	if (ARM_MODE_32(mode)) {
+		/* In 32-bit mode, update all bits in R15 except 0 and 1 */
+		mask = 0xfffffffc;
+	} else if (ARM_MODE_PRIV(mode)) {
+		/* In 26-bit privileged mode, update all bits and flags */
+		mask = 0xffffffff;
+	} else {
+		/* In 26-bit non-privileged mode, only update PC and NZCV */
+		mask = 0xf3fffffc;
+	}
+
+	/* Write to R15 (adding 4 for pipelining) */
+	armregs[15] = (armregs[15] & ~mask) | ((dest + 4) & mask);
+
+	if (ARM_MODE_PRIV(mode)) {
+		/* In privileged mode, can change mode */
+
+		if (ARM_MODE_32(mode)) {
+			/* Copy SPSR of current mode to CPSR */
+			armregs[16] = spsr[mode & 0xf];
+		}
+		if ((armregs[cpsr] & mmask) != mode) {
+			updatemode(armregs[cpsr] & mmask);
+		}
+		refillpipeline();
+	}
+}
+
+/**
  * Handle writes to CPSR by MSR instruction
  *
  * Takes into account User/Privileged, and 26/32-bit modes. Handles change of
