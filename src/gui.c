@@ -337,12 +337,12 @@ static int menusettings(void)
                 config.refresh = (configuregui[CONF_HZ_SLIDER].d2 * 5) + 20;
                 
                 if (config.soundenabled && !(configuregui[CONF_SOUND].flags & D_SELECTED)) {
-                        closesound();
                         config.soundenabled = 0;
+                        sound_pause();
                 }
                 if (!config.soundenabled && (configuregui[CONF_SOUND].flags & D_SELECTED)) {
-                        sound_init();
                         config.soundenabled = 1;
+                        sound_restart();
                 }
         }
         return D_CLOSE;
@@ -432,7 +432,11 @@ void entergui(void)
         int x = 1;
         infocus=0;
         
-        if (config.soundenabled) stopsound();
+        /* Prevent the contents of the sound buffer being repeatedly played
+           whilst the user is configuring things */
+        if (config.soundenabled) {
+                sound_mute();
+        }
         
         settingsmenu[MENU_SETTINGS_FULLSCREEN].flags    = fullscreen  ? D_SELECTED : 0;
         settingsmenu[MENU_SETTINGS_ALT_BLIT].flags      = config.stretchmode ? D_SELECTED : 0;
@@ -452,7 +456,9 @@ void entergui(void)
         clear_keybuf();
         resetbuffer();
         
-        if (config.soundenabled) continuesound();
+        if (config.soundenabled) {
+                sound_unmute();
+        }
         
         infocus=1;
         return;

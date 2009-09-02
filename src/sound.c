@@ -1,6 +1,7 @@
 /*RPCemu v0.6 by Tom Walker
   Sound emulation
   Stripped out of iomd.c, so lots of mess here*/
+#include <assert.h>
 #include <stdint.h>
 #include <allegro.h>
 #include "rpcemu.h"
@@ -16,7 +17,6 @@ static unsigned short bigsoundbuffer[8][44100<<1];
 static int bigsoundpos=0;
 static int bigsoundbufferhead=0; // sound buffer being written to
 static int bigsoundbuffertail=0; // sound buffer being read from
-static int soundon=0;
 static AUDIOSTREAM *as;
 
 #define BUFFERLEN (4410>>1)
@@ -24,18 +24,17 @@ static AUDIOSTREAM *as;
 
 //static FILE *sndfile; // used for debugging
 
+/**
+ * Called on program startup to initialise the sound system
+ */
 void sound_init(void)
 {
-        if (soundon)
-        {
-                stop_audio_stream(as); /* allegro */
-        }
-        else
-        {
-                install_sound(DIGI_AUTODETECT, MIDI_NONE, 0); /* allegro */
-                samplefreq=44100;
-                soundon=1;
-        }
+        /* Call the platform code to create a thread for handing sound updates */
+        sound_thread_start();
+
+        install_sound(DIGI_AUTODETECT, MIDI_NONE, 0); /* allegro */
+        samplefreq = 44100;
+
         if (config.soundenabled) {
                 as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 255, 128); /* allegro */
         } else {
@@ -43,11 +42,32 @@ void sound_init(void)
         }
 }
 
-void closesound(void)
+/**
+ * Called when the user turns the sound on via the GUI
+ */
+void sound_restart(void)
 {
+        assert(config.soundenabled);
+
+        /* Stop the previously playing 'silent' stream */
         stop_audio_stream(as); /* allegro */
+
+        /* Play an audible stream */
+        as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 255, 128); /* allegro */
+}
+
+/**
+ * Called when the user turns the sound off via the GUI
+ */
+void sound_pause(void)
+{
+	assert(!config.soundenabled);
+
+        /* Stop the previously playing audible stream */
+        stop_audio_stream(as); /* allegro */
+
+        /* Play a zero volume 'silent' stream */
         as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 0, 128); /* allegro */
-//        remove_sound();
 }
 
 void changesamplefreq(int newsamplefreq)
@@ -60,12 +80,20 @@ void changesamplefreq(int newsamplefreq)
 	}
 }
 
-void stopsound(void)
+/**
+ * Silence the sound stream. Used by the GUI to prevent the
+ * contents of the sound buffer being played repeatedly whilst
+ * the user is altering configuration and the emulation is paused
+ */
+void sound_mute(void)
 {
         voice_set_volume(as->voice, 0); /* allegro */
 }
 
-void continuesound(void)
+/**
+ * Restore the volume of the sound stream.
+ */
+void sound_unmute(void)
 {
         voice_set_frequency(as->voice, samplefreq); /* allegro */
         voice_set_volume(as->voice, 255);  /* allegro */

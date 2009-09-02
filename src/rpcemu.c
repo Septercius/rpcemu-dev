@@ -172,7 +172,6 @@ int startrpcemu(void)
 //printf("Video inited!\n");
         loadconfig();
 
-        sound_thread_start();
         sound_init();
 
         mem_reset(config.rammask + 1);
