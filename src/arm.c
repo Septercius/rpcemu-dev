@@ -1670,11 +1670,8 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                opcode&=~0x100000;
-                                                templ=armregs[15]&0x3FFFFFC;
-                                                armregs[15] = ((lhs & shift2(opcode)) & 0xFC000003) | templ;
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-//                                                refillpipeline();
+                                                /* TSTP reg */
+                                                arm_compare_rd15(opcode, lhs & shift2(opcode));
                                         }
                                         else
                                         {
@@ -1695,11 +1692,8 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                opcode&=~0x100000;
-                                                templ=armregs[15]&0x3FFFFFC;
-                                                armregs[15] = ((lhs ^ shift2(opcode)) & 0xFC000003) | templ;
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-//                                                refillpipeline();
+                                                /* TEQP reg */
+                                                arm_compare_rd15(opcode, lhs ^ shift2(opcode));
                                         }
                                         else
                                         {
@@ -1729,17 +1723,15 @@ void execarm(int cycs)
                                 case 0x15: /* CMP reg */
                                         lhs = GETADDR(RN);
                                         rhs = shift2(opcode);
+                                        dest = lhs - rhs;
                                         if (RD==15)
                                         {
-                                                opcode&=~0x100000;
-                                                armregs[15]&=0x3FFFFFC;
-                                                armregs[15] |= ((lhs - rhs) & 0xFC000003);
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-//                                                refillpipeline();
+                                                /* CMPP reg */
+                                                arm_compare_rd15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setsub(lhs, rhs, lhs - rhs);
+                                                setsub(lhs, rhs, dest);
                                         }
                                         //cycles--;
                                         break;
@@ -1755,15 +1747,13 @@ void execarm(int cycs)
                                 case 0x17: /* CMN reg */
                                         lhs = GETADDR(RN);
                                         rhs = shift2(opcode);
+                                        dest = lhs + rhs;
                                         if (RD==15)
                                         {
-                                                opcode&=~0x100000;
-                                                armregs[15]&=0x3FFFFFC;
-                                                armregs[15] |= ((lhs + rhs) & 0xFC000003);
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-//                                                refillpipeline();
+                                                /* CMNP reg */
+                                                arm_compare_rd15(opcode, dest);
                                         } else {
-                                                setadd(lhs, rhs, lhs + rhs);
+                                                setadd(lhs, rhs, dest);
                                         }
                                         //cycles--;
                                         break;
@@ -2011,11 +2001,8 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                opcode&=~0x100000;
-                                                templ=armregs[15]&0x3FFFFFC;
-                                                armregs[15] = ((lhs & rotate2(opcode)) & 0xFC000003) | templ;
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-//                                                refillpipeline();
+                                                /* TSTP imm */
+                                                arm_compare_rd15(opcode, lhs & rotate2(opcode));
                                         }
                                         else
                                         {
@@ -2036,19 +2023,8 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                opcode&=~0x100000;
-                                                if (armregs[15]&3)
-                                                {
-                                                        templ=armregs[15]&0x3FFFFFC;
-                                                        armregs[15] = ((lhs ^ rotate2(opcode)) & 0xFC000003) | templ;
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-                                                }
-                                                else
-                                                {
-                                                        templ=armregs[15]&0x0FFFFFFF;
-                                                        armregs[15] = ((lhs ^ rotate2(opcode)) & 0xF0000000) | templ;
-                                                }
-//                                                refillpipeline();
+                                                /* TEQP imm */
+                                                arm_compare_rd15(opcode, lhs ^ rotate2(opcode));
                                         }
                                         else
                                         {
@@ -2060,17 +2036,15 @@ void execarm(int cycs)
                                 case 0x35: /* CMP imm */
                                         lhs = GETADDR(RN);
                                         rhs = rotate2(opcode);
+                                        dest = lhs - rhs;
                                         if (RD==15)
                                         {
-                                                opcode&=~0x100000;
-                                                armregs[15]&=0x3FFFFFC;
-                                                armregs[15] |= ((lhs - rhs) & 0xFC000003);
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-//                                                refillpipeline();
+                                                /* CMPP imm */
+                                                arm_compare_rd15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setsub(lhs, rhs, lhs - rhs);
+                                                setsub(lhs, rhs, dest);
                                         }
                                         //cycles--;
                                         break;
@@ -2078,15 +2052,13 @@ void execarm(int cycs)
                                 case 0x37: /* CMN imm */
                                         lhs = GETADDR(RN);
                                         rhs = rotate2(opcode);
+                                        dest = lhs + rhs;
                                         if (RD==15)
                                         {
-                                                opcode&=~0x100000;
-                                                armregs[15]&=0x3FFFFFC;
-                                                armregs[15] |= ((lhs + rhs) & 0xFC000003);
-                                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-//                                                refillpipeline();
+                                                /* CMNP imm */
+                                                arm_compare_rd15(opcode, dest);
                                         } else {
-                                                setadd(lhs, rhs, lhs + rhs);
+                                                setadd(lhs, rhs, dest);
                                         }
                                         //cycles--;
                                         break;

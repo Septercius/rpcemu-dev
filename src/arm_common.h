@@ -202,6 +202,46 @@ arm_write_r15(uint32_t opcode, uint32_t dest)
 }
 
 /**
+ * Implement compare instructions when Rd==15 (i.e. P flag is used).
+ * The instructions are TSTP, TEQP, CMPP, and CMNP.
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @param dest   Value for PSR bits (if in 26-bit mode)
+ */
+static inline void
+arm_compare_rd15(uint32_t opcode, uint32_t dest)
+{
+	uint32_t mask;
+
+	if (ARM_MODE_32(mode)) {
+		/* In 32-bit mode */
+
+		if (ARM_MODE_PRIV(mode)) {
+			/* Copy SPSR of current mode to CPSR */
+			armregs[16] = spsr[mode & 0xf];
+		}
+
+	} else {
+		/* In 26-bit mode */
+		if (ARM_MODE_PRIV(mode)) {
+			/* In privileged mode update all PSR bits */
+			mask = 0xfc000003;
+		} else {
+			/* In non-privileged mode only update NZCV flags */
+			mask = 0xf0000000;
+		}
+
+		/* Write to PSR bits (within R15) */
+		armregs[15] = (armregs[15] & ~mask) | (dest & mask);
+	}
+
+	/* Have we changed processor mode? */
+	if ((armregs[cpsr] & mmask) != mode) {
+		updatemode(armregs[cpsr] & mmask);
+	}
+}
+
+/**
  * Handle writes to CPSR by MSR instruction
  *
  * Takes into account User/Privileged, and 26/32-bit modes. Handles change of
