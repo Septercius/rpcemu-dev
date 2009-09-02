@@ -421,15 +421,13 @@ static void opSWPword(uint32_t opcode)
 
 static void opTSTreg(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs;
 
         lhs = GETADDR(RN);
         if (RD==15)
         {
-                opcode&=~0x100000;
-                templ=armregs[15]&0x3FFFFFC;
-                armregs[15] = ((lhs & shift2(opcode)) & 0xFC000003) | templ;
-                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                /* TSTP reg */
+                arm_compare_rd15(opcode, lhs & shift2(opcode));
         } else {
                 setzn(lhs & shift(opcode));
         }
@@ -447,15 +445,13 @@ static void opMSRcreg(uint32_t opcode)
 
 static void opTEQreg(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs;
 
         lhs = GETADDR(RN);
         if (RD==15)
         {
-                opcode&=~0x100000;
-                templ=armregs[15]&0x3FFFFFC;
-                armregs[15] = ((lhs ^ shift2(opcode)) & 0xFC000003) | templ;
-                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                /* TEQP reg */
+                arm_compare_rd15(opcode, lhs ^ shift2(opcode));
         }
         else
         {
@@ -489,20 +485,19 @@ static void opSWPbyte(uint32_t opcode)
 
 static void opCMPreg(uint32_t opcode)
 {
-	uint32_t lhs, rhs;
+	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
         rhs = shift2(opcode);
+        dest = lhs - rhs;
         if (RD==15)
         {
-                opcode&=~0x100000;
-                armregs[15]&=0x3FFFFFC;
-                armregs[15] |= ((lhs - rhs) & 0xFC000003);
-                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                /* CMPP reg */
+                arm_compare_rd15(opcode, dest);
         }
         else
         {
-                setsub(lhs, rhs, lhs - rhs);
+                setsub(lhs, rhs, dest);
         }
 	//inscount++; //r//inscount++;
 }
@@ -519,18 +514,17 @@ static void opMSRsreg(uint32_t opcode)
 
 static void opCMNreg(uint32_t opcode)
 {
-	uint32_t lhs, rhs;
+	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
         rhs = shift2(opcode);
+        dest = lhs + rhs;
         if (RD==15)
         {
-                opcode&=~0x100000;
-                armregs[15]&=0x3FFFFFC;
-                armregs[15] |= ((lhs + rhs) & 0xFC000003);
-                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                /* CMNP reg */
+                arm_compare_rd15(opcode, dest);
         } else {
-                setadd(lhs, rhs, lhs + rhs);
+                setadd(lhs, rhs, dest);
         }
 	//inscount++; //r//inscount++;
 }
@@ -845,15 +839,13 @@ static void opRSCimmS(uint32_t opcode)
 
 static void opTSTimm(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs;
 
         lhs = GETADDR(RN);
         if (RD==15)
         {
-                opcode&=~0x100000;
-                templ=armregs[15]&0x3FFFFFC;
-                armregs[15] = ((lhs & rotate2(opcode)) & 0xFC000003) | templ;
-                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                /* TSTP imm */
+                arm_compare_rd15(opcode, lhs & rotate2(opcode));
         }
         else
         {
@@ -873,23 +865,13 @@ static void opMSRcimm(uint32_t opcode)
 
 static void opTEQimm(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs;
 
         lhs = GETADDR(RN);
         if (RD==15)
         {
-                opcode&=~0x100000;
-                if (armregs[15]&3)
-                {
-                        templ=armregs[15]&0x3FFFFFC;
-                        armregs[15] = ((lhs ^ rotate2(opcode)) & 0xFC000003) | templ;
-                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
-                }
-                else
-                {
-                        templ=armregs[15]&0x0FFFFFFF;
-                        armregs[15] = ((lhs ^ rotate2(opcode)) & 0xF0000000) | templ;
-                }
+                /* TEQP imm */
+                arm_compare_rd15(opcode, lhs ^ rotate2(opcode));
         }
         else
         {
@@ -900,38 +882,36 @@ static void opTEQimm(uint32_t opcode)
 
 static void opCMPimm(uint32_t opcode)
 {
-	uint32_t lhs, rhs;
+	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
         rhs = rotate2(opcode);
+        dest = lhs - rhs;
         if (RD==15)
         {
-                opcode&=~0x100000;
-                armregs[15]&=0x3FFFFFC;
-                armregs[15] |= ((lhs - rhs) & 0xFC000003);
-                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                /* CMPP imm */
+                arm_compare_rd15(opcode, dest);
         }
         else
         {
-                setsub(lhs, rhs, lhs - rhs);
+                setsub(lhs, rhs, dest);
         }
 	//inscount++; //r//inscount++;
 }
 
 static void opCMNimm(uint32_t opcode)
 {
-	uint32_t lhs, rhs;
+	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
         rhs = rotate2(opcode);
+        dest = lhs + rhs;
         if (RD==15)
         {
-                opcode&=~0x100000;
-                armregs[15]&=0x3FFFFFC;
-                armregs[15] |= ((lhs + rhs) & 0xFC000003);
-                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                /* CMNP imm */
+                arm_compare_rd15(opcode, dest);
         } else {
-                setadd(lhs, rhs, lhs + rhs);
+                setadd(lhs, rhs, dest);
         }
 	//inscount++; //r//inscount++;
 }
