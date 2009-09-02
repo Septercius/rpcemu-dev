@@ -585,13 +585,15 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 case IDOK:
                         if (config.soundenabled && !soundenabled2)
                         {
-                                closesound();
+                                config.soundenabled = 0;
+                                sound_pause();
                         }
                         if (soundenabled2 && !config.soundenabled)
                         {
-                                sound_init();
+                                config.soundenabled = 1;
+                                sound_restart();
                         }
-                        config.soundenabled = soundenabled2;
+                        
                         if (config.model != model2 || config.vrammask != vrammask2 || chngram)
                            resetrpc();
                         if (chngram)

@@ -2,14 +2,19 @@
 #define __SOUND__
 
 extern void sound_init(void);
-extern void closesound(void);
+
+extern void sound_restart(void);
+extern void sound_pause(void);
+
+extern void sound_mute(void);
+extern void sound_unmute(void);
+
 extern void changesamplefreq(int newsamplefreq);
-extern int soundbufferfull;
 extern void updatesoundirq(void);
 extern int updatesoundbuffer(void);
+
+extern int soundbufferfull;
 extern uint32_t soundaddr[4];
-extern int soundinited,soundlatch,soundcount;
-extern void stopsound(void);
-extern void continuesound(void);
+extern int soundinited, soundlatch, soundcount;
 
 #endif //__SOUND__
