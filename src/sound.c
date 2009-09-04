@@ -13,7 +13,9 @@ int getbufferlen(void);
 uint32_t soundaddr[4];
 static int samplefreq = 44100;
 int soundinited,soundlatch,soundcount;
-static unsigned short bigsoundbuffer[8][44100<<1];
+static uint16_t bigsoundbuffer[8][44100 << 1]; /**< Temp store, used to buffer
+                                                    data between the emulated sound
+                                                    and Allegro */
 static int bigsoundpos=0;
 static int bigsoundbufferhead=0; // sound buffer being written to
 static int bigsoundbuffertail=0; // sound buffer being read from
@@ -70,7 +72,13 @@ void sound_pause(void)
         as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 0, 128); /* allegro */
 }
 
-void changesamplefreq(int newsamplefreq)
+/**
+ * Called when the VIDC registers controlling
+ * sample frequency have changed
+ *
+ * @param newsamplefreq Sample frequency in Hz (e.g. 44100)
+ */
+void sound_samplefreq_change(int newsamplefreq)
 {
 	if (newsamplefreq != samplefreq) {
 		// rpclog("Change sample freq from %i to %i\n", samplefreq, newsamplefreq);
@@ -99,7 +107,13 @@ void sound_unmute(void)
         voice_set_volume(as->voice, 255);  /* allegro */
 }
 
-void updatesoundirq(void)
+/**
+ * Copy data from the emulated sound data into a temp store.
+ * Also generates sound interrupts.
+ *
+ * Called from gentimerirq (iomd.c)
+ */
+ void sound_irq_update(void)
 {
         uint32_t page,start,end,temp;
         int offset=(iomd.sndstat&1)<<1;
@@ -125,11 +139,14 @@ void updatesoundirq(void)
         end=(soundaddr[offset+1]&0xFF0)+16;
         len=(end-start)>>2;
         soundlatch=(int)((float)((float)len/(float)samplefreq)*2000000.0f);
-//        rpclog("soundlatch is %08X %i %03X %i %04X %04X %i\n",soundlatch,soundlatch,len,len,start,end,offset);
-                                        iomd.irqdma.status |= IOMD_IRQDMA_SOUND_0;
-                                        updateirqs();
-                                        iomd.sndstat|=6;
-                                        iomd.sndstat^=1;
+        // rpclog("soundlatch is %08X %i %03X %i %04X %04X %i\n", soundlatch, soundlatch, len, len, start, end, offset);
+
+        iomd.irqdma.status |= IOMD_IRQDMA_SOUND_0;
+        updateirqs();
+
+        iomd.sndstat |= 6;
+        iomd.sndstat ^= 1;
+
         for (c=start;c<end;c+=4)
         {
                 temp = ram[((c + page) & config.rammask) >> 2];
@@ -137,17 +154,24 @@ void updatesoundirq(void)
                 bigsoundbuffer[bigsoundbufferhead][bigsoundpos++]=(temp>>16);//&0x8000;
                 if (bigsoundpos>=(BUFFERLEN<<1))
                 {
-//                        rpclog("Just finished buffer %i\n",bigsoundbufferhead);
+                        // rpclog("Just finished buffer %i\n", bigsoundbufferhead);
                         bigsoundbufferhead++;
                         bigsoundbufferhead&=7;
                         bigsoundpos=0;
                         sound_thread_wakeup();
                 }
         }
-//        fwrite(bigsoundbuffer,len<<2,1,sndfile);
+        // fwrite(bigsoundbuffer, len << 2, 1, sndfile);
 }
 
-int updatesoundbuffer(void)
+/**
+ * Copy data from the temp store into the Allegro output sound buffer.
+ *
+ * Called from host platform-specific sound thread function.
+ *
+ * @return Always 0
+ */
+int sound_buffer_update(void)
 {
         unsigned short *p;
         int c;
@@ -156,7 +180,7 @@ int updatesoundbuffer(void)
         {
                 return 0;
         }
-/*        if (!sndfile)
+        /* if (!sndfile)
         {
                 sndfile=fopen("sound.pcm","wb");
         }*/
@@ -168,8 +192,8 @@ int updatesoundbuffer(void)
                         for (c=0;c<(BUFFERLEN<<1);c++)
                                 p[c]=bigsoundbuffer[bigsoundbuffertail][c]^0x8000;
                         free_audio_stream_buffer(as); /* allegro */
-//                        rpclog("Writing buffer %i\n",bigsoundbuffertail);
-//                      fwrite(bigsoundbuffer[bigsoundbufferhead^1],BUFFERLEN<<2,1,sndfile);
+                        // rpclog("Writing buffer %i\n", bigsoundbuffertail);
+                        // fwrite(bigsoundbuffer[bigsoundbufferhead ^ 1], BUFFERLEN << 2, 1, sndfile);
                         bigsoundbuffertail++;
                         bigsoundbuffertail&=7;
                 }

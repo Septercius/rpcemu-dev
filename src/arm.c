@@ -57,7 +57,6 @@ static int inscounts[256];
 #include "cp15.h"
 #include "mem.h"
 #include "iomd.h"
-#include "sound.h"
 #include "keyboard.h"
 #include "fdc.h"
 #include "ide.h"
@@ -2979,10 +2978,6 @@ void execarm(int cycs)
                         }
                 }
 //                cyc=(oldcyc-cycles);
-/*                if (soundbufferfull)
-                {
-                        updatesoundbuffer();
-                }*/
                 cycles-=200;
         }
 }

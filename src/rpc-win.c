@@ -144,9 +144,6 @@ static void releasemousecapture(void)
         }
 }
 
-/*Ignore _ALL_ this for now. It doesn't work very well, and doesn't even get
-  started at the moment*/
-/*Plus, it's just all been made obsolete! See sound.c*/
 static int quitblitter=0;
 static int blitrunning=0,soundrunning=0;
 static HANDLE waitobject,soundobject;
@@ -198,7 +195,7 @@ static void sound_thread_function(PVOID pvoid)
                         c=1;
                         while (c)
                         {
-                                c=updatesoundbuffer();
+                                c = sound_buffer_update();
                         }
                 }
 //                sleep(0);

@@ -44,7 +44,7 @@ static void *sound_thread_function(void *p)
 		if (!quited)
 		{
 			do {
-				c = updatesoundbuffer();
+				c = sound_buffer_update();
 			} while(c);
 		}
 	}
