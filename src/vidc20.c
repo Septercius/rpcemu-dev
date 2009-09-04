@@ -1442,7 +1442,7 @@ void writevidc20(uint32_t val)
 		} else {
 			freq = (705600.0f / (float) val) / 4.0f;
 		}
-		changesamplefreq((int) freq);
+		sound_samplefreq_change((int) freq);
 		break;
 
 	case 0xc: /* External Register */

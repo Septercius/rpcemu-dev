@@ -226,7 +226,7 @@ static void gentimerirq(void)
                 soundcount -= 4000;
                 if (soundcount<0)
                 {
-                        updatesoundirq();
+                        sound_irq_update();
                         soundcount+=soundlatch;
 //                        rpclog("soundcount now %i %i\n",soundcount,soundlatch);
                 }
