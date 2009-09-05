@@ -51,6 +51,11 @@
 // Unused				0x40
 // Unused				0x80
 
+/* Bits within IOMD DMA status registers (applies to Sound DMA also) */
+#define IOMD_DMA_STATUS_BUFFER		0x01	/**< A or B buffer indicator */
+#define IOMD_DMA_STATUS_INTERRUPT	0x02
+#define IOMD_DMA_STATUS_OVERRUN		0x04
+
 typedef struct {
         uint8_t status;
         uint8_t mask;
