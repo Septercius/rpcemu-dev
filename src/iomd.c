@@ -381,7 +381,7 @@ void writeiomd(uint32_t addr, uint32_t val)
         case IOMD_0x188_SD0CURB: /* Sound DMA 0 CurB */
         case IOMD_0x18C_SD0ENDB: /* Sound DMA 0 EndB */
                 // rpclog("Write sound DMA %08X %02X\n",addr,val);
-                iomd.sndstat&=1;
+                iomd.sndstat &= IOMD_DMA_STATUS_BUFFER;
                 iomd.irqdma.status &= ~IOMD_IRQDMA_SOUND_0;
                 updateirqs();
                 soundaddr[(addr>>2)&3]=val;
@@ -393,7 +393,8 @@ void writeiomd(uint32_t addr, uint32_t val)
                 // rpclog("Write sound CTRL %08X %02X\n",addr,val);
                 if (val&0x80)
                 {
-                        iomd.sndstat=6;
+                        iomd.sndstat = IOMD_DMA_STATUS_INTERRUPT |
+                                       IOMD_DMA_STATUS_OVERRUN;
                         soundinited=1;
                         iomd.irqdma.status |= IOMD_IRQDMA_SOUND_0;
                         updateirqs();
@@ -626,7 +627,8 @@ void resetiomd(void)
 {
         remove_int(gentimerirq);
         iomd.romcr0=iomd.romcr1=0x40;
-        iomd.sndstat=6;
+
+        iomd.sndstat = IOMD_DMA_STATUS_INTERRUPT | IOMD_DMA_STATUS_OVERRUN;
 
         iomd.irqa.status   = IOMD_IRQA_FORCE_BIT | IOMD_IRQA_POWER_ON_RESET;
         iomd.irqb.status   = 0;

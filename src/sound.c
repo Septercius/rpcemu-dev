@@ -116,7 +116,7 @@ void sound_unmute(void)
  void sound_irq_update(void)
 {
         uint32_t page,start,end,temp;
-        int offset=(iomd.sndstat&1)<<1;
+        int offset = (iomd.sndstat & IOMD_DMA_STATUS_BUFFER) << 1;
         int len;
         unsigned int c;
 
@@ -144,8 +144,8 @@ void sound_unmute(void)
         iomd.irqdma.status |= IOMD_IRQDMA_SOUND_0;
         updateirqs();
 
-        iomd.sndstat |= 6;
-        iomd.sndstat ^= 1;
+        iomd.sndstat |= (IOMD_DMA_STATUS_INTERRUPT | IOMD_DMA_STATUS_OVERRUN);
+        iomd.sndstat ^= IOMD_DMA_STATUS_BUFFER;
 
         for (c=start;c<end;c+=4)
         {
