@@ -262,28 +262,26 @@ static void genstoreimm(int reg, uint32_t val)
 #define ESI 0x30
 #define EDI 0x38
 
-static void genloadreg(int reg) /*Assumes %eax as targer*/
-{
-	if (reg==15) { addbyte(0x44); addbyte(0x89); addbyte(0xE0); /*MOVL %r12d,%eax*/ }
-	else         { addbyte(0x41); addbyte(0x8B); addbyte(0x47); addbyte(reg<<2); /*MOVL RN,%eax*/  }
-}
-
 static void genloadreggen(int reg, int x86reg)
 {
 	if (reg==15) { addbyte(0x44); addbyte(0x89); addbyte(0xE0|(x86reg>>3)); /*MOVL %r12d,%eax*/ }
 	else         { addbyte(0x41); addbyte(0x8B); addbyte(0x47|x86reg); addbyte(reg<<2); /*MOVL RN,%eax*/ }
 }
 
-static void genstorereg(int reg) /*Assumes %eax as source*/
+static inline void genloadreg(int reg) /*Assumes %eax as targer*/
 {
-	if (reg==15) { addbyte(0x41); addbyte(0x89); addbyte(0xC4); }
-	else         { addbyte(0x41); addbyte(0x89); addbyte(0x47); addbyte(reg<<2); /*MOVL %eax,RD*/ }
+	genloadreggen(reg, EAX);
 }
 
 static void genstorereggen(int reg, int x86reg)
 {
 	if (reg==15) { addbyte(0x41); addbyte(0x89); addbyte(0xC4|x86reg); }
 	else         { addbyte(0x41); addbyte(0x89); addbyte(0x47|x86reg); addbyte(reg<<2); /*MOVL %eax,RD*/ }
+}
+
+static inline void genstorereg(int reg) /*Assumes %eax as source*/
+{
+	genstorereggen(reg, EAX);
 }
 
 static void generatedataproc(uint32_t opcode, uint8_t op, uint32_t val)
