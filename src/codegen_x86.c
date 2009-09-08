@@ -379,22 +379,6 @@ static const int recompileinstructions[256]=
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  //F0
 };
 
-static void generateload(int reg)
-{
-	#ifdef _MSC_VER
-        addbyte(0xA1); addlong(&armregs[reg]);
-	#else
-        if (reg)
-        {
-                addbyte(0x8B); addbyte(0x46); addbyte(reg*4);
-        }
-        else
-        {
-                addbyte(0x8B); addbyte(0x06);
-        }
-	#endif
-}
-
 static void generateloadgen(int reg, int x86reg)
 {
 	#ifdef _MSC_VER
@@ -411,20 +395,13 @@ static void generateloadgen(int reg, int x86reg)
 	#endif
 }
 
-static void generatesave(int reg)
+static inline void generateload(int reg)
 {
-	#ifdef _MSC_VER
-        addbyte(0xA3); addlong(&armregs[reg]);
-	#else
-        if (reg)
-        {
-                addbyte(0x89); addbyte(0x46); addbyte(reg*4);
-        }
-        else
-        {
-                addbyte(0x89); addbyte(0x06);
-        }
-	#endif
+#ifdef _MSC_VER
+	addbyte(0xa1); addlong(&armregs[reg]);
+#else
+	generateloadgen(reg, EAX);
+#endif
 }
 
 static void generatesavegen(int reg, int x86reg)
@@ -441,6 +418,15 @@ static void generatesavegen(int reg, int x86reg)
                 addbyte(0x89); addbyte(0x06|x86reg);
         }
 	#endif
+}
+
+static inline void generatesave(int reg)
+{
+#ifdef _MSC_VER
+	addbyte(0xa3); addlong(&armregs[reg]);
+#else
+	generatesavegen(reg, EAX);
+#endif
 }
 
 static int generatedataproc(uint32_t opcode, unsigned char dataop, uint32_t templ)
