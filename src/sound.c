@@ -168,17 +168,15 @@ void sound_unmute(void)
  * Copy data from the temp store into the Allegro output sound buffer.
  *
  * Called from host platform-specific sound thread function.
- *
- * @return Always 0
  */
-int sound_buffer_update(void)
+void sound_buffer_update(void)
 {
         unsigned short *p;
         int c;
 
         if (!config.soundenabled)
         {
-                return 0;
+                return;
         }
         /* if (!sndfile)
         {
@@ -203,6 +201,5 @@ int sound_buffer_update(void)
                         break;
                 }
         }
-        return 0;
 }
 

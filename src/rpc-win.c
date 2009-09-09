@@ -184,19 +184,13 @@ void vidcendthread(void)
  */
 static void sound_thread_function(PVOID pvoid)
 {
-        int c;
-
         soundrunning=1;
         while (!quitblitter)
         {
                 WaitForSingleObject(soundobject,INFINITE);
                 if (!quitblitter)
                 {
-                        c=1;
-                        while (c)
-                        {
-                                c = sound_buffer_update();
-                        }
+                        sound_buffer_update();
                 }
 //                sleep(0);
         }

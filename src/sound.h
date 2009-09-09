@@ -11,7 +11,7 @@ extern void sound_unmute(void);
 
 extern void sound_samplefreq_change(int newsamplefreq);
 extern void sound_irq_update(void);
-extern int sound_buffer_update(void);
+extern void sound_buffer_update(void);
 
 extern int soundbufferfull;
 extern uint32_t soundaddr[4];

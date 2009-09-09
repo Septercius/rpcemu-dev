@@ -29,8 +29,6 @@ static float mipstotal;
  */
 static void *sound_thread_function(void *p)
 {
-	int c;
-
 	if (pthread_mutex_lock(&sound_mutex))
 	{
 		fatal("Cannot lock mutex");
@@ -43,9 +41,7 @@ static void *sound_thread_function(void *p)
 		}
 		if (!quited)
 		{
-			do {
-				c = sound_buffer_update();
-			} while(c);
+			sound_buffer_update();
 		}
 	}
 	pthread_mutex_unlock(&sound_mutex);
