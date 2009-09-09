@@ -145,7 +145,7 @@ void sound_unmute(void)
         updateirqs();
 
         iomd.sndstat |= (IOMD_DMA_STATUS_INTERRUPT | IOMD_DMA_STATUS_OVERRUN);
-        iomd.sndstat ^= IOMD_DMA_STATUS_BUFFER;
+        iomd.sndstat ^= IOMD_DMA_STATUS_BUFFER; /* Swap between buffer A and B */
 
         for (c=start;c<end;c+=4)
         {
@@ -156,7 +156,7 @@ void sound_unmute(void)
                 {
                         // rpclog("Just finished buffer %i\n", bigsoundbufferhead);
                         bigsoundbufferhead++;
-                        bigsoundbufferhead&=7;
+                        bigsoundbufferhead &= 7; /* if (bigsoundbufferhead > 7) { bigsoundbufferhead = 0; } */
                         bigsoundpos=0;
                         sound_thread_wakeup();
                 }
@@ -184,20 +184,24 @@ void sound_buffer_update(void)
         }*/
         while (bigsoundbuffertail!=bigsoundbufferhead)
         {
-                p=get_audio_stream_buffer(as);
+                p = get_audio_stream_buffer(as);  /* allegro */
                 if (p)
                 {
-                        for (c=0;c<(BUFFERLEN<<1);c++)
-                                p[c]=bigsoundbuffer[bigsoundbuffertail][c]^0x8000;
+                        /* Allegro would like us to fill up a buffer */
+                        for (c = 0; c < (BUFFERLEN << 1); c++) {
+                                p[c] = bigsoundbuffer[bigsoundbuffertail][c] ^ 0x8000;
+                        }
+                        /* We have filled the stream's buffer, let allegro know about it */
                         free_audio_stream_buffer(as); /* allegro */
+
                         // rpclog("Writing buffer %i\n", bigsoundbuffertail);
                         // fwrite(bigsoundbuffer[bigsoundbufferhead ^ 1], BUFFERLEN << 2, 1, sndfile);
                         bigsoundbuffertail++;
-                        bigsoundbuffertail&=7;
+                        bigsoundbuffertail &= 7; /* if (bigsoundbuffertail > 7) { bigsoundbuffertail = 0; } */
                 }
                 else
                 {
-                        // No free audio buffer, try again later.
+                        /* Still playing previous block of data, no need to fill it up yet */
                         break;
                 }
         }
