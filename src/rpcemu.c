@@ -24,6 +24,10 @@
 #include "podules.h"
 #include "fdc.h"
 
+#ifdef __linux__
+	#include "network-linux.h"
+#endif /* __linux__ */
+
 unsigned char flaglookup[16][16];
 
 char discname[2][260]={"boot.adf","notboot.adf"};
@@ -139,6 +143,11 @@ int startrpcemu(void)
 {
         int c;
         char *p;
+
+        install_keyboard(); /* allegro */
+        install_timer();    /* allegro */
+        install_mouse();    /* allegro */
+
         get_executable_name(exname,511);
         p=get_filename(exname);
         *p=0;
@@ -185,6 +194,10 @@ int startrpcemu(void)
 //        iso_open("e:/au_cd8.iso");
 //        config.cdromtype = CDROM_ISO;
 
+#ifdef __linux__
+        initnetwork();
+#endif /* __linux__ */
+        
         return 0;
 }
 

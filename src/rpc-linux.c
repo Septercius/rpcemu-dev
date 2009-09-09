@@ -11,7 +11,6 @@
 #include "sound.h"
 #include "vidc20.h"
 #include "gui.h"
-#include "network-linux.h"
 
 
 static float mips;
@@ -219,14 +218,8 @@ int main (int argc, char ** argv)
 	LOCK_FUNCTION(close_button_handler);
 	set_close_button_callback(close_button_handler);
 
-        install_keyboard();
-        install_timer();
-        install_mouse();
-
         if (startrpcemu())
            return -1;
-
-        initnetwork();
 
         install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));

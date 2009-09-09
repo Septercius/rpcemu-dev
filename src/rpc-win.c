@@ -357,9 +357,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         win_set_window(ghwnd);
 
         allegro_init();     /* allegro */
-        install_keyboard(); /* allegro */
-        install_timer();    /* allegro */
-        install_mouse();    /* allegro */
 
         infocus = 0;
 
