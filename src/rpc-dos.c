@@ -108,9 +108,6 @@ int col=0;
         char fn[512];
         config.mousehackon = 0;
         allegro_init();
-        install_keyboard();
-        install_timer();
-        install_mouse();
 infocus=0;
 //        arclog=fopen("arclog.txt","wt");
         if (startrpcemu())

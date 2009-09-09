@@ -218,10 +218,6 @@ int main (int argc, char ** argv)
 	LOCK_FUNCTION(close_button_handler);
 	set_close_button_callback(close_button_handler);
 
-        install_keyboard();
-        install_timer();
-        install_mouse();
-
         if (startrpcemu())
            return -1;
 
