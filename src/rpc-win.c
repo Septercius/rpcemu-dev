@@ -30,10 +30,35 @@
 #include "cdrom-ioctl.h"
 
 static float mips = 0.0f, mhz = 0.0f, tlbsec = 0.0f, flushsec = 0.0f;
-static int updatemips=0;
+static int updatemips = 0; /**< bool of whether to update the mips speed in the program title bar */
 static int vsyncints=0;
 
+/*  Declare Windows procedure  */
+static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+static RECT oldclip; /**< Used to store the clip box of the cursor before we
+                          enter 'mouse capture' mode, so it can be restored later */
 
+static HWND ghwnd;
+static HMENU menu;
+int infocus; /**< bool of whether the window has the keyboard focus */
+
+static int quitblitter=0;
+static int blitrunning=0,soundrunning=0;
+static HANDLE waitobject,soundobject;
+static CRITICAL_SECTION vidcmutex;
+
+static int _mask;
+static int vrammask2;
+static int soundenabled2;
+static int refresh2;
+static int chngram = 0;
+
+static HINSTANCE hinstance; /**< Handle to current program instance */
+
+
+/**
+ * Called once a second to update the performance counters
+ */
 static void domips(void)
 {
         mips=(float)inscount/1000000.0f;
@@ -58,6 +83,7 @@ void error(const char *format, ...)
    va_end(ap);
    MessageBox(NULL,buf,"RPCemu error",MB_OK);;
 }
+
 void fatal(const char *format, ...)
 {
    char buf[256];
@@ -76,16 +102,6 @@ static void vblupdate(void)
         drawscre++;
 }
 
-/*  Declare Windows procedure  */
-static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-static RECT oldclip, arcclip;
-
-/*  Make the class name into a global variable  */
-static char szClassName[ ] = "WindowsApp";
-static HWND ghwnd;
-static HMENU menu;
-int infocus;
-
 /**
  * Fill in menu with CDROM links based on real windows drives
  */
@@ -96,6 +112,9 @@ static void initmenu(void)
         char s[32];
         m=GetSubMenu(menu,2); /*Settings*/
         m=GetSubMenu(m,4); /*CD-ROM*/
+
+        /* Loop through each Windows drive letter and test to see if
+           it's a CDROM */
         for (c='A';c<='Z';c++)
         {
                 sprintf(s,"%c:\\",c);
@@ -125,6 +144,8 @@ void updatewindowsize(uint32_t x, uint32_t y)
                      TRUE);
         if (mousecapture)
         {
+                RECT arcclip;
+
                 ClipCursor(&oldclip);
                 GetWindowRect(ghwnd,&arcclip);
                 arcclip.left+=GetSystemMetrics(SM_CXFIXEDFRAME)+10;
@@ -135,6 +156,11 @@ void updatewindowsize(uint32_t x, uint32_t y)
         }
 }
 
+/**
+ * Allow the mouse to once again travel the whole
+ * screen, restores the mouse clip box to it's previous
+ * state.
+ */
 static void releasemousecapture(void)
 {
         if (mousecapture)
@@ -143,11 +169,6 @@ static void releasemousecapture(void)
                 mousecapture=0;
         }
 }
-
-static int quitblitter=0;
-static int blitrunning=0,soundrunning=0;
-static HANDLE waitobject,soundobject;
-static CRITICAL_SECTION vidcmutex;
 
 void vidcthreadrunner(PVOID pvoid)
 {
@@ -270,20 +291,23 @@ void vidcreleasemutex(void)
 }
 
 
-static HINSTANCE hinstance; /**< Handle to current program instance */
-
-/*You can start paying attention again now*/
+/**
+ * Program start point, build the windows GUI, initialise the emulator.
+ * Enter the program main loop, and tidy up when finished.
+ */
 int WINAPI WinMain (HINSTANCE hThisInstance,
                     HINSTANCE hPrevInstance,
                     LPSTR lpszArgument,
                     int nFunsterStil)
 
 {
-        MSG messages = {0};     /* Here messages to the application are saved */
-        WNDCLASSEX wincl;        /* Data structure for the windowclass */
+        static const char szClassName[] = "WindowsApp";
+        MSG messages = {0};     /**< Here messages to the application are saved */
+        WNDCLASSEX wincl;       /**< Data structure for the windowclass */
         char s[128];
 
         hinstance=hThisInstance;
+
         /* The Window structure */
         wincl.hInstance = hThisInstance;
         wincl.lpszClassName = szClassName;
@@ -291,7 +315,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         wincl.style = CS_DBLCLKS;                 /* Catch double-clicks */
         wincl.cbSize = sizeof (WNDCLASSEX);
 
-        /* Use default icon and mouse-pointer */
+        /* Use custom icon and default mouse-pointer */
         wincl.hIcon = LoadIcon(hThisInstance, "allegro_icon");
         wincl.hIconSm = LoadIcon(hThisInstance, "allegro_icon");
         wincl.hCursor = LoadCursor (NULL, IDC_ARROW);
@@ -331,56 +355,89 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         /* Make the window visible on the screen */
         ShowWindow (ghwnd, nFunsterStil);
         win_set_window(ghwnd);
-        allegro_init();
-        install_keyboard();
-        install_timer();
-        install_mouse();
+
+        allegro_init();     /* allegro */
+        install_keyboard(); /* allegro */
+        install_timer();    /* allegro */
+        install_mouse();    /* allegro */
+
         infocus = 0;
 
+        /* Initialise the emulation and read the config file */
         if (startrpcemu())
            return -1;
+
+        /* Initialise the podules */
         opendlls();
-        if (config.cdromtype > 2) WindowProcedure(ghwnd, WM_COMMAND, IDM_CDROM_DISABLED + config.cdromtype, 0);
+
+        /* Based on the contents of config file, dynamically update the Windows GUI items */
+        if (config.cdromtype > 2) {
+                WindowProcedure(ghwnd, WM_COMMAND, IDM_CDROM_DISABLED + config.cdromtype, 0);
+        }
         CheckMenuItem(menu, IDM_CDROM_DISABLED + config.cdromtype, MF_CHECKED);
         
         CheckMenuItem(menu, IDM_STRETCH, config.stretchmode ? MF_CHECKED : MF_UNCHECKED);
         CheckMenuItem(menu, IDM_BLITOPT, config.skipblits   ? MF_CHECKED : MF_UNCHECKED);
         
-        if (config.mousehackon) CheckMenuItem(menu,IDM_MOUSE_FOL,MF_CHECKED);
-        else             CheckMenuItem(menu,IDM_MOUSE_CAP,MF_CHECKED);
+        if (config.mousehackon) {
+                CheckMenuItem(menu, IDM_MOUSE_FOL, MF_CHECKED);
+        } else {
+                CheckMenuItem(menu, IDM_MOUSE_CAP, MF_CHECKED);
+        }
 
+        /* Return the mouse clipping to normal on program exit */
         atexit(releasemousecapture);
 
-        install_int_ex(domips,MSEC_TO_TIMER(1000));
+        /* Call back the mips counting function every second */
+        install_int_ex(domips, MSEC_TO_TIMER(1000));
 
 //        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
         infocus = 1;
         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
         drawscre=0;
+
+        /* Program main loop */
         while (!quited)
         {
+                /* Execute the emulation, if it has the keyboard focus */
                 if (infocus)
                 {
                         execrpcemu();
                 }
+
+                /* Update title with mips speed */
                 if (updatemips)
                 {
-                        if (mousehack) sprintf(s, "RPCemu v" VERSION " - %f MIPS %f %i %f %i",mips,tlbsec,ins,flushsec,vsyncints);
-                        else           sprintf(s, "RPCemu v" VERSION " - %f MIPS %f %i %f %i - %s",mips,tlbsec,ins,flushsec,vsyncints,(mousecapture)?"Press CTRL-END to release mouse":"Click to capture mouse");
+                        if (mousehack) {
+                               sprintf(s, "RPCemu v" VERSION " - %f MIPS %f %i %f %i",
+                                       mips, tlbsec, ins, flushsec, vsyncints);
+                        } else {
+                               sprintf(s, "RPCemu v" VERSION " - %f MIPS %f %i %f %i - %s",
+                                       mips, tlbsec, ins, flushsec, vsyncints,
+                                       (mousecapture) ?
+                                           "Press CTRL-END to release mouse" :
+                                           "Click to capture mouse");
+                        }
                         SetWindowText(ghwnd, s);
                         updatemips=0;
                 }
+
+                /* Exit full screen? */
                 if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && fullscreen)
                 {
                         togglefullscreen(0);
                         mousecapture=0;
                 }
+
+                /* Release mouse from mouse capture mode? */
                 if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && mousecapture && !config.mousehackon)
                 {
                         ClipCursor(&oldclip);
                         mousecapture=0;
                         updatemips=1;
                 }
+
+                /* Handle Windows events */
                 if (PeekMessage(&messages,NULL,0,0,PM_REMOVE))
                 {
                         if (messages.message==WM_QUIT)
@@ -393,12 +450,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                         DispatchMessage(&messages);
                 }
         }
+
+        /* Program has exited. Tidy up */
+
         infocus=0;
-        if (mousecapture)
-        {
-                ClipCursor(&oldclip);
-                mousecapture=0;
-        }
 
         dumpregs();
         endrpcemu();
@@ -493,12 +548,6 @@ static int selectiso(HWND hwnd)
         }
         return 0;
 }
-
-static int _mask;
-static int vrammask2;
-static int soundenabled2;
-static int refresh2;
-static int chngram = 0;
 
 /**
  * Dialog procedure to handle evens on the configuration window
@@ -883,6 +932,8 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
         case WM_LBUTTONUP:
                 if (!mousecapture && !fullscreen && !config.mousehackon)
                 {
+                        RECT arcclip;
+
                         GetClipCursor(&oldclip);
                         GetWindowRect(hwnd,&arcclip);
                         arcclip.left+=GetSystemMetrics(SM_CXFIXEDFRAME)+10;
