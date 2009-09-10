@@ -888,7 +888,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 
         switch ((opcode>>20)&0xFF)
         {
-                case 0x00: /*AND reg*/
+        case 0x00: /* AND reg */
                 if ((opcode & 0xf0) == 0x90) /* MUL */
                 {
                         if (MULRD==MULRM)
@@ -911,7 +911,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addlong(&armregs[RN]);
                 generatesave(RD);
                 break;
-                case 0x01: /*ANDS reg*/
+
+        case 0x01: /* ANDS reg */
                 if ((opcode & 0xf0) == 0x90) /* MULS */
                 {
                         if (!flagsdirty) { addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); } /*MOVB *pcpsr,%cl*/
@@ -939,7 +940,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesave(RD);
                 generatesetzn(opcode, pcpsr);
                 break;
-                case 0x02: /*EOR reg*/
+
+        case 0x02: /* EOR reg */
                 if ((opcode & 0xf0) == 0x90) /* MLA */
                 {
                         if (MULRD==MULRM)
@@ -963,7 +965,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addlong(&armregs[RN]);
                 generatesave(RD);
                 break;
-                case 0x03: /*EORS reg*/
+
+        case 0x03: /* EORS reg */
                 if ((opcode & 0xf0) == 0x90) /* MLAS */
                 {
                         if (!flagsdirty) { addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); } /*MOVB *pcpsr,%cl*/
@@ -992,7 +995,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesave(RD);
                 generatesetzn(opcode, pcpsr);
                 break;
-                case 0x04: /*SUB reg*/
+
+        case 0x04: /* SUB reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftnoflags(opcode)) return 0;
@@ -1003,7 +1007,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x29); addbyte(0xC2); /*SUBL %eax,%edx*/
                 generatesavegen(RD,EDX);
                 break;
-                case 0x05: /*SUBS reg*/
+
+        case 0x05: /* SUBS reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftnoflags(opcode)) return 0;
@@ -1021,7 +1026,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x0A); addbyte(0x8A); addlong(lahftablesub); /*OR lahftable(%edx),%cl*/
                 addbyte(0x88); addbyte(0x0D); addlong(pcpsr+3); /*MOV %cl,pcpsr*/
                 break;
-                case 0x06: /*RSB reg*/
+
+        case 0x06: /* RSB reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftnoflags(opcode)) return 0;
@@ -1030,7 +1036,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addlong(&armregs[RN]);
                 generatesave(RD);
                 break;
-                case 0x08: /*ADD reg*/
+
+        case 0x08: /* ADD reg */
                 if ((opcode & 0xf0) == 0x90) /* UMULL */
                 {
                         generateload(MULRM);
@@ -1047,7 +1054,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addlong(&armregs[RN]);
                 generatesave(RD);
                 break;
-                case 0x09: /*ADDS reg*/
+
+        case 0x09: /* ADDS reg */
                 if ((opcode & 0xf0) == 0x90) /* UMULLS */
                 {
                         if (!flagsdirty) { addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); } /*MOVB *pcpsr,%cl*/
@@ -1088,7 +1096,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x08); addbyte(0xE1); /*OR %ah,%cl*/
                 addbyte(0x88); addbyte(0x0D); addlong(pcpsr+3); /*MOV %cl,pcpsr*/
                 break;
-                case 0x0A: /*ADC reg*/
+
+        case 0x0a: /* ADC reg */
                 flagsdirty=0;
                 if ((opcode & 0xf0) == 0x90) return 0; /* UMLAL */
                 if (RD==15 || RN==15) return 0;
@@ -1102,7 +1111,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x01); addbyte(0xD0); /*ADDL %edx,%eax*/
                 generatesave(RD);
                 break;
-                case 0x0B: /*ADCS reg*/
+
+        case 0x0b: /* ADCS reg */
                 flagsdirty=0;
                 if ((opcode & 0xf0) == 0x90) return 0; /* UMLALS */
                 if (RD==15 || RN==15) return 0;
@@ -1123,7 +1133,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x0A); addbyte(0x8A); addlong(lahftable); /*OR lahftable(%edx),%cl*/
                 addbyte(0x88); addbyte(0x0D); addlong(pcpsr+3); /*MOV %cl,pcpsr*/
                 break;
-                case 0x0C: /*SBC reg*/
+
+        case 0x0c: /* SBC reg */
                 if ((opcode & 0xf0) == 0x90) /* SMULL */
                 {
                         generateload(MULRM);
@@ -1144,7 +1155,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x29); addbyte(0xD0); /*SUBL %edx,%eax*/
                 generatesave(RD);
                 break;
-                case 0x0E: /*RSC reg*/
+
+        case 0x0e: /* RSC reg */
                 flagsdirty=0;
                 if ((opcode & 0xf0) == 0x90) /* SMLAL */
                 {
@@ -1170,7 +1182,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x29); addbyte(0xC2); /*SUBL %eax,%edx*/
                 generatesavegen(RD,EDX);
                 break;
-                case 0x18: /*ORR reg*/
+
+        case 0x18: /* ORR reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftnoflags(opcode)) return 0;
@@ -1179,7 +1192,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addlong(&armregs[RN]);
                 generatesave(RD);
                 break;
-                case 0x19: /*ORRS reg*/
+
+        case 0x19: /* ORRS reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
@@ -1189,7 +1203,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesave(RD);
                 generatesetzn(opcode, pcpsr);
                 break;
-                case 0x1A: /*MOV reg*/
+
+        case 0x1a: /* MOV reg */
                 flagsdirty=0;
 //                if (RD==15 || RN==15) return 0;
                 if (!generateshiftnoflags(opcode)) return 0;
@@ -1207,7 +1222,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 generatesave(RD);
                 break;
-                case 0x1B: /*MOVS reg*/
+
+        case 0x1b: /* MOVS reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
@@ -1217,7 +1233,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesetzn2(opcode, pcpsr);
 //                hasldrb[blockpoint2]=1;
                 break;
-                case 0x1C: /*BIC reg*/
+
+        case 0x1c: /* BIC reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftnoflags(opcode)) return 0;
@@ -1227,7 +1244,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addlong(&armregs[RN]);
                 generatesave(RD);
                 break;
-                case 0x1D: /*BICS reg*/
+
+        case 0x1d: /* BICS reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
@@ -1238,7 +1256,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesave(RD);
                 generatesetzn(opcode, pcpsr);
                 break;
-                case 0x1E: /*MVN reg*/
+
+        case 0x1e: /* MVN reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftnoflags(opcode)) return 0;
@@ -1246,7 +1265,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 /*Shifted val now in %eax*/
                 generatesave(RD);
                 break;
-                case 0x1F: /*MVNS reg*/
+
+        case 0x1f: /* MVNS reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
@@ -1257,7 +1277,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesetzn(opcode, pcpsr);
                 break;
 
-                case 0x11: /*TST reg*/
+        case 0x11: /* TST reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
@@ -1266,7 +1286,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addlong(&armregs[RN]);
                 generatesetzn(opcode, pcpsr);
                 break;
-                case 0x13: /*TEQ reg*/
+
+        case 0x13: /* TEQ reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
@@ -1275,7 +1296,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addlong(&armregs[RN]);
                 generatesetzn(opcode, pcpsr);
                 break;
-                case 0x15: /*CMP reg*/
+
+        case 0x15: /* CMP reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftnoflags(opcode)) return 0;
@@ -1294,14 +1316,15 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=1;
                 break;
 
-                case 0x20: /*AND*/ 
+        case 0x20: /* AND imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x20;
                 templ=rotate2(opcode);
                 temp += generatedataproc(opcode, dataop, templ);
                 break;
-                case 0x21: /*ANDS*/
+
+        case 0x21: /* ANDS imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x20;
@@ -1310,14 +1333,16 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatedataprocS(opcode, dataop, templ);
                 generatesetznS(opcode, pcpsr);
                 break;
-                case 0x22: /*EOR*/
+
+        case 0x22: /* EOR imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x30;
                 templ=rotate2(opcode);
                 temp += generatedataproc(opcode, dataop, templ);
                 break;
-                case 0x23: /*EORS*/
+
+        case 0x23: /* EORS imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x30;
@@ -1326,14 +1351,16 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatedataprocS(opcode, dataop, templ);
                 generatesetznS(opcode, pcpsr);
                 break;
-                case 0x24: /*SUB*/
+
+        case 0x24: /* SUB imm */
   //              flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x28;
                 templ=rotate2(opcode);
                 temp += generatedataproc(opcode, dataop, templ);
                 break;
-                case 0x25: /*SUBS imm*/
+
+        case 0x25: /* SUBS imm */
                 flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x28;
@@ -1349,14 +1376,16 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x08); addbyte(0x4E); addbyte((uint32_t)(pcpsr)-(uint32_t)(&armregs[0])+3); /*OR %cl,pcpsr*/
 //                flagsdirty=1;
                 break;
-                case 0x28: /*ADD*/
+
+        case 0x28: /* ADD imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x00;
                 templ=rotate2(opcode);
                 temp += generatedataproc(opcode, dataop, templ);
                 break;
-                case 0x29: /*ADDS*/
+
+        case 0x29: /* ADDS imm */
                 flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x00;
@@ -1371,14 +1400,16 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x08); addbyte(0x4E); addbyte((uint32_t)(pcpsr)-(uint32_t)(&armregs[0])+3); /*OR %cl,pcpsr*/
 //                flagsdirty=1;
                 break;
-                case 0x38: /*ORR*/
+
+        case 0x38: /* ORR imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x08;
                 templ=rotate2(opcode);
                 temp += generatedataproc(opcode, dataop, templ);
                 break;
-                case 0x39: /*ORRS*/
+
+        case 0x39: /* ORRS imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x08;
@@ -1386,7 +1417,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatedataprocS(opcode, dataop, templ);
                 generatesetznS(opcode, pcpsr);
                 break;
-                case 0x3A: /*MOV imm*/
+
+        case 0x3a: /* MOV imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=rotate2(opcode);
@@ -1395,7 +1427,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addlong(&armregs[RD]);
                 addlong(templ);
                 break;
-                case 0x3B: /*MOVS imm*/
+
+        case 0x3b: /* MOVS imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=generaterotate(opcode,pcpsr,0xC0);
@@ -1407,14 +1440,16 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x88); addbyte(0x0D); addlong(pcpsr+3); /*MOV %cl,pcpsr*/
                 if ((opcode>>28)==0xE) flagsdirty=1;
                 break;
-                case 0x3C: /*BIC*/
+
+        case 0x3c: /* BIC imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x20;
                 templ=~rotate2(opcode);
                 temp += generatedataproc(opcode, dataop, templ);
                 break;
-                case 0x3D: /*BICS*/
+
+        case 0x3d: /* BICS imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 dataop=0x20;
@@ -1423,7 +1458,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatedataprocS(opcode, dataop, templ);
                 generatesetznS(opcode, pcpsr);
                 break;
-                case 0x3E: /*MVN imm*/
+
+        case 0x3e: /* MVN imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=rotate2(opcode);
@@ -1433,7 +1469,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addlong(~templ);
                 temp+=10;
                 break;
-                case 0x3F: /*MVNS imm*/
+
+        case 0x3f: /* MVNS imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=~generaterotate(opcode,pcpsr,0xC0);
@@ -1446,7 +1483,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 if ((opcode>>28)==0xE) flagsdirty=1;
                 break;
 
-                case 0x31: /*TST imm*/
+        case 0x31: /* TST imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=generaterotate(opcode,pcpsr,0xC0);
@@ -1456,7 +1493,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0xA9); addlong(templ); /*TEST $templ,%eax*/
                 generatesetzn(opcode, pcpsr);
                 break;
-                case 0x33: /*TEQ imm*/
+
+        case 0x33: /* TEQ imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=generaterotate(opcode,pcpsr,0xC0);
@@ -1466,7 +1504,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x35); addlong(templ); /*XOR $templ,%eax*/
                 generatesetzn(opcode, pcpsr);
                 break;
-                case 0x35: /*CMP imm*/
+
+        case 0x35: /* CMP imm */
                 flagsdirty=0;
                 if (RD==15) return 0;
                 addbyte(0x80); addbyte(0x66); addbyte((uint32_t)(pcpsr)-(uint32_t)(&armregs[0])+3); addbyte(0xF); /*ANDB 0xF,pcpsr*/
@@ -1483,10 +1522,14 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 
                 
 //                #if 0
-                case 0x40: /*STR post -imm*/  case 0x48: /*STR post +imm*/
-                case 0x44: /*STRB post -imm*/ case 0x4C: /*STRB post +imm*/
-                case 0x60: /*STR post -reg*/  case 0x68: /*STR post +reg*/
-                case 0x64: /*STRB post -reg*/ case 0x6C: /*STRB post +reg*/
+        case 0x40: /* STR  Rd, [Rn], #-imm   */
+        case 0x48: /* STR  Rd, [Rn], #+imm   */
+        case 0x44: /* STRB Rd, [Rn], #-imm   */
+        case 0x4c: /* STRB Rd, [Rn], #+imm   */
+        case 0x60: /* STR  Rd, [Rn], -reg... */
+        case 0x68: /* STR  Rd, [Rn], +reg... */
+        case 0x64: /* STRB Rd, [Rn], -reg... */
+        case 0x6c: /* STRB Rd, [Rn], +reg... */
                 flagsdirty=0;
                 if (!generateshiftnoflags(opcode) && opcode&0x2000000) return 0;
                 codeblockpos=old;
@@ -1561,9 +1604,12 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                         }
                 }
                 break;
+
                 #if 0
-                case 0x40: /*STR post -imm*/  case 0x48: /*STR post +imm*/
-                case 0x60: /*STR post -reg*/  case 0x68: /*STR post +reg*/
+        case 0x40: /* STR Rd, [Rn], #-imm   */
+        case 0x48: /* STR Rd, [Rn], #+imm   */
+        case 0x60: /* STR Rd, [Rn], -reg... */
+        case 0x68: /* STR Rd, [Rn], +reg... */
                 flagsdirty=0;
                 if (!generateshiftnoflags(opcode) && opcode&0x2000000) return 0;
                 codeblockpos=old;
@@ -1613,10 +1659,15 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 }
                 break;
                 #endif
-                case 0x41: /*LDR post -imm*/  case 0x49: /*LDR post +imm*/
-                case 0x45: /*LDRB post -imm*/ case 0x4D: /*LDRB post +imm*/
-                case 0x61: /*LDR post -reg*/  case 0x69: /*LDR post +reg*/
-                case 0x65: /*LDRB post -reg*/ case 0x6D: /*LDRB post +reg*/
+
+        case 0x41: /* LDR  Rd, [Rn], #-imm   */
+        case 0x49: /* LDR  Rd, [Rn], #+imm   */
+        case 0x45: /* LDRB Rd, [Rn], #-imm   */
+        case 0x4d: /* LDRB Rd, [Rn], #+imm   */
+        case 0x61: /* LDR  Rd, [Rn], -reg... */
+        case 0x69: /* LDR  Rd, [Rn], +reg... */
+        case 0x65: /* LDRB Rd, [Rn], -reg... */
+        case 0x6d: /* LDRB Rd, [Rn], +reg... */
                 flagsdirty=0;
                 if (!generateshiftnoflags(opcode) && opcode&0x2000000) return 0;
                 codeblockpos=old;
@@ -1705,11 +1756,16 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         }
                 }
                 break;
+
 //#if 0
-                case 0x50: /*STR -imm*/ case 0x52: /*STR -imm!*/
-                case 0x58: /*STR +imm*/ case 0x5A: /*STR +imm!*/
-                case 0x70: /*STR -reg*/ case 0x72: /*STR -reg!*/
-                case 0x78: /*STR +reg*/ case 0x7A: /*STR +reg!*/
+        case 0x50: /* STR Rd, [Rn, #-imm]    */
+        case 0x52: /* STR Rd, [Rn, #-imm]!   */
+        case 0x58: /* STR Rd, [Rn, #+imm]    */
+        case 0x5a: /* STR Rd, [Rn, #+imm]!   */
+        case 0x70: /* STR Rd, [Rn, -reg...]  */
+        case 0x72: /* STR Rd, [Rn, -reg...]! */
+        case 0x78: /* STR Rd, [Rn, +reg...]  */
+        case 0x7a: /* STR Rd, [Rn, +reg...]! */
                 flagsdirty=0;
                 if (RD==15) return 0;
                 if (opcode&0x2000000) { if (!generateshiftnoflags(opcode)) return 0; }
@@ -1758,10 +1814,14 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
                 break;
 
-                case 0x54: /*STRB -imm*/ case 0x56: /*STRB -imm!*/
-                case 0x5C: /*STRB +imm*/ case 0x5E: /*STRB +imm!*/
-                case 0x74: /*STRB -reg*/ case 0x76: /*STRB -reg!*/
-                case 0x7C: /*STRB +reg*/ case 0x7E: /*STRB +reg!*/
+        case 0x54: /* STRB Rd, [Rn, #-imm]    */
+        case 0x56: /* STRB Rd, [Rn, #-imm]!   */
+        case 0x5c: /* STRB Rd, [Rn, #+imm]    */
+        case 0x5e: /* STRB Rd, [Rn, #+imm]!   */
+        case 0x74: /* STRB Rd, [Rn, -reg...]  */
+        case 0x76: /* STRB Rd, [Rn, -reg...]! */
+        case 0x7c: /* STRB Rd, [Rn, +reg...]  */
+        case 0x7e: /* STRB Rd, [Rn, +reg...]! */
                 flagsdirty=0;
                 if (RD==15) return 0;
                 if (opcode&0x2000000) { if (!generateshiftnoflags(opcode)) return 0; }
@@ -1809,11 +1869,16 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 if (opcode&0x200000) { generateloadgen(17,EDX);
                         addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
                 break;
+
 //#if 0
-                case 0x51: /*LDR -imm*/ case 0x53: /*LDR -imm!*/
-                case 0x59: /*LDR +imm*/ case 0x5B: /*LDR +imm!*/
-                case 0x71: /*LDR -reg*/ case 0x73: /*LDR -reg!*/
-                case 0x79: /*LDR +reg*/ case 0x7B: /*LDR +reg!*/
+        case 0x51: /* LDR Rd, [Rn, #-imm]    */
+        case 0x53: /* LDR Rd, [Rn, #-imm]!   */
+        case 0x59: /* LDR Rd, [Rn, #+imm]    */
+        case 0x5b: /* LDR Rd, [Rn, #+imm]!   */
+        case 0x71: /* LDR Rd, [Rn, -reg...]  */
+        case 0x73: /* LDR Rd, [Rn, -reg...]! */
+        case 0x79: /* LDR Rd, [Rn, +reg...]  */
+        case 0x7b: /* LDR Rd, [Rn, +reg...]! */
                 flagsdirty=0;
                 if (RD==15) return 0;
                 if (opcode&0x2000000) { if (!generateshiftnoflags(opcode)) return 0; }
@@ -1863,10 +1928,15 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 generatesavegen(RD,EDX);
                 break;
 //#endif
-                case 0x55: /*LDRB -imm*/ case 0x57: /*LDRB -imm!*/
-                case 0x5D: /*LDRB +imm*/ case 0x5F: /*LDRB +imm!*/
-                case 0x75: /*LDRB -reg*/ case 0x77: /*LDRB -reg!*/
-                case 0x7D: /*LDRB +reg*/ case 0x7F: /*LDRB +reg!*/
+
+        case 0x55: /* LDRB Rd, [Rn, #-imm]    */
+        case 0x57: /* LDRB Rd, [Rn, #-imm]!   */
+        case 0x5d: /* LDRB Rd, [Rn, #+imm]    */
+        case 0x5f: /* LDRB Rd, [Rn, #+imm]!   */
+        case 0x75: /* LDRB Rd, [Rn, -reg...]  */
+        case 0x77: /* LDRB Rd, [Rn, -reg...]! */
+        case 0x7d: /* LDRB Rd, [Rn, +reg...]  */
+        case 0x7f: /* LDRB Rd, [Rn, +reg...]! */
                 flagsdirty=0;
                 if (RD==15) return 0;
                 if (opcode&0x2000000) { if (!generateshiftnoflags(opcode)) return 0; }
@@ -1910,9 +1980,12 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
                 generatesavegen(RD,ECX);
                 break;
+
 //#if 0
-                case 0x80: /*STMDB*/  case 0x82: /*STMDB!*/
-                case 0x90: /*STMDA*/  case 0x92: /*STMDA!*/
+        case 0x80: /* STMDA */
+        case 0x82: /* STMDA ! */
+        case 0x90: /* STMDB */
+        case 0x92: /* STMDB ! */
                 flagsdirty=0;
                 first=1;
                 templ=opcode&0xFFFF;
@@ -1993,10 +2066,15 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 }
                 break;
 //#endif
-//                case 0x80: /*STMDB*/  case 0x82: /*STMDB!*/
-                case 0x84: /*STMDB^*/ case 0x86: /*STMDB!^*/
-//                case 0x90: /*STMDA*/  case 0x92: /*STMDA!*/
-                case 0x94: /*STMDA^*/ case 0x96: /*STMDA!^*/
+
+        //case 0x80: /* STMDA */
+        //case 0x82: /* STMDA ! */
+        case 0x84: /* STMDA ^ */
+        case 0x86: /* STMDA ^! */
+        //case 0x90: /* STMDB */
+        //case 0x92: /* STMDB ! */
+        case 0x94: /* STMDB ^ */
+        case 0x96: /* STMDB ^! */
                 flagsdirty=0;
                 templ=opcode&0xFFFF;
                 temp=isvalidforfastwrite(armregs[RN]);
@@ -2076,8 +2154,11 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         addlong((uint32_t)&rcodeblock[blockpoint2][0]-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4]));
                 }
                 break;
-                case 0x88: /*STMIA*/  case 0x8A: /*STMIA!*/
-                case 0x98: /*STMIB*/  case 0x9A: /*STMIB!*/
+
+        case 0x88: /* STMIA */
+        case 0x8a: /* STMIA ! */
+        case 0x98: /* STMIB */
+        case 0x9a: /* STMIB ! */
                 flagsdirty=0;
                 first=1;
                 templ=opcode&0xFFFF;
@@ -2162,10 +2243,14 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 break;
 
                 
-//                case 0x88: /*STMIA*/  case 0x8A: /*STMIA!*/
-                case 0x8C: /*STMIA^*/ case 0x8E: /*STMIA!^*/
-//                case 0x98: /*STMIB*/  case 0x9A: /*STMIB!*/
-                case 0x9C: /*STMIB^*/ case 0x9E: /*STMIB!^*/
+        //case 0x88: /* STMIA */
+        //case 0x8a: /* STMIA ! */
+        case 0x8c: /* STMIA ^ */
+        case 0x8e: /* STMIA ^! */
+        //case 0x98: /* STMIB */
+        //case 0x9a: /* STMIB ! */
+        case 0x9c: /* STMIB ^ */
+        case 0x9e: /* STMIB ^! */
                 flagsdirty=0;
                 first=1;
                 templ=opcode&0xFFFF;
@@ -2261,10 +2346,10 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 }
                 break;
                 
-                case 0x81: /*LDMDB*/
-                case 0x83: /*LDMDB!*/
-                case 0x91: /*LDMDA*/
-                case 0x93: /*LDMDA!*/
+        case 0x81: /* LDMDA */
+        case 0x83: /* LDMDA ! */
+        case 0x91: /* LDMDB */
+        case 0x93: /* LDMDB ! */
                 flagsdirty=0;
 //                if (opcode&0x8000) return 0;
 //hasldrb[blockpoint2]=1;
@@ -2332,8 +2417,11 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         addlong((uint32_t)&rcodeblock[blockpoint2][0]-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4]));
                 }
                 break;
-                case 0x89: /*LDMIA*/  case 0x8B: /*LDMIA!*/
-                case 0x99: /*LDMIB*/  case 0x9B: /*LDMIB!*/
+
+        case 0x89: /* LDMIA */
+        case 0x8b: /* LDMIA ! */
+        case 0x99: /* LDMIB */
+        case 0x9b: /* LDMIB ! */
                 flagsdirty=0;
                 first=1;
                 templ=opcode&0xFFFF;
@@ -2430,8 +2518,11 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 }
                 break;
 
-//                case 0x89: /*LDMIA*/ case 0x8B: /*LDMIA!*/
-//                case 0x99: /*LDMIB*/ case 0x9B: /*LDMIB!*/
+
+        //case 0x89: /* LDMIA */
+        //case 0x8b: /* LDMIA ! */
+        //case 0x99: /* LDMIB */
+        //case 0x9b: /* LDMIB ! */
                 flagsdirty=0;
                 templ=opcode&0xFFFF;
                 temp=isvalidforfastread(armregs[RN]);
@@ -2500,8 +2591,11 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         addlong((uint32_t)&rcodeblock[blockpoint2][0]-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4]));
                 }
                 break;
-                case 0x85: /*LDMDB^*/ case 0x87: /*LDMDB!^*/
-                case 0x95: /*LDMDA^*/ case 0x97: /*LDMDA!^*/
+
+        case 0x85: /* LDMDA ^ */
+        case 0x87: /* LDMDA ^! */
+        case 0x95: /* LDMDB ^ */
+        case 0x97: /* LDMDB ^! */
                 flagsdirty=0;
                 if (opcode&0x8000) return 0;
                 templ=opcode&0xFFFF;
@@ -2538,8 +2632,11 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         addlong((uint32_t)&rcodeblock[blockpoint2][0]-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4]));
                 }
                 break;
-                case 0x8D: /*LDMIA^*/ case 0x8F: /*LDMIA!^*/
-                case 0x9D: /*LDMIB^*/ case 0x9F: /*LDMIB!^*/
+
+        case 0x8d: /* LDMIA ^ */
+        case 0x8f: /* LDMIA ^! */
+        case 0x9d: /* LDMIB ^ */
+        case 0x9f: /* LDMIB ^! */
                 flagsdirty=0;
                 if (opcode&0x8000) return 0;
                 templ=opcode&0xFFFF;
@@ -2576,10 +2673,10 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 break;
 
 
-                case 0xA0: case 0xA1: case 0xA2: case 0xA3: /*B*/
-                case 0xA4: case 0xA5: case 0xA6: case 0xA7:
-                case 0xA8: case 0xA9: case 0xAA: case 0xAB:
-                case 0xAC: case 0xAD: case 0xAE: case 0xAF:
+        case 0xa0: case 0xa1: case 0xa2: case 0xa3: /* B */
+        case 0xa4: case 0xa5: case 0xa6: case 0xa7:
+        case 0xa8: case 0xa9: case 0xaa: case 0xab:
+        case 0xac: case 0xad: case 0xae: case 0xaf:
                 flagsdirty=0;
                 templ=(opcode&0xFFFFFF)<<2;
                 if (templ&0x2000000) templ|=0xFC000000;
@@ -2651,10 +2748,10 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
 //        addlong(0);
                 break;
 
-                case 0xB0: case 0xB1: case 0xB2: case 0xB3: /*BL*/
-                case 0xB4: case 0xB5: case 0xB6: case 0xB7:
-                case 0xB8: case 0xB9: case 0xBA: case 0xBB:
-                case 0xBC: case 0xBD: case 0xBE: case 0xBF:
+        case 0xb0: case 0xb1: case 0xb2: case 0xb3: /* BL */
+        case 0xb4: case 0xb5: case 0xb6: case 0xb7:
+        case 0xb8: case 0xb9: case 0xba: case 0xbb:
+        case 0xbc: case 0xbd: case 0xbe: case 0xbf:
                 flagsdirty=0;
                 templ=(opcode&0xFFFFFF)<<2;
                 if (templ&0x2000000) templ|=0xFC000000;
@@ -2705,7 +2802,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 }
                 break;
 
-                default:
+        default:
                 return 0;
         }
         lastrecompiled=1;
