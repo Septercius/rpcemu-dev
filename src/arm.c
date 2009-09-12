@@ -1304,7 +1304,6 @@ void execarm(int cycs)
 					{
 					      armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
 					      if (MULRD==MULRM) armregs[MULRD]=0;
-					      //cycles-=17;
 					}
 					else
 					{
@@ -1319,7 +1318,6 @@ void execarm(int cycs)
 					        armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
 					        if (MULRD==MULRM) armregs[MULRD]=0;
 					        setzn(armregs[MULRD]);
-					       //cycles-=17;
 					}
 					else
 					{
@@ -1334,7 +1332,6 @@ void execarm(int cycs)
 						       armregs[RD] = lhs & templ;
 						       setzn(armregs[RD]);
 					       }
-					       //cycles--;
 					}
 					break;
 
@@ -1343,7 +1340,6 @@ void execarm(int cycs)
 					{
 					       armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
 					       if (MULRD==MULRM) armregs[MULRD]=0;
-					       //cycles-=17;
 					}
 					else
 					{
@@ -1358,7 +1354,6 @@ void execarm(int cycs)
                                                 armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
 					        if (MULRD==MULRM) armregs[MULRD]=0;
                                                 setzn(armregs[MULRD]);
-                                                //cycles-=17;
                                         }
                                         else
                                         {
@@ -1373,7 +1368,6 @@ void execarm(int cycs)
                                                         armregs[RD] = lhs ^ templ;
                                                         setzn(armregs[RD]);
                                                 }
-                                                //cycles--;
                                         }
                                         break;
 
@@ -1394,7 +1388,6 @@ void execarm(int cycs)
                                                 setsub(lhs, templ, lhs - templ);
                                                 armregs[RD] = lhs - templ;
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x06: /* RSB reg */
@@ -1414,7 +1407,6 @@ void execarm(int cycs)
                                                 setsub(templ, lhs, templ - lhs);
                                                 armregs[RD] = templ - lhs;
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x08: /* ADD reg */
@@ -1464,7 +1456,6 @@ void execarm(int cycs)
                                                 setadd(lhs, templ, lhs + templ);
                                                 armregs[RD] = lhs + templ;
                                         }
-                                        //cycles--;
                                 #ifdef STRONGARM                                                                                
                                         }
                                 #endif
@@ -1522,7 +1513,6 @@ void execarm(int cycs)
                                                 setadc(lhs, templ, lhs + templ + templ2);
                                                 armregs[RD] = lhs + templ + templ2;
                                         }
-                                        //cycles--;
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
@@ -1576,7 +1566,6 @@ void execarm(int cycs)
                                                 setsbc(lhs, templ, lhs - (templ + templ2));
                                                 armregs[RD] = lhs - (templ + templ2);
                                         }
-                                        //cycles--;
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
@@ -1634,7 +1623,6 @@ void execarm(int cycs)
                                                 setsbc(templ, lhs, templ - (lhs + templ2));
                                                 armregs[RD] = templ - (lhs + templ2);
                                         }
-                                        //cycles--;
                                 #ifdef STRONGARM                                        
                                         }
                                 #endif
@@ -1647,7 +1635,6 @@ void execarm(int cycs)
                                                 templ=GETREG(RM);
                                                 LOADREG(RD,readmeml(addr));
                                                 writememl(addr,templ);
-                                                //cycles-=3;
                                         }
                                         else if (!(opcode&0xFFF)) /*MRS CPSR*/
                                         {
@@ -1676,7 +1663,6 @@ void execarm(int cycs)
                                         {
                                                 setzn(lhs & shift(opcode));
                                         }
-                                        //cycles--;
                                         break;
 
 				case 0x12: /* MSR CPSR, reg */
@@ -1698,7 +1684,6 @@ void execarm(int cycs)
                                         {
                                                 setzn(lhs ^ shift(opcode));
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x14: /* MRS reg,SPSR and SWPB */
@@ -1708,7 +1693,6 @@ void execarm(int cycs)
                                                 templ=GETREG(RM);
                                                 LOADREG(RD,readmemb(addr));
                                                 writememb(addr,templ);
-                                                //cycles-=3;
                                         } else if (!(opcode&0xFFF)) /* MRS SPSR */
                                         {
                                                 armregs[RD]=spsr[mode&15];
@@ -1732,7 +1716,6 @@ void execarm(int cycs)
                                         {
                                                 setsub(lhs, rhs, dest);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x16: /* MSR SPSR, reg */
@@ -1754,7 +1737,6 @@ void execarm(int cycs)
                                         } else {
                                                 setadd(lhs, rhs, dest);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x18: /* ORR reg */
@@ -1774,7 +1756,6 @@ void execarm(int cycs)
                                                 armregs[RD] = lhs | templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x1A: /* MOV reg */
@@ -1792,7 +1773,6 @@ void execarm(int cycs)
                                                 armregs[RD]=shift(opcode);
                                                 setzn(armregs[RD]);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x1C: /* BIC reg */
@@ -1812,7 +1792,6 @@ void execarm(int cycs)
                                                 armregs[RD] = lhs & ~templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x1E: /* MVN reg */
@@ -1830,7 +1809,6 @@ void execarm(int cycs)
                                                 armregs[RD]=~shift(opcode);
                                                 setzn(armregs[RD]);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x20: /* AND imm */
@@ -1850,7 +1828,6 @@ void execarm(int cycs)
                                                 armregs[RD] = lhs & templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x22: /* EOR imm */
@@ -1870,7 +1847,6 @@ void execarm(int cycs)
                                                 armregs[RD] = lhs ^ templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x24: /* SUB imm */
@@ -1890,7 +1866,6 @@ void execarm(int cycs)
                                                 armregs[RD] = lhs - templ;
                                                 setsub(lhs, templ, lhs - templ);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x26: /* RSB imm */
@@ -1910,7 +1885,6 @@ void execarm(int cycs)
                                                 setsub(templ, lhs, templ - lhs);
                                                 armregs[RD] = templ - lhs;
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x28: /* ADD imm */
@@ -1930,7 +1904,6 @@ void execarm(int cycs)
                                                 setadd(lhs, templ, lhs + templ);
                                                 armregs[RD] = lhs + templ;
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x2A: /* ADC imm */
@@ -1951,7 +1924,6 @@ void execarm(int cycs)
                                                 setadc(lhs, templ, lhs + templ + templ2);
                                                 armregs[RD] = lhs + templ + templ2;
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x2C: /* SBC imm */
@@ -1972,7 +1944,6 @@ void execarm(int cycs)
                                                 setsbc(lhs, templ, lhs - (templ + templ2));
                                                 armregs[RD] = lhs - (templ + templ2);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x2E: /* RSC imm */
@@ -1993,7 +1964,6 @@ void execarm(int cycs)
                                                 setsbc(templ, lhs, templ - (lhs + templ2));
                                                 armregs[RD] = templ - (lhs + templ2);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x31: /* TST imm */
@@ -2007,7 +1977,6 @@ void execarm(int cycs)
                                         {
                                                 setzn(lhs & rotate(opcode));
                                         }
-                                        //cycles--;
                                         break;
 
 				case 0x32: /* MSR CPSR, imm */
@@ -2029,7 +1998,6 @@ void execarm(int cycs)
                                         {
                                                 setzn(lhs ^ rotate(opcode));
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x35: /* CMP imm */
@@ -2045,7 +2013,6 @@ void execarm(int cycs)
                                         {
                                                 setsub(lhs, rhs, dest);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x37: /* CMN imm */
@@ -2059,7 +2026,6 @@ void execarm(int cycs)
                                         } else {
                                                 setadd(lhs, rhs, dest);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x38: /* ORR imm */
@@ -2079,7 +2045,6 @@ void execarm(int cycs)
                                                 armregs[RD] = lhs | templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x3A: /* MOV imm */
@@ -2097,7 +2062,6 @@ void execarm(int cycs)
                                                 armregs[RD]=rotate(opcode);
                                                 setzn(armregs[RD]);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x3C: /* BIC imm */
@@ -2117,7 +2081,6 @@ void execarm(int cycs)
                                                 armregs[RD] = lhs & ~templ;
                                                 setzn(armregs[RD]);
                                         }
-                                        //cycles--;
                                         break;
 
                                 case 0x3E: /* MVN imm */
@@ -2135,7 +2098,6 @@ void execarm(int cycs)
                                                 armregs[RD]=~rotate(opcode);
                                                 setzn(armregs[RD]);
                                         }
-                                        //cycles--;
                                         break;
 //#endif
 
@@ -2494,7 +2456,6 @@ void execarm(int cycs)
                                         case 0x98: case 0x99: case 0x9A: case 0x9B:
                                         case 0x9C: case 0x9D: case 0x9E: case 0x9F:
                                         ldmstm((opcode>>20)&0xFF, opcode);
-                                        //cycles--;
                                         break;*/
 
 #define STMfirst()      mask=1; \
@@ -2720,7 +2681,6 @@ void execarm(int cycs)
                                         armregs[14]=armregs[15]-4;
                                         armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
                                         refillpipeline();
-                                        //cycles-=3;
                                         break;
 
                                         case 0xE0: case 0xE2: case 0xE4: case 0xE6: /*MCR*/
