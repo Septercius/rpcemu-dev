@@ -457,35 +457,31 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 {
 	int c;
 	uint32_t templ;
-	uint8_t dataop;
+
 	switch ((opcode>>20)&0xFF)
 	{
 	case 0x00: /* AND reg */
 		if (RD==15) return 0;
 		if (!generateshift(opcode,pcpsr)) return 0;
-                dataop=0x20;
-		generateregdataproc(opcode,dataop,1);
+		generateregdataproc(opcode, X86_OP_AND, 1);
 		break;
 
 	case 0x02: /* EOR reg */
 		if (RD==15) return 0;
 		if (!generateshift(opcode,pcpsr)) return 0;
-                dataop=0x30;
-		generateregdataproc(opcode,dataop,0);
+		generateregdataproc(opcode, X86_OP_XOR, 0);
 		break;
 
 	case 0x04: /* SUB reg */
 		if (RD==15) return 0;
 		if (!generateshift(opcode,pcpsr)) return 0;
-                dataop=0x28;
-		generateregdataproc(opcode,dataop,1);
+		generateregdataproc(opcode, X86_OP_SUB, 1);
 		break;
 
 	case 0x08: /* ADD reg */
 		if (RD==15) return 0;
 		if (!generateshift(opcode,pcpsr)) return 0;
-                dataop=0x00;
-		generateregdataproc(opcode,dataop,0);
+		generateregdataproc(opcode, X86_OP_ADD, 0);
 		break;
 
 	case 0x0a: /* ADC reg */
@@ -493,15 +489,13 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (!generateshift(opcode,pcpsr)) return 0;
 		genloadreggen(15,ECX);
 		addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx - puts ARM carry into x64 carry*/
-                dataop=0x10;
-                generateregdataproc(opcode,dataop,0);
+                generateregdataproc(opcode, X86_OP_ADC, 0);
                 break;
 
 	case 0x18: /* ORR reg */
 		if (RD==15) return 0;
 		if (!generateshift(opcode,pcpsr)) return 0;
-                dataop=0x08;
-		generateregdataproc(opcode,dataop,0);
+		generateregdataproc(opcode, X86_OP_OR, 0);
 		break;
 
 	case 0x1a: /* MOV reg */
@@ -512,46 +506,40 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 
 	case 0x20: /* AND imm */
                 if (RD==15) return 0;
-                dataop=0x20;
                 templ=rotate2(opcode);
-                generatedataproc(opcode,dataop,templ);
+                generatedataproc(opcode, X86_OP_AND, templ);
                 break;
 
 	case 0x22: /* EOR imm */
                 if (RD==15) return 0;
-                dataop=0x30;
                 templ=rotate2(opcode);
-                generatedataproc(opcode,dataop,templ);
+                generatedataproc(opcode, X86_OP_XOR, templ);
                 break;
 
 	case 0x24: /* SUB imm */
                 if (RD==15) return 0;
-                dataop=0x28;
                 templ=rotate2(opcode);
-                generatedataproc(opcode,dataop,templ);
+                generatedataproc(opcode, X86_OP_SUB, templ);
                 break;
 
 	case 0x28: /* ADD imm */
                 if (RD==15) return 0;
-                dataop=0x00;
                 templ=rotate2(opcode);
-                generatedataproc(opcode,dataop,templ);
+                generatedataproc(opcode, X86_OP_ADD, templ);
                 break;
 
 	case 0x2a: /* ADC imm */
                 if (RD==15) return 0;
 		genloadreggen(15,ECX);
 		addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx - puts ARM carry into x64 carry*/
-                dataop=0x10;
                 templ=rotate2(opcode);
-                generatedataproc(opcode,dataop,templ);
+                generatedataproc(opcode, X86_OP_ADC, templ);
                 break;
 
 	case 0x38: /* ORR imm */
                 if (RD==15) return 0;
-                dataop=0x08;
                 templ=rotate2(opcode);
-                generatedataproc(opcode,dataop,templ);
+                generatedataproc(opcode, X86_OP_OR, templ);
                 break;
 
 	case 0x3a: /* MOV imm */
