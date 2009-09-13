@@ -44,6 +44,8 @@ static uint32_t blocks[BLOCKS];
 static int pcinc = 0;
 static int lastrecompiled = 0;
 
+#include "codegen_x86_common.h"
+
 void initcodeblocks(void)
 {
         int c;
@@ -252,15 +254,6 @@ static void genstoreimm(int reg, uint32_t val)
 	addbyte(0x41); addbyte(0xC7); addbyte(0x47); /*MOVL $val,reg(r15)*/
 	addbyte(reg<<2); addlong(val);
 }
-
-#define EAX 0x00
-#define ECX 0x08
-#define EDX 0x10
-#define EBX 0x18
-#define ESP 0x20
-#define EBP 0x28
-#define ESI 0x30
-#define EDI 0x38
 
 static void genloadreggen(int reg, int x86reg)
 {
