@@ -38,8 +38,8 @@ host_triplet = @host@
 bin_PROGRAMS = rpcemu$(EXEEXT)
 @DYNAREC_TRUE@am__append_1 = ArmDynarec.c ArmDynarecOps.h
 @DYNAREC_TRUE@am__append_2 = -DDYNAREC
-@CPU_X86_64_TRUE@@DYNAREC_TRUE@am__append_3 = codegen_amd64.c codegen_amd64.h
-@CPU_I386_TRUE@@DYNAREC_TRUE@am__append_4 = codegen_x86.c codegen_x86.h
+@CPU_X86_64_TRUE@@DYNAREC_TRUE@am__append_3 = codegen_amd64.c codegen_amd64.h codegen_x86_common.h
+@CPU_I386_TRUE@@DYNAREC_TRUE@am__append_4 = codegen_x86.c codegen_x86.h codegen_x86_common.h
 
 # non-DYNAREC
 @DYNAREC_FALSE@am__append_5 = arm.c arm.h codegen_null.c
@@ -68,10 +68,10 @@ am__rpcemu_SOURCES_DIST = superio.c superio.h cdrom-iso.c cmos.c \
 	ide.h iomd.c iomd.h keyboard.c keyboard.h mem.c mem.h \
 	romload.c rpcemu.c sound.c sound.h vidc20.c vidc20.h podules.c \
 	podulerom.c icside.c arm_common.h ArmDynarec.c ArmDynarecOps.h \
-	codegen_amd64.c codegen_amd64.h codegen_x86.c codegen_x86.h \
-	arm.c arm.h codegen_null.c cdrom-ioctl.c rpc-win.c resources.h \
-	rpc-linux.c gui.c cdrom-linuxioctl.c network-linux.c \
-	rpc-macosx.c
+	codegen_amd64.c codegen_amd64.h codegen_x86_common.h \
+	codegen_x86.c codegen_x86.h arm.c arm.h codegen_null.c \
+	cdrom-ioctl.c rpc-win.c resources.h rpc-linux.c gui.c \
+	cdrom-linuxioctl.c network-linux.c rpc-macosx.c
 @DYNAREC_TRUE@am__objects_1 = rpcemu-ArmDynarec.$(OBJEXT)
 @CPU_X86_64_TRUE@@DYNAREC_TRUE@am__objects_2 =  \
 @CPU_X86_64_TRUE@@DYNAREC_TRUE@	rpcemu-codegen_amd64.$(OBJEXT)

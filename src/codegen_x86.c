@@ -51,20 +51,14 @@ static int codeblockpos = 0;
 
 static unsigned char lahftable[256], lahftablesub[256];
 
-#define EAX 0x00
-#define ECX 0x08
-#define EDX 0x10
-#define EBX 0x18
-#define ESP 0x20
-#define EBP 0x28
-#define ESI 0x30
-#define EDI 0x38
 static void generateloadgen(int reg, int x86reg);
 static void generatesavegen(int reg, int x86reg);
 
 static int blockpoint = 0, blockpoint2 = 0;
 static uint32_t blocks[BLOCKS];
 static int pcinc = 0;
+
+#include "codegen_x86_common.h"
 
 void initcodeblocks(void)
 {

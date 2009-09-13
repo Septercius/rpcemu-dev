@@ -26,10 +26,10 @@ rpcemu_SOURCES += ArmDynarec.c ArmDynarecOps.h
 rpcemu_CFLAGS += -DDYNAREC
 
 if CPU_X86_64
-rpcemu_SOURCES += codegen_amd64.c codegen_amd64.h
+rpcemu_SOURCES += codegen_amd64.c codegen_amd64.h codegen_x86_common.h
 endif
 if CPU_I386
-rpcemu_SOURCES += codegen_x86.c codegen_x86.h
+rpcemu_SOURCES += codegen_x86.c codegen_x86.h codegen_x86_common.h
 endif
 
 else
