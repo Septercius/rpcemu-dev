@@ -1,6 +1,9 @@
 #ifndef CODEGEN_X86_COMMON_H
 #define CODEGEN_X86_COMMON_H
 
+#include <stddef.h>
+#include <stdint.h>
+
 /* x86 registers (bitfields for instruction encoding) */
 #define EAX	0x00
 #define ECX	0x08
@@ -20,6 +23,21 @@
 #define X86_OP_SUB	0x28
 #define X86_OP_XOR	0x30
 #define X86_OP_CMP	0x38
+
+/**
+ * Store a 32-bit relative address at the current code generation position.
+ * The offset is calculated relative to the current position.
+ *
+ * @param addr Pointer to the address to be stored relative to current position
+ */
+static inline void
+addrel32(const void *addr)
+{
+	ptrdiff_t rel = ((const char *) addr) -
+	                ((const char *) &rcodeblock[blockpoint2][codeblockpos]);
+
+	addlong((uint32_t) (rel - 4));
+}
 
 #endif /* CODEGEN_X86_COMMON_H */
 

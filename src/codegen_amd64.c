@@ -375,7 +375,7 @@ static void genldr(void) /*address in %edi, data in %eax*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
 	addbyte(0xEB); addbyte(5); /*JMP over*/
         addbyte(0xE8); /*CALL*/
-        addlong((char *)recompreadmeml-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+        addrel32(recompreadmeml);
 	addbyte(0x5F); /*POP %rdi*/
 	addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
 	addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx*/
@@ -396,7 +396,7 @@ static void genldrb(void) /*address in %edi, data in %al*/
 	addbyte(0xEB); addbyte(7); /*JMP over*/
 	addbyte(0x57); /*PUSH %rdi*/
         addbyte(0xE8); /*CALL*/
-        addlong((char *)recompreadmemb-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+        addrel32(recompreadmemb);
 	addbyte(0x5F); /*POP %rdi*/
 }
 
@@ -415,7 +415,7 @@ static void genstr(void) /*address in %edi, data in %eax*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
 	addbyte(0xEB); addbyte(5); /*JMP over*/
         addbyte(0xE8); /*CALL*/
-        addlong((char *)recompwritememl-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+        addrel32(recompwritememl);
 	addbyte(0x5F); /*POP %rdi*/
 }
 
@@ -432,7 +432,7 @@ static void genstrb(void) /*address in %edi, data in %al*/
 	addbyte(0xEB); addbyte(7); /*JMP over*/
 	addbyte(0x57); /*PUSH %rdi*/
         addbyte(0xE8); /*CALL*/
-        addlong((char *)recompwritememb-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+        addrel32(recompwritememb);
 	addbyte(0x5F); /*POP %rdi*/
 }
 
@@ -449,7 +449,7 @@ static void gentestabort(void)
 	{
 		addbyte(0x0F); /*JNE 0*/
 		addbyte(0x85);
-		addlong((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+		addrel32(&rcodeblock[blockpoint2][0]);
 	}
 }
 
@@ -570,7 +570,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
         	{
                 	addbyte(0x0F); /*JNE 0*/
                 	addbyte(0x85);
-                	addlong((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+                	addrel32(&rcodeblock[blockpoint2][0]);
         	}
 		if (opcode&0x2000000)
 		{
@@ -608,7 +608,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
         	{
                 	addbyte(0x0F); /*JNE 0*/
                 	addbyte(0x85);
-                	addlong((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+                	addrel32(&rcodeblock[blockpoint2][0]);
         	}
 		if (opcode&0x2000000)
 		{
@@ -645,7 +645,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
         	{
                 	addbyte(0x0F); /*JNE 0*/
                 	addbyte(0x85);
-                	addlong((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+                	addrel32(&rcodeblock[blockpoint2][0]);
         	}
 		genstorereggen(RD,EDX);
 		if (opcode&0x2000000)
@@ -683,7 +683,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
         	{
                 	addbyte(0x0F); /*JNE 0*/
                 	addbyte(0x85);
-                	addlong((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+                	addrel32(&rcodeblock[blockpoint2][0]);
         	}
 		genstorereggen(RD,EDX);
 		if (opcode&0x2000000)
@@ -800,7 +800,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xEF); addbyte(4); /*ADDL $4,%edi*/ }
 				if (c==15) { addbyte(0x83); addbyte(0xC0); addbyte(4); /*ADD $4,%eax*/ }
         			addbyte(0xE8); /*CALL*/
-        			addlong((char *)recompwritememl-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+        			addrel32(recompwritememl);
 				if (!(opcode&0x1000000)) { addbyte(0x83); addbyte(0xEF); addbyte(4); /*ADDL $4,%edi*/ }
 			}
 		}
@@ -827,7 +827,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 				if (c==15) { addbyte(0x83); addbyte(0xC0); addbyte(4); /*ADD $4,%eax*/ }
         			addbyte(0xE8); /*CALL*/
-        			addlong((char *)recompwritememl-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+        			addrel32(recompwritememl);
 				if (!(opcode&0x1000000)) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 			}
 		}
@@ -853,7 +853,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 			{
 				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xEF); addbyte(4); /*SUBL $4,%edi*/ }
         			addbyte(0xE8); /*CALL*/
-        			addlong((char *)recompreadmeml-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+        			addrel32(recompreadmeml);
 				if (!(opcode&0x1000000)) { addbyte(0x83); addbyte(0xEF); addbyte(4); /*SUBL $4,%edi*/ }
 				if (c==15)
 				{
@@ -895,7 +895,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 			{
 				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
         			addbyte(0xE8); /*CALL*/
-        			addlong((char *)recompreadmeml-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+        			addrel32(recompreadmeml);
 				if (!(opcode&0x1000000)) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 				if (c==15)
 				{
@@ -1000,7 +1000,7 @@ void generatecall(OpFn addr, uint32_t opcode,uint32_t *pcpsr)
         addlong(opcode);
 	addbyte(0x45); addbyte(0x89); addbyte(0x67); addbyte(15<<2); /*MOVL %r12d,R15*/
         addbyte(0xE8); /*CALL*/
-        addlong((char *)addr-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+        addrel32(addr);
 	addbyte(0x45); addbyte(0x8B); addbyte(0x67); addbyte(15<<2); /*MOVL R15,%r12d*/
 //#if 0
         if (!flaglookup[opcode>>28][(*pcpsr)>>28] && (opcode&0xE000000)==0xA000000)
@@ -1028,7 +1028,7 @@ void generatecall(OpFn addr, uint32_t opcode,uint32_t *pcpsr)
 //                pcinc=0;
         }
                 addbyte(0xE9); /*JMP 0*/
-                addlong((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+                addrel32(&rcodeblock[blockpoint2][0]);
         }
 //        #endif
 }
@@ -1364,7 +1364,7 @@ void generateirqtest(void)
 //                #endif
                 addbyte(0x0F); /*JNE 0*/
                 addbyte(0x85);
-                addlong((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+4]));
+                addrel32(&rcodeblock[blockpoint2][0]);
         }
 }
 #endif
