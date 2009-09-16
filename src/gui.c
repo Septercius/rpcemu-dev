@@ -326,6 +326,12 @@ static int menusettings(void)
                 } else if (configuregui[CONF_VRAM_2].flags & D_SELECTED) {
                         selected_vrammask = 0x7FFFFF;
                 }
+
+                /* If an A7000 (ARM7500) it does not have vram */
+                if (config.model == CPUModel_ARM7500) {
+                        selected_vrammask = 0;
+                }
+
                 if (config.vrammask != selected_vrammask) {
                         config.vrammask = selected_vrammask;
                         changed  = 1;
