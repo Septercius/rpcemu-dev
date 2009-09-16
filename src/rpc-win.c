@@ -47,11 +47,9 @@ static int blitrunning=0,soundrunning=0;
 static HANDLE waitobject,soundobject;
 static CRITICAL_SECTION vidcmutex;
 
-static int _mask;
-static int vrammask2;
-static int soundenabled2;
-static int refresh2;
 static int chngram = 0;
+
+static Config chosen_config; /**< Temp store of config the user chose in the configuration dialog */
 
 static HINSTANCE hinstance; /**< Handle to current program instance */
 
@@ -557,7 +555,6 @@ static int selectiso(HWND hwnd)
  */
 static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-        static CPUModel model2 = CPUModel_ARM7500;
         HWND h;
         int c;
         int cpu;
@@ -610,37 +607,48 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 }
                 SendMessage(h,BM_SETCHECK,1,0);
 
-                model2        = config.model;
-                vrammask2     = config.vrammask;
-                soundenabled2 = config.soundenabled;
-                refresh2      = config.refresh;
+                chosen_config.model        = config.model;
+                chosen_config.vrammask     = config.vrammask;
+                chosen_config.soundenabled = config.soundenabled;
+                chosen_config.refresh      = config.refresh;
                 return TRUE;
 
         case WM_COMMAND:
                 switch (LOWORD(wParam))
                 {
                 case IDOK:
-                        if (config.soundenabled && !soundenabled2)
+                        /* User has clicked on the OK button of the config dialog, 
+                           apply their changes */
+
+                        /* Sound turned off */
+                        if (config.soundenabled && !chosen_config.soundenabled)
                         {
                                 config.soundenabled = 0;
                                 sound_pause();
                         }
-                        if (soundenabled2 && !config.soundenabled)
+
+                        /* Sound turned on */
+                        if (chosen_config.soundenabled && !config.soundenabled)
                         {
                                 config.soundenabled = 1;
                                 sound_restart();
                         }
                         
-                        if (config.model != model2 || config.vrammask != vrammask2 || chngram)
-                           resetrpc();
+                        if (config.model != chosen_config.model ||
+                            config.vrammask != chosen_config.vrammask ||
+                            chngram)
+                        {
+                                resetrpc();
+                        }
+
                         if (chngram)
                         {
-                                config.rammask = _mask;
+                                config.rammask = chosen_config.rammask;
                                 mem_reset(config.rammask + 1);
                         }
-                        config.model = model2;
-                        config.vrammask = vrammask2;
-                        config.refresh = refresh2;
+                        config.model = chosen_config.model;
+                        config.vrammask = chosen_config.vrammask;
+                        config.refresh = chosen_config.refresh;
                         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
                         EndDialog(hdlg,0);
                         return TRUE;
@@ -655,7 +663,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         SendMessage(h,BM_SETCHECK,1,0);
                         h = GetDlgItem(hdlg, RadioButton_VRAM_2);
                         SendMessage(h,BM_SETCHECK,0,0);
-                        vrammask2=0;
+                        chosen_config.vrammask = 0;
                         return TRUE;
 
                 /* VRAM 2MB */
@@ -664,7 +672,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         SendMessage(h,BM_SETCHECK,0,0);
                         h = GetDlgItem(hdlg, RadioButton_VRAM_2);
                         SendMessage(h,BM_SETCHECK,1,0);
-                        vrammask2=0x7FFFFF;
+                        chosen_config.vrammask = 0x7FFFFF;
                         return TRUE;
                         
                 /* CPU Type radio buttons */
@@ -695,13 +703,13 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         /* Set new CPU model */
                         switch (LOWORD(wParam) - RadioButton_ARM610) {
                         case 0:
-                                model2 = CPUModel_ARM610; break;
+                                chosen_config.model = CPUModel_ARM610; break;
                         case 1:
-                                model2 = CPUModel_ARM7500; break;
+                                chosen_config.model = CPUModel_ARM7500; break;
                         case 2:
-                                model2 = CPUModel_ARM710; break;
+                                chosen_config.model = CPUModel_ARM710; break;
                         case 3:
-                                model2 = CPUModel_SA110; break;
+                                chosen_config.model = CPUModel_SA110; break;
                         default:
                                 fprintf(stderr, "configdlgproc(): unknown dialog item for CPUModel %d\n",
                                         LOWORD(wParam) - RadioButton_ARM610);
@@ -719,7 +727,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 case RadioButton_Mem_32:
                 case RadioButton_Mem_64:
                 case RadioButton_Mem_128:
-                        _mask = (0x200000 << (LOWORD(wParam) - RadioButton_Mem_4)) - 1;
+                        chosen_config.rammask = (0x200000 << (LOWORD(wParam) - RadioButton_Mem_4)) - 1;
                         for (c = RadioButton_Mem_4; c <= RadioButton_Mem_128; c++)
                         {
                                 h=GetDlgItem(hdlg,c);
@@ -727,15 +735,18 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         }
                         h=GetDlgItem(hdlg,LOWORD(wParam));
                         SendMessage(h,BM_SETCHECK,1,0);
-                        if (_mask != config.rammask) chngram=1;
-                        else               chngram=0;
+                        if (chosen_config.rammask != config.rammask) {
+                                chngram = 1;
+                        } else {
+                                chngram = 0;
+                        }
                         return TRUE;
                         
                 /* Sound */
                 case CheckBox_Sound:
-                        soundenabled2^=1;
+                        chosen_config.soundenabled ^= 1;
                         h=GetDlgItem(hdlg,LOWORD(wParam));
-                        SendMessage(h,BM_SETCHECK,soundenabled2,0);
+                        SendMessage(h, BM_SETCHECK, chosen_config.soundenabled, 0);
                         return TRUE;
                 }
                 break;
@@ -746,7 +757,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 h = GetDlgItem(hdlg, Text_Refresh);
                 sprintf(s,"%ihz",c*5);
                 SendMessage(h,WM_SETTEXT,0,(LPARAM)s);
-                refresh2=c*5;
+                chosen_config.refresh = c * 5;
                 break;
 
         }
