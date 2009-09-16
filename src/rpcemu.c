@@ -248,6 +248,7 @@ static void loadconfig(void)
 
         append_filename(fn,exname,"rpc.cfg",511);
         set_config_file(fn);
+
         p = get_config_string(NULL,"mem_size",NULL);
         if (!p)                    config.rammask = 0x7FFFFF;
         else if (!strcmp(p,"4"))   config.rammask = 0x1FFFFF;
@@ -256,25 +257,35 @@ static void loadconfig(void)
         else if (!strcmp(p,"64"))  config.rammask = 0x1FFFFFF;
         else if (!strcmp(p,"128")) config.rammask = 0x3FFFFFF;
         else                       config.rammask = 0x7FFFFF;
+
         p = get_config_string(NULL,"vram_size",NULL);
         if (!p) config.vrammask = 0x7FFFFF;
         else if (!strcmp(p,"0"))   config.vrammask = 0;
         else                       config.vrammask = 0x7FFFFF;
+
         p = get_config_string(NULL,"cpu_type",NULL);
         if (!p) config.model = CPUModel_ARM710;
         else if (!strcmp(p, "ARM610"))  config.model = CPUModel_ARM610;
         else if (!strcmp(p, "ARM7500")) config.model = CPUModel_ARM7500;
         else if (!strcmp(p, "SA110"))   config.model = CPUModel_SA110;
         else                            config.model = CPUModel_ARM710;
+
+        /* ARM7500 (A7000) has no VRAM */
+        if (config.model == CPUModel_ARM7500) {
+                config.vrammask = 0;
+        }
+
         config.soundenabled = get_config_int(NULL, "sound_enabled", 1);
         config.stretchmode  = get_config_int(NULL, "stretch_mode",  0);
         config.refresh      = get_config_int(NULL, "refresh_rate", 60);
         config.skipblits    = get_config_int(NULL, "blit_optimisation", 0);
         config.cdromenabled = get_config_int(NULL, "cdrom_enabled", 0);
         config.cdromtype    = get_config_int(NULL, "cdrom_type", 0);
+
         p = get_config_string(NULL, "cdrom_iso", NULL);
         if (!p) strcpy(config.isoname, "");
         else    strcpy(config.isoname, p);
+
         config.mousehackon = get_config_int(NULL, "mouse_following", 1);
         config.username  = get_config_string(NULL, "username",  NULL);
         config.ipaddress = get_config_string(NULL, "ipaddress", NULL);

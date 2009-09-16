@@ -633,6 +633,11 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                                 config.soundenabled = 1;
                                 sound_restart();
                         }
+
+                        /* If changing to A7000 (ARM7500) it does not have vram */
+                        if (config.model != chosen_config.model && chosen_config.model == CPUModel_ARM7500) {
+                                chosen_config.vrammask = 0;
+                        }
                         
                         if (config.model != chosen_config.model ||
                             config.vrammask != chosen_config.vrammask ||

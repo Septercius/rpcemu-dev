@@ -415,7 +415,7 @@ void writeiomd(uint32_t addr, uint32_t val)
                 // rpclog("Vidcur = %08X\n",val);
                 return;
         case IOMD_0x1D4_VIDEND: /* Video DMA End */
-                if (config.vrammask && config.model != CPUModel_ARM7500)
+                if (config.vrammask)
                         iomd.vidend = (val + 2048) & 0x7FFFF0;
                 else
                         iomd.vidend = (val + 16) & 0x7FFFF0;
