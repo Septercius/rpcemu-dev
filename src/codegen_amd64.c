@@ -374,8 +374,7 @@ static void genldr(void) /*address in %edi, data in %eax*/
 	addbyte(0x8B); addbyte(0x14); addbyte(0x3A); /*MOVL (%rdx,%rdi),%edx*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
 	addbyte(0xEB); addbyte(5); /*JMP over*/
-        addbyte(0xE8); /*CALL*/
-        addrel32(recompreadmeml);
+	gen_x86_call(recompreadmeml);
 	addbyte(0x5F); /*POP %rdi*/
 	addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
 	addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx*/
@@ -395,8 +394,7 @@ static void genldrb(void) /*address in %edi, data in %al*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
 	addbyte(0xEB); addbyte(7); /*JMP over*/
 	addbyte(0x57); /*PUSH %rdi*/
-        addbyte(0xE8); /*CALL*/
-        addrel32(recompreadmemb);
+	gen_x86_call(recompreadmemb);
 	addbyte(0x5F); /*POP %rdi*/
 }
 
@@ -414,8 +412,7 @@ static void genstr(void) /*address in %edi, data in %eax*/
 	addbyte(0x89); addbyte(0x04); addbyte(0x3A); /*MOV %eax,(%rdx,%rdi)*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
 	addbyte(0xEB); addbyte(5); /*JMP over*/
-        addbyte(0xE8); /*CALL*/
-        addrel32(recompwritememl);
+	gen_x86_call(recompwritememl);
 	addbyte(0x5F); /*POP %rdi*/
 }
 
@@ -431,8 +428,7 @@ static void genstrb(void) /*address in %edi, data in %al*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
 	addbyte(0xEB); addbyte(7); /*JMP over*/
 	addbyte(0x57); /*PUSH %rdi*/
-        addbyte(0xE8); /*CALL*/
-        addrel32(recompwritememb);
+	gen_x86_call(recompwritememb);
 	addbyte(0x5F); /*POP %rdi*/
 }
 
@@ -799,8 +795,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 				genloadreg(c);
 				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xEF); addbyte(4); /*ADDL $4,%edi*/ }
 				if (c==15) { addbyte(0x83); addbyte(0xC0); addbyte(4); /*ADD $4,%eax*/ }
-        			addbyte(0xE8); /*CALL*/
-        			addrel32(recompwritememl);
+				gen_x86_call(recompwritememl);
 				if (!(opcode&0x1000000)) { addbyte(0x83); addbyte(0xEF); addbyte(4); /*ADDL $4,%edi*/ }
 			}
 		}
@@ -826,8 +821,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 				genloadreg(c);
 				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 				if (c==15) { addbyte(0x83); addbyte(0xC0); addbyte(4); /*ADD $4,%eax*/ }
-        			addbyte(0xE8); /*CALL*/
-        			addrel32(recompwritememl);
+				gen_x86_call(recompwritememl);
 				if (!(opcode&0x1000000)) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 			}
 		}
@@ -852,8 +846,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 			if (opcode&(1<<c))
 			{
 				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xEF); addbyte(4); /*SUBL $4,%edi*/ }
-        			addbyte(0xE8); /*CALL*/
-        			addrel32(recompreadmeml);
+				gen_x86_call(recompreadmeml);
 				if (!(opcode&0x1000000)) { addbyte(0x83); addbyte(0xEF); addbyte(4); /*SUBL $4,%edi*/ }
 				if (c==15)
 				{
@@ -894,8 +887,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 			if (opcode&(1<<c))
 			{
 				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
-        			addbyte(0xE8); /*CALL*/
-        			addrel32(recompreadmeml);
+				gen_x86_call(recompreadmeml);
 				if (!(opcode&0x1000000)) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 				if (c==15)
 				{
@@ -999,8 +991,7 @@ void generatecall(OpFn addr, uint32_t opcode,uint32_t *pcpsr)
 	addbyte(0xBF); /*MOVL $opcode,%edi*/
         addlong(opcode);
 	addbyte(0x45); addbyte(0x89); addbyte(0x67); addbyte(15<<2); /*MOVL %r12d,R15*/
-        addbyte(0xE8); /*CALL*/
-        addrel32(addr);
+        gen_x86_call(addr);
 	addbyte(0x45); addbyte(0x8B); addbyte(0x67); addbyte(15<<2); /*MOVL R15,%r12d*/
 //#if 0
         if (!flaglookup[opcode>>28][(*pcpsr)>>28] && (opcode&0xE000000)==0xA000000)

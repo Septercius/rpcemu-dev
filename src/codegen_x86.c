@@ -97,11 +97,10 @@ void initcodeblocks(void)
         
         addbyte(0x53); /*PUSH %ebx*/
         addbyte(0x57); /*PUSH %edi*/
-        addbyte(0xE8); /*CALL*/
-        addrel32(writememfl);
+        gen_x86_call(writememfl);
 
-//        addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
-//        addbyte(0xE8); addrel32(codewritememflnt); /*CALL writememfl*/
+        //addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
+        //gen_x86_call(codewritememflnt);
         
         addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
         addbyte(0xC1); addbyte(0xE9); addbyte(12); /*SHR $12,%ecx*/
@@ -121,8 +120,7 @@ void initcodeblocks(void)
         addbyte(0x8B); addbyte(0x14); addbyte(0x39); /*MOVL (%ecx,%edi),%edx*/
         addbyte(0xC3); /*RET*/
         addbyte(0x57); /*PUSH %edi*/
-        addbyte(0xE8); /*CALL*/
-        addrel32(readmemfl);
+        gen_x86_call(readmemfl);
         addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
         addbyte(0xC1); addbyte(0xE9); addbyte(12); /*SHR $12,%ecx*/
         addbyte(0x83); addbyte(0xC4); addbyte(0x04); /*ADDL $4,%esp*/
@@ -144,7 +142,7 @@ void initcodeblocks(void)
         addbyte(0x8B); addbyte(0x14); addbyte(0x39); /*MOVL (%ecx,%edi),%edx*/
         addbyte(0xC3); /*RET*/
         addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
-        addbyte(0xE8); addrel32(codereadmemlnt); /*CALL writememfl*/
+        gen_x86_call(codereadmemlnt);
         addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
         addbyte(0xC1); addbyte(0xE9); addbyte(12); /*SHR $12,%ecx*/
         addbyte(0x8B); addbyte(0x0C); addbyte(0x8D); addlong(vraddrl); /*MOV vraddrl(,%ecx,4),%ecx*/
@@ -163,7 +161,7 @@ void initcodeblocks(void)
         {
                 addbyte(0xD1); addbyte(0xED); /*SHR $1,%ebp*/
                 addbyte(0x73); addbyte(8+3); /*JNC next*/
-                addbyte(0xE8); addrel32(mreadmem); /*CALL writem*/
+                gen_x86_call(mreadmem);
                 generatesavegen(c,EDX);
                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
         }
@@ -184,7 +182,7 @@ void initcodeblocks(void)
 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
         addbyte(0xC3); /*RET*/
         addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
-        addbyte(0xE8); addrel32(codewritememflnt); /*CALL writememfl*/
+        gen_x86_call(codewritememflnt);
         addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
         addbyte(0xC1); addbyte(0xE9); addbyte(12); /*SHR $12,%ecx*/
         addbyte(0x8B); addbyte(0x0C); addbyte(0x8D); addlong(vwaddrl); /*MOV vwaddrl(,%ecx,4),%ecx*/
@@ -206,7 +204,7 @@ addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
                 addbyte(0xD1); addbyte(0xED); /*SHR $1,%ebp*/
                 generateloadgen(c,EBX); /*MOVL armregs[c],%ebx*/
                 addbyte(0x73); addbyte(5+3); /*JNC next*/
-                addbyte(0xE8); addrel32(mwritemem); /*CALL writem*/
+                gen_x86_call(mwritemem);
                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
         }
         addbyte(0xC3); /*RET*/
@@ -1541,11 +1539,11 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 /*.notinbuffer*/
                 if (opcode&0x400000)
                 {
-                        addbyte(0xE8); addrel32(codewritememfb); /*CALL writememfb*/
+                        gen_x86_call(codewritememfb);
                 }
                 else
                 {
-                        addbyte(0xE8); addrel32(codewritememfl); /*CALL writememfl*/
+                        gen_x86_call(codewritememfl);
                 }
                 addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
                 if (codeblockpos<124)
@@ -1598,7 +1596,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generateloadgen(RN,EDI);
                 generateloadgen(RD,EBX);
                 addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL ~3,%edi*/
-                addbyte(0xE8); addrel32(mwritemem); /*CALL mwritem*/
+                gen_x86_call(mwritemem);
                 if (opcode&0x2000000) generateshiftnoflags(opcode);
 addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
 //                addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
@@ -1682,11 +1680,11 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 /*.notinbuffer*/
                 if (opcode&0x400000)
                 {
-                        addbyte(0xE8); addrel32(codereadmemb); /*CALL writememfb*/
+                        gen_x86_call(codereadmemb);
                 }
                 else
                 {
-                        addbyte(0xE8); addrel32(codereadmeml); /*CALL writememfl*/
+                        gen_x86_call(codereadmeml);
                 }
                 addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
                 if (codeblockpos<124)
@@ -1778,7 +1776,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 if (codeblockpos<115) { addbyte(0xEB); addbyte(9); /*JMP nextbit*/ }
                 else                  { addbyte(0xEB); addbyte(13); /*JMP nextbit*/ }
                 /*.notinbuffer*/
-                addbyte(0xE8); addrel32(codewritememfl); /*CALL writememfb*/
+                gen_x86_call(codewritememfl);
                 addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
                 if (codeblockpos<124)
                 {
@@ -1834,7 +1832,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 if (codeblockpos<115) { addbyte(0xEB); addbyte(9); /*JMP nextbit*/ }
                 else                  { addbyte(0xEB); addbyte(13); /*JMP nextbit*/ }
                 /*.notinbuffer*/
-                addbyte(0xE8); addrel32(codewritememfb); /*CALL writememfb*/
+                gen_x86_call(codewritememfb);
                 addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
                 if (codeblockpos<124)
                 {
@@ -1889,7 +1887,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 if (codeblockpos<115) { addbyte(0xEB); addbyte(9); /*JMP nextbit*/ }
                 else                  { addbyte(0xEB); addbyte(13); /*JMP nextbit*/ }
                 
-                addbyte(0xE8); addrel32(codereadmeml); /*CALL readmemb*/
+                gen_x86_call(codereadmeml);
                 addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
                 if (codeblockpos<124)
                 {
@@ -1946,7 +1944,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 if (codeblockpos<115) { addbyte(0xEB); addbyte(9); /*JMP nextbit*/ }
                 else                  { addbyte(0xEB); addbyte(13); /*JMP nextbit*/ }
 
-                addbyte(0xE8); addrel32(codereadmemb); /*CALL readmemb*/
+                gen_x86_call(codereadmemb);
                 addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
                 if (codeblockpos<124)
                 {
@@ -1990,7 +1988,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         generateloadgen(c,EBX);
                         addbyte(0x50); /*PUSH %eax*/
                         if (c==15) { addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%ebx*/ }
-                        addbyte(0xE8); addrel32(mwritemem); /*CALL mwritem*/
+                        gen_x86_call(mwritemem);
                         addbyte(0x58); /*POP %eax*/
                         addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
                         addrel32(&rcodeblock[blockpoint2][0]);
@@ -2007,7 +2005,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         else                 { addbyte(17+2+5+7); }
                         addbyte(0x55); /*PUSH %ebp*/
                         addbyte(0xBD); addlong((templ<<c)>>1); /*MOVL (templ<<c)>>1,%ebp*/
-                        addbyte(0xE8); addrel32(mwritememslow); /*CALL slow*/
+                        gen_x86_call(mwritememslow);
                         addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
                         addbyte(0x5D); /*POP %ebp*/
                         addbyte(0x75); addbyte(5);
@@ -2080,7 +2078,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
 //                                addbyte(0xB9); addlong(usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
                                 addbyte(0x8B); addbyte(0x19); /*MOVL (%ecx),%ebx*/
                         }
-                        addbyte(0xE8); addrel32(mwritemem); /*CALL mwritem*/
+                        gen_x86_call(mwritemem);
                                                 addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
                                                 addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
                                                 addrel32(&rcodeblock[blockpoint2][0]);
@@ -2103,12 +2101,12 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                                 }
                                 if (temp==3)
                                 {
-                                        addbyte(0xE8); addrel32(mwritememfast); /*CALL mwritem*/
+                                        gen_x86_call(mwritememfast);
 //                                        addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
                                 }
                                 else
                                 {
-                                        addbyte(0xE8); addrel32(mwritemem); /*CALL mwritem*/
+                                        gen_x86_call(mwritemem);
                                         temp|=2;
                                         if (templ&~1 && temp==3)
                                         {
@@ -2162,7 +2160,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         generateloadgen(c,EBX);
                         addbyte(0x50); /*PUSH %eax*/
                         if (c==15) { addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%ebx*/ }
-                        addbyte(0xE8); addrel32(mwritemem); /*CALL mwritem*/
+                        gen_x86_call(mwritemem);
                         addbyte(0x58); /*POP %eax*/
                                                 addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
                                                 addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
@@ -2180,7 +2178,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         else                 { addbyte(17+2+5+7); }
                         addbyte(0x55); /*PUSH %ebp*/
                         addbyte(0xBD); addlong((templ<<c)>>1); /*MOVL (templ<<c)>>1,%ebp*/
-                        addbyte(0xE8); addrel32(mwritememslow); /*CALL slow*/
+                        gen_x86_call(mwritememslow);
                         addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
                         addbyte(0x5D); /*POP %ebp*/
                         addbyte(0x75); addbyte(5);
@@ -2256,7 +2254,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
 //                                        addbyte(0xB9); addlong(usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
                                         addbyte(0x8B); addbyte(0x1B); /*MOVL (%ebx),%ebx*/
                         }
-                        addbyte(0xE8); addrel32(mwritemem); /*CALL mwritem*/
+                        gen_x86_call(mwritemem);
                                                 addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
                                                 addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
                                                 addrel32(&rcodeblock[blockpoint2][0]);
@@ -2286,12 +2284,12 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                                 }
                                 if (temp==3)
                                 {
-                                        addbyte(0xE8); addrel32(mwritememfast); /*CALL mwritem*/
+                                        gen_x86_call(mwritememfast);
 //                                        addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
                                 }
                                 else
                                 {
-                                        addbyte(0xE8); addrel32(mwritemem); /*CALL mwritem*/
+                                        gen_x86_call(mwritemem);
                                         temp|=2;
                                         if (templ&~1 && (temp==3 || first))
                                         {
@@ -2348,11 +2346,11 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         {
                                 if (temp==3)
                                 {
-                                        addbyte(0xE8); addrel32(mreadmemfast); /*CALL mreadm*/
+                                        gen_x86_call(mreadmemfast);
                                 }
                                 else
                                 {
-                                        addbyte(0xE8); addrel32(mreadmem); /*CALL mreadm*/
+                                        gen_x86_call(mreadmem);
                                         temp|=2;
                                         #if 0
                                         if (templ&~1)
@@ -2424,7 +2422,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                                 c++;
                         }
                         addbyte(0x50); /*PUSH %eax*/
-                        addbyte(0xE8); addrel32(mreadmem); /*CALL mreadm*/
+                        gen_x86_call(mreadmem);
                         addbyte(0x58); /*POP %eax*/
                                                 addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
                                         if (opcode&0x200000)
@@ -2453,7 +2451,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         else                 { addbyte(17+2+5+7); }
                         addbyte(0x55); /*PUSH %ebp*/
                         addbyte(0xBD); addlong((templ<<c)>>1); /*MOVL (templ<<c)>>1,%ebp*/
-                        addbyte(0xE8); addrel32(mreadmemslow); /*CALL slow*/
+                        gen_x86_call(mreadmemslow);
                         addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
                         addbyte(0x5D); /*POP %ebp*/
                         addbyte(0x75); addbyte(5);
@@ -2519,11 +2517,11 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         {
                                 if (temp==3)
                                 {
-                                        addbyte(0xE8); addrel32(mreadmemfast); /*CALL mreadm*/
+                                        gen_x86_call(mreadmemfast);
                                 }
                                 else
                                 {
-                                        addbyte(0xE8); addrel32(mreadmem); /*CALL mreadm*/
+                                        gen_x86_call(mreadmem);
                                         temp|=2;
                                         #if 0
                                         if (templ&~1)
@@ -2590,7 +2588,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 {
                         if (templ&1)
                         {
-                                addbyte(0xE8); addrel32(mreadmem); /*CALL mreadm*/
+                                gen_x86_call(mreadmem);
                                 addbyte(0x8B); addbyte(0x0D); addlong(&usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
                                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
                                 addbyte(0x89); addbyte(0x11); /*MOVL %edx,(%ecx)*/
@@ -2630,7 +2628,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 {
                         if (templ&1)
                         {
-                                addbyte(0xE8); addrel32(mreadmem); /*CALL mreadm*/
+                                gen_x86_call(mreadmem);
                                 addbyte(0x8B); addbyte(0x0D); addlong(&usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
                                 addbyte(0x89); addbyte(0x11); /*MOVL %edx,(%ecx)*/
                                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
@@ -2815,8 +2813,7 @@ void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr)
         addbyte(0x04);
         addbyte(0x24);
         addlong(opcode);
-        addbyte(0xE8); /*CALL*/
-        addrel32(addr);
+        gen_x86_call(addr);
 //#if 0
         if (!flaglookup[opcode>>28][(*pcpsr)>>28] && (opcode&0xE000000)==0xA000000)
         {
