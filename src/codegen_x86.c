@@ -1980,21 +1980,21 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 addbyte(0x3D); addlong(0xFC0); /*CMP $0xFC0,%eax*/
                 addbyte(0x0F); addbyte(0x95); addbyte(0xC0); /*SETLE %al*/
                 c=0;
-                        while (!(templ&1))
-                        {
-                                templ>>=1;
-                                c++;
-                        }
-                        generateloadgen(c,EBX);
-                        addbyte(0x50); /*PUSH %eax*/
-                        if (c==15) { addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%ebx*/ }
-                        gen_x86_call(mwritemem);
-                        addbyte(0x58); /*POP %eax*/
-                        addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
-                        addrel32(&rcodeblock[blockpoint2][0]);
-                        addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
-                        c++;
+                while (!(templ&1))
+                {
                         templ>>=1;
+                        c++;
+                }
+                generateloadgen(c,EBX);
+                addbyte(0x50); /*PUSH %eax*/
+                if (c==15) { addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%ebx*/ }
+                gen_x86_call(mwritemem);
+                addbyte(0x58); /*POP %eax*/
+                addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
+                addrel32(&rcodeblock[blockpoint2][0]);
+                addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
+                c++;
+                templ>>=1;
                 if (templ)
                 {
                         addbyte(0x08); addbyte(0xC0); /*OR %al,%al*/
@@ -2079,9 +2079,9 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                                 addbyte(0x8B); addbyte(0x19); /*MOVL (%ecx),%ebx*/
                         }
                         gen_x86_call(mwritemem);
-                                                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                                                addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
-                                                addrel32(&rcodeblock[blockpoint2][0]);
+                        addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
+                        addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
+                        addrel32(&rcodeblock[blockpoint2][0]);
                         addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
                         c++;
                         templ>>=1;
@@ -2095,7 +2095,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                                 else if (!(opcode&0x400000)) generateloadgen(c,EBX);
                                 else
                                 {
-                                addbyte(0x8B); addbyte(0x1D); addlong(&usrregs[c]); /*MOVL usrregs+(c*4),%ebx*/
+                                        addbyte(0x8B); addbyte(0x1D); addlong(&usrregs[c]); /*MOVL usrregs+(c*4),%ebx*/
 //                                        addbyte(0xB9); addlong(usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
                                         addbyte(0x8B); addbyte(0x1B); /*MOVL (%ebx),%ebx*/
                                 }
@@ -2152,22 +2152,22 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 addbyte(0x3D); addlong(0xFC0); /*CMP $0xFC0,%eax*/
                 addbyte(0x0F); addbyte(0x95); addbyte(0xC0); /*SETLE %al*/
                 c=0;
-                        while (!(templ&1))
-                        {
-                                templ>>=1;
-                                c++;
-                        }
-                        generateloadgen(c,EBX);
-                        addbyte(0x50); /*PUSH %eax*/
-                        if (c==15) { addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%ebx*/ }
-                        gen_x86_call(mwritemem);
-                        addbyte(0x58); /*POP %eax*/
-                                                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                                                addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
-                                                addrel32(&rcodeblock[blockpoint2][0]);
-                        addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
-                        c++;
+                while (!(templ&1))
+                {
                         templ>>=1;
+                        c++;
+                }
+                generateloadgen(c,EBX);
+                addbyte(0x50); /*PUSH %eax*/
+                if (c==15) { addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%ebx*/ }
+                gen_x86_call(mwritemem);
+                addbyte(0x58); /*POP %eax*/
+                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
+                addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
+                addrel32(&rcodeblock[blockpoint2][0]);
+                addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
+                c++;
+                templ>>=1;
                 if (templ)
                 {
                         addbyte(0x08); addbyte(0xC0); /*OR %al,%al*/
@@ -2251,13 +2251,13 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         else
                         {
                                 addbyte(0x8B); addbyte(0x1D); addlong(&usrregs[c]); /*MOVL usrregs+(c*4),%ebx*/
-//                                        addbyte(0xB9); addlong(usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
-                                        addbyte(0x8B); addbyte(0x1B); /*MOVL (%ebx),%ebx*/
+                                //addbyte(0xB9); addlong(usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
+                                addbyte(0x8B); addbyte(0x1B); /*MOVL (%ebx),%ebx*/
                         }
                         gen_x86_call(mwritemem);
-                                                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                                                addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
-                                                addrel32(&rcodeblock[blockpoint2][0]);
+                        addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
+                        addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
+                        addrel32(&rcodeblock[blockpoint2][0]);
 
 //                        addbyte(0x89); addbyte(0xF8); /*MOVL %edi,%eax*/
                         addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
@@ -2278,7 +2278,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                                 else if (!(opcode&0x400000)) generateloadgen(c,EBX);
                                 else
                                 {
-                                addbyte(0x8B); addbyte(0x1D); addlong(&usrregs[c]); /*MOVL usrregs+(c*4),%ebx*/
+                                        addbyte(0x8B); addbyte(0x1D); addlong(&usrregs[c]); /*MOVL usrregs+(c*4),%ebx*/
 //                                        addbyte(0xB9); addlong(usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
                                         addbyte(0x8B); addbyte(0x1B); /*MOVL (%ebx),%ebx*/
                                 }
@@ -2416,32 +2416,32 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 addbyte(0x3D); addlong(0xFC0); /*CMP $0xFC0,%eax*/
                 addbyte(0x0F); addbyte(0x95); addbyte(0xC0); /*SETLE %al*/
                 c=0;
-                        while (!(templ&1))
-                        {
-                                templ>>=1;
-                                c++;
-                        }
-                        addbyte(0x50); /*PUSH %eax*/
-                        gen_x86_call(mreadmem);
-                        addbyte(0x58); /*POP %eax*/
-                                                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                                        if (opcode&0x200000)
-                                        {
-                                                addbyte(0x74); addbyte(10+((RN)?1:0)); /*JZ +*/
-                                                generateloadgen(17,EDI); /*POP %edi*/
-                                                generatesavegen(RN,EDI);
-                                                addbyte(0xE9); /*JMP 0*/
-                                                addrel32(&rcodeblock[blockpoint2][0]);
-                                        }
-                                        else
-                                        {
-                                                addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
-                                                addrel32(&rcodeblock[blockpoint2][0]);
-                                        }
-                        generatesavegen(c,EDX);
-                        addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
-                        c++;
+                while (!(templ&1))
+                {
                         templ>>=1;
+                        c++;
+                }
+                addbyte(0x50); /*PUSH %eax*/
+                gen_x86_call(mreadmem);
+                addbyte(0x58); /*POP %eax*/
+                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
+                if (opcode&0x200000)
+                {
+                        addbyte(0x74); addbyte(10+((RN)?1:0)); /*JZ +*/
+                        generateloadgen(17,EDI); /*POP %edi*/
+                        generatesavegen(RN,EDI);
+                        addbyte(0xE9); /*JMP 0*/
+                        addrel32(&rcodeblock[blockpoint2][0]);
+                }
+                else
+                {
+                        addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
+                        addrel32(&rcodeblock[blockpoint2][0]);
+                }
+                generatesavegen(c,EDX);
+                addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
+                c++;
+                templ>>=1;
                 if (templ)
                 {
                         hasldrb[blockpoint2]=1;
