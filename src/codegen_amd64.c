@@ -1193,16 +1193,7 @@ void dumplastblock(void)
         }
         return 0;
 }*/
-void generatemove(unsigned long addr, unsigned long dat)
-{
-//        asm("movl $0x12345678,0x9ABCDEF0");
-        addbyte(0xC7); /*MOVL $dat,(addr)*/
-        addbyte(0x04);
-	addbyte(0x25);
-        addlong(addr);
-        addlong(dat);
-//        asm("movl $0x11223344,0x55667788");
-}
+
 void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 {
 //asm("movl 0x12345678,%eax;");
