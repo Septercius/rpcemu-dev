@@ -51,7 +51,7 @@ static int fdci=0;
 //static int out2=0;
 //static int r8match=0;
 static int mmask;
-int r15mask;
+uint32_t r15mask;
 int memmode;
 int irq;
 static int cycles;
