@@ -22,7 +22,7 @@ extern int cpsr;
 #define PC ((armregs[15]-8)&r15mask)
 
 extern uint32_t ins,output;
-extern int r15mask;
+extern uint32_t r15mask;
 extern uint32_t mode;
 extern int irq;
 extern unsigned char flaglookup[16][16];

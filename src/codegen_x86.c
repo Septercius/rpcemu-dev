@@ -2682,12 +2682,12 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 else
                 {
                         generateload(15);
-                        if ((unsigned int)r15mask!=0xFFFFFFFC)
+                        if (r15mask != 0xfffffffc)
                         {
                                 addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
                         }
                         addbyte(0x81); addbyte(0xC0); addlong(templ); /*ADDL $templ,%eax*/
-                        if ((unsigned int)r15mask!=0xFFFFFFFC)
+                        if (r15mask != 0xfffffffc)
                         {
                                 addbyte(0x81); addbyte(0xE2); addlong(0xFC000003); /*ANDL $templ,%edx*/
                                 addbyte(0x81); addbyte(0xE0); addlong(0x03FFFFFC); /*ANDL $templ,%eax*/
@@ -2761,12 +2761,12 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 {
                         generatesave(14);
                         generateload(15);
-                        if ((unsigned int)r15mask!=0xFFFFFFFC)
+                        if (r15mask != 0xfffffffc)
                         {
                                 addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
                         }
                         addbyte(0x81); addbyte(0xC0); addlong(templ); /*ADDL $templ,%eax*/
-                        if ((unsigned int)r15mask!=0xFFFFFFFC)
+                        if (r15mask != 0xfffffffc)
                         {
                                 addbyte(0x81); addbyte(0xE2); addlong(0xFC000003); /*ANDL $templ,%edx*/
                                 addbyte(0x81); addbyte(0xE0); addlong(0x03FFFFFC); /*ANDL $templ,%eax*/
@@ -2916,7 +2916,7 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
         addbyte(0xC3); /*RET*/
 
         generateloadgen(15,EAX); /*MOVL armregs[15],%eax*/
-        if ((unsigned int)r15mask!=0xFFFFFFFC)
+        if (r15mask != 0xfffffffc)
         {
                 addbyte(0x25); /*ANDL $r15mask,%eax*/
                 addlong(r15mask);
