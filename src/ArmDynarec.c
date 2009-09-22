@@ -854,8 +854,6 @@ void execarm(int cycs)
                                         }
 //                                        gen_func=(void *)(&codeblock[blocks[templ]>>24][blocks[templ]&0xFFF][4]);
                                         gen_func();
-//                                        inscount+=codeinscount[0][hash];
-//                                        rinscount+=codeinscount[hash];
                                         if (armirq&0x40) armregs[15]+=4;
                                         if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
                                 }

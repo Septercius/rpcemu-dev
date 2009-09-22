@@ -24,7 +24,6 @@ unsigned char rcodeblock[BLOCKS][1792];
 static uint64_t codeblockaddr[BLOCKS];
 uint32_t codeblockpc[0x8000];
 int codeblocknum[0x8000];
-int codeinscount[0x8000];
 static unsigned char codeblockpresent[0x10000];
 
 //#define BLOCKS 4096
@@ -1165,7 +1164,6 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
         addlong(codeblockaddr);
         addbyte(0xFF); /*JMP *%rax*/
         addbyte(0xE0);
-        codeinscount[blocknum]=c;
 }
 
 void dumplastblock(void)

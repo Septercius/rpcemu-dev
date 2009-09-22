@@ -33,7 +33,6 @@ static unsigned long codeblockaddr[BLOCKS];
 unsigned long codeblockpc[0x8000] = {0};
 static unsigned char codeblockpresent[0x10000];
 int codeblocknum[0x8000] = {0};
-int codeinscount[0x8000] = {0};
 
 static int flagsdirty = 0;
 //#define BLOCKS 4096
@@ -2959,7 +2958,6 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
         addlong(codeblockaddr);
         addbyte(0xFF); /*JMP *%eax*/
         addbyte(0xE0);
-        codeinscount[blocknum]=c;
 }
 
 void dumplastblock(void)
