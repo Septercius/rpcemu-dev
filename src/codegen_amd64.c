@@ -17,7 +17,6 @@
 #include <unistd.h>
 #endif
 
-int hasldrb[BLOCKS];
 void generateupdatepc(void);
 int lastflagchange;
 unsigned char rcodeblock[BLOCKS][1792];
@@ -1088,7 +1087,7 @@ asm("jmp *%rax;");*/
 asm("cmp 0x12345678(%rdx),%eax;");
 asm("movl 0x12345678(%rdx),%eax;");
 asm("movq 0x12345678(,%rax,8),%rax;");*/
-//if (hasldrb[blockpoint2]) printf("ENding! %08X\n",r15mask);
+
         generateupdatepc();
         generateupdateinscount();
 	addbyte(0x48); /*ADDL $8,%rsp*/

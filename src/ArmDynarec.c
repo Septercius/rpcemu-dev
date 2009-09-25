@@ -776,7 +776,6 @@ int linecyc=0;
 #endif
 
 
-int hasldrb[BLOCKS];
 //int output=0;
 
 void execarm(int cycs)
@@ -847,11 +846,6 @@ void execarm(int cycs)
                                 {
                                         templ=codeblocknum[hash];
                                         gen_func=(void *)(&rcodeblock[templ][BLOCKSTART]);
-                                        if (hasldrb[templ])
-                                        {
-//                                                *((uint32_t *)0)=1;
-                                                hasldrb[templ]=0;
-                                        }
 //                                        gen_func=(void *)(&codeblock[blocks[templ]>>24][blocks[templ]&0xFFF][4]);
                                         gen_func();
                                         if (armirq&0x40) armregs[15]+=4;
