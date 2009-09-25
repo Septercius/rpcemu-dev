@@ -18,7 +18,7 @@
 
 void generateupdatepc(void);
 int linecyc;
-int hasldrb[BLOCKS];
+
 #define mwritemem rcodeblock[BLOCKS]
 #define mreadmem rcodeblock[BLOCKS+1]
 #define mreadmemfast rcodeblock[BLOCKS+2]
@@ -304,7 +304,6 @@ void initcodeblock(uint32_t l)
         blocks[blockpoint]=blocknum;
         blockpoint2=blockpoint;
         
-        hasldrb[blockpoint2]=0;
         addbyte(0x83); /*ADDL $8,%esp*/
         addbyte(0xC4);
         addbyte(0x08);
@@ -839,7 +838,6 @@ static void generatesetzn(uint32_t opcode, uint32_t *pcpsr)
 //        addbyte(0x88); addbyte(0x4E); addbyte((uint32_t)(pcpsr+3)-armregs);
 //        rpclog("generatesetzn %08X %08X %i\n",(pcpsr+3),armregs,(uint32_t)(pcpsr+3)-(uint32_t)armregs);
         addbyte(0x88); addbyte(0x0D); addlong(pcpsr+3); /*MOV %cl,pcpsr*/
-//                        hasldrb[blockpoint2]=1;
 }
 
 static void generatesetzn2(uint32_t opcode, uint32_t *pcpsr)
@@ -1221,7 +1219,6 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x85); addbyte(0xC0); /*TEST %eax,%eax*/
                 generatesave(RD);
                 generatesetzn2(opcode, pcpsr);
-//                hasldrb[blockpoint2]=1;
                 break;
 
         case 0x1c: /* BIC reg */
@@ -2330,7 +2327,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
         case 0x93: /* LDMDB ! */
                 flagsdirty=0;
 //                if (opcode&0x8000) return 0;
-//hasldrb[blockpoint2]=1;
                 templ=opcode&0xFFFF;
                 temp=isvalidforfastread(armregs[RN]);
                 generateloadgen(RN,EDI);
@@ -2443,7 +2439,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 templ>>=1;
                 if (templ)
                 {
-                        hasldrb[blockpoint2]=1;
                         addbyte(0x08); addbyte(0xC0); /*OR %al,%al*/
                         addbyte(0x75); /*JNZ fast*/
                         if (opcode&0x200000) { addbyte(17+2+/*1+*/3+2+((RN)?1:0)+5+7); }
@@ -2714,7 +2709,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         addbyte(4);
                         addbyte(0xE9); addlong((-(codeblockpos+4))+BLOCKSTART+8); /*JMP start*/
                         /*.endit*/
-//                        hasldrb[blockpoint2]=1;
                 }
                 #endif
                 if (!flaglookup[opcode>>28][(*pcpsr)>>28])
