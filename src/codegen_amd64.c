@@ -44,6 +44,42 @@ static int lastrecompiled = 0;
 
 #include "codegen_x86_common.h"
 
+/* AMD64 registers and aliases */
+#define RAX	EAX
+#define RCX	ECX
+#define RDX	EDX
+#define RBX	EBX
+#define RSP	ESP
+#define RBP	EBP
+#define RSI	ESI
+#define RDI	EDI
+#define R8	8
+#define R9	9
+#define R10	10
+#define R11	11
+#define R12	12
+#define R13	13
+#define R14	14
+#define R15	15
+
+static inline void
+gen_x86_push_reg(int x86reg)
+{
+	if (x86reg >= 8) {
+		addbyte(0x41);
+	}
+	addbyte(0x50 | (x86reg & 0x7));
+}
+
+static inline void
+gen_x86_pop_reg(int x86reg)
+{
+	if (x86reg >= 8) {
+		addbyte(0x41);
+	}
+	addbyte(0x58 | (x86reg & 0x7));
+}
+
 void initcodeblocks(void)
 {
         int c;
@@ -368,7 +404,7 @@ static int generateshift(uint32_t opcode, uint32_t *pcpsr)
 
 static void genldr(void) /*address in %edi, data in %eax*/
 {
-	addbyte(0x57); /*PUSH %rdi*/
+	gen_x86_push_reg(RDI);
 	addbyte(0x89); addbyte(0xFA); /*MOV %edi,%edx*/
 	addbyte(0xC1); addbyte(0xEA); addbyte(12); /*SHRL $12,%edx*/
 	addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
@@ -379,7 +415,7 @@ static void genldr(void) /*address in %edi, data in %eax*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
 	addbyte(0xEB); addbyte(5); /*JMP over*/
 	gen_x86_call(recompreadmeml);
-	addbyte(0x5F); /*POP %rdi*/
+	gen_x86_pop_reg(RDI);
 	addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
 	addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx*/
 	addbyte(0xD3); addbyte(0xCA); /*ROR %cl,%edx*/
@@ -397,15 +433,15 @@ static void genldrb(void) /*address in %edi, data in %al*/
 	addbyte(0x0F); addbyte(0xB6); addbyte(0x14); addbyte(0x3A); /*MOVZX (%rdx,%rdi),%edx*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
 	addbyte(0xEB); addbyte(7); /*JMP over*/
-	addbyte(0x57); /*PUSH %rdi*/
+	gen_x86_push_reg(RDI);
 	gen_x86_call(recompreadmemb);
-	addbyte(0x5F); /*POP %rdi*/
+	gen_x86_pop_reg(RDI);
 }
 
 //addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
 static void genstr(void) /*address in %edi, data in %eax*/
 {
-	addbyte(0x57); /*PUSH %rdi*/
+	gen_x86_push_reg(RDI);
 	addbyte(0x89); addbyte(0xFA); /*MOV %edi,%edx*/
 	addbyte(0xC1); addbyte(0xEA); addbyte(12); /*SHRL $12,%edx*/
 	addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
@@ -417,7 +453,7 @@ static void genstr(void) /*address in %edi, data in %eax*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
 	addbyte(0xEB); addbyte(5); /*JMP over*/
 	gen_x86_call(recompwritememl);
-	addbyte(0x5F); /*POP %rdi*/
+	gen_x86_pop_reg(RDI);
 }
 
 static void genstrb(void) /*address in %edi, data in %al*/
@@ -431,9 +467,9 @@ static void genstrb(void) /*address in %edi, data in %al*/
 	addbyte(0x88); addbyte(0x04); addbyte(0x3A); /*MOVB %al,(%rdx,%rdi)*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
 	addbyte(0xEB); addbyte(7); /*JMP over*/
-	addbyte(0x57); /*PUSH %rdi*/
+	gen_x86_push_reg(RDI);
 	gen_x86_call(recompwritememb);
-	addbyte(0x5F); /*POP %rdi*/
+	gen_x86_pop_reg(RDI);
 }
 
 static void gentestabort(void)
@@ -551,8 +587,11 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x40: case 0x48: /* STR Rd, [Rn], #      */
 	case 0x60: case 0x68: /* STR Rd, [Rn], reg... */
 		if (RD==15 || RN==15) return 0;
-		if (opcode&0x2000000) { if (!generateshift(opcode,pcpsr)) return 0;
-					addbyte(0x50); /*PUSH %rax*/}
+		if (opcode & 0x2000000) {
+			if (!generateshift(opcode, pcpsr))
+				return 0;
+			gen_x86_push_reg(RAX);
+		}
 		templ=opcode&0xFFF;
 		genloadreggen(RN,EDI);
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
@@ -560,7 +599,9 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		genstr();
 	        addbyte(0x84); /*TESTL %al,%al*/
 	        addbyte(0xC0);
-		if (opcode&0x2000000) { addbyte(0x58); /*POP %rax*/ }
+		if (opcode & 0x2000000) {
+			gen_x86_pop_reg(RAX);
+		}
 		if (((char *)(&rcodeblock[blockpoint2][codeblockpos+4])-(char *)(&rcodeblock[blockpoint2][0]))<120)
         	{
                 	addbyte(0x75); /*JNE 0*/
@@ -590,15 +631,20 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x44: case 0x4c: /* STRB Rd, [Rn], #      */
 	case 0x64: case 0x6c: /* STRB Rd, [Rn], reg... */
 		if (RD==15 || RN==15) return 0;
-		if (opcode&0x2000000) { if (!generateshift(opcode,pcpsr)) return 0;
-					addbyte(0x50); /*PUSH %rax*/}
+		if (opcode & 0x2000000) {
+			if (!generateshift(opcode, pcpsr))
+				return 0;
+			gen_x86_push_reg(RAX);
+		}
 		templ=opcode&0xFFF;
 		genloadreggen(RN,EDI);
 		genloadreg(RD);
 		genstrb();
 	        addbyte(0x84); /*TESTL %al,%al*/
 	        addbyte(0xC0);
-		if (opcode&0x2000000) { addbyte(0x58); /*POP %rax*/ }
+		if (opcode & 0x2000000) {
+			gen_x86_pop_reg(RAX);
+		}
 		if (((char *)(&rcodeblock[blockpoint2][codeblockpos+4])-(char *)(&rcodeblock[blockpoint2][0]))<120)
         	{
                 	addbyte(0x75); /*JNE 0*/
@@ -628,14 +674,19 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x41: case 0x49: /* LDR Rd, [Rn], #      */
 	case 0x61: case 0x69: /* LDR Rd, [Rn], reg... */
 		if (RD==15 || RN==15) return 0;
-		if (opcode&0x2000000) { if (!generateshift(opcode,pcpsr)) return 0;
-					addbyte(0x50); /*PUSH %rax*/}
+		if (opcode & 0x2000000) {
+			if (!generateshift(opcode, pcpsr))
+				return 0;
+			gen_x86_push_reg(RAX);
+		}
 		templ=opcode&0xFFF;
 		genloadreggen(RN,EDI);
 		genldr();
 	        addbyte(0x84); /*TESTL %al,%al*/
 	        addbyte(0xC0);
-		if (opcode&0x2000000) { addbyte(0x58); /*POP %rax*/ }
+		if (opcode & 0x2000000) {
+			gen_x86_pop_reg(RAX);
+		}
 		if (((char *)(&rcodeblock[blockpoint2][codeblockpos+4])-(char *)(&rcodeblock[blockpoint2][0]))<120)
         	{
                 	addbyte(0x75); /*JNE 0*/
@@ -666,14 +717,19 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x45: case 0x4d: /* LDRB Rd, [Rn], #      */
 	case 0x65: case 0x6d: /* LDRB Rd, [Rn], reg... */
 		if (RD==15 || RN==15) return 0;
-		if (opcode&0x2000000) { if (!generateshift(opcode,pcpsr)) return 0;
-					addbyte(0x50); /*PUSH %rax*/}
+		if (opcode & 0x2000000) {
+			if (!generateshift(opcode, pcpsr))
+				return 0;
+			gen_x86_push_reg(RAX);
+		}
 		templ=opcode&0xFFF;
 		genloadreggen(RN,EDI);
 		genldrb();
 	        addbyte(0x84); /*TESTL %al,%al*/
 	        addbyte(0xC0);
-		if (opcode&0x2000000) { addbyte(0x58); /*POP %rax*/ }
+		if (opcode & 0x2000000) {
+			gen_x86_pop_reg(RAX);
+		}
 		if (((char *)(&rcodeblock[blockpoint2][codeblockpos+4])-(char *)(&rcodeblock[blockpoint2][0]))<120)
         	{
                 	addbyte(0x75); /*JNE 0*/
@@ -712,11 +768,11 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
 		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
-		addbyte(0x57); /*PUSH %rdi*/
+		gen_x86_push_reg(RDI);
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
 		genloadreg(RD);
 		genstr();
-		addbyte(0x5F); /*POP %rdi*/
+		gen_x86_pop_reg(RDI);
 		gentestabort();
 		if (opcode&0x200000) /*Writeback*/
 		{
