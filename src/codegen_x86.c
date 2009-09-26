@@ -371,18 +371,15 @@ static const int recompileinstructions[256]=
 
 static void generateloadgen(int reg, int x86reg)
 {
-	#ifdef _MSC_VER
-        addbyte(0x8B); addbyte(5|x86reg); addlong(&armregs[reg]);
-	#else
-        if (reg)
-        {
-                addbyte(0x8B); addbyte(0x46|x86reg); addbyte(reg*4);
-        }
-        else
-        {
-                addbyte(0x8B); addbyte(0x06|x86reg);
-        }
-	#endif
+#ifdef _MSC_VER
+	addbyte(0x8B); addbyte(5 | (x86reg << 3)); addlong(&armregs[reg]);
+#else
+	if (reg != 0) {
+		addbyte(0x8B); addbyte(0x46 | (x86reg << 3)); addbyte(reg*4);
+	} else {
+		addbyte(0x8B); addbyte(0x06 | (x86reg << 3));
+	}
+#endif
 }
 
 static inline void generateload(int reg)
@@ -396,18 +393,15 @@ static inline void generateload(int reg)
 
 static void generatesavegen(int reg, int x86reg)
 {
-	#ifdef _MSC_VER
-        addbyte(0x89); addbyte(5|x86reg); addlong(&armregs[reg]);
-	#else
-        if (reg)
-        {
-                addbyte(0x89); addbyte(0x46|x86reg); addbyte(reg*4);
-        }
-        else
-        {
-                addbyte(0x89); addbyte(0x06|x86reg);
-        }
-	#endif
+#ifdef _MSC_VER
+	addbyte(0x89); addbyte(5 | (x86reg << 3)); addlong(&armregs[reg]);
+#else
+	if (reg != 0) {
+		addbyte(0x89); addbyte(0x46 | (x86reg << 3)); addbyte(reg*4);
+	} else {
+		addbyte(0x89); addbyte(0x06 | (x86reg << 3));
+	}
+#endif
 }
 
 static inline void generatesave(int reg)

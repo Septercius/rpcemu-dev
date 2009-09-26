@@ -4,15 +4,15 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* x86 registers (bitfields for instruction encoding) */
-#define EAX	0x00
-#define ECX	0x08
-#define EDX	0x10
-#define EBX	0x18
-#define ESP	0x20
-#define EBP	0x28
-#define ESI	0x30
-#define EDI	0x38
+/* x86 registers */
+#define EAX	0
+#define ECX	1
+#define EDX	2
+#define EBX	3
+#define ESP	4
+#define EBP	5
+#define ESI	6
+#define EDI	7
 
 /* Basic x86 operations (bitfields for instruction encoding) */
 #define X86_OP_ADD	0x00
