@@ -95,7 +95,7 @@ void initcodeblocks(void)
         addbyte(0xF6); addbyte(0xC1); addbyte(3); /*TST %cl,3*/
         addbyte(0x75); addbyte(4); /*JNZ inbuffer*/
         addbyte(0x89); addbyte(0x1C); addbyte(0x39); /*MOVL %ebx,(%ecx,%edi)*/
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
         
         gen_x86_push_reg(EBX);
         gen_x86_push_reg(EDI);
@@ -108,7 +108,7 @@ void initcodeblocks(void)
         addbyte(0xC1); addbyte(0xE9); addbyte(12); /*SHR $12,%ecx*/
         addbyte(0x83); addbyte(0xC4); addbyte(0x08); /*ADDL $8,%esp*/
         addbyte(0x8B); addbyte(0x0C); addbyte(0x8D); addlong(vwaddrl); /*MOV vwaddrl(,%ecx,4),%ecx*/
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
 
         /*Generate mreadmem*/
         blockpoint2=BLOCKS+1;
@@ -120,7 +120,7 @@ void initcodeblocks(void)
         addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
         addbyte(0x75); addbyte(4); /*JNZ notinbuffer*/
         addbyte(0x8B); addbyte(0x14); addbyte(0x39); /*MOVL (%ecx,%edi),%edx*/
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
         gen_x86_push_reg(EDI);
         gen_x86_call(readmemfl);
         addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
@@ -128,7 +128,7 @@ void initcodeblocks(void)
         addbyte(0x83); addbyte(0xC4); addbyte(0x04); /*ADDL $4,%esp*/
         addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
         addbyte(0x8B); addbyte(0x0C); addbyte(0x8D); addlong(vraddrl); /*MOV vraddrl(,%ecx,4),%ecx*/
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
 
         /*Generatemreadmemfast*/
         blockpoint2=BLOCKS+2;
@@ -142,18 +142,18 @@ void initcodeblocks(void)
         addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
         addbyte(0x75); addbyte(4); /*JNZ notinbuffer*/
         addbyte(0x8B); addbyte(0x14); addbyte(0x39); /*MOVL (%ecx,%edi),%edx*/
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
         addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
         gen_x86_call(codereadmemlnt);
         addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
         addbyte(0xC1); addbyte(0xE9); addbyte(12); /*SHR $12,%ecx*/
         addbyte(0x8B); addbyte(0x0C); addbyte(0x8D); addlong(vraddrl); /*MOV vraddrl(,%ecx,4),%ecx*/
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
         /*.samepage*/
         addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
         addbyte(0x75); addbyte(/*8-(codeblockpos+1)*/-46); /*JNZ backup*/
         addbyte(0x8B); addbyte(0x14); addbyte(0x39); /*MOVL (%ecx,%edi),%edx*/
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
 
         /*Generatemreadmemslow*/
         blockpoint2=BLOCKS+2;
@@ -167,7 +167,7 @@ void initcodeblocks(void)
                 generatesavegen(c,EDX);
                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
         }
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
         
         /*Generatemwritememfast*/
         blockpoint2=BLOCKS+3;
@@ -182,20 +182,20 @@ void initcodeblocks(void)
         addbyte(0x75); addbyte(4+3); /*JNZ notinbuffer*/
         addbyte(0x89); addbyte(0x1C); addbyte(0x39); /*MOVL %ebx,(%ecx,%edi)*/
 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
         addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
         gen_x86_call(codewritememflnt);
         addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
         addbyte(0xC1); addbyte(0xE9); addbyte(12); /*SHR $12,%ecx*/
         addbyte(0x8B); addbyte(0x0C); addbyte(0x8D); addlong(vwaddrl); /*MOV vwaddrl(,%ecx,4),%ecx*/
 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
         /*.samepage*/
 //        addbyte(0xF6); addbyte(0xC1); addbyte(3); /*TST %cl,1*/
 //        addbyte(0x75); addbyte(8-(codeblockpos+1)); /*JNZ backup*/
         addbyte(0x89); addbyte(0x1C); addbyte(0x39); /*MOVL %ebx,(%ecx,%edi)*/
 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
 
         /*Generatemwritememslow*/
         blockpoint2=BLOCKS+3;
@@ -209,7 +209,7 @@ addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
                 gen_x86_call(mwritemem);
                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
         }
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
 
 #ifdef __linux__
 	/* Set memory pages containing rcodeblock[]s executable -
@@ -310,7 +310,7 @@ void initcodeblock(uint32_t l)
         addbyte(0x83); /*ADDL $8,%esp*/
         addbyte(0xC4);
         addbyte(0x08);
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
         addbyte(0xE9); /*JMP end*/
         addlong(0); /*Don't know where end is yet - see endblock()*/
         addbyte(0); addbyte(0); addbyte(0); /*Padding*/
@@ -2898,12 +2898,12 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
         addbyte(0x0D);
         addlong(&linecyc);
 
-//        addbyte(0xC3); /*RET*/
+        //gen_x86_ret();
 
         addbyte(0x79); /*JNS +1*/
         addbyte(1);
         temp=codeblockpos;
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
 
         generateloadgen(15,EAX); /*MOVL armregs[15],%eax*/
         if (r15mask != 0xfffffffc)
@@ -2939,7 +2939,7 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
         addlong(codeblockpc);
         addbyte(0x74); /*JZ +1*/
         addbyte(1);
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
         addbyte(0x8B); /*MOVL codeblocknum[%edx],%eax*/
         addbyte(0x82);
         addlong(codeblocknum);

@@ -195,8 +195,9 @@ void initcodeblock(uint32_t l)
         addbyte(0x83);
         addbyte(0xC4);
         addbyte(0x08);
-        addbyte(0xC3); /*RET*/
-addbyte(0); addbyte(0); addbyte(0);
+	gen_x86_ret();
+	addbyte(0); addbyte(0); addbyte(0);
+
 	addbyte(0x48); /*SUBL $8,%rsp*/
         addbyte(0x83);
         addbyte(0xEC);
@@ -1180,11 +1181,11 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
         addbyte(0x0C);
 	addbyte(0x25);
         addlong(&linecyc);
-//addbyte(0xC3); /*RET*/
+        //gen_x86_ret();
 
         addbyte(0x79); /*JNS +1*/
         addbyte(1);
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
         addbyte(0xF6); /*TESTB $0xFF,armirq*/
         addbyte(0x04);
 	addbyte(0x25);
@@ -1214,7 +1215,7 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
         addlong(codeblockpc);
         addbyte(0x74); /*JZ +1*/
         addbyte(1);
-        addbyte(0xC3); /*RET*/
+        gen_x86_ret();
         addbyte(0x8B); /*MOVL codeblocknum[%rdx],%eax*/
         addbyte(0x82);
         addlong(codeblocknum);
