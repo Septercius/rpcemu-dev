@@ -1558,21 +1558,13 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 else
                 {
-                        if (!(opcode&0xF80) && (opcode&0x7F))
-                        {
-                                addbyte(0x83); /*ADDL $8,%eax*/
-                                if (opcode&0x800000) addbyte(0x05); /*ADD*/
-                                else                 addbyte(0x2D); /*SUB*/
-                                addlong(&armregs[RN]);
-                                addbyte(opcode&0x7F);
-                        }
-                        else if (opcode&0xFFF)
-                        {
+                        templ = opcode & 0xfff;
+                        if (templ != 0) {
                                 addbyte(0x81); /*ADDL $8,%eax*/
                                 if (opcode&0x800000) addbyte(0x05); /*ADD*/
                                 else                 addbyte(0x2D); /*SUB*/
                                 addlong(&armregs[RN]);
-                                addlong(opcode&0xFFF);
+                                addlong(templ);
                         }
                 }
                 break;
@@ -1612,21 +1604,13 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 }
                 else
                 {
-                        if (!(opcode&0xF80) && (opcode&0x7F))
-                        {
-                                addbyte(0x83); /*ADDL $8,%eax*/
-                                if (opcode&0x800000) addbyte(0x05); /*ADD*/
-                                else                 addbyte(0x2D); /*SUB*/
-                                addlong(&armregs[RN]);
-                                addbyte(opcode&0x7F);
-                        }
-                        else if (opcode&0xFFF)
-                        {
+                        templ = opcode & 0xfff;
+                        if (templ != 0) {
                                 addbyte(0x81); /*ADDL $8,%eax*/
                                 if (opcode&0x800000) addbyte(0x05); /*ADD*/
                                 else                 addbyte(0x2D); /*SUB*/
                                 addlong(&armregs[RN]);
-                                addlong(opcode&0xFFF);
+                                addlong(templ);
                         }
                 }
                 break;
@@ -1710,21 +1694,13 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 }
                 else
                 {
-                        if (!(opcode&0xF80) && (opcode&0x7F))
-                        {
-                                addbyte(0x83); /*ADDL $8,%eax*/
-                                if (opcode&0x800000) addbyte(0x05); /*ADD*/
-                                else                 addbyte(0x2D); /*SUB*/
-                                addlong(&armregs[RN]);
-                                addbyte(opcode&0x7F);
-                        }
-                        else if (opcode&0xFFF)
-                        {
+                        templ = opcode & 0xfff;
+                        if (templ != 0) {
                                 addbyte(0x81); /*ADDL $8,%eax*/
                                 if (opcode&0x800000) addbyte(0x05); /*ADD*/
                                 else                 addbyte(0x2D); /*SUB*/
                                 addlong(&armregs[RN]);
-                                addlong(opcode&0xFFF);
+                                addlong(templ);
                         }
                 }
                 break;

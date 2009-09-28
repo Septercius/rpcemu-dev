@@ -593,7 +593,6 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 				return 0;
 			gen_x86_push_reg(RAX);
 		}
-		templ=opcode&0xFFF;
 		genloadreggen(RN,EDI);
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
 		genloadreg(RD);
@@ -621,8 +620,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		}
 		else
 		{
-			if (templ)
-			{
+			templ = opcode & 0xfff;
+			if (templ != 0) {
 				if (opcode&0x800000) { addbyte(0x41); addbyte(0x81); addbyte(0x47); addbyte(RN<<2); addlong(templ); /*ADDL $temp,Rn*/ }
 				else		     { addbyte(0x41); addbyte(0x81); addbyte(0x6F); addbyte(RN<<2); addlong(templ); /*SUBL $temp,Rn*/ }
 			}
@@ -637,7 +636,6 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 				return 0;
 			gen_x86_push_reg(RAX);
 		}
-		templ=opcode&0xFFF;
 		genloadreggen(RN,EDI);
 		genloadreg(RD);
 		genstrb();
@@ -664,8 +662,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		}
 		else
 		{
-			if (templ)
-			{
+			templ = opcode & 0xfff;
+			if (templ != 0) {
 				if (opcode&0x800000) { addbyte(0x41); addbyte(0x81); addbyte(0x47); addbyte(RN<<2); addlong(templ); /*ADDL $temp,Rn*/ }
 				else		     { addbyte(0x41); addbyte(0x81); addbyte(0x6F); addbyte(RN<<2); addlong(templ); /*SUBL $temp,Rn*/ }
 			}
@@ -680,7 +678,6 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 				return 0;
 			gen_x86_push_reg(RAX);
 		}
-		templ=opcode&0xFFF;
 		genloadreggen(RN,EDI);
 		genldr();
 	        addbyte(0x84); /*TESTL %al,%al*/
@@ -707,8 +704,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		}
 		else
 		{
-			if (templ)
-			{
+			templ = opcode & 0xfff;
+			if (templ != 0) {
 				if (opcode&0x800000) { addbyte(0x41); addbyte(0x81); addbyte(0x47); addbyte(RN<<2); addlong(templ); /*ADDL $temp,Rn*/ }
 				else		     { addbyte(0x41); addbyte(0x81); addbyte(0x6F); addbyte(RN<<2); addlong(templ); /*SUBL $temp,Rn*/ }
 			}
@@ -723,7 +720,6 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 				return 0;
 			gen_x86_push_reg(RAX);
 		}
-		templ=opcode&0xFFF;
 		genloadreggen(RN,EDI);
 		genldrb();
 	        addbyte(0x84); /*TESTL %al,%al*/
@@ -750,8 +746,8 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		}
 		else
 		{
-			if (templ)
-			{
+			templ = opcode & 0xfff;
+			if (templ != 0) {
 				if (opcode&0x800000) { addbyte(0x41); addbyte(0x81); addbyte(0x47); addbyte(RN<<2); addlong(templ); /*ADDL $temp,Rn*/ }
 				else		     { addbyte(0x41); addbyte(0x81); addbyte(0x6F); addbyte(RN<<2); addlong(templ); /*SUBL $temp,Rn*/ }
 			}
