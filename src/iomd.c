@@ -161,8 +161,8 @@
 #define CHIP_ID_HIGH_IOMD       0xd4
 #define CHIP_ID_LOW_ARM7500     0x98     /* ARM7500 */
 #define CHIP_ID_HIGH_ARM7500    0x5b
-//#define CHIP_ID_LOW_ARM7500FE   0x7c     /* ARM7500FE */
-//#define CHIP_ID_HIGH_ARM7500FE  0xaa
+#define CHIP_ID_LOW_ARM7500FE   0x7c     /* ARM7500FE */
+#define CHIP_ID_HIGH_ARM7500FE  0xaa
 
 struct iomd iomd;
 
@@ -518,13 +518,23 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.romcr1;
 
         case IOMD_0x094_ID0: /* Chip ID no. low byte */
-                if (config.model == CPUModel_ARM7500)
+                if (config.model == CPUModel_ARM7500) {
                         return CHIP_ID_LOW_ARM7500;
-                return CHIP_ID_LOW_IOMD;
+                } else if (config.model == CPUModel_ARM7500FE) {
+                        return CHIP_ID_LOW_ARM7500FE;
+                } else {
+                        /* RPC IOMD */
+                        return CHIP_ID_LOW_IOMD;
+                }
         case IOMD_0x098_ID1: /* Chip ID no. high byte */
-                if (config.model == CPUModel_ARM7500)
+                if (config.model == CPUModel_ARM7500) {
                         return CHIP_ID_HIGH_ARM7500;
-                return CHIP_ID_HIGH_IOMD;
+                } else if (config.model == CPUModel_ARM7500FE) {
+                        return CHIP_ID_HIGH_ARM7500FE;
+                } else {
+                        /* RPC IOMD */
+                        return CHIP_ID_HIGH_IOMD;
+                }
         case IOMD_0x09C_VERSION: /* Chip version number */
                 return 0; /*Chip version*/
 

@@ -576,14 +576,18 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 /* Set CPU model */
                 /* The CPUModel list and Dialog items are in a different order */
                 switch (config.model) {
-                case CPUModel_ARM7500:
-                        cpu = 1; break;
                 case CPUModel_ARM610:
                         cpu = 0; break;
                 case CPUModel_ARM710:
-                        cpu = 2; break;
+                        cpu = 1; break;
                 case CPUModel_SA110:
+                        cpu = 2; break;
+                case CPUModel_ARM7500:
                         cpu = 3; break;
+                case CPUModel_ARM7500FE:
+                        cpu = 4; break;
+                case CPUModel_ARM810:
+                        cpu = 5; break;
                 default:
                         fprintf(stderr, "configdlgproc(): unknown CPU model %d\n", config.model);
                         exit(EXIT_FAILURE);
@@ -634,8 +638,10 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                                 sound_restart();
                         }
 
-                        /* If changing to A7000 (ARM7500) it does not have vram */
-                        if (config.model != chosen_config.model && chosen_config.model == CPUModel_ARM7500) {
+                        /* If an A7000 (ARM7500) or an A7000+ (ARM7500FE) it does not have vram */
+                        if (config.model != chosen_config.model &&
+                            (chosen_config.model == CPUModel_ARM7500 || chosen_config.model == CPUModel_ARM7500FE))
+                        {
                                 chosen_config.vrammask = 0;
                         }
                         
@@ -682,21 +688,27 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         
                 /* CPU Type radio buttons */
                 case RadioButton_ARM610:
-                case RadioButton_ARM7500:
                 case RadioButton_ARM710:
                 case RadioButton_SA110:
+                case RadioButton_ARM7500:
+                case RadioButton_ARM7500FE:
+                case RadioButton_ARM810:
                         /* The model enum and the dialog IDs are in different orders */
 
                         /* Clear previous CPU model choice */
                         switch (config.model) {
-                        case CPUModel_ARM7500:
-                                cpu = 1; break;
                         case CPUModel_ARM610:
                                 cpu = 0; break;
                         case CPUModel_ARM710:
-                                cpu = 2; break;
+                                cpu = 1; break;
                         case CPUModel_SA110:
+                                cpu = 2; break;
+                        case CPUModel_ARM7500:
                                 cpu = 3; break;
+                        case CPUModel_ARM7500FE:
+                                cpu = 4; break;
+                        case CPUModel_ARM810:
+                                cpu = 5; break;
                         default:
                                 fprintf(stderr, "configdlgproc(): unknown CPU model %d\n", config.model);
                                 exit(EXIT_FAILURE);
@@ -710,11 +722,15 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         case 0:
                                 chosen_config.model = CPUModel_ARM610; break;
                         case 1:
-                                chosen_config.model = CPUModel_ARM7500; break;
-                        case 2:
                                 chosen_config.model = CPUModel_ARM710; break;
-                        case 3:
+                        case 2:
                                 chosen_config.model = CPUModel_SA110; break;
+                        case 3:
+                                chosen_config.model = CPUModel_ARM7500; break;
+                        case 4:
+                                chosen_config.model = CPUModel_ARM7500FE; break;
+                        case 5:
+                                chosen_config.model = CPUModel_ARM810; break;
                         default:
                                 fprintf(stderr, "configdlgproc(): unknown dialog item for CPUModel %d\n",
                                         LOWORD(wParam) - RadioButton_ARM610);

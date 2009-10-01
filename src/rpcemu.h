@@ -102,10 +102,12 @@ extern int fullscreen;
 #endif
 
 typedef enum {
-	CPUModel_ARM7500,
 	CPUModel_ARM610,
 	CPUModel_ARM710,
-	CPUModel_SA110
+	CPUModel_SA110,
+	CPUModel_ARM7500,
+	CPUModel_ARM7500FE,
+	CPUModel_ARM810
 } CPUModel;
 
 

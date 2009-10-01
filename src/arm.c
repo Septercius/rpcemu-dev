@@ -327,7 +327,7 @@ void resetarm(void)
         mode=SUPERVISOR;
         resetcp15();
         pccache=0xFFFFFFFF;
-        if (config.model == CPUModel_SA110)
+        if (config.model == CPUModel_SA110 || config.model == CPUModel_ARM810)
                 r15diff = 0;
         else
                 r15diff = 4;

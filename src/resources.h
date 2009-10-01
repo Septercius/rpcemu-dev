@@ -15,17 +15,22 @@
 
 
 #define RadioButton_ARM610	1000
-#define RadioButton_ARM7500	1001
-#define RadioButton_ARM710	1002
-#define RadioButton_SA110	1003
-#define RadioButton_Mem_4	1004
-#define RadioButton_Mem_8	1005
-#define RadioButton_Mem_16	1006
-#define RadioButton_Mem_32	1007
-#define RadioButton_Mem_64	1008
-#define RadioButton_Mem_128	1009
-#define RadioButton_VRAM_0	1010
-#define RadioButton_VRAM_2	1011
+#define RadioButton_ARM710	1001
+#define RadioButton_SA110	1002
+#define RadioButton_ARM7500	1003
+#define RadioButton_ARM7500FE	1004
+#define RadioButton_ARM810	1005
+
+#define RadioButton_Mem_4	1006
+#define RadioButton_Mem_8	1007
+#define RadioButton_Mem_16	1008
+#define RadioButton_Mem_32	1009
+#define RadioButton_Mem_64	1010
+#define RadioButton_Mem_128	1011
+//#define RadioButton_Mem_256	1012
+
+#define RadioButton_VRAM_0	1013
+#define RadioButton_VRAM_2	1014
 
 #define GroupBox_CPU		1020
 #define GroupBox_RAM		1021

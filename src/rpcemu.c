@@ -60,6 +60,7 @@ int quited = 0;
 static FILE *arclog; /* Log file handle */
 
 static void loadconfig(void);
+
 static void saveconfig(void);
 
 #ifdef _DEBUG
@@ -264,14 +265,24 @@ static void loadconfig(void)
         else                       config.vrammask = 0x7FFFFF;
 
         p = get_config_string(NULL,"cpu_type",NULL);
-        if (!p) config.model = CPUModel_ARM710;
-        else if (!strcmp(p, "ARM610"))  config.model = CPUModel_ARM610;
-        else if (!strcmp(p, "ARM7500")) config.model = CPUModel_ARM7500;
-        else if (!strcmp(p, "SA110"))   config.model = CPUModel_SA110;
-        else                            config.model = CPUModel_ARM710;
+        if (!p) {
+                config.model = CPUModel_ARM710;
+        } else if (!strcmp(p, "ARM610")) {
+                config.model = CPUModel_ARM610;
+        } else if (!strcmp(p, "ARM7500")) {
+                config.model = CPUModel_ARM7500;
+        } else if (!strcmp(p, "ARM7500FE")) {
+                config.model = CPUModel_ARM7500FE;
+        } else if (!strcmp(p, "ARM810")) {
+                config.model = CPUModel_ARM810;
+        } else if (!strcmp(p, "SA110")) {
+                config.model = CPUModel_SA110;
+        } else {
+                config.model = CPUModel_ARM710;
+        }
 
-        /* ARM7500 (A7000) has no VRAM */
-        if (config.model == CPUModel_ARM7500) {
+        /* ARM7500 (A7000) and ARM7500FE (A7000+) have no VRAM */
+        if (config.model == CPUModel_ARM7500 || config.model == CPUModel_ARM7500) {
                 config.vrammask = 0;
         }
 
@@ -299,10 +310,12 @@ static void saveconfig(void)
         set_config_string(NULL,"mem_size",s);
         switch (config.model)
         {
-                case CPUModel_ARM610:  sprintf(s, "ARM610"); break;
-                case CPUModel_ARM710:  sprintf(s, "ARM710"); break;
-                case CPUModel_SA110:   sprintf(s, "SA110"); break;
-                case CPUModel_ARM7500: sprintf(s, "ARM7500"); break;
+                case CPUModel_ARM610:    sprintf(s, "ARM610"); break;
+                case CPUModel_ARM710:    sprintf(s, "ARM710"); break;
+                case CPUModel_ARM810:    sprintf(s, "ARM810"); break;
+                case CPUModel_SA110:     sprintf(s, "SA110"); break;
+                case CPUModel_ARM7500:   sprintf(s, "ARM7500"); break;
+                case CPUModel_ARM7500FE: sprintf(s, "ARM7500FE"); break;
                 default: fprintf(stderr, "saveconfig(): unknown cpu model %d\n", config.model); break;
         }
         set_config_string(NULL,"cpu_type",s);

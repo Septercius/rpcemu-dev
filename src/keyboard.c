@@ -475,7 +475,12 @@ void pollmouse(void)
 //        rpclog("Poll mouse %i %i %i %i\n",x,y,iomd.mousex,iomd.mousey);
         if (mousecapture) position_mouse(getxs()>>1,getys()>>1);
         mcalls++;
-        if (config.model != CPUModel_ARM7500) return;
+
+        /* Return if not PS/2 mouse */
+        if (config.model != CPUModel_ARM7500 && config.model != CPUModel_ARM7500FE) {
+                return;
+        }
+
         if (!mousepoll) return;
         if (!x && !y && (mouseb==oldmouseb)) return;
         oldmouseb=mouseb;
