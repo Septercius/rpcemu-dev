@@ -199,6 +199,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 case CPUModel_ARM610:
                 case CPUModel_ARM710:
                 case CPUModel_ARM7500:
+                case CPUModel_ARM7500FE:
                         switch (addr & 0xf) {
                         case 5: /* TLB Flush */
                         case 6: /* TLB Purge */
@@ -213,6 +214,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 
                 /* ARMv4 Architecture */
                 case CPUModel_SA110:
+                case CPUModel_ARM810:
                         switch (addr & 0xf) {
                         case 5: /* Fault Status Register */
                                 cp15.fsr = val;
@@ -270,10 +272,12 @@ uint32_t readcp15(uint32_t addr)
                 case 0: /*ARM ID*/
                 switch (config.model)
                 {
-                        case CPUModel_ARM7500: return 0x41027100;
-                        case CPUModel_ARM610: return 0x41560610;
-                        case CPUModel_ARM710: return 0x41007100;
-                        case CPUModel_SA110: /*if (PC>0x10000000) output=1; */return 0x4401A102;
+                        case CPUModel_ARM7500:   return 0x41027100;
+                        case CPUModel_ARM7500FE: return 0x41077100;
+                        case CPUModel_ARM610:    return 0x41560610;
+                        case CPUModel_ARM710:    return 0x41007100;
+                        case CPUModel_ARM810:    return 0x41018100;
+                        case CPUModel_SA110:     return 0x4401a102;
                 }
                 break;
                 case 1: /*Control*/
