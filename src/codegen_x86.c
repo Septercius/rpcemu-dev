@@ -307,16 +307,20 @@ void initcodeblock(uint32_t l)
         blocks[blockpoint]=blocknum;
         blockpoint2=blockpoint;
         
-        addbyte(0x83); /*ADDL $8,%esp*/
+	/* Block Epilogue */
+        addbyte(0x83); /*ADDL $12,%esp*/
         addbyte(0xC4);
-        addbyte(0x08);
+        addbyte(0x0c);
         gen_x86_ret();
         addbyte(0xE9); /*JMP end*/
         addlong(0); /*Don't know where end is yet - see endblock()*/
         addbyte(0); addbyte(0); addbyte(0); /*Padding*/
-        addbyte(0x83); /*SUBL $8,%esp*/
+
+	/* Block Prologue */
+	/* Align stack to a multiple of 16 bytes - required by Mac OS X */
+        addbyte(0x83); /*SUBL $12,%esp*/
         addbyte(0xEC);
-        addbyte(0x08);
+        addbyte(0x0c);
 #ifndef _MSC_VER
         addbyte(0xBE); addlong(armregs); /*MOVL armregs,%esi*/
 #endif
@@ -2866,9 +2870,9 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
         addlong(&rcodeblock[blockpoint2][temp]-((uint32_t)&rcodeblock[blockpoint2][codeblockpos+4]));
         codeblockpos=temp;
 
-        addbyte(0x83); /*ADDL $8,%esp*/
+        addbyte(0x83); /*ADDL $12,%esp*/
         addbyte(0xC4);
-        addbyte(0x08);
+        addbyte(0x0c);
 
         addbyte(0xFF); /*DECL linecyc*/
         addbyte(0x0D);
