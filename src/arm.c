@@ -2463,8 +2463,7 @@ void execarm(int cycs)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (c==15) { writememl(addr,armregs[c]+r15diff); } \
-                                        else       { writememl(addr,armregs[c]); } \
+                                        writememl(addr, armregs[c]); \
                                         addr+=4; \
                                         break; \
                                 } \
@@ -2491,8 +2490,7 @@ void execarm(int cycs)
                         { \
                                 if (opcode&mask) \
                                 { \
-                                        if (c==15) { writememl(addr,armregs[c]+r15diff); } \
-                                        else       { writememl(addr,*usrregs[c]); } \
+                                        writememl(addr, *usrregs[c]); \
                                         addr+=4; \
                                         break; \
                                 } \
