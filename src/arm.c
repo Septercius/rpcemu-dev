@@ -1302,8 +1302,8 @@ void execarm(int cycs)
 				case 0x00: /* AND reg */
 					if ((opcode & 0xf0) == 0x90) /* MUL */
 					{
-					      armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
-					      if (MULRD==MULRM) armregs[MULRD]=0;
+						armregs[MULRD] = (MULRD == MULRM) ? 0 :
+						    (armregs[MULRM] * armregs[MULRS]);
 					}
 					else
 					{
@@ -1315,9 +1315,9 @@ void execarm(int cycs)
 				case 0x01: /* ANDS reg */
 					if ((opcode & 0xf0) == 0x90) /* MULS */
 					{
-					        armregs[MULRD]=(armregs[MULRM])*(armregs[MULRS]);
-					        if (MULRD==MULRM) armregs[MULRD]=0;
-					        setzn(armregs[MULRD]);
+						armregs[MULRD] = (MULRD == MULRM) ? 0 :
+						    (armregs[MULRM] * armregs[MULRS]);
+						setzn(armregs[MULRD]);
 					}
 					else
 					{
@@ -1338,8 +1338,8 @@ void execarm(int cycs)
 				case 0x02: /* EOR reg */
 					if ((opcode & 0xf0) == 0x90) /* MLA */
 					{
-					       armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
-					       if (MULRD==MULRM) armregs[MULRD]=0;
+						armregs[MULRD] = (MULRD == MULRM) ? 0 :
+						    (armregs[MULRM] * armregs[MULRS]) + armregs[MULRN];
 					}
 					else
 					{
@@ -1351,9 +1351,9 @@ void execarm(int cycs)
                                 case 0x03: /* EORS reg */
                                         if ((opcode & 0xf0) == 0x90) /* MLAS */
                                         {
-                                                armregs[MULRD]=((armregs[MULRM])*(armregs[MULRS]))+armregs[MULRN];
-					        if (MULRD==MULRM) armregs[MULRD]=0;
-                                                setzn(armregs[MULRD]);
+						armregs[MULRD] = (MULRD == MULRM) ? 0 :
+						    (armregs[MULRM] * armregs[MULRS]) + armregs[MULRN];
+						setzn(armregs[MULRD]);
                                         }
                                         else
                                         {
