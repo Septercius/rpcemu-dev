@@ -190,6 +190,8 @@ void initcodeblock(uint32_t l)
         codeblocknum[blocknum]=blockpoint;
         blocks[blockpoint]=blocknum;
         blockpoint2=blockpoint;
+
+	/* Block Epilogue */
 	addbyte(0x45); addbyte(0x89); addbyte(0x67); addbyte(15<<2); /*MOVL %r12d,R15*/
 	addbyte(0x48); /*ADDL $8,%rsp*/
         addbyte(0x83);
@@ -198,6 +200,8 @@ void initcodeblock(uint32_t l)
 	gen_x86_ret();
 	addbyte(0); addbyte(0); addbyte(0);
 
+	/* Block Prologue */
+	/* Align stack to a multiple of 16 bytes - required by AMD64 ABI */
 	addbyte(0x48); /*SUBL $8,%rsp*/
         addbyte(0x83);
         addbyte(0xEC);
