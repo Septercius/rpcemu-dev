@@ -468,7 +468,7 @@ static int generatedataprocS(uint32_t opcode, unsigned char dataop, uint32_t tem
                 addbyte(0x05|dataop);
                 addlong(&armregs[RD]);
                 addlong(templ);
-                addbyte(0x9F); /*LAHF*/
+                gen_x86_lahf();
                 temp+=10;
         }
         else
@@ -491,11 +491,11 @@ static int generatedataprocS(uint32_t opcode, unsigned char dataop, uint32_t tem
                         addlong(templ);
                         temp+=3;
                 }
-                addbyte(0x9F); /*LAHF*/
+                gen_x86_lahf();
                 generatesavegen(RD,EDX);
                 temp+=5+3+5;
         }
-//                      addbyte(0x9F); /*LAHF*/
+        //gen_x86_lahf();
         return temp;
 }
 
@@ -831,7 +831,7 @@ static void generatesetzn(uint32_t opcode, uint32_t *pcpsr)
 //        addbyte(0x80); addbyte(0xC9); addbyte(0x80); /*OR $NFLAG,%cl*/
         /*over*/
 
-        addbyte(0x9F); /*LAHF*/
+        gen_x86_lahf();
         addbyte(0x80); addbyte(0xE4); addbyte(0xC0); /*AND $ZFLAG+NFLAG,%ah*/
         addbyte(0x08); addbyte(0xE1); /*OR %ah,%cl*/
 
@@ -843,7 +843,7 @@ static void generatesetzn(uint32_t opcode, uint32_t *pcpsr)
 
 static void generatesetzn2(uint32_t opcode, uint32_t *pcpsr)
 {
-        addbyte(0x9F); /*LAHF*/
+        gen_x86_lahf();
         addbyte(0x80); addbyte(0xE4); addbyte(0xC0); /*AND $ZFLAG+NFLAG,%ah*/
         addbyte(0x08); addbyte(0xE1); /*OR %ah,%cl*/
         if ((opcode>>28)==0xE) flagsdirty=1;
@@ -857,7 +857,7 @@ static void generatesetzn2(uint32_t opcode, uint32_t *pcpsr)
 
 static void generatesetznS(uint32_t opcode, uint32_t *pcpsr)
 {
-//        addbyte(0x9F); /*LAHF*/
+        //gen_x86_lahf();
         addbyte(0x80); addbyte(0xE4); addbyte(0xC0); /*AND $ZFLAG+NFLAG,%ah*/
         addbyte(0x08); addbyte(0xE1); /*OR %ah,%cl*/
         addbyte(0x88); addbyte(0x0D); addlong(pcpsr+3); /*MOV %cl,pcpsr*/
@@ -1006,7 +1006,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x80); addbyte(0xE1); addbyte(~0xF0); /*AND $ZFLAG+NFLAG+VFLAG+CFLAG,%cl*/
                 generateloadgen(RN,EDX);
                 addbyte(0x29); addbyte(0xC2); /*SUBL %eax,%edx*/
-                addbyte(0x9F); /*LAHF*/
+                gen_x86_lahf();
                 generatesavegen(RD,EDX);
                 addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
                 addbyte(0x71); addbyte(3); /*JNO notoverflow*/
@@ -1071,7 +1071,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x80); addbyte(0xE1); addbyte(~0xF0); /*AND $ZFLAG+NFLAG+VFLAG+CFLAG,%cl*/
                 generateloadgen(RN,EDI);
                 addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/
-                addbyte(0x9F); /*LAHF*/
+                gen_x86_lahf();
                 generatesavegen(RD,EDI);
                 addbyte(0x71); addbyte(3); /*JNO notoverflow*/
                 addbyte(0x80); addbyte(0xC9); addbyte(0x10); /*OR $VFLAG,%cl*/
@@ -1113,7 +1113,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 generateloadgen(RN,EDX);
                 addbyte(0xC0); addbyte(0xE5); addbyte(3);       /*SHL $3,%ch - put ARM carry into x86 carry*/
                 addbyte(0x11); addbyte(0xC2); /*ADCL %eax,%edx*/
-                addbyte(0x9F); /*LAHF*/
+                gen_x86_lahf();
                 generatesavegen(RD,EDX);
                 addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
                 addbyte(0x71); addbyte(3); /*JNO notoverflow*/
@@ -1294,7 +1294,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x80); addbyte(0xE1); addbyte(~0xF0); /*AND $ZFLAG+NFLAG+VFLAG+CFLAG,%cl*/
                 generateloadgen(RN,EDX);
                 addbyte(0x29); addbyte(0xC2); /*SUBL %eax,%edx*/
-                addbyte(0x9F); /*LAHF*/
+                gen_x86_lahf();
                 addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
                 addbyte(0x71); addbyte(3); /*JNO notoverflow*/
                 addbyte(0x80); addbyte(0xC9); addbyte(0x10); /*OR $VFLAG,%cl*/
@@ -1350,7 +1350,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 //                addbyte(0x80); addbyte(0x25); addlong(pcpsr+3); addbyte(0xF); /*ANDB 0xF,pcpsr*/
                 templ=rotate2(opcode);//,pcpsr,0xF0);
                 generatedataprocS(opcode, X86_OP_SUB, templ);
-//                addbyte(0x9F); /*LAHF*/
+                //gen_x86_lahf();
                 addbyte(0x0F); addbyte(0x90); addbyte(0xC1); /*SETO %cl*/
                 addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
                 addbyte(0xC0); addbyte(0xE1); addbyte(4); /*SHL $4,%cl*/
@@ -1488,7 +1488,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 templ=rotate2(opcode);
                 generateload(RN);
                 addbyte(0x3D); addlong(templ); /*CMP $templ,%eax*/
-                addbyte(0x9F); /*LAHF*/
+                gen_x86_lahf();
                 addbyte(0x0F); addbyte(0x90); addbyte(0xC1); /*SETO %cl*/
                 addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
                 addbyte(0xC0); addbyte(0xE1); addbyte(4); /*SHL $4,%cl*/

@@ -40,6 +40,7 @@ addrel32(const void *addr)
 }
 
 #define gen_x86_call(addr)	addbyte(0xe8); addrel32(addr)
+#define gen_x86_lahf()		addbyte(0x9f)
 #define gen_x86_ret()		addbyte(0xc3)
 
 #endif /* CODEGEN_X86_COMMON_H */
