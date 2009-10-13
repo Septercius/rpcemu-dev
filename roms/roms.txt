@@ -1,2 +1,9 @@
-This directory needs to contain the RISC OS ROMs. They can be called anything, and in any
-number of files. They will be loaded in alphabetical order.
+This directory needs to contain the RISC OS ROMs.  All files that don't
+start with a "." or have the extension "txt" will be joined together in
+alphabetical order to make up the ROM that RPCEmu uses.  The total
+length of the ROM files must be 2, 4, 6, or 8MiB long.
+
+Please see the website for more information on compatibility and
+ROM sources.
+
+http://www.marutan.net/rpcemuspoon/manual/romimage.html
