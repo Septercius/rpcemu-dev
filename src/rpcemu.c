@@ -316,7 +316,13 @@ static void saveconfig(void)
                 case CPUModel_SA110:     sprintf(s, "SA110"); break;
                 case CPUModel_ARM7500:   sprintf(s, "ARM7500"); break;
                 case CPUModel_ARM7500FE: sprintf(s, "ARM7500FE"); break;
-                default: fprintf(stderr, "saveconfig(): unknown cpu model %d\n", config.model); break;
+                default:
+                        /* Forgotten to add a new CPU model to the switch()? */
+                        fprintf(stderr, "saveconfig(): unknown cpu model %d\n",
+                                config.model);
+                        rpclog("saveconfig(): unknown cpu model %d\n",
+                               config.model);
+                        exit(EXIT_FAILURE);
         }
         set_config_string(NULL,"cpu_type",s);
         if (config.vrammask) set_config_string(NULL, "vram_size", "2");
