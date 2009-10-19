@@ -1033,7 +1033,9 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		return 0;
 	}
 	lastrecompiled=1;
-	if (lastjumppos) rcodeblock[blockpoint2][lastjumppos]=(codeblockpos-lastjumppos)-1;
+	if (lastjumppos != 0) {
+		gen_x86_jump_here(lastjumppos);
+	}
 	return 1;
 }
 
@@ -1083,6 +1085,9 @@ void generatecall(OpFn addr, uint32_t opcode,uint32_t *pcpsr)
                 addrel32(&rcodeblock[blockpoint2][0]);
         }
 //        #endif
+	if (lastjumppos != 0) {
+		gen_x86_jump_here(lastjumppos);
+	}
 }
 void generateupdatepc(void)
 {
@@ -1256,6 +1261,8 @@ void dumplastblock(void)
 
 void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 {
+	int cond;
+
 //asm("movl 0x12345678,%eax;");
 //asm("shrl $28,%eax;");
 //asm("cmpb $0,0x12345678(%rax);");
@@ -1285,8 +1292,7 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                 	addlong(((char *)pcpsr)+3);
                 	addbyte(0x40);
 		}
-                if ((opcode>>28)&1) addbyte(0x75);                 /*JNE +5*/
-                else                addbyte(0x74);                 /*JE +5*/
+		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
                 break;
                 case 2: /*CS*/
                 case 3: /*CC*/
@@ -1305,8 +1311,7 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 	                addlong(((char *)pcpsr)+3);
 	                addbyte(0x20);
 		}
-                if ((opcode>>28)&1) addbyte(0x75);                 /*JNE +5*/
-                else                addbyte(0x74);                 /*JE +5*/
+		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
                 break;
                 case 4: /*MI*/
                 case 5: /*PL*/
@@ -1315,8 +1320,7 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0x45); /*OR %r12d,%r12d*/
 			addbyte(0x09);
 			addbyte(0xE4);
-                	if ((opcode>>28)&1) addbyte(0x78);                 /*JNS +5*/
-                	else                addbyte(0x79);                 /*JS +5*/
+			cond = ((opcode >> 28) & 1) ? CC_S : CC_NS;
 		}
 		else
 		{
@@ -1325,8 +1329,7 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0x25);
                 	addlong(((char *)pcpsr)+3);
                 	addbyte(0x80);
-                	if ((opcode>>28)&1) addbyte(0x75);                 /*JNE +5*/
-                	else                addbyte(0x74);                 /*JE +5*/
+			cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
 		}
                 break;
                 case 6: /*VS*/
@@ -1346,8 +1349,7 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                 	addlong(((char *)pcpsr)+3);
                 	addbyte(0x10);
 		}
-                if ((opcode>>28)&1) addbyte(0x75);                 /*JNE +5*/
-                else                addbyte(0x74);                 /*JE +5*/
+		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
                 break;
                 default:
 		if ((pcpsr)==&armregs[15])
@@ -1368,20 +1370,10 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0xB8);
                 addlong((char *)(&flaglookup[opcode>>28][0]));
                 addbyte(0);
-                addbyte(0x74);                 /*JE +5*/
+		cond = CC_E;
                 break;
         }
-	lastjumppos=codeblockpos;
-//        if (output) rpclog("PC %07X - %08X  %i\n",PC,opcode,(((opcode+0x6000000)&0xF000000)>0xA000000));
-        if (!flaglookup[opcode>>28][(*pcpsr)>>28] && (opcode&0xE000000)==0xA000000) addbyte(5+5+5+((pcinc)?4:0)+8);
-#ifdef ABORTCHECKING
-        else if (((opcode+0x6000000)&0xF000000)>=0xA000000)
-        {
-                if (((char *)(&rcodeblock[blockpoint2][codeblockpos+17+8])-(char *)(&rcodeblock[blockpoint2][0]))<120) addbyte(5+5+2+2+8);
-                else                                                                                                     addbyte(5+5+2+6+8);
-        }
-#endif
-        else                                                                        addbyte(5+5+8);
+	lastjumppos = gen_x86_jump_forward_long(cond);
 }
 void generateirqtest(void)
 {
@@ -1408,6 +1400,9 @@ void generateirqtest(void)
                 addbyte(0x85);
                 addrel32(&rcodeblock[blockpoint2][0]);
         }
+	if (lastjumppos != 0) {
+		gen_x86_jump_here(lastjumppos);
+	}
 }
 #endif
 #endif

@@ -41,7 +41,6 @@ int blockend = 0;
 static int blocknum;//,blockcount;
 static int tempinscount;
 
-static int bigflagtest = 0;
 static int codeblockpos = 0;
 
 #define addbyte(a)         rcodeblock[blockpoint2][codeblockpos]=(uint8_t)(a),codeblockpos++
@@ -2755,19 +2754,15 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 return 0;
         }
         lastrecompiled=1;
-        if (lastflagchange)
-        {
-                if (bigflagtest) *((uint32_t *)&rcodeblock[blockpoint2][lastflagchange])=codeblockpos-old;
-                else             rcodeblock[blockpoint2][lastflagchange]=codeblockpos-old;
-//                rpclog("Flag change %i %08X\n",temp,&rcodeblock[blockpoint2][lastflagchange]);
-        }
+	if (lastflagchange != 0) {
+		gen_x86_jump_here(lastflagchange);
+	}
         if ((opcode>>28)!=0xF) flagsdirty=0;
         return 1;
 }
 
 void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr)
 {
-        int temp=7+5;
         int old=codeblockpos;
 //        if ((PC>=0x40050FF0 && PC<0x40051010) || output==1) { rpclog("Instruction %08X %07X %08X %i\n",opcode,PC,&rcodeblock[blockpoint2][codeblockpos],codeblockpos); output=1; }
 //        rpclog("%08X %02X %02X %02X %02X %08X %i %02X\n",&rcodeblock[8][0x5F],rcodeblock[8][0x5E],rcodeblock[8][0x5F],rcodeblock[8][0x60],rcodeblock[8][0x61],opcode,blockpoint2,codeblockpos);
@@ -2795,19 +2790,14 @@ void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr)
                         addbyte(0x05);
                         addlong(&armregs[15]);
                         addbyte(pcinc);
-                        temp+=7;
 //                pcinc=0;
                 }
                 addbyte(0xE9); /*JMP 4*/
                 addrel32(&rcodeblock[blockpoint2][4]);
-                temp+=5;
         }
-        if (lastflagchange)
-        {
-                rcodeblock[blockpoint2][lastflagchange]=temp;
-//                if (&rcodeblock[blockpoint2][lastflagchange]==0x87CD5A)
-//                        rpclog("2Flag change %i %08X\n",temp,&rcodeblock[blockpoint2][lastflagchange]);
-        }
+	if (lastflagchange != 0) {
+		gen_x86_jump_here(lastflagchange);
+	}
 //        rpclog("-%08X %02X %02X %08X %i %02X\n",&rcodeblock[8][0x5F],rcodeblock[8][0x5F],rcodeblock[8][0x60],opcode,blockpoint2,codeblockpos);
 //        #endif
 }
@@ -2959,6 +2949,8 @@ void dumplastblock(void)
 
 void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 {
+	int cond;
+
         /*movl (pcpsr),%eax
           movl (opcode>>28)<<4,%edx
           shrl %eax,28
@@ -2973,8 +2965,6 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
         asm("je   5;");*/
 //        rpclog("%08X %02X %02X %02X %02X %08X %i %02X\n",&rcodeblock[8][0x5F],rcodeblock[8][0x5E],rcodeblock[8][0x5F],rcodeblock[8][0x60],rcodeblock[8][0x61],opcode,blockpoint2,codeblockpos);
         if ((opcode>>28)==0xE) { return; } /*No need if 'always' condition code*/
-        if (((opcode>>20)&0xE0)==0x80 && recompileinstructions[(opcode>>20)&0xFF]) bigflagtest=0x10;
-        else                                                                       bigflagtest=0;
         switch (opcode>>28)
         {
                 case 0: /*EQ*/
@@ -2990,9 +2980,7 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                         addlong(((unsigned long)pcpsr)+3);
                         addbyte(0x40);
                 }
-                if (bigflagtest) addbyte(0x0F);
-                if ((opcode>>28)&1) addbyte(0x75+bigflagtest);                 /*JNE +5*/
-                else                addbyte(0x74+bigflagtest);                 /*JE +5*/
+                cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
                 break;
                 case 2: /*CS*/
                 case 3: /*CC*/
@@ -3007,9 +2995,7 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                         addlong(((unsigned long)pcpsr)+3);
                         addbyte(0x20);
                 }
-                if (bigflagtest) addbyte(0x0F);
-                if ((opcode>>28)&1) addbyte(0x75+bigflagtest);                 /*JNE +5*/
-                else                addbyte(0x74+bigflagtest);                 /*JE +5*/
+                cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
                 break;
                 case 4: /*MI*/
                 case 5: /*PL*/
@@ -3024,9 +3010,7 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                         addlong(((unsigned long)pcpsr)+3);
                         addbyte(0x80);
                 }
-                if (bigflagtest) addbyte(0x0F);
-                if ((opcode>>28)&1) addbyte(0x75+bigflagtest);                 /*JNE +5*/
-                else                addbyte(0x74+bigflagtest);                 /*JE +5*/
+                cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
                 break;
                 case 6: /*VS*/
                 case 7: /*VC*/
@@ -3041,9 +3025,7 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                         addlong(((unsigned long)pcpsr)+3);
                         addbyte(0x10);
                 }
-                if (bigflagtest) addbyte(0x0F);
-                if ((opcode>>28)&1) addbyte(0x75+bigflagtest);                 /*JNE +5*/
-                else                addbyte(0x74+bigflagtest);                 /*JE +5*/
+                cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
                 break;
                 default:
                 if (flagsdirty)
@@ -3065,28 +3047,14 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0xB8);
                 addlong((unsigned long)(&flaglookup[opcode>>28][0]));
                 addbyte(0);
-                if (bigflagtest) addbyte(0x0F);
-                addbyte(0x74+bigflagtest);                 /*JE +5*/
+                cond = CC_E;
                 break;
         }
 //        flagsdirty=0;
-        lastflagchange=codeblockpos;
-        if (bigflagtest) { addlong(0); }
-        else             addbyte(0);
-//        if (output) rpclog("PC %07X - %08X  %i\n",PC,opcode,(((opcode+0x6000000)&0xF000000)>0xA000000));
-/*        if (!flaglookup[opcode>>28][(*pcpsr)>>28] && (opcode&0xE000000)==0xA000000) addbyte(5+7+5+((pcinc)?7:0));
-#ifdef ABORTCHECKING
-        else if (((opcode+0x6000000)&0xF000000)>=0xA000000)
-        {
-                if (((uint32_t)(&rcodeblock[blockpoint2][codeblockpos+19])-(uint32_t)(&rcodeblock[blockpoint2][0]))<120) addbyte(5+7+2+2);
-                else                                                                                                                    addbyte(5+7+2+6);
-        }
-#endif
-        else                                                                        addbyte(5+7);*/
+	lastflagchange = gen_x86_jump_forward_long(cond);
 }
 void generateirqtest(void)
 {
-        int temp=5+7;
         if (lastrecompiled) return;
 //        asm("testl %eax,%eax");
 //        asm("testb $0xC0,0x12345678");
@@ -3098,14 +3066,12 @@ void generateirqtest(void)
         addbyte(0x85); /*TESTL %eax,%eax*/
         addbyte(0xC0);
 //        #if 0
-        temp+=2;
         if (((uint32_t)(&rcodeblock[blockpoint2][codeblockpos+4])-(uint32_t)(&rcodeblock[blockpoint2][0]))<120)
         {
                 addbyte(0x75); /*JNE 0*/
                 addbyte((uint32_t)&rcodeblock[blockpoint2][0]-(uint32_t)(&rcodeblock[blockpoint2][codeblockpos+1]));
 //                rpclog("JNE %08X %08X %i\n",&rcodeblock[blockpoint2][0],&rcodeblock[blockpoint2][codeblockpos],codeblockpos-1);
 //                rpclog("%02X %02X\n",rcodeblock[8][0x5F],rcodeblock[8][0x60]);
-                temp+=2;
         }
         else
         {
@@ -3114,15 +3080,10 @@ void generateirqtest(void)
                 addbyte(0x85);
                 addrel32(&rcodeblock[blockpoint2][0]);
 //                rpclog("%02X %02X\n",rcodeblock[8][0x5F],rcodeblock[8][0x60]);
-                temp+=6;
         }
-        if (lastflagchange && !lastrecompiled)
-        {
-                rcodeblock[blockpoint2][lastflagchange]=temp;
-//                if (&rcodeblock[blockpoint2][lastflagchange]==0x87CD5A)
-//                        rpclog("3Flag change %i %08X\n",temp,&rcodeblock[blockpoint2][lastflagchange]);
-        }
-
+	if (lastflagchange != 0) {
+		gen_x86_jump_here(lastflagchange);
+	}
 }
 
 #endif
