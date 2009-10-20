@@ -2755,7 +2755,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
         }
         lastrecompiled=1;
 	if (lastflagchange != 0) {
-		gen_x86_jump_here(lastflagchange);
+		gen_x86_jump_here_long(lastflagchange);
 	}
         if ((opcode>>28)!=0xF) flagsdirty=0;
         return 1;
@@ -2796,7 +2796,7 @@ void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr)
                 addrel32(&rcodeblock[blockpoint2][4]);
         }
 	if (lastflagchange != 0) {
-		gen_x86_jump_here(lastflagchange);
+		gen_x86_jump_here_long(lastflagchange);
 	}
 //        rpclog("-%08X %02X %02X %08X %i %02X\n",&rcodeblock[8][0x5F],rcodeblock[8][0x5F],rcodeblock[8][0x60],opcode,blockpoint2,codeblockpos);
 //        #endif
@@ -3082,7 +3082,7 @@ void generateirqtest(void)
 //                rpclog("%02X %02X\n",rcodeblock[8][0x5F],rcodeblock[8][0x60]);
         }
 	if (lastflagchange != 0) {
-		gen_x86_jump_here(lastflagchange);
+		gen_x86_jump_here_long(lastflagchange);
 	}
 }
 

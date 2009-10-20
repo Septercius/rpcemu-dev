@@ -1034,7 +1034,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 	}
 	lastrecompiled=1;
 	if (lastjumppos != 0) {
-		gen_x86_jump_here(lastjumppos);
+		gen_x86_jump_here_long(lastjumppos);
 	}
 	return 1;
 }
@@ -1086,7 +1086,7 @@ void generatecall(OpFn addr, uint32_t opcode,uint32_t *pcpsr)
         }
 //        #endif
 	if (lastjumppos != 0) {
-		gen_x86_jump_here(lastjumppos);
+		gen_x86_jump_here_long(lastjumppos);
 	}
 }
 void generateupdatepc(void)
@@ -1401,7 +1401,7 @@ void generateirqtest(void)
                 addrel32(&rcodeblock[blockpoint2][0]);
         }
 	if (lastjumppos != 0) {
-		gen_x86_jump_here(lastjumppos);
+		gen_x86_jump_here_long(lastjumppos);
 	}
 }
 #endif
