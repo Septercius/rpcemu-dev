@@ -61,11 +61,11 @@ addrel32(const void *addr)
  * The jump generated will have a 32-bit displacement allowing a range of
  * +/- 2^31 bytes.
  *
- * The jump must be completed by using the function gen_x86_jump_here() at the
- * destination of this jump.
+ * The jump must be completed by using the function gen_x86_jump_here_long() at
+ * the destination of this jump.
  *
  * @param condition Jump condition (or CC_ALWAYS for unconditional)
- * @return Position of jump offset, which is passed to gen_x86_jump_here()
+ * @return Position of jump offset, which is passed to gen_x86_jump_here_long()
  */
 static inline int
 gen_x86_jump_forward_long(int condition)
@@ -88,24 +88,18 @@ gen_x86_jump_forward_long(int condition)
  * Complete a previous forward jump by making the destination of the jump the
  * current code generation position.
  *
+ * The forward jump must have a 32-bit displacement.
+ *
  * @param jump_offset_pos Position of jump offset obtained from
  *                        gen_x86_jump_forward_long()
  */
 static void
-gen_x86_jump_here(int jump_offset_pos)
+gen_x86_jump_here_long(int jump_offset_pos)
 {
-	uint8_t jump_type = rcodeblock[blockpoint2][jump_offset_pos - 1];
 	int rel = codeblockpos - jump_offset_pos;
 
-	/* Is the jump at jump_offset_pos 8-bit or 32-bit displacement? */
-	if ((jump_type & 0xf0) == 0x70 || jump_type == 0xeb) {
-		/* 8-bit displacement */
-		rcodeblock[blockpoint2][jump_offset_pos] = (uint8_t) (rel - 1);
-	} else {
-		/* 32-bit displacement */
-		*((uint32_t *) &rcodeblock[blockpoint2][jump_offset_pos]) =
-		    (uint32_t) (rel - 4);
-	}
+	*((uint32_t *) &rcodeblock[blockpoint2][jump_offset_pos]) =
+	    (uint32_t) (rel - 4);
 }
 
 #endif /* CODEGEN_X86_COMMON_H */
