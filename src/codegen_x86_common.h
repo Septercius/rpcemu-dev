@@ -58,6 +58,36 @@ addrel32(const void *addr)
  * Generate a jump instruction (optionally conditional) where the destination
  * is not yet known because the jump is forward.
  *
+ * The jump generated will have a 8-bit displacement allowing a range of
+ * +/- 127 bytes, so this function should only be used when the jump will not
+ * exceed that range.
+ *
+ * The jump must be completed by using the function gen_x86_jump_here() at the
+ * destination of this jump.
+ *
+ * @param condition Jump condition (or CC_ALWAYS for unconditional)
+ * @return Position of jump offset, which is passed to gen_x86_jump_here()
+ */
+static inline int
+gen_x86_jump_forward(int condition)
+{
+	int jump_offset_pos;
+
+	if (condition == CC_ALWAYS) {
+		addbyte(0xeb);
+	} else {
+		addbyte(0x70 | condition);
+	}
+	jump_offset_pos = codeblockpos;
+	codeblockpos++;
+
+	return jump_offset_pos;
+}
+
+/**
+ * Generate a jump instruction (optionally conditional) where the destination
+ * is not yet known because the jump is forward.
+ *
  * The jump generated will have a 32-bit displacement allowing a range of
  * +/- 2^31 bytes.
  *
@@ -88,12 +118,29 @@ gen_x86_jump_forward_long(int condition)
  * Complete a previous forward jump by making the destination of the jump the
  * current code generation position.
  *
+ * The forward jump must have a 8-bit displacement.
+ *
+ * @param jump_offset_pos Position of jump offset obtained from
+ *                        gen_x86_jump_forward()
+ */
+static inline void
+gen_x86_jump_here(int jump_offset_pos)
+{
+	int rel = codeblockpos - jump_offset_pos;
+
+	rcodeblock[blockpoint2][jump_offset_pos] = (uint8_t) (rel - 1);
+}
+
+/**
+ * Complete a previous forward jump by making the destination of the jump the
+ * current code generation position.
+ *
  * The forward jump must have a 32-bit displacement.
  *
  * @param jump_offset_pos Position of jump offset obtained from
  *                        gen_x86_jump_forward_long()
  */
-static void
+static inline void
 gen_x86_jump_here_long(int jump_offset_pos)
 {
 	int rel = codeblockpos - jump_offset_pos;
