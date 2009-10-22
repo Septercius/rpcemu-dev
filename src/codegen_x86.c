@@ -63,6 +63,7 @@ static int pcinc = 0;
 
 void initcodeblocks(void)
 {
+	int jump_next, jump_notinbuffer, jump_samepage;
         int c;
 #ifdef __linux__
 	void *start;
@@ -92,10 +93,11 @@ void initcodeblocks(void)
         addbyte(0x8B); addbyte(0x0C); addbyte(0x95); /*MOV vwaddrl(,%edx,4),%ecx*/
         addlong(vwaddrl);
         addbyte(0xF6); addbyte(0xC1); addbyte(3); /*TST %cl,3*/
-        addbyte(0x75); addbyte(4); /*JNZ inbuffer*/
+        jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
         addbyte(0x89); addbyte(0x1C); addbyte(0x39); /*MOVL %ebx,(%ecx,%edi)*/
         gen_x86_ret();
-        
+
+        gen_x86_jump_here(jump_notinbuffer);
         gen_x86_push_reg(EBX);
         gen_x86_push_reg(EDI);
         gen_x86_call(writememfl);
@@ -117,9 +119,11 @@ void initcodeblocks(void)
         addbyte(0x8B); addbyte(0x0C); addbyte(0x95); /*MOV vraddrl(,%edx,4),%ecx*/
         addlong(vraddrl);
         addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
-        addbyte(0x75); addbyte(4); /*JNZ notinbuffer*/
+        jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
         addbyte(0x8B); addbyte(0x14); addbyte(0x39); /*MOVL (%ecx,%edi),%edx*/
         gen_x86_ret();
+
+        gen_x86_jump_here(jump_notinbuffer);
         gen_x86_push_reg(EDI);
         gen_x86_call(readmemfl);
         addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
@@ -133,15 +137,17 @@ void initcodeblocks(void)
         blockpoint2=BLOCKS+2;
         codeblockpos=0;
         addbyte(0xF7); addbyte(0xC7); addlong(0xFFF); /*TST $0xFFF,%edi*/
-        addbyte(0x75); addbyte(41); /*JNZ samepage*/
+        jump_samepage = gen_x86_jump_forward(CC_NZ);
         addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
         addbyte(0xC1); addbyte(0xEA); addbyte(12); /*SHR $12,%edx*/
         addbyte(0x8B); addbyte(0x0C); addbyte(0x95); /*MOV vraddrl(,%edx,4),%ecx*/
         addlong(vraddrl);
         addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
-        addbyte(0x75); addbyte(4); /*JNZ notinbuffer*/
+        jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
         addbyte(0x8B); addbyte(0x14); addbyte(0x39); /*MOVL (%ecx,%edi),%edx*/
         gen_x86_ret();
+
+        gen_x86_jump_here(jump_notinbuffer);
         addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
         gen_x86_call(codereadmemlnt);
         addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
@@ -149,6 +155,7 @@ void initcodeblocks(void)
         addbyte(0x8B); addbyte(0x0C); addbyte(0x8D); addlong(vraddrl); /*MOV vraddrl(,%ecx,4),%ecx*/
         gen_x86_ret();
         /*.samepage*/
+        gen_x86_jump_here(jump_samepage);
         addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
         addbyte(0x75); addbyte(/*8-(codeblockpos+1)*/-46); /*JNZ backup*/
         addbyte(0x8B); addbyte(0x14); addbyte(0x39); /*MOVL (%ecx,%edi),%edx*/
@@ -161,10 +168,11 @@ void initcodeblocks(void)
         for (c=1;c<16;c++)
         {
                 addbyte(0xD1); addbyte(0xED); /*SHR $1,%ebp*/
-                addbyte(0x73); addbyte(8+3); /*JNC next*/
+                jump_next = gen_x86_jump_forward(CC_NC);
                 gen_x86_call(mreadmem);
                 generatesavegen(c,EDX);
                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
+                gen_x86_jump_here(jump_next);
         }
         gen_x86_ret();
         
@@ -172,16 +180,18 @@ void initcodeblocks(void)
         blockpoint2=BLOCKS+3;
         codeblockpos=0;
         addbyte(0xF7); addbyte(0xC7); addlong(0xFFF); /*TST $0xFFF,%edi*/
-        addbyte(0x75); addbyte(41+3+3); /*JNZ samepage*/
+        jump_samepage = gen_x86_jump_forward(CC_NZ);
         addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
         addbyte(0xC1); addbyte(0xEA); addbyte(12); /*SHR $12,%edx*/
         addbyte(0x8B); addbyte(0x0C); addbyte(0x95); /*MOV vwaddrl(,%edx,4),%ecx*/
         addlong(vwaddrl);
         addbyte(0xF6); addbyte(0xC1); addbyte(3); /*TST %cl,3*/
-        addbyte(0x75); addbyte(4+3); /*JNZ notinbuffer*/
+        jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
         addbyte(0x89); addbyte(0x1C); addbyte(0x39); /*MOVL %ebx,(%ecx,%edi)*/
 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
         gen_x86_ret();
+
+        gen_x86_jump_here(jump_notinbuffer);
         addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
         gen_x86_call(codewritememflnt);
         addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
@@ -190,6 +200,7 @@ addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
         gen_x86_ret();
         /*.samepage*/
+        gen_x86_jump_here(jump_samepage);
 //        addbyte(0xF6); addbyte(0xC1); addbyte(3); /*TST %cl,1*/
 //        addbyte(0x75); addbyte(8-(codeblockpos+1)); /*JNZ backup*/
         addbyte(0x89); addbyte(0x1C); addbyte(0x39); /*MOVL %ebx,(%ecx,%edi)*/
@@ -204,9 +215,10 @@ addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
         {
                 addbyte(0xD1); addbyte(0xED); /*SHR $1,%ebp*/
                 generateloadgen(c,EBX); /*MOVL armregs[c],%ebx*/
-                addbyte(0x73); addbyte(5+3); /*JNC next*/
+                jump_next = gen_x86_jump_forward(CC_NC);
                 gen_x86_call(mwritemem);
                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
+                gen_x86_jump_here(jump_next);
         }
         gen_x86_ret();
 
