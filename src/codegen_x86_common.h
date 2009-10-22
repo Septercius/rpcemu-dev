@@ -25,6 +25,8 @@
 #define X86_OP_CMP	0x38
 
 /* x86 Condition Codes (for conditional instructions) */
+#define CC_C		0x2	/* Carry (CF=1) */
+#define CC_NC		0x3	/* Not Carry (CF=0) */
 #define CC_Z		0x4	/* Zero (ZF=1) */
 #define CC_NZ		0x5	/* Not Zero (ZF=0) */
 #define CC_S		0x8	/* Sign (SF=1) */
