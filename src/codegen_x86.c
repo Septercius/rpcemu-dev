@@ -431,9 +431,9 @@ static inline void generatesave(int reg)
 #endif
 }
 
-static int generatedataproc(uint32_t opcode, unsigned char dataop, uint32_t templ)
+static void
+generatedataproc(uint32_t opcode, unsigned char dataop, uint32_t templ)
 {
-        int temp=0;
 //        #if 0
         if (RN==RD)
         {
@@ -441,7 +441,6 @@ static int generatedataproc(uint32_t opcode, unsigned char dataop, uint32_t temp
                 addbyte(0x05|dataop);
                 addlong(&armregs[RD]);
                 addlong(templ);
-                temp+=10;
         }
         else
         {
@@ -462,17 +461,14 @@ static int generatedataproc(uint32_t opcode, unsigned char dataop, uint32_t temp
                         addbyte(0x81); /*ORRL $8,%eax*/
                         addbyte(0xC0|dataop);
                         addlong(templ);
-                        temp+=3;
                 }
                 generatesave(RD);
-                temp+=5+3+5;
         }
-        return temp;
 }
 
-static int generatedataprocS(uint32_t opcode, unsigned char dataop, uint32_t templ)
+static void
+generatedataprocS(uint32_t opcode, unsigned char dataop, uint32_t templ)
 {
-        int temp=0;
         if (RN==RD)
         {
                 addbyte(0x81); /*ORRL $dat,(addr)*/
@@ -480,7 +476,6 @@ static int generatedataprocS(uint32_t opcode, unsigned char dataop, uint32_t tem
                 addlong(&armregs[RD]);
                 addlong(templ);
                 gen_x86_lahf();
-                temp+=10;
         }
         else
         {
@@ -500,14 +495,11 @@ static int generatedataprocS(uint32_t opcode, unsigned char dataop, uint32_t tem
                         addbyte(0x81); /*ORRL $8,%edx*/
                         addbyte(0xC2|dataop);
                         addlong(templ);
-                        temp+=3;
                 }
                 gen_x86_lahf();
                 generatesavegen(RD,EDX);
-                temp+=5+3+5;
         }
         //gen_x86_lahf();
-        return temp;
 }
 
 /*static int codewritememfb(void)
@@ -1321,7 +1313,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=rotate2(opcode);
-                temp += generatedataproc(opcode, X86_OP_AND, templ);
+                generatedataproc(opcode, X86_OP_AND, templ);
                 break;
 
         case 0x21: /* ANDS imm */
@@ -1337,7 +1329,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=rotate2(opcode);
-                temp += generatedataproc(opcode, X86_OP_XOR, templ);
+                generatedataproc(opcode, X86_OP_XOR, templ);
                 break;
 
         case 0x23: /* EORS imm */
@@ -1353,7 +1345,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
   //              flagsdirty=0;
                 if (RD==15) return 0;
                 templ=rotate2(opcode);
-                temp += generatedataproc(opcode, X86_OP_SUB, templ);
+                generatedataproc(opcode, X86_OP_SUB, templ);
                 break;
 
         case 0x25: /* SUBS imm */
@@ -1376,7 +1368,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=rotate2(opcode);
-                temp += generatedataproc(opcode, X86_OP_ADD, templ);
+                generatedataproc(opcode, X86_OP_ADD, templ);
                 break;
 
         case 0x29: /* ADDS imm */
@@ -1398,7 +1390,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=rotate2(opcode);
-                temp += generatedataproc(opcode, X86_OP_OR, templ);
+                generatedataproc(opcode, X86_OP_OR, templ);
                 break;
 
         case 0x39: /* ORRS imm */
@@ -1436,7 +1428,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=~rotate2(opcode);
-                temp += generatedataproc(opcode, X86_OP_AND, templ);
+                generatedataproc(opcode, X86_OP_AND, templ);
                 break;
 
         case 0x3d: /* BICS imm */
@@ -1456,7 +1448,6 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x05);
                 addlong(&armregs[RD]);
                 addlong(~templ);
-                temp+=10;
                 break;
 
         case 0x3f: /* MVNS imm */
