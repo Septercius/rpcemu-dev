@@ -201,6 +201,7 @@ int startrpcemu(void)
 //printf("Keyboard reset!\n");
         superio_reset();
 //printf("SuperIO reset!\n");
+        loadconfig();
         resetide();
 //printf("IDE reset!\n");
         reseti2c();
@@ -211,7 +212,6 @@ int startrpcemu(void)
 //printf("About to init video...\n");
         initvideo();
 //printf("Video inited!\n");
-        loadconfig();
 
         sound_init();
 
