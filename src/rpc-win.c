@@ -29,8 +29,6 @@
 #include "cdrom-iso.h"
 #include "cdrom-ioctl.h"
 
-static float mips = 0.0f, mhz = 0.0f, tlbsec = 0.0f, flushsec = 0.0f;
-static int updatemips = 0; /**< bool of whether to update the mips speed in the program title bar */
 static int vsyncints=0;
 
 /*  Declare Windows procedure  */
@@ -52,24 +50,6 @@ static int chngram = 0;
 static Config chosen_config; /**< Temp store of config the user chose in the configuration dialog */
 
 static HINSTANCE hinstance; /**< Handle to current program instance */
-
-
-/**
- * Called once a second to update the performance counters
- */
-static void domips(void)
-{
-        mips=(float)inscount/1000000.0f;
-        inscount=0;
-        mhz=(float)cyccount/1000000.0f;
-        cyccount=0;
-        tlbsec=(float)tlbs/1000000.0f;
-        tlbs=0;
-        flushsec=(float)flushes;
-        flushes=0;
-        updatemips=1;
-}
-
 
 void error(const char *format, ...)
 {
@@ -382,9 +362,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         /* Return the mouse clipping to normal on program exit */
         atexit(releasemousecapture);
-
-        /* Call back the mips counting function every second */
-        install_int_ex(domips, MSEC_TO_TIMER(1000));
 
 //        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
         infocus = 1;

@@ -12,15 +12,9 @@
 #include "vidc20.h"
 #include "gui.h"
 
-
-static float mips;
-static int updatemips = 0;
 static pthread_t sound_thread;
 static pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t sound_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-static uint32_t mipscount;
-static float mipstotal;
 
 /**
  * Function called in sound thread to block
@@ -81,16 +75,6 @@ void sound_thread_start(void)
     {
         fatal("Couldn't create vidc thread");
     }
-}
-
-static void domips(void)
-{
-        mips=(float)inscount/1000000.0f;
-	mipscount += 1;
-	if (mipscount > 10)
-	  mipstotal += mips;
-        inscount=0;
-        updatemips=1;
 }
 
 void error(const char *format, ...)
@@ -221,7 +205,6 @@ int main (int argc, char ** argv)
         if (startrpcemu())
            return -1;
 
-        install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
 
         infocus=1;
@@ -232,7 +215,7 @@ int main (int argc, char ** argv)
                         execrpcemu();
                         if (updatemips)
                         {                           
-                                printf("MIPS: %f (AVG: %f) %i\n", mips, mipstotal / (mipscount - 10),mousehack);
+                                printf("MIPS: %f (AVG: %f) %i\n", mips, mipstotal / (mipscount - 10), mousehack);
                                 updatemips=0;
                         }
                 if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END]) entergui();

@@ -153,10 +153,17 @@ extern void execrpcemu(void);
 extern void endrpcemu(void);
 extern void resetrpc(void);
 extern void rpclog(const char *format, ...);
+extern void domips(void);
 
 extern int mousecapture;
 extern int drawscre;
 extern int quited;
+
+/* Performance measuring variables */
+extern int updatemips;
+extern float mips, mhz, tlbsec, flushsec;
+extern uint32_t mipscount;
+extern float mipstotal;
 
 /* UNIMPLEMENTED requires variable argument macros
    GCC extension or C99 */
