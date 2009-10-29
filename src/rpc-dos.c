@@ -10,25 +10,8 @@
 #include "iomd.h"
 #include "gui.h"
 
-
-float mips;
-int updatemips=0;
-
-static uint32_t mipscount;
-float mipstotal;
-
 void sound_thread_wakeup(void)
 {
-}
-
-static void domips(void)
-{
-        mips=(float)inscount/1000000.0f;
-	mipscount += 1;
-	if (mipscount > 10)
-	  mipstotal += mips;
-        inscount=0;
-        updatemips=1;
 }
 
 void error(const char *format, ...)
@@ -113,7 +96,6 @@ infocus=0;
         if (startrpcemu())
            return -1;
 	//startblitthread();
-        install_int_ex(domips,MSEC_TO_TIMER(1000));
         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
 
         infocus=1;

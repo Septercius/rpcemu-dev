@@ -57,6 +57,12 @@ int drawscre = 0;
 int mousecapture = 0;
 int quited = 0;
 
+/* Performance measuring variables */
+int updatemips = 0; /**< bool of whether to update the mips speed in the program title bar/other method */
+float mips = 0.0f, mhz = 0.0f, tlbsec = 0.0f, flushsec = 0.0f;
+uint32_t mipscount;
+float mipstotal;
+
 static FILE *arclog; /* Log file handle */
 
 static void loadconfig(void);
@@ -125,6 +131,31 @@ rpclog(const char *format, ...)
 	va_end(arg_list);
 
 	fflush(arclog);
+}
+
+/**
+ * Called once a second to update the performance counters
+ */
+void domips(void)
+{
+	mips = (float) inscount / 1000000.0f;
+	inscount = 0;
+
+	mipscount += 1;
+	if (mipscount > 10) {
+		mipstotal += mips;
+	}
+
+	mhz = (float) cyccount / 1000000.0f;
+	cyccount = 0;
+
+	tlbsec = (float) tlbs / 1000000.0f;
+	tlbs = 0;
+
+	flushsec = (float) flushes;
+	flushes = 0;
+
+	updatemips = 1;
 }
 
 void resetrpc(void)
@@ -199,6 +230,9 @@ int startrpcemu(void)
         initnetwork();
 #endif /* __linux__ */
         
+	/* Call back the mips counting function every second */
+	install_int_ex(domips, MSEC_TO_TIMER(1000));
+
         return 0;
 }
 
