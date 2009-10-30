@@ -878,7 +878,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
         int first=0;
         uint32_t templ;
 	int jump_nextbit, jump_notinbuffer;
-	int jump_end, jump_fast;
+	int jump_end, jump_fast, jump_not_abort;
 
         switch ((opcode>>20)&0xFF)
         {
@@ -2100,9 +2100,10 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
                 if (opcode&0x200000)
                 {
-                        addbyte(0x74); addbyte(/*14*/5); /*JZ +14*/
+                        jump_not_abort = gen_x86_jump_forward(CC_Z);
                         addbyte(0xE9); /*JMP 0*/
                         addrel32(&rcodeblock[blockpoint2][0]);
+                        gen_x86_jump_here(jump_not_abort);
                         addbyte(0x83); addbyte(0x2D); addlong(&armregs[RN]); addbyte(countbits(opcode&0xFFFF)); /*SUBL $countbits(opcode&0xFFFF),armregs[RN]*/
                 }
                 else
@@ -2283,11 +2284,12 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
 //                #if 0
                 if (opcode&0x200000)
                 {
-                        addbyte(0x74); addbyte(5/*14*/); /*JZ +14*/
+                        jump_not_abort = gen_x86_jump_forward(CC_Z);
 //                        addbyte(0x83); addbyte(0xEF); addbyte(countbits(opcode&0xFFFF)+((opcode&0x1000000)?4:0)); /*SUBL countbits(opcode&0xFFFF),%edi*/
 //                        addbyte(0x89); addbyte(0x3D); addlong(&armregs[RN]); /*MOVL %edi,armregs[RN]*/
                         addbyte(0xE9); /*JMP 0*/
                         addrel32(&rcodeblock[blockpoint2][0]);
+                        gen_x86_jump_here(jump_not_abort);
                         addbyte(0x83); addbyte(0x05); addlong(&armregs[RN]); addbyte(countbits(opcode&0xFFFF)); /*ADDL $countbits(opcode&0xFFFF),armregs[RN]*/
                 }
                 else
@@ -2354,11 +2356,12 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 if (opcode&0x200000)
                 {
                         generateloadgen(17,EDI); /*POP EDI*/
-                        addbyte(0x74); addbyte(/*14*/5); /*JZ +14*/
+                        jump_not_abort = gen_x86_jump_forward(CC_Z);
 //                        addbyte(0x83); addbyte(0xC7); addbyte(countbits(opcode&0xFFFF)+((opcode&0x1000000)?0:4)); /*ADDL countbits(opcode&0xFFFF),%edi*/
 //                        addbyte(0x89); addbyte(0x3D); addlong(&armregs[RN]); /*MOVL %edi,armregs[RN]*/
                         addbyte(0xE9); /*JMP 0*/
                         addrel32(&rcodeblock[blockpoint2][0]);
+                        gen_x86_jump_here(jump_not_abort);
                         addbyte(0x83); addbyte(0xEF); addbyte(countbits(opcode&0xFFFF));   /*SUBL $4,%edi*/
                         generatesavegen(RN,EDI);
                 }
@@ -2399,11 +2402,12 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
                 if (opcode&0x200000)
                 {
-                        addbyte(0x74); addbyte(10+((RN)?1:0)); /*JZ +*/
+                        jump_not_abort = gen_x86_jump_forward(CC_Z);
                         generateloadgen(17,EDI); /*POP %edi*/
                         generatesavegen(RN,EDI);
                         addbyte(0xE9); /*JMP 0*/
                         addrel32(&rcodeblock[blockpoint2][0]);
+                        gen_x86_jump_here(jump_not_abort);
                 }
                 else
                 {
@@ -2519,11 +2523,12 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 {
                         //gen_x86_pop_reg(EDI);
                         generateloadgen(17,EDI);
-                        addbyte(0x74); addbyte(/*14*/5); /*JZ +14*/
+                        jump_not_abort = gen_x86_jump_forward(CC_Z);
 //                        addbyte(0x83); addbyte(0xEF); addbyte(countbits(opcode&0xFFFF)+((opcode&0x1000000)?4:0)); /*SUBL countbits(opcode&0xFFFF),%edi*/
 //                        addbyte(0x89); addbyte(0x3D); addlong(&armregs[RN]); /*MOVL %edi,armregs[RN]*/
                         addbyte(0xE9); /*JMP 0*/
                         addrel32(&rcodeblock[blockpoint2][0]);
+                        gen_x86_jump_here(jump_not_abort);
                         if (!(opcode&(1<<RN)))
                         {
                                 addbyte(0x83); addbyte(0xC7); addbyte(countbits(opcode&0xFFFF)); /*ADDL $4,%edi*/
@@ -2565,11 +2570,12 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
 
                 if (opcode&0x200000)
                 {
-                        addbyte(0x74); addbyte(14); /*JZ +14*/
+                        jump_not_abort = gen_x86_jump_forward(CC_Z);
                         addbyte(0x83); addbyte(0xC7); addbyte(countbits(opcode&0xFFFF)+((opcode&0x1000000)?0:4)); /*ADDL countbits(opcode&0xFFFF),%edi*/
                         addbyte(0x89); addbyte(0x3D); addlong(&armregs[RN]); /*MOVL %edi,armregs[RN]*/
                         addbyte(0xE9); /*JMP 0*/
                         addrel32(&rcodeblock[blockpoint2][0]);
+                        gen_x86_jump_here(jump_not_abort);
                 }
                 else
                 {
@@ -2604,11 +2610,12 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
                 if (opcode&0x200000)
                 {
-                        addbyte(0x74); addbyte(14); /*JZ +14*/
+                        jump_not_abort = gen_x86_jump_forward(CC_Z);
                         addbyte(0x83); addbyte(0xEF); addbyte(countbits(opcode&0xFFFF)+((opcode&0x1000000)?4:0)); /*SUBL countbits(opcode&0xFFFF),%edi*/
                         addbyte(0x89); addbyte(0x3D); addlong(&armregs[RN]); /*MOVL %edi,armregs[RN]*/
                         addbyte(0xE9); /*JMP 0*/
                         addrel32(&rcodeblock[blockpoint2][0]);
+                        gen_x86_jump_here(jump_not_abort);
                 }
                 else
                 {
