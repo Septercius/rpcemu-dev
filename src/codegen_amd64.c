@@ -481,17 +481,7 @@ static void gentestabort(void)
 {
 	addbyte(0x84); /*TESTL %al,%al*/
 	addbyte(0xC0);
-	if (((char *)(&rcodeblock[blockpoint2][codeblockpos+4])-(char *)(&rcodeblock[blockpoint2][0]))<120)
-	{
-		addbyte(0x75); /*JNE 0*/
-		addbyte((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+1]));
-	}
-	else
-	{
-		addbyte(0x0F); /*JNE 0*/
-		addbyte(0x85);
-		addrel32(&rcodeblock[blockpoint2][0]);
-	}
+	gen_x86_jump(CC_NE, 0);
 }
 
 static int recompile(uint32_t opcode, uint32_t *pcpsr)
@@ -606,17 +596,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			gen_x86_pop_reg(RAX);
 		}
-		if (((char *)(&rcodeblock[blockpoint2][codeblockpos+4])-(char *)(&rcodeblock[blockpoint2][0]))<120)
-        	{
-                	addbyte(0x75); /*JNE 0*/
-                	addbyte((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+1]));
-        	}
-        	else
-        	{
-                	addbyte(0x0F); /*JNE 0*/
-                	addbyte(0x85);
-                	addrel32(&rcodeblock[blockpoint2][0]);
-        	}
+		gen_x86_jump(CC_NE, 0);
 		if (opcode&0x2000000)
 		{
 			if (opcode&0x800000) { addbyte(0x41); addbyte(0x01); addbyte(0x47); addbyte(RN<<2); /*ADDL %eax,Rn*/ }
@@ -648,17 +628,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			gen_x86_pop_reg(RAX);
 		}
-		if (((char *)(&rcodeblock[blockpoint2][codeblockpos+4])-(char *)(&rcodeblock[blockpoint2][0]))<120)
-        	{
-                	addbyte(0x75); /*JNE 0*/
-                	addbyte((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+1]));
-        	}
-        	else
-        	{
-                	addbyte(0x0F); /*JNE 0*/
-                	addbyte(0x85);
-                	addrel32(&rcodeblock[blockpoint2][0]);
-        	}
+		gen_x86_jump(CC_NE, 0);
 		if (opcode&0x2000000)
 		{
 			if (opcode&0x800000) { addbyte(0x41); addbyte(0x01); addbyte(0x47); addbyte(RN<<2); /*ADDL %eax,Rn*/ }
@@ -689,17 +659,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			gen_x86_pop_reg(RAX);
 		}
-		if (((char *)(&rcodeblock[blockpoint2][codeblockpos+4])-(char *)(&rcodeblock[blockpoint2][0]))<120)
-        	{
-                	addbyte(0x75); /*JNE 0*/
-                	addbyte((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+1]));
-        	}
-        	else
-        	{
-                	addbyte(0x0F); /*JNE 0*/
-                	addbyte(0x85);
-                	addrel32(&rcodeblock[blockpoint2][0]);
-        	}
+		gen_x86_jump(CC_NE, 0);
 		genstorereggen(RD,EDX);
 		if (opcode&0x2000000)
 		{
@@ -731,17 +691,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			gen_x86_pop_reg(RAX);
 		}
-		if (((char *)(&rcodeblock[blockpoint2][codeblockpos+4])-(char *)(&rcodeblock[blockpoint2][0]))<120)
-        	{
-                	addbyte(0x75); /*JNE 0*/
-                	addbyte((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+1]));
-        	}
-        	else
-        	{
-                	addbyte(0x0F); /*JNE 0*/
-                	addbyte(0x85);
-                	addrel32(&rcodeblock[blockpoint2][0]);
-        	}
+		gen_x86_jump(CC_NE, 0);
 		genstorereggen(RD,EDX);
 		if (opcode&0x2000000)
 		{
@@ -1081,8 +1031,7 @@ void generatecall(OpFn addr, uint32_t opcode,uint32_t *pcpsr)
                 //addbyte(pcinc);
 //                pcinc=0;
         }
-                addbyte(0xE9); /*JMP 0*/
-                addrel32(&rcodeblock[blockpoint2][0]);
+                gen_x86_jump(CC_ALWAYS, 0);
         }
 //        #endif
 	if (lastjumppos != 0) {
@@ -1387,19 +1336,7 @@ void generateirqtest(void)
 //        addbyte(0x40);
         addbyte(0x85); /*TESTL %eax,%eax*/
         addbyte(0xC0);
-//        #if 0
-        if (((char *)(&rcodeblock[blockpoint2][codeblockpos+4])-(char *)(&rcodeblock[blockpoint2][0]))<120)
-        {
-                addbyte(0x75); /*JNE 0*/
-                addbyte((char *)&rcodeblock[blockpoint2][0]-(char *)(&rcodeblock[blockpoint2][codeblockpos+1]));
-        }
-        else
-        {
-//                #endif
-                addbyte(0x0F); /*JNE 0*/
-                addbyte(0x85);
-                addrel32(&rcodeblock[blockpoint2][0]);
-        }
+	gen_x86_jump(CC_NE, 0);
 	if (lastjumppos != 0) {
 		gen_x86_jump_here_long(lastjumppos);
 	}

@@ -151,5 +151,40 @@ gen_x86_jump_here_long(int jump_offset_pos)
 	    (uint32_t) (rel - 4);
 }
 
+/**
+ * Generate a jump instruction to the given destination (specified as a
+ * position within the current block). The jump can optionally be made
+ * conditional. A more compact instruction encoding will be used if possible.
+ *
+ * @param condition Optional condition to be applied to the jump, or CC_ALWAYS
+ *                  for unconditional jump
+ * @param destination Destination for jump specified as a position within the
+ *                    current block
+ */
+static inline void
+gen_x86_jump(int condition, int destination)
+{
+	int rel = destination - codeblockpos;
+
+	if (rel > -124 && rel < 124) {
+		/* 8-bit signed displacement */
+		if (condition == CC_ALWAYS) {
+			addbyte(0xeb);
+		} else {
+			addbyte(0x70 | condition);
+		}
+		addbyte((uint8_t) ((destination - codeblockpos) - 1));
+	} else {
+		/* 32-bit signed displacement */
+		if (condition == CC_ALWAYS) {
+			addbyte(0xe9);
+		} else {
+			addbyte(0x0f);
+			addbyte(0x80 | condition);
+		}
+		addlong((uint32_t) ((destination - codeblockpos) - 4));
+	}
+}
+
 #endif /* CODEGEN_X86_COMMON_H */
 
