@@ -64,6 +64,10 @@ void callbackide(void);
    Not that it means anything */
 #define CDROM_SPEED	706
 
+/** Evaluate to non-zero if the currently selected drive is an ATAPI device */
+#define IDE_DRIVE_IS_CDROM(ide) \
+	(config.cdromenabled && (ide.drive | ide.board) == 1)
+
 ATAPI *atapi;
 
 static void callreadcd(void);
@@ -664,27 +668,29 @@ void callbackide(void)
         case WIN_SRST: /*ATAPI Device Reset */
                 ide.atastat[ide.board] = READY_STAT;
                 ide.error=1; /*Device passed*/
-                if ((ide.drive|ide.board)!=1 || !config.cdromenabled)
-                {
-                        ide.secount=ide.sector=1;
-                        ide.cylinder=0;
-                }
-                else
-                {
-                        ide.secount=ide.sector=1;
-                        ide.cylinder=0xEB14;
+                ide.secount = ide.sector = 1;
+                if (IDE_DRIVE_IS_CDROM(ide)) {
+                        ide.cylinder = 0xeb14;
+                } else {
+                        ide.cylinder = 0;
                 }
                 ide_irq_raise();
                 return;
 
         case WIN_RESTORE:
         case WIN_SEEK:
+                if (IDE_DRIVE_IS_CDROM(ide)) {
+                        goto abort_cmd;
+                }
 //                rpclog("Restore callback\n");
                 ide.atastat[ide.board] = READY_STAT;
                 ide_irq_raise();
                 return;
 
         case WIN_READ:
+                if (IDE_DRIVE_IS_CDROM(ide)) {
+                        goto abort_cmd;
+                }
                 addr = ide_get_sector() * 512;
 //                rpclog("Read %i %i %i %08X\n",ide.cylinder,ide.head,ide.sector,addr);
                 /*                if (ide.cylinder || ide.head)
@@ -701,6 +707,9 @@ void callbackide(void)
                 return;
 
         case WIN_WRITE:
+                if (IDE_DRIVE_IS_CDROM(ide)) {
+                        goto abort_cmd;
+                }
                 addr = ide_get_sector() * 512;
 //                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
                 fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
@@ -718,6 +727,9 @@ void callbackide(void)
                 return;
 
         case WIN_VERIFY:
+                if (IDE_DRIVE_IS_CDROM(ide)) {
+                        goto abort_cmd;
+                }
                 ide.pos=0;
                 ide.atastat[ide.board] = READY_STAT;
 //                rpclog("Read verify callback %i %i %i offset %08X %i left\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount);
@@ -725,6 +737,9 @@ void callbackide(void)
                 return;
 
         case WIN_FORMAT:
+                if (IDE_DRIVE_IS_CDROM(ide)) {
+                        goto abort_cmd;
+                }
                 addr = ide_get_sector() * 512;
 //                rpclog("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
                 fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
@@ -738,6 +753,9 @@ void callbackide(void)
                 return;
 
         case WIN_SPECIFY: /* Initialize Drive Parameters */
+                if (IDE_DRIVE_IS_CDROM(ide)) {
+                        goto abort_cmd;
+                }
                 ide.spt[ide.drive|ide.board]=ide.secount;
                 ide.hpc[ide.drive|ide.board]=ide.head+1;
                 ide.atastat[ide.board] = READY_STAT;
@@ -746,8 +764,7 @@ void callbackide(void)
                 return;
 
         case WIN_PIDENTIFY: /* Identify Packet Device */
-                if (ide.drive && !ide.board && config.cdromenabled)
-                {
+                if (IDE_DRIVE_IS_CDROM(ide)) {
                         ide_atapi_identify();
                         ide.pos=0;
                         ide.error=0;
@@ -755,24 +772,18 @@ void callbackide(void)
                         ide_irq_raise();
                         return;
                 }
-//                return;
+                goto abort_cmd;
+
         case WIN_SETIDLE1: /* Idle */
-                ide.atastat[ide.board] = READY_STAT | ERR_STAT;
-                ide.error=4;
-                ide_irq_raise();
-                return;
+                goto abort_cmd;
 
         case WIN_IDENTIFY: /* Identify Device */
-                if (ide.drive && config.cdromenabled && !ide.board)
-                {
+                if (IDE_DRIVE_IS_CDROM(ide)) {
                         ide.secount=1;
                         ide.sector=1;
                         ide.cylinder=0xEB14;
                         ide.drive=ide.head=0;
-                        ide.atastat[ide.board] = READY_STAT | ERR_STAT;
-                        ide.error=4;
-                        ide_irq_raise();
-                        return;
+                        goto abort_cmd;
                 }
                 ide_identify();
                 ide.pos=0;
@@ -843,6 +854,11 @@ void callbackide(void)
                 }
                 return;
         }
+
+abort_cmd:
+	ide.atastat[ide.board] = READY_STAT | ERR_STAT;
+	ide.error = 4;
+	ide_irq_raise();
 }
 
 /*ATAPI CD-ROM emulation
