@@ -1,5 +1,6 @@
 /* NEC 765/Intel 82077 Floppy drive emulation, on RPC/A7000 a part of the
    SMC 37C665GT PC style Super IO chip */
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -31,45 +32,67 @@ static struct
         int oldpos;
 } fdc;
 
-static uint8_t disc[2][2][80][10][1024];
-static int discdensity[2];
-static int discsectors[2];
-static int discchanged[2];
+/**
+ * Structure to hold information about a specific floppy drive and the disc
+ * image inside it
+ */
+typedef struct {
+	uint8_t disc[2][80][10][1024]; /**< Head, Track, Sector, Bytes */
+	int discdensity;
+	int discsectors;
+	int discchanged;
+} drive;
+
+/** Floppy controller has two disc drives attached */
+static drive drives[2];
 
 void fdc_reset(void)
 {
         fdccallback=0;
 }
 
-void loadadf(const char *fn, int drive)
+/**
+ * Load an ADF (ADFS format disc image) into one of the two virtual floppy
+ * disc drives.
+ *
+ * @param fn    Filename of ADF disc image to load
+ * @param drive Which drive to load image into 0 or 1
+ */
+void
+loadadf(const char *fn, int drive)
 {
-        FILE *f=fopen(fn,"rb");
+        FILE *f;
         int h,t,s,b;
+
+        assert(drive >=0 && drive <= 1); /* Only support two drives */
+        assert(fn); /* Must have filename */
+
+        f = fopen(fn, "rb");
         if (!f) return;
         fseek(f,-1,SEEK_END);
         if (ftell(f)>1000000)
         {
-                discdensity[drive]=0;
-                discsectors[drive]=10;
+                drives[drive].discdensity = 0;
+                drives[drive].discsectors = 10;
         }
         else
         {
-                discdensity[drive]=2;
-                discsectors[drive]=5;
+                drives[drive].discdensity = 2;
+                drives[drive].discsectors = 5;
         }
-        discchanged[drive]=0;
+        drives[drive].discchanged = 0;
         fseek(f,0,SEEK_SET);
-//        printf("Disc density %i sectors %i\n",discdensity[drive],discsectors[drive]);
+//        printf("Disc density %i sectors %i\n", drives[drive].discdensity, drives[drive].discsectors);
         for (t=0;t<80;t++)
         {
                 for (h=0;h<2;h++)
                 {
-                        for (s=0;s<discsectors[drive];s++)
+                        for (s = 0; s < drives[drive].discsectors; s++)
                         {
 //                                printf("Read drive %i track %i head %i sector %i\n",drive,t,h,s);
                                 for (b=0;b<1024;b++)
                                 {
-                                        disc[drive][h][t][s][b]=getc(f);
+                                        drives[drive].disc[h][t][s][b] = fgetc(f);
                                 }
                         }
                 }
@@ -77,25 +100,39 @@ void loadadf(const char *fn, int drive)
         fclose(f);
 }
 
-void saveadf(const char *fn, int drive)
+/**
+ * Save an ADF (ADFS format disc image) from one of the two virtual floppy
+ * disc drives to host disc.
+ *
+ * @param fn    Filename of ADF disc image to save
+ * @param drive Which drive to save image from 0 or 1
+ */
+void
+saveadf(const char *fn, int drive)
 {
         FILE *f;
         int h,t,s,b;
-        if (!discchanged[drive]) return;
+
+        assert(drive >=0 && drive <= 1); /* Only support two drives */
+        assert(fn); /* Must have filename */
+
+        if (!drives[drive].discchanged) {
+              return;
+        }
         f=fopen(fn,"wb");
         if (!f) return;
-        discchanged[drive]=0;
-//        printf("Disc density %i sectors %i\n",discdensity[drive],discsectors[drive]);
+        drives[drive].discchanged = 0;
+//        printf("Disc density %i sectors %i\n", drives[drive].discdensity, drives[drive].discsectors);
         for (t=0;t<80;t++)
         {
                 for (h=0;h<2;h++)
                 {
-                        for (s=0;s<discsectors[drive];s++)
+                        for (s = 0; s < drives[drive].discsectors; s++)
                         {
 //                                printf("Write track %i head %i sector %i\n",t,h,s);
                                 for (b=0;b<1024;b++)
                                 {
-                                        putc(disc[drive][h][t][s][b],f);
+                                        putc(drives[drive].disc[h][t][s][b], f);
                                 }
                         }
                 }
@@ -160,7 +197,7 @@ void writefdc(uint32_t addr, uint32_t val)
                                         fdc.side=fdc.parameters[2];
                                         fdc.sector=fdc.parameters[3];
 //                                        rpclog("Write data %i %i %i\n",fdc.side,fdc.track,fdc.sector);
-                                        discchanged[fdc.st0&1]=1;
+                                        drives[fdc.st0 & 1].discchanged = 1;
                                         break;
                                         case 0x46: /*Read data - MFM*/
                                         fdc.commandpos=0;
@@ -177,8 +214,10 @@ void writefdc(uint32_t addr, uint32_t val)
                                         fdccallback=4000;
                                         fdc.st0=fdc.parameters[0]&7;
                                         fdc.st1=fdc.st2=0;
-                                        if (fdc.rate!=discdensity[fdc.st0&1]) fdc.command=0xA;
-//                                        printf("Density : %i %i\n",fdc.rate,discdensity[0]);
+                                        if (fdc.rate != drives[fdc.st0 & 1].discdensity) {
+                                                fdc.command = 0xA;
+                                        }
+//                                        printf("Density : %i %i\n",fdc.rate, drives[fdc.st0 & 1].discdensity);
                                         break;
                                         case 0x0A: /*Read ID - FM*/
                                         fdc.commandpos=0;
@@ -430,7 +469,7 @@ void callbackfdc(void)
                 case 0x45: /*Write data - MFM*/
                 if (fdc.commandpos==2048)
                 {
-                        disc[fdc.st0&1][fdc.side][fdc.track][fdc.sector][fdc.oldpos-1]=fdc.dmadat;
+                        drives[fdc.st0 & 1].disc[fdc.side][fdc.track][fdc.sector][fdc.oldpos - 1] = fdc.dmadat;
 //                        rpclog("Write %i %02i %i %03X %02X\n",fdc.side,fdc.track,fdc.sector,fdc.oldpos-1,fdc.dmadat);
 //                        rpclog("Operation terminated\n");
                         fdc.commandpos=1025;
@@ -463,7 +502,7 @@ void callbackfdc(void)
                 {
                         if (fdc.commandpos)
                         {
-                                disc[fdc.st0&1][fdc.side][fdc.track][fdc.sector][fdc.commandpos-1]=fdc.dmadat;
+                                drives[fdc.st0 & 1].disc[fdc.side][fdc.track][fdc.sector][fdc.commandpos - 1] = fdc.dmadat;
 //                                rpclog("Write %i %02i %i %03X %02X\n",fdc.side,fdc.track,fdc.sector,fdc.commandpos-1,fdc.dmadat);
                         }
                         fdc.commandpos++;
@@ -521,7 +560,7 @@ void callbackfdc(void)
                 else
                 {
 //                        printf("sending data\n");
-                        fdcsenddata(disc[fdc.st0&1][fdc.side][fdc.track][fdc.sector][fdc.commandpos]);
+                        fdcsenddata(drives[fdc.st0 & 1].disc[fdc.side][fdc.track][fdc.sector][fdc.commandpos]);
                         fdc.commandpos++;
                         if (fdc.commandpos==1024)
                         {
@@ -539,7 +578,9 @@ void callbackfdc(void)
                 }
                 break;
                 case 0x4A: /*Read ID - MFM*/
-                if (fdc.sector>=discsectors[fdc.st0&1]) fdc.sector=0;
+                if (fdc.sector >= drives[fdc.st0 & 1].discsectors) {
+                        fdc.sector = 0;
+                }
                 switch (fdc.commandpos)
                 {
                         case 0: fdcsend(fdc.st0); break;
@@ -560,7 +601,9 @@ void callbackfdc(void)
                         fdc.incommand=0;
 //                        printf("Read ID for track %i sector %i\n",fdc.track,fdc.sector);
                         fdc.sector++;
-                        if (fdc.sector>=discsectors[fdc.st0&1]) fdc.sector=0;
+                        if (fdc.sector >= drives[fdc.st0 & 1].discsectors) {
+                                fdc.sector = 0;
+                        }
                         fdc.params=fdc.curparam=0;
                 }
 //                else
