@@ -12,6 +12,21 @@
 #include "ide.h"
 #include "arm.h"
 
+/* FDC commands */
+enum {
+	FD_CMD_SPECIFY			= 0x03,
+	FD_CMD_SENSE_DRIVE_STATUS	= 0x04,
+	FD_CMD_RECALIBRATE		= 0x07,
+	FD_CMD_SENSE_INTERRUPT_STATUS	= 0x08,
+	FD_CMD_READ_ID_FM		= 0x0a,
+	FD_CMD_DUMPREG			= 0x0e,
+	FD_CMD_SEEK			= 0x0f,
+	FD_CMD_CONFIGURE		= 0x13,
+	FD_CMD_WRITE_DATA_MFM		= 0x45,
+	FD_CMD_READ_DATA_MFM		= 0x46,
+	FD_CMD_READ_ID_MFM		= 0x4a,
+};
+
 static void fdcsend(uint8_t val);
 
 static struct
@@ -173,22 +188,26 @@ void writefdc(uint32_t addr, uint32_t val)
                                 fdc.status&=~0x80;
                                 switch (fdc.command)
                                 {
-                                        case 3: /*Specify*/
+                                case FD_CMD_SPECIFY:
                                         fdccallback=100;
                                         break;
-                                        case 4: /*Sense drive status*/
+
+                                case FD_CMD_SENSE_DRIVE_STATUS:
                                         fdccallback=100;
                                         break;
-                                        case 7: /*Recalibrate*/
+
+                                case FD_CMD_RECALIBRATE:
 //                                        printf("Recalibrate starting\n");
-                                        case 0x0F: /*Seek*/
+                                case FD_CMD_SEEK:
                                         fdccallback=500;
                                         fdc.status|=1;
                                         break;
-                                        case 0x13: /*Configure*/
+
+                                case FD_CMD_CONFIGURE:
                                         fdccallback=100;
                                         break;
-                                        case 0x45: /*Write data - MFM*/
+
+                                case FD_CMD_WRITE_DATA_MFM:
                                         fdc.commandpos=0;
                                         fdccallback=1000;
                                         fdc.st0=fdc.parameters[0]&7;
@@ -199,7 +218,8 @@ void writefdc(uint32_t addr, uint32_t val)
 //                                        rpclog("Write data %i %i %i\n",fdc.side,fdc.track,fdc.sector);
                                         drives[fdc.st0 & 1].discchanged = 1;
                                         break;
-                                        case 0x46: /*Read data - MFM*/
+
+                                case FD_CMD_READ_DATA_MFM:
                                         fdc.commandpos=0;
                                         fdccallback=1000;
                                         fdc.st0=fdc.parameters[0]&7;
@@ -209,7 +229,8 @@ void writefdc(uint32_t addr, uint32_t val)
                                         fdc.sector=fdc.parameters[3];
 //                                        printf("Read data %i %i %i\n",fdc.side,fdc.track,fdc.sector);
                                         break;
-                                        case 0x4A: /*Read ID - MFM*/
+
+                                case FD_CMD_READ_ID_MFM:
                                         fdc.commandpos=0;
                                         fdccallback=4000;
                                         fdc.st0=fdc.parameters[0]&7;
@@ -219,14 +240,15 @@ void writefdc(uint32_t addr, uint32_t val)
                                         }
 //                                        printf("Density : %i %i\n",fdc.rate, drives[fdc.st0 & 1].discdensity);
                                         break;
-                                        case 0x0A: /*Read ID - FM*/
+
+                                case FD_CMD_READ_ID_FM:
                                         fdc.commandpos=0;
                                         fdccallback=4000;
                                         fdc.st0=fdc.parameters[0]&7;
                                         fdc.st1=fdc.st2=0;
                                         break;
 
-                                        default:
+                                default:
                                         UNIMPLEMENTED("FDC command",
                                                       "Unknown command 0x%02x",
                                                       fdc.command);
@@ -246,68 +268,67 @@ void writefdc(uint32_t addr, uint32_t val)
 //                printf("Rate %i %i\n",discdensity[0],fdc.rate);
                 switch (fdc.command)
                 {
-                        case 3: /*Specify*/
+                case FD_CMD_SPECIFY:
                         fdc.params=2;
                         fdc.curparam=0;
                         fdc.status=0x90;
                         break;
 
-                        case 4: /*Sense drive status*/
+                case FD_CMD_SENSE_DRIVE_STATUS:
                         fdc.params=1;
                         fdc.curparam=0;
                         fdc.status=0x90;
                         break;
 
-                        case 7: /*Recalibrate*/
+                case FD_CMD_RECALIBRATE:
                         fdc.params=1;
                         fdc.curparam=0;
                         fdc.status=0x90;
                         break;
 
-                        case 8: /*Sense interrupt status*/
+                case FD_CMD_SENSE_INTERRUPT_STATUS:
                         fdccallback=100;
                         fdc.status=0x10;
                         break;
 
-                        case 0xE: /*Dump registers - not supported by 82c711
-                                    Used by Linux to identify FDC type.*/
-                fdc.st0=0x80;
-                fdcsend(fdc.st0);
-                fdc.incommand=0;
-                fdccallback=0;
-                fdc.status=0x80;
+                case FD_CMD_DUMPREG: /* Used by Linux to identify FDC type. */
+                        fdc.st0=0x80;
+                        fdcsend(fdc.st0);
+                        fdc.incommand=0;
+                        fdccallback=0;
+                        fdc.status=0x80;
                         break;
 //                        fdccallback=50;
 //                        fdc.status=0x10;
 //                        break;
 
-                        case 0x0F: /*Seek*/
+                case FD_CMD_SEEK:
                         fdc.params=2;
                         fdc.curparam=0;
                         fdc.status=0x90;
                         break;
 
-                        case 0x13: /*Configure*/
+                case FD_CMD_CONFIGURE:
                         fdc.params=3;
                         fdc.curparam=0;
                         fdc.status=0x90;
                         break;
 
-                        case 0x45: /*Write data - MFM*/
-                        case 0x46: /*Read data - MFM*/
+                case FD_CMD_WRITE_DATA_MFM:
+                case FD_CMD_READ_DATA_MFM:
                         fdc.params=8;
                         fdc.curparam=0;
                         fdc.status=0x90;
                         break;
 
-                        case 0x0A: /*Read ID - FM*/
-                        case 0x4A: /*Read ID - MFM*/
+                case FD_CMD_READ_ID_FM:
+                case FD_CMD_READ_ID_MFM:
                         fdc.params=1;
                         fdc.curparam=0;
                         fdc.status=0x90;
                         break;
 
-                        default:
+                default:
                         UNIMPLEMENTED("FDC command 2",
                                       "Unknown command 0x%02x", fdc.command);
                         error("Bad FDC command %02X\n",val);
@@ -405,13 +426,14 @@ void callbackfdc(void)
         }
         switch (fdc.command)
         {
-                case 3:
+        case FD_CMD_SPECIFY:
 //                printf("Specify : %02X %02X\n",fdc.parameters[0],fdc.parameters[1]);
                 fdc.incommand=0;
                 fdc.status=0x80;
                 fdc.params=fdc.curparam=0;
                 break;
-                case 4: /*Sense drive status*/
+
+        case FD_CMD_SENSE_DRIVE_STATUS:
                 fdc.st3=(fdc.parameters[0]&7)|0x28;
                 if (!fdc.track) fdc.st3|=0x10;
                 fdc.incommand=0;
@@ -420,7 +442,8 @@ void callbackfdc(void)
                 fdcsend(fdc.st3);
                 fdc.params=fdc.curparam=0;
                 break;
-                case 7: /*Recalibrate*/
+
+        case FD_CMD_RECALIBRATE:
                 fdc.track=0;
                 fdc.incommand=0;
                 fdc.status=0x80;
@@ -430,7 +453,8 @@ void callbackfdc(void)
                 fdc.st0=0x20;
 //                printf("Recalibrate complete\n");
                 break;
-                case 8:
+
+        case FD_CMD_SENSE_INTERRUPT_STATUS:
                 fdc.commandpos++;
                 if (fdc.commandpos==1)
                 {
@@ -445,12 +469,14 @@ void callbackfdc(void)
                         fdcsend(fdc.track);
                 }
                 break;
-//                case 0x0E: /*Dump registers - act as invalid command*/
+
+//        case FD_CMD_DUMPREG: /*Dump registers - act as invalid command*/
 //                fdc.st0=0x80;
 //                fdcsend(fdc.st0);
 //                fdc.incommand=0;
 //                break;
-                case 0x0F: /*Seek*/
+
+        case FD_CMD_SEEK:
 //                printf("Seek to %i\n",fdc.parameters[1]);
                 fdc.track=fdc.parameters[1];
                 fdc.incommand=0;
@@ -460,13 +486,15 @@ void callbackfdc(void)
                 updateirqs();
                 fdc.st0=0x20;
                 break;
-                case 0x13:
+
+        case FD_CMD_CONFIGURE:
 //                printf("Configure : %02X %02X %02X\n",fdc.parameters[0],fdc.parameters[1],fdc.parameters[2]);
                 fdc.incommand=0;
                 fdc.status=0x80;
                 fdc.params=fdc.curparam=0;
                 break;
-                case 0x45: /*Write data - MFM*/
+
+        case FD_CMD_WRITE_DATA_MFM:
                 if (fdc.commandpos==2048)
                 {
                         drives[fdc.st0 & 1].disc[fdc.side][fdc.track][fdc.sector][fdc.oldpos - 1] = fdc.dmadat;
@@ -532,7 +560,8 @@ void callbackfdc(void)
                         fdccallback=0;
                 }
                 break;
-                case 0x46: /*Read data - MFM*/
+
+        case FD_CMD_READ_DATA_MFM:
 //                printf("Read data callback %i\n",fdc.commandpos);
                 if (fdc.commandpos>=1024)
                 {
@@ -577,7 +606,8 @@ void callbackfdc(void)
                         fdccallback=0;
                 }
                 break;
-                case 0x4A: /*Read ID - MFM*/
+
+        case FD_CMD_READ_ID_MFM:
                 if (fdc.sector >= drives[fdc.st0 & 1].discsectors) {
                         fdc.sector = 0;
                 }
@@ -609,7 +639,8 @@ void callbackfdc(void)
 //                else
 //                   fdccallback=50;
                 break;
-                case 0x0A:
+
+        case FD_CMD_READ_ID_FM:
                 iomd.irqb.status |= IOMD_IRQB_FLOPPY;
                 updateirqs();
                 fdc.st0=0x40|(fdc.parameters[0]&7);
