@@ -190,7 +190,7 @@ static MENU cdmenu[]=
 	{"&Empty",cdempty,NULL,0,NULL},
 	{"&ISO image...",cdisoimage,NULL,0,NULL},
 #if defined linux || defined __linux
-	{"&IOCTL",cdioctl,NULL,0,NULL},
+	{ "&Host CD/DVD Drive", cdioctl, NULL, 0, NULL },
 #endif
 	{NULL,NULL,NULL,0,NULL}
 };
