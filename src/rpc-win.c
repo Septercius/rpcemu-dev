@@ -96,7 +96,7 @@ static void initmenu(void)
                 sprintf(s,"%c:\\",c);
                 if (GetDriveType(s)==DRIVE_CDROM)
                 {
-                        sprintf(s,"CD-ROM Drive %c:",c);
+                        sprintf(s, "Host CD/DVD Drive (%c:)", c);
                         AppendMenu(m,MF_STRING,IDM_CDROM_REAL+c,s);
                 }
         }
