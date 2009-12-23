@@ -29,8 +29,6 @@
 #include "cdrom-iso.h"
 #include "cdrom-ioctl.h"
 
-static int vsyncints=0;
-
 /*  Declare Windows procedure  */
 static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 static RECT oldclip; /**< Used to store the clip box of the cursor before we
@@ -282,7 +280,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         static const char szClassName[] = "WindowsApp";
         MSG messages = {0};     /**< Here messages to the application are saved */
         WNDCLASSEX wincl;       /**< Data structure for the windowclass */
-        char s[128];
 
         hinstance=hThisInstance;
 
@@ -380,17 +377,19 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                 /* Update title with mips speed */
                 if (updatemips)
                 {
+                        char title[128];
+
                         if (mousehack) {
-                               sprintf(s, "RPCemu v" VERSION " - %f MIPS %f %i %f %i",
-                                       mips, tlbsec, ins, flushsec, vsyncints);
+                               sprintf(title, "RPCemu v" VERSION " - MIPS: %.1f, AVG: %.1f",
+                                       mips, mipstotal / (mipscount - 10));
                         } else {
-                               sprintf(s, "RPCemu v" VERSION " - %f MIPS %f %i %f %i - %s",
-                                       mips, tlbsec, ins, flushsec, vsyncints,
+                               sprintf(title, "RPCemu v" VERSION " - MIPS: %.1f, AVG: %.1f - %s",
+                                       mips, mipstotal / (mipscount - 10),
                                        (mousecapture) ?
                                            "Press CTRL-END to release mouse" :
                                            "Click to capture mouse");
                         }
-                        SetWindowText(ghwnd, s);
+                        SetWindowText(ghwnd, title);
                         updatemips=0;
                 }
 
