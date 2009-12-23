@@ -142,9 +142,7 @@ void domips(void)
 	inscount = 0;
 
 	mipscount += 1;
-	if (mipscount > 10) {
-		mipstotal += mips;
-	}
+	mipstotal += mips;
 
 	mhz = (float) cyccount / 1000000.0f;
 	cyccount = 0;
