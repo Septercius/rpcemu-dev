@@ -215,7 +215,11 @@ int main (int argc, char ** argv)
                         execrpcemu();
                         if (updatemips)
                         {                           
-                                printf("MIPS: %f (AVG: %f) %i\n", mips, mipstotal / (mipscount - 10), mousehack);
+                                char title[128];
+
+                                sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f\n",
+                                        mips, mipstotal / (mipscount - 10));
+                                set_window_title(title);
                                 updatemips=0;
                         }
                 if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END]) entergui();
