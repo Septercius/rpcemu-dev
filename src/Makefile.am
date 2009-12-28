@@ -54,4 +54,8 @@ if OS_MACOSX
 rpcemu_SOURCES += rpc-macosx.c gui.c
 endif
 
-EXTRA_DIST = acorn.rc rpcemu.ico makefile.dj rpc-dos.c
+if OS_OTHER
+rpcemu_SOURCES += rpc-linux.c gui.c
+endif
+
+EXTRA_DIST = acorn.rc rpcemu.ico
