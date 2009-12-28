@@ -45,35 +45,33 @@ if test "$enable_dynarec" = "yes"; then
 fi
 
 AC_MSG_CHECKING([for Operating System])
-case "${host}" in
-    *linux*)
+case "${host_os}" in
+    linux*)
 	    OS="linux"
 	    AC_MSG_RESULT(Linux)
             AC_DEFINE(RPCEMU_LINUX, [], [OS is Linux])
 	    ;;
-    *mingw*)
+    mingw*)
 	    OS="win"
   	    AC_MSG_RESULT(Windows)
             AC_DEFINE(RPCEMU_WIN, [], [OS is Windows])
 	    ;;
-    *apple*)
-            OS="macosx"
-            AC_MSG_RESULT([Mac OS X])
-            AC_DEFINE(RPCEMU_MACOSX, [], [OS is Mac OS X])
-            ;;
-    *macosx*)
+    darwin*)
 	    OS="macosx"
   	    AC_MSG_RESULT([Mac OS X])
             AC_DEFINE(RPCEMU_MACOSX, [], [OS is Mac OS X])
 	    ;;
     *)
-	    AC_MSG_ERROR([Unsupported host system.])
+	    OS="other"
+	    AC_MSG_RESULT(Other)
 	    ;;
 esac
 
-AM_CONDITIONAL(OS_WIN, test "$OS" = "win")
-AM_CONDITIONAL(OS_LINUX, test "$OS" = "linux")
+AM_CONDITIONAL(OS_WIN,    test "$OS" = "win")
+AM_CONDITIONAL(OS_LINUX,  test "$OS" = "linux")
 AM_CONDITIONAL(OS_MACOSX, test "$OS" = "macosx")
+AM_CONDITIONAL(OS_OTHER,  test "$OS" = "other")
+
 AM_CONDITIONAL(CPU_X86_64, test "$CPU" = "x86_64")
 AM_CONDITIONAL(CPU_I386, test "$CPU" = "i386")
 

@@ -688,6 +688,8 @@ OS_LINUX_TRUE
 OS_LINUX_FALSE
 OS_MACOSX_TRUE
 OS_MACOSX_FALSE
+OS_OTHER_TRUE
+OS_OTHER_FALSE
 CPU_X86_64_TRUE
 CPU_X86_64_FALSE
 CPU_I386_TRUE
@@ -2386,8 +2388,8 @@ fi
 
 { echo "$as_me:$LINENO: checking for Operating System" >&5
 echo $ECHO_N "checking for Operating System... $ECHO_C" >&6; }
-case "${host}" in
-    *linux*)
+case "${host_os}" in
+    linux*)
 	    OS="linux"
 	    { echo "$as_me:$LINENO: result: Linux" >&5
 echo "${ECHO_T}Linux" >&6; }
@@ -2397,7 +2399,7 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 	    ;;
-    *mingw*)
+    mingw*)
 	    OS="win"
   	    { echo "$as_me:$LINENO: result: Windows" >&5
 echo "${ECHO_T}Windows" >&6; }
@@ -2407,17 +2409,7 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 	    ;;
-    *apple*)
-            OS="macosx"
-            { echo "$as_me:$LINENO: result: Mac OS X" >&5
-echo "${ECHO_T}Mac OS X" >&6; }
-
-cat >>confdefs.h <<\_ACEOF
-#define RPCEMU_MACOSX
-_ACEOF
-
-            ;;
-    *macosx*)
+    darwin*)
 	    OS="macosx"
   	    { echo "$as_me:$LINENO: result: Mac OS X" >&5
 echo "${ECHO_T}Mac OS X" >&6; }
@@ -2428,9 +2420,9 @@ _ACEOF
 
 	    ;;
     *)
-	    { { echo "$as_me:$LINENO: error: Unsupported host system." >&5
-echo "$as_me: error: Unsupported host system." >&2;}
-   { (exit 1); exit 1; }; }
+	    OS="other"
+	    { echo "$as_me:$LINENO: result: Other" >&5
+echo "${ECHO_T}Other" >&6; }
 	    ;;
 esac
 
@@ -2457,6 +2449,15 @@ else
   OS_MACOSX_TRUE='#'
   OS_MACOSX_FALSE=
 fi
+
+ if test "$OS" = "other"; then
+  OS_OTHER_TRUE=
+  OS_OTHER_FALSE='#'
+else
+  OS_OTHER_TRUE='#'
+  OS_OTHER_FALSE=
+fi
+
 
  if test "$CPU" = "x86_64"; then
   CPU_X86_64_TRUE=
@@ -5099,6 +5100,13 @@ echo "$as_me: error: conditional \"OS_MACOSX\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
+if test -z "${OS_OTHER_TRUE}" && test -z "${OS_OTHER_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"OS_OTHER\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"OS_OTHER\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
 if test -z "${CPU_X86_64_TRUE}" && test -z "${CPU_X86_64_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"CPU_X86_64\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
@@ -5734,6 +5742,8 @@ OS_LINUX_TRUE!$OS_LINUX_TRUE$ac_delim
 OS_LINUX_FALSE!$OS_LINUX_FALSE$ac_delim
 OS_MACOSX_TRUE!$OS_MACOSX_TRUE$ac_delim
 OS_MACOSX_FALSE!$OS_MACOSX_FALSE$ac_delim
+OS_OTHER_TRUE!$OS_OTHER_TRUE$ac_delim
+OS_OTHER_FALSE!$OS_OTHER_FALSE$ac_delim
 CPU_X86_64_TRUE!$CPU_X86_64_TRUE$ac_delim
 CPU_X86_64_FALSE!$CPU_X86_64_FALSE$ac_delim
 CPU_I386_TRUE!$CPU_I386_TRUE$ac_delim
@@ -5754,8 +5764,6 @@ AMDEPBACKSLASH!$AMDEPBACKSLASH$ac_delim
 CCDEPMODE!$CCDEPMODE$ac_delim
 am__fastdepCC_TRUE!$am__fastdepCC_TRUE$ac_delim
 am__fastdepCC_FALSE!$am__fastdepCC_FALSE$ac_delim
-CPP!$CPP$ac_delim
-GREP!$GREP$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -5797,6 +5805,8 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+CPP!$CPP$ac_delim
+GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
 ALLEGRO_CONFIG!$ALLEGRO_CONFIG$ac_delim
 allegro_CFLAGS!$allegro_CFLAGS$ac_delim
@@ -5805,7 +5815,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 6; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 8; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

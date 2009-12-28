@@ -46,6 +46,7 @@ bin_PROGRAMS = rpcemu$(EXEEXT)
 @OS_WIN_TRUE@am__append_6 = cdrom-ioctl.c rpc-win.c resources.h
 @OS_LINUX_TRUE@am__append_7 = rpc-linux.c gui.c cdrom-linuxioctl.c network-linux.c
 @OS_MACOSX_TRUE@am__append_8 = rpc-macosx.c gui.c
+@OS_OTHER_TRUE@am__append_9 = rpc-linux.c gui.c
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
@@ -87,6 +88,8 @@ am__rpcemu_SOURCES_DIST = superio.c superio.h cdrom-iso.c cmos.c \
 @OS_LINUX_TRUE@	rpcemu-network-linux.$(OBJEXT)
 @OS_MACOSX_TRUE@am__objects_7 = rpcemu-rpc-macosx.$(OBJEXT) \
 @OS_MACOSX_TRUE@	rpcemu-gui.$(OBJEXT)
+@OS_OTHER_TRUE@am__objects_8 = rpcemu-rpc-linux.$(OBJEXT) \
+@OS_OTHER_TRUE@	rpcemu-gui.$(OBJEXT)
 am_rpcemu_OBJECTS = rpcemu-superio.$(OBJEXT) \
 	rpcemu-cdrom-iso.$(OBJEXT) rpcemu-cmos.$(OBJEXT) \
 	rpcemu-cp15.$(OBJEXT) rpcemu-fdc.$(OBJEXT) \
@@ -98,7 +101,7 @@ am_rpcemu_OBJECTS = rpcemu-superio.$(OBJEXT) \
 	rpcemu-podules.$(OBJEXT) rpcemu-podulerom.$(OBJEXT) \
 	rpcemu-icside.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
 	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
-	$(am__objects_6) $(am__objects_7)
+	$(am__objects_6) $(am__objects_7) $(am__objects_8)
 rpcemu_OBJECTS = $(am_rpcemu_OBJECTS)
 am__DEPENDENCIES_1 =
 @OS_WIN_FALSE@rpcemu_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -236,9 +239,9 @@ rpcemu_SOURCES = superio.c superio.h cdrom-iso.c cmos.c cmos.h cp15.c \
 	sound.c sound.h vidc20.c vidc20.h podules.c podulerom.c \
 	icside.c arm_common.h $(am__append_1) $(am__append_3) \
 	$(am__append_4) $(am__append_5) $(am__append_6) \
-	$(am__append_7) $(am__append_8)
+	$(am__append_7) $(am__append_8) $(am__append_9)
 @OS_WIN_TRUE@rpcemu_CPPFLAGS = -Dsleep=Sleep
-EXTRA_DIST = acorn.rc rpcemu.ico makefile.dj rpc-dos.c
+EXTRA_DIST = acorn.rc rpcemu.ico
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
