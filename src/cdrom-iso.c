@@ -95,13 +95,21 @@ static void iso_null(void)
 {
 }
 
-int iso_open(const char *fn)
+int
+iso_open(const char *fn)
 {
-        iso_file=fopen(fn,"rb");
-        atapi=&iso_atapi;
-        iso_discchanged=1;
-        iso_empty=0;
-        return 0;
+	atapi = &iso_atapi;
+
+	iso_file = fopen(fn, "rb");
+	if (iso_file != NULL) {
+		/* Successfully opened ISO file */
+		iso_empty = 0;
+	} else {
+		/* Failed to open ISO file - behave as if drive empty */
+		iso_empty = 1;
+	}
+	iso_discchanged = 1;
+	return 0;
 }
 
 void iso_close(void)
