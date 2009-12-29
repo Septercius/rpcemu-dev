@@ -95,7 +95,7 @@ static void iso_null(void)
 {
 }
 
-int iso_open(char *fn)
+int iso_open(const char *fn)
 {
         iso_file=fopen(fn,"rb");
         atapi=&iso_atapi;
