@@ -33,7 +33,7 @@ static int iso_readtoc(unsigned char *b, unsigned char starttrack, int msf)
         int len=4;
         int blocks;
         if (iso_empty) return 0;
-        fseek(iso_file,-1,SEEK_END);
+        fseek(iso_file, 0, SEEK_END);
         blocks=ftell(iso_file)/2048;
         if (starttrack <= 1) {
           b[len++] = 0; // Reserved
