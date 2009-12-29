@@ -43,6 +43,13 @@
 #include "mem.h"
 #include "hostfs.h"
 
+/* Windows mkdir() function only takes one argument name, and
+   name clashes with Posix mkdir() function taking two. This
+   macro allows us to use one API to work with both variants */
+#if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
+# define mkdir(name, mode) _mkdir(name)
+#endif
+
 typedef int bool;
 
 #define true  ((bool) 1)
@@ -1268,11 +1275,7 @@ hostfs_file_8_create_dir(ARMul_State *state)
   dbug_hostfs("\tPATH = %s\n", ro_path);
   dbug_hostfs("\tPATH2 = %s\n", host_path);
 
-#if defined __unix || __MACH__
   s = mkdir(host_path, 0755);
-#else
-  s = mkdir(host_path);
-#endif
   if (s) {
     /* An error occurred whilst creating the directory */
 
