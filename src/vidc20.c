@@ -21,6 +21,13 @@ static int drawcode = 0;
 static const int MIN_X_SIZE = 320;
 static const int MIN_Y_SIZE = 256;
 
+/* VIDC modes that are too small are scaled up for host OS.
+   Also handles stretching small rectangular pixel modes */
+#define VIDC_DOUBLE_NONE 0
+#define VIDC_DOUBLE_X    1
+#define VIDC_DOUBLE_Y    2
+#define VIDC_DOUBLE_BOTH 3
+
 /* This state is written by the main thread. The display thread should not read it. */
 static struct vidc_state {
         uint32_t vidcpal[0x104];
@@ -84,7 +91,7 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 #endif
         switch (doublesize)
         {
-                case 0:
+        case VIDC_DOUBLE_NONE:
                 if (!(fullscreen && config.stretchmode)) ys = yh - yl;
                 if (fullscreen)
                 {
@@ -99,12 +106,14 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
                         blit(b, screen, 0, yl, 0, yl, xs, ys);
                 }
                 break;
-                case 1:
+
+        case VIDC_DOUBLE_X:
                 ys=yh-yl;
                 if (fullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
                 else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl,                      xs<<1,ys);
                 break;
-                case 2:
+
+        case VIDC_DOUBLE_Y:
                 if (config.stretchmode)
                 {
                         if (fullscreen) stretch_blit(b,backbuf,0,0,xs,ys,0,0,xs,(ys<<1)-1);
@@ -117,7 +126,8 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
                         else            stretch_blit(b,screen, 0,yl,xs,ys, 0,               yl<<1,                        xs,(ys<<1)-1);
                 }
                 break;
-                case 3:
+
+        case VIDC_DOUBLE_BOTH:
                 if (config.stretchmode)
                 {
                         if (fullscreen) stretch_blit(b,backbuf,0,0,xs,ys,(SCREEN_W-(xs<<1))>>1,((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
@@ -432,17 +442,18 @@ void drawscr(int needredraw)
 //                rpclog("XS %i YS %i\n",thr.xsize,thr.ysize);
                 if (thr.xsize<2) thr.xsize=2;
                 if (thr.ysize<1) thr.ysize=480;
-                thr.doublesize=0;
+
+                thr.doublesize = VIDC_DOUBLE_NONE;
 #ifdef HARDWAREBLIT
                 if (thr.xsize<=448 || (thr.xsize<=480 && thr.ysize<=352))
                 {
                         thr.xsize<<=1;
-                        thr.doublesize=1;
+                        thr.doublesize |= VIDC_DOUBLE_X;
                 }
                 if (thr.ysize<=352)
                 {
                         thr.ysize<<=1;
-                        thr.doublesize|=2;
+                        thr.doublesize |= VIDC_DOUBLE_Y;
                 }
 #endif
                 if (thr.ysize!=oldsy || thr.xsize!=oldsx) resizedisplay(thr.xsize,thr.ysize);
@@ -470,8 +481,10 @@ void drawscr(int needredraw)
                         vidc.palchange=0;
                 }
 
-                if (thr.doublesize&1) thr.xsize>>=1;
-                if (thr.doublesize&2) thr.ysize>>=1;
+                if (thr.doublesize & VIDC_DOUBLE_X)
+                        thr.xsize >>= 1;
+                if (thr.doublesize & VIDC_DOUBLE_Y)
+                        thr.ysize >>= 1;
                 if (lastframeborder)
                 {
                         lastframeborder=0;
