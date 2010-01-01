@@ -1,3 +1,5 @@
+#define _LARGEFILE_SOURCE
+#define _LARGEFILE64_SOURCE
 #include <stdio.h>
 #include "rpcemu.h"
 #include "ide.h"
@@ -24,7 +26,7 @@ static int iso_ready(void)
 static void iso_readsector(uint8_t *b, int sector)
 {
         if (iso_empty) return;
-        fseek(iso_file,sector*2048,SEEK_SET);
+        fseeko64(iso_file, (off64_t) sector * 2048, SEEK_SET);
         fread(b,2048,1,iso_file);
 }
 
@@ -33,8 +35,8 @@ static int iso_readtoc(unsigned char *b, unsigned char starttrack, int msf)
         int len=4;
         int blocks;
         if (iso_empty) return 0;
-        fseek(iso_file, 0, SEEK_END);
-        blocks=ftell(iso_file)/2048;
+        fseeko64(iso_file, 0, SEEK_END);
+        blocks = (int) (ftello64(iso_file) / 2048);
         if (starttrack <= 1) {
           b[len++] = 0; // Reserved
           b[len++] = 0x14; // ADR, control
@@ -100,7 +102,7 @@ iso_open(const char *fn)
 {
 	atapi = &iso_atapi;
 
-	iso_file = fopen(fn, "rb");
+	iso_file = fopen64(fn, "rb");
 	if (iso_file != NULL) {
 		/* Successfully opened ISO file */
 		iso_empty = 0;
