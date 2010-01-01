@@ -70,6 +70,10 @@ void callbackide(void);
 #define SENSE_ILLEGAL_REQUEST	5
 #define SENSE_UNIT_ATTENTION	6
 
+/* ATAPI Additional Sense Codes */
+#define ASC_ILLEGAL_OPCODE		0x20
+#define ASC_MEDIUM_NOT_PRESENT		0x3a
+
 /* Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
    Not that it means anything */
 #define CDROM_SPEED	706
@@ -891,7 +895,7 @@ static void atapi_notready(void)
                 ide.error |= MCR_ERR;
         }
         ide.discchanged=0;
-        ide.asc=0x3A;
+        ide.asc = ASC_MEDIUM_NOT_PRESENT;
         ide.packetstatus=0x80;
         idecallback=50;
 }
@@ -1190,7 +1194,7 @@ static void atapicommand(void)
                         ide.error |= MCR_ERR;
                 }
                 ide.discchanged=0;
-                ide.asc=0x20;
+                ide.asc = ASC_ILLEGAL_OPCODE;
                 ide.packetstatus=0x80;
                 idecallback=50;
                 break;
