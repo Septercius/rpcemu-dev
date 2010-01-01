@@ -22,6 +22,10 @@ void callbackide(void);
 #define READY_STAT		0x40
 #define BUSY_STAT		0x80
 
+/* Bits of 'error' */
+#define ABRT_ERR		0x04 /* Command aborted */
+#define MCR_ERR			0x08 /* Media change request */
+
 /* ATA Commands */
 #define WIN_SRST			0x08 /* ATAPI Device Reset */
 #define WIN_RECAL			0x10
@@ -59,6 +63,12 @@ void callbackide(void);
 #define GPMODE_CDROM_PAGE		0x0d
 #define GPMODE_CAPABILITIES_PAGE	0x2a
 #define GPMODE_ALL_PAGES		0x3f
+
+/* ATAPI Sense Keys */
+#define SENSE_NONE		0
+#define SENSE_NOT_READY		2
+#define SENSE_ILLEGAL_REQUEST	5
+#define SENSE_UNIT_ATTENTION	6
 
 /* Tell RISC OS that we have a 4x CD-ROM drive (600kb/sec data, 706kb/sec raw).
    Not that it means anything */
@@ -857,7 +867,7 @@ void callbackide(void)
 
 abort_cmd:
 	ide.atastat[ide.board] = READY_STAT | ERR_STAT;
-	ide.error = 4;
+	ide.error = ABRT_ERR;
 	ide_irq_raise();
 }
 
@@ -876,8 +886,10 @@ static void atapi_notready(void)
         /*cylprecomp is error number*/
         /*SENSE/ASC/ASCQ*/
         ide.atastat[0] = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
-        ide.error=(2 <<4)|4; /*Unit attention*/
-        if (ide.discchanged) ide.error|=8;
+        ide.error = (SENSE_NOT_READY << 4) | ABRT_ERR;
+        if (ide.discchanged) {
+                ide.error |= MCR_ERR;
+        }
         ide.discchanged=0;
         ide.asc=0x3A;
         ide.packetstatus=0x80;
@@ -1173,8 +1185,10 @@ static void atapicommand(void)
         case GPCMD_SEND_DVD_STRUCTURE:
         default:
                 ide.atastat[0] = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
-                ide.error=(5 <<4)|4;    /*Illegal command*/
-                if (ide.discchanged) ide.error|=8;
+                ide.error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
+                if (ide.discchanged) {
+                        ide.error |= MCR_ERR;
+                }
                 ide.discchanged=0;
                 ide.asc=0x20;
                 ide.packetstatus=0x80;
