@@ -47,6 +47,13 @@ static int configreg;
 
 static uint8_t scratch, linectrl;
 
+/**
+ * Write to one of the configuration registers of the SMC 37C665, allowing the
+ * OS to set the behaviour of the SuperIO subsystems.
+ *
+ * @param configreg The configuration register to set
+ * @param val       The value to write to the configuration register
+ */
 static void
 superio_config_reg_write(uint8_t configreg, uint8_t val)
 {
@@ -96,7 +103,13 @@ superio_config_reg_write(uint8_t configreg, uint8_t val)
 	configregs[configreg] = val;
 }
 
-void superio_reset(void)
+/**
+ * Set the initial state of the SuperIO chip.
+ *
+ * Called on emulated machine startup and reset.
+ */
+void
+superio_reset(void)
 {
 	/* Initial configuration register default values from the datasheet */
 	configregs[0x0] = 0x3b;
@@ -120,8 +133,14 @@ void superio_reset(void)
 	fdc_reset();
 }
 
-
-void superio_write(uint32_t addr, uint32_t val)
+/**
+ * Write to the IO space of the SuperIO chip.
+ *
+ * @param addr Address to write to
+ * @param val  Value to write to 'addr'
+ */
+void
+superio_write(uint32_t addr, uint32_t val)
 {
 	static unsigned char printstat = 0;
 
@@ -205,9 +224,14 @@ void superio_write(uint32_t addr, uint32_t val)
 	}
 }
 
-
-
-uint8_t superio_read(uint32_t addr)
+/**
+ * Read from the IO space of the SuperIO chip.
+ *
+ * @param addr   Address to read from
+ * @return       Value of register at given address
+ */
+uint8_t
+superio_read(uint32_t addr)
 {
         /* Convert memory-mapped address to IO port */
         addr = (addr >> 2) & 0x3ff;
