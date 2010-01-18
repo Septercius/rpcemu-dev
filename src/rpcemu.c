@@ -156,7 +156,16 @@ void domips(void)
 	updatemips = 1;
 }
 
-void resetrpc(void)
+/**
+ * Reinitialise all emulated subsystems based on current configuration. This
+ * is equivalent to resetting the emulated hardware.
+ *
+ * Called from within the GUI code (Allegro or Windows) when the user has made
+ * a change to their preferred configuration, or when the user picks 'Reset'
+ * from the menu.
+ */
+void
+resetrpc(void)
 {
         mem_reset(config.rammask + 1);
         resetcp15();
@@ -169,7 +178,16 @@ void resetrpc(void)
         resetpodules();
 }
 
-int startrpcemu(void)
+/**
+ * Set the initial state of all emulated subsystems. Load disc images, CMOS
+ * and configuration.
+ *
+ * Called from each platform's code on program startup.
+ *
+ * @return Always 0
+ */
+int
+startrpcemu(void)
 {
         int c;
         char *p;
@@ -234,7 +252,14 @@ int startrpcemu(void)
         return 0;
 }
 
-void execrpcemu(void)
+/**
+ * Execute a chunk of ARM instructions. This is the main entry point for the
+ * emulation of the virtual hardware.
+ *
+ * Called repeatedly from within each platform's main loop.
+ */
+void
+execrpcemu(void)
 {
 //	static int c;
 //	printf("Exec %i\n",c);
@@ -259,7 +284,13 @@ void execrpcemu(void)
                 pollkeyboard();
 }
 
-void endrpcemu(void)
+/**
+ * Finalise the subsystems, save floppy disc images, CMOS and configuration.
+ *
+ * Called from each platform's code on program closing.
+ */
+void
+endrpcemu(void)
 {
         sound_thread_close();
         closevideo();
@@ -274,7 +305,14 @@ void endrpcemu(void)
         saveconfig();
 }
 
-static void loadconfig(void)
+/**
+ * Load the user's previous chosen configuration. Will fill in sensible
+ * defaults if any configuration values are absent.
+ *
+ * Called on program startup.
+ */
+static void
+loadconfig(void)
 {
         char fn[512];
         const char *p;
@@ -334,7 +372,14 @@ static void loadconfig(void)
         config.ipaddress = get_config_string(NULL, "ipaddress", NULL);
 }
 
-static void saveconfig(void)
+/**
+ * Store the user's most recently chosen configuration to disc, for use next
+ * time the program starts.
+ *
+ * Called on program exit.
+ */
+static void
+saveconfig(void)
 {
         char s[256];
 
