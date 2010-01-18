@@ -65,6 +65,17 @@ networkirqswi
 	LDRNE	a1, =errbuf
 	LDMFD	sp!, {pc}
 
+	EXPORT	|networkhwaddrswi|
+networkhwaddrswi
+	STMFD	sp!,{lr}
+	MOV	a3, a1
+	LDR	a2, =errmess
+	MOV	a1, #4
+	SWI	&56ac4
+	TST	a1, #0
+	LDRNE	a1, =errbuf
+	LDMFD	sp!, {pc}
+
 	EXPORT	|callrx|
 callrx
 	MOV	r12, r3

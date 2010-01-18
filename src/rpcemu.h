@@ -120,6 +120,7 @@ typedef struct {
 	int stretchmode;
 	const char *username;
 	const char *ipaddress;
+	const char *macaddress;
 	int refresh;		/* Video refresh rate */
 	int soundenabled;
 	int skipblits;

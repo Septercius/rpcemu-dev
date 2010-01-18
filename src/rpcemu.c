@@ -40,6 +40,7 @@ Config config = {
 	0,			/* stretchmode */
 	NULL,			/* username */
 	NULL,			/* ipaddress */
+	NULL,			/* macaddress */
 	0,			/* refresh */
 	1,			/* soundenabled */
 	0,			/* skipblits (blit_optimisation) */
@@ -370,6 +371,7 @@ loadconfig(void)
         config.mousehackon = get_config_int(NULL, "mouse_following", 1);
         config.username  = get_config_string(NULL, "username",  NULL);
         config.ipaddress = get_config_string(NULL, "ipaddress", NULL);
+        config.macaddress = get_config_string(NULL, "macaddress", NULL);
 }
 
 /**

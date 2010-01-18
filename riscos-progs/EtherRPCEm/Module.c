@@ -42,6 +42,7 @@
 _kernel_oserror *networktxswi(struct mbuf *mbufs, int dest, int src, int frametype);
 _kernel_oserror *networkrxswi(struct mbuf *mbuf, rx_hdr *hdr, int *valid);
 _kernel_oserror *networkirqswi(volatile int *irqstatus);
+_kernel_oserror *networkhwaddrswi(unsigned char *hwaddr);
 void callrx(dib *dibaddr, struct mbuf *mbuf_chain, int claimaddr, int pwp);
 
 // versionof DCI supported
@@ -218,6 +219,8 @@ _kernel_oserror *initialise(const char *cmd_tail, int podule_base, void *private
    {
      return &ErrorNoBuff;
    }
+
+   networkhwaddrswi((unsigned char *)work->dev_addr);
 
    work->pwp=private_word;
    // claim mbuf manager link

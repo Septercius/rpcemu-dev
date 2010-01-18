@@ -1,5 +1,6 @@
 /* RPCemu networking */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -17,6 +18,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <signal.h>
+#include <linux/sockios.h>
 
 #include "rpcemu.h"
 #include "mem.h"
@@ -27,6 +29,9 @@ static int tunfd = -1;
 
 /* Max packet is 1500 bytes plus headers */
 static unsigned char buffer[1522];
+
+/* Hardware address */
+static unsigned char hwaddr[6];
 
 static podule *poduleinfo = NULL;
 
@@ -81,6 +86,47 @@ static int dropprivileges(uid_t uid, gid_t gid)
         return -1;
     else
         return 0;
+}
+
+static int parsemacaddr(const char *text, unsigned char *hwaddr)
+{
+    const char *textptr = text;
+    int byte;
+
+    for (byte = 0; byte < 6; byte++) {
+        int nybble;
+
+        hwaddr[byte] = 0;
+
+        for (nybble = 0; nybble < 2; nybble++) {
+            hwaddr[byte] <<= 4;
+
+            if (isdigit(*textptr)) {
+                hwaddr[byte] |= *textptr - '0';
+            } else if (isxdigit(*textptr)) {
+                hwaddr[byte] |= (toupper(*textptr) - 'A') + 10;
+            } else {
+                goto fail;
+            }
+
+            textptr++;
+        }
+
+        if (*textptr == ':') {
+            textptr++;
+        } else if (byte < 5) {
+            goto fail;
+        }
+    }
+
+    if (*textptr)
+        goto fail;
+
+    return 0;
+
+fail:
+    fprintf(stderr, "Error parsing hardware address %s\n", text);
+    return -1;
 }
 
 /* Open and configure the tunnel device */
@@ -138,6 +184,23 @@ static int tun_alloc(void)
     if (ioctl(sd, SIOCSIFFLAGS, &ifr) == -1) {
         fprintf(stderr, "Error setting %s flags: %s\n", ifr.ifr_name, strerror(errno));
         return -1;
+    }
+
+    if (config.macaddress == NULL || parsemacaddr(config.macaddress, hwaddr) < 0) {
+        /* Get the hardware address */
+        if (ioctl(sd, SIOCGIFHWADDR, &ifr) == -1) {
+            fprintf(stderr, "Error getting %s hardware address: %s\n",
+                    ifr.ifr_name, strerror(errno));
+            return -1;
+        }
+
+        /* Calculate the emulated hardware address */
+        hwaddr[0] = 0x02;
+        hwaddr[1] = 0x00;
+        hwaddr[2] = 0xA4;
+        hwaddr[3] = ifr.ifr_hwaddr.sa_data[3];
+        hwaddr[4] = ifr.ifr_hwaddr.sa_data[4];
+        hwaddr[5] = ifr.ifr_hwaddr.sa_data[5];
     }
 
     close(sd);
@@ -214,11 +277,9 @@ static uint32_t tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src,
     if (src) {
         memcpytohost(buf, src, 6);
     } else {
-        /* Make up a MAC address. As this is only going on the TAP
-           device and not a real ethernet then it doesn't need to
-           be unique, just different to the MAC on the other end
-           of the tunnel. */
-        for (i=0;i<6;i++) buf[i] = i;
+        for (i = 0; i < 6; i++) {
+            buf[i] = hwaddr[i];
+        }
     }
     buf += 6;
 
@@ -340,6 +401,10 @@ void networkswi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4,
         rethinkpoduleints();
         *retr0 = 0;
         break;
+    case 4:
+       memcpyfromhost(r2, hwaddr, sizeof(hwaddr));
+       *retr0 = 0;
+       break;
     default:
         strcpyfromhost(r1, "Unknown RPCemu network SWI");
         *retr0 = r1;
