@@ -41,6 +41,7 @@ Config config = {
 	NULL,			/* username */
 	NULL,			/* ipaddress */
 	NULL,			/* macaddress */
+	NULL,			/* bridgename */
 	0,			/* refresh */
 	1,			/* soundenabled */
 	0,			/* skipblits (blit_optimisation) */
@@ -372,6 +373,7 @@ loadconfig(void)
         config.username  = get_config_string(NULL, "username",  NULL);
         config.ipaddress = get_config_string(NULL, "ipaddress", NULL);
         config.macaddress = get_config_string(NULL, "macaddress", NULL);
+        config.bridgename = get_config_string(NULL, "bridgename", NULL);
 }
 
 /**

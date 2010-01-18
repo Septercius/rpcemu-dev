@@ -121,6 +121,7 @@ typedef struct {
 	const char *username;
 	const char *ipaddress;
 	const char *macaddress;
+	const char *bridgename;
 	int refresh;		/* Video refresh rate */
 	int soundenabled;
 	int skipblits;
