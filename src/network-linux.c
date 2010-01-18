@@ -222,7 +222,7 @@ static int tun_alloc(void)
 
     close(sd);
 
-    if (fcntl(fd, F_SETFL, O_NONBLOCK | O_ASYNC) == -1) {
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
         fprintf(stderr, "Error setting %s non-blocking: %s\n", ifr.ifr_name, strerror(errno));
         return -1;
     }
@@ -389,10 +389,58 @@ static uint32_t irqstatus = 0;
 
 static void sig_io(int sig) 
 {
+    writememb(irqstatus, 1);
+    if (poduleinfo != NULL) {
+        poduleinfo->irq = 1;
+    }
+    rethinkpoduleints();
+}
+
+static void set_irqstatus(uint32_t address)
+{
+    struct sigaction sa;
+    int flags;
+
+    memset(&sa, 0, sizeof(sa));
+
+    if ((flags = fcntl(tunfd, F_GETFL)) == -1) {
+        fprintf(stderr, "Error getting flags for network device: %s\n",
+                strerror(errno));
+        return;
+    }
+
     if (irqstatus) {
-        writememb(irqstatus, 1);
-        if (poduleinfo) poduleinfo->irq = 1;
-        rethinkpoduleints();
+        if (fcntl(tunfd, F_SETFL, flags & ~O_ASYNC) == -1) {
+            fprintf(stderr, "Error disabling SIGIO for network device: %s\n",
+                    strerror(errno));
+            return;
+        }
+
+        sa.sa_handler = SIG_DFL;
+
+        if (sigaction(SIGIO, &sa, NULL) == -1) {
+            fprintf(stderr, "Error uninstalling SIGIO handler: %s\n",
+                    strerror(errno));
+            return;
+        }
+    }
+
+    irqstatus = address;
+
+    if (irqstatus) {
+        sa.sa_handler = sig_io;
+
+        if (sigaction(SIGIO, &sa, NULL) == -1) {
+            fprintf(stderr, "Error installing SIGIO handler: %s\n",
+                    strerror(errno));
+            return;
+        }
+
+        if (fcntl(tunfd, F_SETFL, flags | O_ASYNC) == -1) {
+            fprintf(stderr, "Error enabling SIGIO for network device: %s\n",
+                    strerror(errno));
+            return;
+        }
     }
 }
 
@@ -410,7 +458,7 @@ void networkswi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4,
         *retr0 = rx(r1, r2, r3, retr1);
         break;
     case 2:
-        irqstatus = r2;
+        set_irqstatus(r2);
         *retr0 = 0;
         break;
     case 3:
@@ -450,11 +498,6 @@ void initnetwork(void)
     }
 
     if (tunfd != -1) {
-        struct sigaction sa;
-        memset(&sa, 0, sizeof(sa));
-        sa.sa_handler = sig_io;
-        sigaction(SIGIO, &sa, NULL);
-
         poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0);
         if (poduleinfo == NULL) fprintf(stderr, "No free podule for networking\n");
     }
