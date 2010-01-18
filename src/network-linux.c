@@ -137,7 +137,7 @@ static int tun_alloc(void)
     int fd;
     int sd;
     
-    if (config.ipaddress == NULL) {
+    if (config.ipaddress == NULL && config.bridgename == NULL) {
         fprintf(stderr, "IP address not configured\n");
         return -1;
     }
@@ -162,16 +162,33 @@ static int tun_alloc(void)
         return -1;
     }
 
-    addr = (struct sockaddr_in *)(&(ifr.ifr_addr));
-    addr->sin_family = AF_INET;
-    addr->sin_port = 0;
-    inet_aton(config.ipaddress, &(addr->sin_addr));
-    if (ioctl(sd, SIOCSIFADDR, &ifr) == -1) {
-        fprintf(stderr, "Error assigning %s addr: %s\n",
-                ifr.ifr_name, strerror(errno));
-        return -1;
-    }
+    if (config.ipaddress != NULL) {
+        addr = (struct sockaddr_in *)(&(ifr.ifr_addr));
+        addr->sin_family = AF_INET;
+        addr->sin_port = 0;
+        inet_aton(config.ipaddress, &(addr->sin_addr));
+        if (ioctl(sd, SIOCSIFADDR, &ifr) == -1) {
+            fprintf(stderr, "Error assigning %s addr: %s\n",
+                    ifr.ifr_name, strerror(errno));
+            return -1;
+        }
+    } else if (config.bridgename != NULL) {
+        struct ifreq brifr;
 
+        if (ioctl(sd, SIOCGIFINDEX, &ifr) == -1) {
+            fprintf(stderr, "Error interface index for %s: %s\n",
+                    ifr.ifr_name, strerror(errno));
+            return -1;
+        }
+        strncpy(brifr.ifr_name, config.bridgename, IFNAMSIZ);
+        brifr.ifr_name[IFNAMSIZ - 1] = '\0';
+        brifr.ifr_ifindex = ifr.ifr_ifindex;
+        if (ioctl(sd, SIOCBRADDIF, &brifr) == -1) {
+            fprintf(stderr, "Error adding %s to bridge: %s\n",
+                    ifr.ifr_name, strerror(errno));
+            return -1;
+        }
+    }
 
     /* Get the current flags */
     if (ioctl(sd, SIOCGIFFLAGS, &ifr) == -1) {
