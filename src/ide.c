@@ -578,11 +578,6 @@ uint8_t readide(uint16_t addr)
         switch (addr)
         {
         case 0x1F0: /* Data */
-/*                if (ide.command == WIN_PIDENTIFY && !ide.pos)
-                {
-                        output=1;
-                        timetolive=20000;
-                }*/
 //                rpclog("Read data %08X ",ide.pos);
                 temp=idebufferb[ide.pos++];
 //                rpclog("%04X\n",temp);
@@ -828,11 +823,6 @@ void callbackide(void)
 //                        rpclog("packetstatus==2\n");
                         ide.atastat[ide.board] = READY_STAT;
                         ide_irq_raise();
-//                        if (output)
-//                        {
-//                                output=2;
-//                                timetolive=10000;
-//                        }
                 }
                 else if (ide.packetstatus==3)
                 {
@@ -1091,7 +1081,6 @@ static void atapicommand(void)
                     rpclog("\n");*/
 //                    output=1;
 //                        output=2;
-//                        timetolive=200000;
                 }
                 return;
 

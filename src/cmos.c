@@ -184,7 +184,6 @@ static void cmoswrite(unsigned char byte)
                                 cmosgettime();
 
 //                        rpclog("%02X",cmosram[cmosaddr]);
-//                        timetolive=5000;
                         i2cbyte=cmosram[((cmosaddr++))&0xFF];
 //printf("CMOS - %02X from %02X\n",i2cbyte,cmosaddr-1);
 //                        log("Transmitter now CMOS\n");

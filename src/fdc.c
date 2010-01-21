@@ -178,7 +178,6 @@ void writefdc(uint32_t addr, uint32_t val)
         case 0x3f5: /* Data (FIFO) - Command */
                 //output=0;
                 // printf("Command write %02X %i : rate %i\n", val, ins, fdc.rate);
-                timetolive=50;
                 if (fdc.params)
                 {
                         fdc.parameters[fdc.curparam++]=val;
@@ -362,10 +361,6 @@ uint8_t readfdc(uint32_t addr)
                 return fdc.status;
 
         case 0x3f5: /* Data (FIFO) */
-                /* if (fdc.command==4)
-                {
-                        timetolive=400;
-                }*/
                 fdc.status&=0x7F;
                 if (!fdc.incommand) fdc.status=0x80;
                 else                fdccallback=100;
@@ -404,7 +399,6 @@ static void fdcsenddata(uint8_t val)
         fdc.dmadat=val;
         iomd.fiq.status |= IOMD_FIQ_FLOPPY_DMA_REQUEST;
         updateirqs();
-//        timetolive=50;
 }
 
 
@@ -438,7 +432,6 @@ void callbackfdc(void)
                 if (!fdc.track) fdc.st3|=0x10;
                 fdc.incommand=0;
 //                printf("Send ST3\n");
-//                timetolive=150;
                 fdcsend(fdc.st3);
                 fdc.params=fdc.curparam=0;
                 break;
@@ -566,7 +559,6 @@ void callbackfdc(void)
                 if (fdc.commandpos>=1024)
                 {
 //                        printf("sending result %i\n",fdc.commandpos-1024);
-//                        timetolive=500;
 //                        fdccallback=20;
                         switch (fdc.commandpos-1024)
                         {
