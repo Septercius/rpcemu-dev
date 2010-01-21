@@ -54,7 +54,6 @@ Config config = {
 int infocus = 0;
 int rinscount = 0;
 int cyccount = 0;
-int timetolive = 0;
 int drawscre = 0;
 int mousecapture = 0;
 int quited = 0;

@@ -110,7 +110,6 @@ void updatemode(uint32_t m)
 
 //        if (PC==0x8E30) output=1;
 //      if (output) rpclog("Update mode to %s mode %i %08X\n",(m&0x10)?"32-bit":"26-bit",m&15,PC);
-//      timetolive=1000;
 //      if (!m && PC==0x9FB8) output=2;
 //      if (!m && PC==0x9FBC) output=2;
         usrregs[15]=&armregs[15];

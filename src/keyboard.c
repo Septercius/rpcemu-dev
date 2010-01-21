@@ -253,7 +253,6 @@ void writemsenable(int v)
 {
 //        printf("Write mouse enable %02X\n",v);
         v&=8;
-//        timetolive=250;
         if (v)// && !msenable)
         {
                 msreset=1;
@@ -266,10 +265,6 @@ void writemsenable(int v)
 void writems(unsigned char v)
 {
 //        printf("Write mouse %02X %08X  %02X\n",v,PC,msincommand);
-/*        if (v == AUX_RESEND)
-        {
-                timetolive=50;
-        }*/
         msstat=(msstat&0x3F)|0x40;
         iomd.irqd.status &= ~IOMD_IRQD_MOUSE_TX;
         updateirqs();
@@ -358,7 +353,6 @@ unsigned char readmousedata(void)
                 mcallback = 20;
         }
 //        printf("Read mouse data %02X\n",iomd.msdat);
-//        timetolive=500;
         iomd.msdat=0;
         return temp;
 }
@@ -372,7 +366,6 @@ static void mousesend(unsigned char v)
 //        printf("Send data %02X\n",v);
         if (calculateparity(v)) msstat|=4;
         else                    msstat&=~4;
-//        timetolive=250;
 }
 
 void mscallback(void)

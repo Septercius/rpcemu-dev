@@ -148,7 +148,6 @@ extern void sound_thread_start(void);
 extern void sound_thread_close(void);
 
 extern char exname[512];
-extern int timetolive;
 
 /*rpcemu.c*/
 extern int startrpcemu(void);
