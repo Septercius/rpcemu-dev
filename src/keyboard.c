@@ -647,17 +647,6 @@ void pollkeyboard(void)
 static short ml,mr,mt,mb;
 static int activex[5],activey[5];
 
-void setmousepos(uint32_t a)
-{
-        unsigned short temp,temp2;
-//        printf("setmousepos\n");
-        temp=readmemb(a+1)|(readmemb(a+2)<<8);
-        temp=temp>>1;
-        temp2=readmemb(a+3)|(readmemb(a+4)<<8);
-        temp2=((mb+1)-temp2)>>1;
-//        position_mouse(temp,temp2);
-}
-
 /* Gets the x and y coords in native and OS units */
 static void getmouseosxy(int *x, int *y, int *osx, int *osy)
 {
