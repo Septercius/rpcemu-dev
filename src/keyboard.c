@@ -61,8 +61,6 @@ typedef struct {
         int	rptr, wptr, count;
 } PS2Queue;
 
-static int mcalls;
-
 static int kbdenable, kbdreset;
 static uint8_t kbdstat;		/**<  PS/2 control register for the keyboard */
 static unsigned char kbdcommand;
@@ -486,13 +484,11 @@ void pollmouse(void)
         if (key[KEY_MENU]) mouseb|=4;
 //		if (key[KEY_Z]) mouseb|=4;
 //		if (key[KEY_X]) mouseb|=2;
-//        poll_mouse();
         get_mouse_mickeys(&x,&y);
         iomd.mousex+=x;
         iomd.mousey+=y;
 //        rpclog("Poll mouse %i %i %i %i\n",x,y,iomd.mousex,iomd.mousey);
         if (mousecapture) position_mouse(getxs()>>1,getys()>>1);
-        mcalls++;
 
         /* Return if not PS/2 mouse */
         if (config.model != CPUModel_ARM7500 && config.model != CPUModel_ARM7500FE) {
@@ -646,37 +642,6 @@ void pollkeyboard(void)
 
 static short ml,mr,mt,mb;
 static int activex[5],activey[5];
-void doosmouse(void)
-{
-        short temp;
-        return;
-        if (!mousehack) return;
-//        printf("doosmouse\n");
-//        if (!mousehack || fullscreen) return;
-        temp=(getys()<<1)-((mouse_y/*-offsety*/)<<1);
-//        if (temp<0) temp=0;
-        if (temp<mt) temp=mt;
-        if (temp>mb) temp=mb;
-//        ymouse=temp;
-//        writememl(0x5B8,temp);
-        writememl(0x5A4,temp);
-        temp=(mouse_x/*-offsetx*/)<<1;
-        if (temp>mr) temp=mr;
-        if (temp<ml) temp=ml;
-//        xmouse=temp;
-//        writememl(0x5B4,temp);
-        writememl(0x5A0,temp);
-/*        *armregs[0]=mouse_x;
-        if (mouse_x>639) *armregs[0]=639;
-        *armregs[1]=mouse_y>>1;
-        temp=0;
-        if (mouse_b&1) temp|=1;
-        if (mouse_b&2) temp|=4;
-        if (mouse_b&4) temp|=2;
-        if (key[KEY_MENU]) temp|=2;
-        *armregs[2]=temp;
-        *armregs[3]=0;*/
-}
 
 void setmousepos(uint32_t a)
 {
