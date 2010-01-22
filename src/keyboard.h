@@ -6,12 +6,12 @@ extern void keycallback(void);
 extern void mscallback(void);
 extern void keyboard_data_write(uint8_t v);
 extern void keyboard_control_write(uint8_t v);
-extern void writems(unsigned char v);
-extern void writemsenable(int v);
+extern void mouse_data_write(uint8_t v);
+extern void mouse_control_write(uint8_t v);
 extern uint8_t keyboard_status_read(void);
 extern uint8_t keyboard_data_read(void);
-extern unsigned char getmousestat(void);
-extern unsigned char readmousedata(void);
+extern uint8_t mouse_status_read(void);
+extern uint8_t mouse_data_read(void);
 extern void pollmouse(void);
 extern void pollkeyboard(void);
 
