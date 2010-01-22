@@ -44,23 +44,34 @@
 #define AUX_TEST_OK		0xaa	/* Self-test passed */
 #define AUX_ACK			0xfa	/* Command byte acknowledge */
 
+/* Bits within the IOMD PS/2 control/status registers for mouse and keyboard */
+#define PS2_CONTROL_DATA_STATE	0x01
+#define PS2_CONTROL_CLOCK_STATE	0x02
+#define PS2_CONTROL_RXPARITY	0x04
+#define PS2_CONTROL_ENABLE	0x08
+#define PS2_CONTROL_RX_BUSY	0x10
+#define PS2_CONTROL_RX_FULL	0x20
+#define PS2_CONTROL_TX_BUSY	0x40
+#define PS2_CONTROL_TX_EMPTY	0x80
+
 #define PS2_QUEUE_SIZE 256
 
 typedef struct {
-        uint8_t data[PS2_QUEUE_SIZE];
-        int rptr, wptr, count;
+        uint8_t	data[PS2_QUEUE_SIZE];
+        int	rptr, wptr, count;
 } PS2Queue;
 
 static int mcalls;
 
 static int kbdenable, kbdreset;
-static unsigned char kbdstat;
+static uint8_t kbdstat;		/**<  PS/2 control register for the keyboard */
 static unsigned char kbdcommand;
 static int keys2[128];
 static PS2Queue kbdqueue;
 
 static int msenable, msreset;
-static unsigned char msstat, mscommand;
+static uint8_t msstat;		/**<  PS/2 control register for the mouse */
+static unsigned char mscommand;
 static unsigned char mspacket[3];
 static int mspacketpos;
 static int mousepoll;
@@ -165,8 +176,10 @@ keyboard_control_write(uint8_t v)
                 kbdreset=1;
                 kcallback=5*4;
         }
-        if (v) kbdstat|=8;
-        else   kbdstat&=~8;
+	if (v)
+		kbdstat |= PS2_CONTROL_ENABLE;
+	else
+		kbdstat &= ~PS2_CONTROL_ENABLE;
 }
 
 static void keyboardsend(unsigned char v)
@@ -175,9 +188,11 @@ static void keyboardsend(unsigned char v)
         iomd.keydat=v;
         iomd.irqb.status |= IOMD_IRQB_KEYBOARD_RX;
         updateirqs();
-        kbdstat|=0x20;
-        if (calculateparity(v)) kbdstat|=4;
-        else                    kbdstat&=~4;
+	kbdstat |= PS2_CONTROL_RX_FULL;
+	if (calculateparity(v))
+		kbdstat |= PS2_CONTROL_RXPARITY;
+	else
+		kbdstat &= ~PS2_CONTROL_RXPARITY;
 }
 
 void keycallback(void)
@@ -189,7 +204,7 @@ void keycallback(void)
                 iomd.irqb.status |= IOMD_IRQB_KEYBOARD_TX;
                 updateirqs();
                 kbdreset=0;
-                kbdstat|=0x80;
+                kbdstat |= PS2_CONTROL_TX_EMPTY;
         }
         else if (kbdreset==2)
         {
@@ -241,7 +256,7 @@ keyboard_status_read(void)
 uint8_t
 keyboard_data_read(void)
 {
-        kbdstat&=~0x20;
+        kbdstat &= ~PS2_CONTROL_RX_FULL;
         iomd.irqb.status &= ~IOMD_IRQB_KEYBOARD_RX;
         updateirqs();
         if (kbdcommand==0xFE) kcallback=5*4;
@@ -252,20 +267,25 @@ keyboard_data_read(void)
 void writemsenable(int v)
 {
 //        printf("Write mouse enable %02X\n",v);
-        v&=8;
+
+        v &= PS2_CONTROL_ENABLE;
         if (v)// && !msenable)
         {
                 msreset=1;
                 mcallback=20;
         }
-        if (v) msstat|=8;
-        else   msstat&=~8;
+	if (v)
+		msstat |= PS2_CONTROL_ENABLE;
+	else
+		msstat &= ~PS2_CONTROL_ENABLE;
 }
 
 void writems(unsigned char v)
 {
 //        printf("Write mouse %02X %08X  %02X\n",v,PC,msincommand);
-        msstat=(msstat&0x3F)|0x40;
+        /* Set BUSY flag, clear EMPTY flag */
+        msstat = (msstat & 0x3f) | PS2_CONTROL_TX_BUSY;
+
         iomd.irqd.status &= ~IOMD_IRQD_MOUSE_TX;
         updateirqs();
         justsent=1;
@@ -346,7 +366,8 @@ unsigned char getmousestat(void)
 unsigned char readmousedata(void)
 {
         unsigned char temp=iomd.msdat;
-        msstat&=~0x20;
+
+        msstat &= ~PS2_CONTROL_RX_FULL;
         iomd.irqd.status &= ~IOMD_IRQD_MOUSE_RX;
         updateirqs();
         if (mspacketpos < 3 && mscommand == AUX_RESEND) {
@@ -362,15 +383,19 @@ static void mousesend(unsigned char v)
         iomd.msdat=v;
         iomd.irqd.status |= IOMD_IRQD_MOUSE_RX;
         updateirqs();
-        msstat|=0x20;
+        msstat |= PS2_CONTROL_RX_FULL;
 //        printf("Send data %02X\n",v);
-        if (calculateparity(v)) msstat|=4;
-        else                    msstat&=~4;
+	if (calculateparity(v))
+		msstat |= PS2_CONTROL_RXPARITY;
+	else
+		msstat &= ~PS2_CONTROL_RXPARITY;
 }
 
 void mscallback(void)
 {
-        msstat=(msstat&0x3F)|0x80;
+        /* Set EMPTY Flag, clear BUSY flag */
+        msstat = (msstat & 0x3f) | PS2_CONTROL_TX_EMPTY;
+
         if (justsent)
         {
                 iomd.irqd.status |= IOMD_IRQD_MOUSE_TX;
@@ -382,7 +407,7 @@ void mscallback(void)
                 iomd.irqd.status |= IOMD_IRQD_MOUSE_TX;
                 updateirqs();
                 msreset=3;
-                msstat|=0x80;
+                msstat |= PS2_CONTROL_TX_EMPTY;      /* This should be pointless - always set above */
                 mcallback=20;
         }
         else if (msreset==2)
