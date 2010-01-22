@@ -262,7 +262,8 @@ keyboard_data_read(void)
         return iomd.keydat;
 }
 
-void writemsenable(int v)
+void
+mouse_control_write(uint8_t v)
 {
 //        printf("Write mouse enable %02X\n",v);
 
@@ -278,7 +279,8 @@ void writemsenable(int v)
 		msstat &= ~PS2_CONTROL_ENABLE;
 }
 
-void writems(unsigned char v)
+void
+mouse_data_write(uint8_t v)
 {
 //        printf("Write mouse %02X %08X  %02X\n",v,PC,msincommand);
         /* Set BUSY flag, clear EMPTY flag */
@@ -355,13 +357,15 @@ void writems(unsigned char v)
         }
 }
 
-unsigned char getmousestat(void)
+uint8_t
+mouse_status_read(void)
 {
 //        printf("Read mouse status %02X\n",msstat);
         return msstat;
 }
 
-unsigned char readmousedata(void)
+uint8_t
+mouse_data_read(void)
 {
         unsigned char temp=iomd.msdat;
 

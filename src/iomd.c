@@ -356,10 +356,10 @@ void writeiomd(uint32_t addr, uint32_t val)
                 return;
 
         case IOMD_0x0A8_MSEDAT: /* Mouse data (PS/2 - ARM7500/FE) */
-                writems(val);
+                mouse_data_write(val);
                 return;
         case IOMD_0x0AC_MSECR: /* Mouse control (PS/2 - ARM7500/FE) */
-                writemsenable(val);
+                mouse_control_write(val);
                 return;
 
         case IOMD_0x0C4_IOTCR: /* I/O timing control */
@@ -546,9 +546,9 @@ uint32_t readiomd(uint32_t addr)
                 return -iomd.mousey;
 
         case IOMD_0x0A8_MSEDAT: /* Mouse data (PS/2 - ARM7500/FE) */
-                return readmousedata();
+                return mouse_data_read();
         case IOMD_0x0AC_MSECR: /* Mouse control (PS/2 - ARM7500/FE) */
-                return getmousestat();
+                return mouse_status_read();
 
         case IOMD_0x180_SD0CURA: /* Sound DMA 0 CurA */
         case IOMD_0x184_SD0ENDA: /* Sound DMA 0 EndA */
