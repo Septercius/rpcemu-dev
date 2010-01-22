@@ -2759,16 +2759,6 @@ void execarm(int cycs)
                                                         getunbufmouse(armregs[1]);
                                                         break;
                                                 }
-                                                else if (readmemb(armregs[1])==3)
-                                                {
-                                                        setmousepos(armregs[1]);
-                                                        break;
-                                                }
-                                                else if (readmemb(armregs[1])==5)
-                                                {
-                                                        setmousepos(armregs[1]);
-                                                        break;
-                                                }
                                                 else
                                                   goto realswi;
                                         }

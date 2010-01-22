@@ -638,16 +638,6 @@ static void opSWI(uint32_t opcode)
                         getunbufmouse(armregs[1]);
                         return;
                 }
-                else if (readmemb(armregs[1])==3)
-                {
-                        setmousepos(armregs[1]);
-                        return;
-                }
-                else if (readmemb(armregs[1])==5)
-                {
-                        setmousepos(armregs[1]);
-                        return;
-                }
                 else
                    goto realswi;
         }
