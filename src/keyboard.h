@@ -15,7 +15,6 @@ extern unsigned char readmousedata(void);
 extern void pollmouse(void);
 extern void pollkeyboard(void);
 
-extern void doosmouse(void);
 extern void setmouseparams(uint32_t a);
 extern void getunbufmouse(uint32_t a);
 extern void setmousepos(uint32_t a);

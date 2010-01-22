@@ -84,12 +84,7 @@
 /*This makes the RISC OS mouse pointer follow the host pointer exactly. Useful
   for Linux port, however use mouse capturing if possible - mousehack has some
   bugs*/
-#if defined __unix || defined __MACH__
-#define mousehackena 1
-#else
-#define mousehackena 0
-#endif
-#define mousehack (/*mousehackena&&*/config.mousehackon && !fullscreen)
+#define mousehack (config.mousehackon && !fullscreen)
 
 extern int fullscreen;
 /*This enables abort checking after every LDR/STR/LDM/STM instruction in the
