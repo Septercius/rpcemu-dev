@@ -14,6 +14,7 @@
 
   Keyboard acks (0xFA) after every byte
   */
+#include <assert.h>
 #include <stdint.h>
 #include <allegro.h>
 #include "rpcemu.h"
@@ -644,12 +645,16 @@ void pollkeyboard(void)
         }
 }
 
+/* Mousehack functions */
+
 static short ml,mr,mt,mb;
 static int activex[5],activey[5];
 
 /* Gets the x and y coords in native and OS units */
 static void getmouseosxy(int *x, int *y, int *osx, int *osy)
 {
+        assert(mousehack);
+
         *osy=(getys()<<1)-(mouse_y<<1);
 //        printf("Mouse Y - %i %i  ",mouse_y,*osy);
         if (*osy<mt) *osy=mt;
@@ -675,14 +680,23 @@ static void getmouseosxy(int *x, int *y, int *osx, int *osy)
         }
 }
 
-void getunbufmouse(uint32_t a)
+/**
+ * OS_Word 21, 4 Read unbuffered mouse position
+ *
+ * Called from arm.c/ArmDynarec.c SWI handler
+ *
+ * @param a Address of OS_Word 21 parameter block (to be filled in)
+ */
+void
+mouse_hack_osword_21_4(uint32_t a)
 {
         int x;
         int y;
         int osx;
         int osy;
 
-//        printf("getunbufmouse\n");
+        assert(mousehack);
+
         getmouseosxy(&x,&y,&osx,&osy);
 
         writememb(a+1,osy&0xFF);
@@ -696,53 +710,108 @@ void getmousepos(int *x, int *y)
         int osx;
         int osy;
 
+        assert(mousehack);
+
         getmouseosxy(x,y,&osx,&osy);
 
         *y-=activey[point];
         *x-=activex[point];
 }
-        
-void setpointer(uint32_t a)
+
+/**
+ * OS_Word 21, 0 Define pointer size, shape and active point
+ *
+ * Called from arm.c/ArmDynarec.c SWI handler
+ *
+ * @param a Address of OS_Word 21 parameter block
+ */
+void
+mouse_hack_osword_21_0(uint32_t a)
 {
         int num=readmemb(a+1);
-        if (num>4) return;
+
+        assert(mousehack);
+
+	/* Reject any pointer shapes not in range 0-4 */
+        if (num > 4)
+		return;
+
         activex[num]=readmemb(a+4);
         activey[num]=readmemb(a+5);
-//        printf("setpointer %i %i %i\n",num,activex[num],activey[num]);
 }
 
-void osbyte106(uint32_t a)
+/**
+ * OS_Byte 106 Select pointer / activate mouse
+ *
+ * Called from arm.c/ArmDynarec.c SWI handler
+ *
+ * @param a Pointer shape and linkage flag
+ */
+void
+mouse_hack_osbyte_106(uint32_t a)
 {
-        point=a;
-        if (point&0x80) point=0;
-        if (point>4) point=0;
-        //printf("osbyte 106 %i %i\n",a,point);
+        assert(mousehack);
+
+        point = a;
+        /* Bit 7 =  Unlink visible pointer from mouse */
+        if (point & 0x80)
+		point = 0;
+        if (point > 4)
+		point = 0;
+
+        /* point should now contain selected number 1-4 or
+           0 if turned off */
+	assert(point >= 0 && point <= 4);
 }
-void getosmouse(void)
+
+/**
+ * mousehack handler of OS_Mouse SWI
+ *
+ * Fill in SWI return values with x, y and button info
+ *
+ * Called from arm.c/ArmDynarec.c SWI handler on OS_Mouse
+ */
+void
+mouse_hack_osmouse(void)
 {
-        long temp;
-        temp=(getys()<<1)-(mouse_y<<1);
+        uint32_t temp;
+
+        assert(mousehack);
+
+        temp = (getys() << 1) - (mouse_y << 1); /* Allegro */
         if (temp<mt) temp=mt;
         if (temp>mb) temp=mb;
-        armregs[1]=temp;
-        temp=mouse_x<<1;
+        armregs[1] = temp;                      /* R1 = mouse y coordinate */
+
+        temp = mouse_x << 1;                    /* Allegro */
         if (temp>mr) temp=mr;
         if (temp<ml) temp=ml;
-        armregs[0]=temp;
+        armregs[0] = temp;                      /* R0 = mouse x coordinate */
+
         temp=0;
-        if (mouse_b&1) temp|=4;
-        if (mouse_b&2) temp|=1;
-        if (mouse_b&4) temp|=2;
+        if (mouse_b & 1) temp |= 4;             /* Allegro */
+        if (mouse_b & 2) temp |= 1;             /* Allegro */
+        if (mouse_b & 4) temp |= 2;             /* Allegro */
         if (key[KEY_MENU]) temp|=2;
-        armregs[2]=temp;
-        armregs[3]=0;
+        armregs[2] = temp;                      /* R2 = mouse buttons */
+
+        armregs[3] = 0;                         /* R3 = time of button change */
 }
 
-void setmouseparams(uint32_t a)
+/**
+ * OS_Word 21, 1 Define Mouse Coordinate bounding box
+ *
+ * Called from arm.c/ArmDynarec.c SWI handler
+ *
+ * @param a Address of OS_Word 21 parameter block
+ */
+void
+mouse_hack_osword_21_1(uint32_t a)
 {
+        assert(mousehack);
+
         ml=readmemb(a+1)|(readmemb(a+2)<<8);
         mt=readmemb(a+3)|(readmemb(a+4)<<8);
         mr=readmemb(a+5)|(readmemb(a+6)<<8);
         mb=readmemb(a+7)|(readmemb(a+8)<<8);
-//        printf("Mouse params %04X %04X %04X %04X\n",ml,mr,mt,mb);
 }

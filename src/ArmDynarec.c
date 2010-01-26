@@ -630,12 +630,14 @@ static void opSWI(uint32_t opcode)
         {
                 if (readmemb(armregs[1])==1)
                 {
-                        setmouseparams(armregs[1]);
+			/* OS_Word 21, 1 Define Mouse Coordinate bounding box */
+                        mouse_hack_osword_21_1(armregs[1]);
                         return;
                 }
                 else if (readmemb(armregs[1])==4)
                 {
-                        getunbufmouse(armregs[1]);
+			/* OS_Word 21, 4 Read unbuffered mouse position */
+                        mouse_hack_osword_21_4(armregs[1]);
                         return;
                 }
                 else
@@ -643,7 +645,8 @@ static void opSWI(uint32_t opcode)
         }
         else if (mousehack && templ==0x1C)
         {
-                getosmouse();
+		/* OS_Mouse */
+                mouse_hack_osmouse();
                 armregs[15]&=~VFLAG;
         }
         else if (templ == ARCEM_SWI_HOSTFS)
@@ -673,10 +676,14 @@ static void opSWI(uint32_t opcode)
 	else
 	{
                 realswi:
-                if (mousehack && templ==7 && armregs[0]==0x15 && readmemb(armregs[1])==0)
-                   setpointer(armregs[1]);
-                if (mousehack && templ==6 && armregs[0]==106)
-                   osbyte106(armregs[1]);
+                if (mousehack && templ==7 && armregs[0]==0x15 && readmemb(armregs[1])==0) {
+                        /* OS_Word 21, 0 Define pointer size, shape and active point */
+                        mouse_hack_osword_21_0(armregs[1]);
+                }
+                if (mousehack && templ==6 && armregs[0]==106) {
+                        /* OS_Byte 106 Select pointer / activate mouse */
+                        mouse_hack_osbyte_106(armregs[1]);
+                }
                 exception(SUPERVISOR,0xC,4);
         }
 }
