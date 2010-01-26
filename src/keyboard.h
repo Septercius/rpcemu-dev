@@ -15,11 +15,11 @@ extern uint8_t mouse_data_read(void);
 extern void pollmouse(void);
 extern void pollkeyboard(void);
 
-extern void setmouseparams(uint32_t a);
-extern void getunbufmouse(uint32_t a);
-extern void osbyte106(uint32_t a);
-extern void setpointer(uint32_t a);
-extern void getosmouse(void);
+extern void mouse_hack_osword_21_0(uint32_t a);
+extern void mouse_hack_osword_21_1(uint32_t a);
+extern void mouse_hack_osword_21_4(uint32_t a);
+extern void mouse_hack_osbyte_106(uint32_t a);
+extern void mouse_hack_osmouse(void);
 extern void getmousepos(int *x, int *y);
 
 #endif //__KEYBOARD__
