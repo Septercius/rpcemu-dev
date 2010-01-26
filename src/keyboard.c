@@ -80,6 +80,34 @@ static int justsent;
 
 static int point;
 
+static inline void
+mouse_irq_tx_raise(void)
+{
+	iomd.irqd.status |= IOMD_IRQD_MOUSE_TX;
+	updateirqs();
+}
+
+static inline void
+mouse_irq_tx_lower(void)
+{
+	iomd.irqd.status &= ~IOMD_IRQD_MOUSE_TX;
+	updateirqs();
+}
+
+static inline void
+mouse_irq_rx_raise(void)
+{
+	iomd.irqd.status |= IOMD_IRQD_MOUSE_RX;
+	updateirqs();
+}
+
+static inline void
+mouse_irq_rx_lower(void)
+{
+	iomd.irqd.status &= ~IOMD_IRQD_MOUSE_RX;
+	updateirqs();
+}
+
 static void
 ps2_queue(PS2Queue *q, unsigned char b)
 {
@@ -287,8 +315,8 @@ mouse_data_write(uint8_t v)
         /* Set BUSY flag, clear EMPTY flag */
         msstat = (msstat & 0x3f) | PS2_CONTROL_TX_BUSY;
 
-        iomd.irqd.status &= ~IOMD_IRQD_MOUSE_TX;
-        updateirqs();
+	mouse_irq_tx_lower();
+
         justsent=1;
         if (msincommand)
         {
@@ -371,8 +399,9 @@ mouse_data_read(void)
         unsigned char temp=iomd.msdat;
 
         msstat &= ~PS2_CONTROL_RX_FULL;
-        iomd.irqd.status &= ~IOMD_IRQD_MOUSE_RX;
-        updateirqs();
+
+        mouse_irq_rx_lower();
+
         if (mspacketpos < 3 && mscommand == AUX_RESEND) {
                 mcallback = 20;
         }
@@ -384,8 +413,9 @@ mouse_data_read(void)
 static void mousesend(unsigned char v)
 {
         iomd.msdat=v;
-        iomd.irqd.status |= IOMD_IRQD_MOUSE_RX;
-        updateirqs();
+
+        mouse_irq_rx_raise();
+
         msstat |= PS2_CONTROL_RX_FULL;
 //        printf("Send data %02X\n",v);
 	if (calculateparity(v))
@@ -401,14 +431,14 @@ void mscallback(void)
 
         if (justsent)
         {
-                iomd.irqd.status |= IOMD_IRQD_MOUSE_TX;
-                updateirqs();
+		mouse_irq_tx_raise();
+
                 justsent=0;
         }
         if (msreset==1)
         {
-                iomd.irqd.status |= IOMD_IRQD_MOUSE_TX;
-                updateirqs();
+		mouse_irq_tx_raise();
+
                 msreset=3;
                 msstat |= PS2_CONTROL_TX_EMPTY;      /* This should be pointless - always set above */
                 mcallback=20;
