@@ -71,14 +71,13 @@ static PS2Queue kbdqueue;
 static int msenable, msreset;
 static uint8_t msstat;		/**<  PS/2 control register for the mouse */
 static unsigned char mscommand;
-static unsigned char mspacket[3];
-static int mspacketpos;
 static int mousepoll;
 static int mssetsampres;	/**< Bool of whether we've recieved a SET_SAMPLE
 		     		     or SET_RES command, and that we need to
 				     acknowledge the byte parameter for this command */
 static int msincommand;
 static int justsent;
+static PS2Queue msqueue;
 
 static int point;
 
@@ -145,6 +144,9 @@ void resetkeyboard(void)
         kbdqueue.rptr = 0;
         kbdqueue.wptr = 0;
         kbdqueue.count = 0;
+        msqueue.rptr = 0;
+        msqueue.wptr = 0;
+        msqueue.count = 0;
         msenable=0;
         mcallback=0;
         msreset=0;
@@ -345,7 +347,6 @@ mouse_data_write(uint8_t v)
                 case AUX_RESEND:
                         msreset=0;
                         mcallback=150;
-                        mspacketpos=0;
                         break;
                 case AUX_ENABLE_DEV:
                         mcallback=20;
@@ -355,31 +356,26 @@ mouse_data_write(uint8_t v)
                         msincommand = AUX_SET_SAMPLE;
                         msreset=0;
                         mcallback=20;
-                        mspacketpos=0;
                         break;
                 case AUX_GET_TYPE:
                         msincommand=1;
                         msreset=0;
                         mcallback=20;
-                        mspacketpos=0;
                         break;
                 case AUX_SET_RES:
                         msincommand = AUX_SET_RES;
                         msreset=0;
                         mcallback=20;
-                        mspacketpos=0;
                         break;
                 case AUX_SET_SCALE21:
                         msincommand = AUX_SET_SCALE21;
                         msreset=0;
                         mcallback=20;
-                        mspacketpos=0;
                         break;
                 case AUX_SET_SCALE11:
                         msincommand = AUX_SET_SCALE11;
                         msreset=0;
                         mcallback=20;
-                        mspacketpos=0;
                         break;
                 default:
                         error("Bad mouse command %02X\n",v);
@@ -405,10 +401,12 @@ mouse_data_read(void)
 
         mouse_irq_rx_lower();
 
-        if (mspacketpos < 3 && mscommand == AUX_RESEND) {
+	/* If there's still more data to send, make sure to call us back the
+	   next time */
+	if (msqueue.count != 0 && mscommand == AUX_RESEND) {
                 mcallback = 20;
         }
-//        printf("Read mouse data %02X\n",iomd.msdat);
+
         iomd.msdat=0;
         return temp;
 }
@@ -493,16 +491,13 @@ void mscallback(void)
                 mousepoll=1;
                 break;
         case AUX_RESEND:
-                mousesend(mspacket[mspacketpos++]);
-                if (mspacketpos>=3)
-                {
-                        mcallback=0;
+                mousesend(ps2_read_data(&msqueue));
+
+		/* If we've run out of data to send there's no reason to call
+		   us back next time */
+                if (msqueue.count == 0) {
+                        mcallback = 0;
                 }
-/*                else
-                {
-                        mcallback=300;
-                }                                       */
-//                printf("Callback now %i\n",mcallback);
                 break;
         case AUX_SET_SCALE11:
         case AUX_SET_SCALE21:
@@ -545,14 +540,25 @@ void pollmouse(void)
         if (y>255) y=255;
         y^=0xFFFFFFFF;
         y++;
-        mspacket[0]=(mouseb&7)|8;
-        if (x&0x100) mspacket[0]|=0x10;
-        if (y&0x100) mspacket[0]|=0x20;
-        mspacket[1]=x&255;
-        mspacket[2]=y&255;
-        mcallback=20;
-        mscommand = AUX_RESEND;
-        mspacketpos=0;
+
+	/* Send PS/2 button/movement packet */
+	{
+		uint8_t tmp = (mouseb & 7) | 8;
+
+		if (x & 0x100) {
+			tmp |= 0x10; /* X overflow bit */
+		}
+		if (y & 0x100) {
+			tmp |= 0x20; /* Y overflow bit */
+		}
+		ps2_queue(&msqueue, tmp);
+	}
+	ps2_queue(&msqueue, x & 255);
+	ps2_queue(&msqueue, y & 255);
+
+	/* There's data in the queue, make sure we're called back */
+	mcallback = 20;
+	mscommand = AUX_RESEND;
 }
 
 static const int standardkeys[][2]=
