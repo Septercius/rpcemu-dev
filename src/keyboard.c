@@ -74,7 +74,9 @@ static unsigned char mscommand;
 static unsigned char mspacket[3];
 static int mspacketpos;
 static int mousepoll;
-
+static int mssetsampres;	/**< Bool of whether we've recieved a SET_SAMPLE
+		     		     or SET_RES command, and that we need to
+				     acknowledge the byte parameter for this command */
 static int msincommand;
 static int justsent;
 
@@ -147,6 +149,7 @@ void resetkeyboard(void)
         mcallback=0;
         msreset=0;
         msstat=0;
+	mssetsampres = 0;
         for (c=0;c<128;c++)
             keys2[c]=0;
 }
@@ -324,7 +327,7 @@ mouse_data_write(uint8_t v)
                 {
                 case AUX_SET_RES:
                 case AUX_SET_SAMPLE:
-                        mspacketpos=1;
+                        mssetsampres = 1;
                         mcallback=20;
                         return;
                 }
@@ -467,7 +470,10 @@ void mscallback(void)
         case AUX_SET_SAMPLE:
 //                printf("%02X callback %i\n",mscommand,mspacketpos);
                 mousesend(AUX_ACK);
-                if (mspacketpos) msincommand=0;
+                if (mssetsampres) {
+			msincommand = 0;
+			mssetsampres = 0;
+		}
                 break;
         case AUX_GET_TYPE:
                 if (msincommand==1)
