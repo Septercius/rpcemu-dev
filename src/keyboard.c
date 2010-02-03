@@ -71,11 +71,8 @@ static PS2Queue kbdqueue;
 static int msenable, msreset;
 static uint8_t msstat;		/**<  PS/2 control register for the mouse */
 static unsigned char mscommand;
-static int mousepoll;
-static int mssetsampres;	/**< Bool of whether we've recieved a SET_SAMPLE
-		     		     or SET_RES command, and that we need to
-				     acknowledge the byte parameter for this command */
-static int msincommand;
+static int mousepoll;		/**< Are we in mouse Stream Mode */
+static int msincommand;		/**< Used to store the command received that has a data byte following it */
 static int justsent;
 static PS2Queue msqueue;
 
@@ -151,7 +148,10 @@ void resetkeyboard(void)
         mcallback=0;
         msreset=0;
         msstat=0;
-	mssetsampres = 0;
+	msincommand = 0;
+	mscommand = 0;
+	mousepoll = 0;
+	justsent = 0;
         for (c=0;c<128;c++)
             keys2[c]=0;
 }
@@ -327,10 +327,13 @@ mouse_data_write(uint8_t v)
         {
                 switch (msincommand)
                 {
+		/* Certain commands are followed by a data byte that
+		   also needs to be acknowledged */
                 case AUX_SET_RES:
                 case AUX_SET_SAMPLE:
-                        mssetsampres = 1;
-                        mcallback=20;
+			ps2_queue(&msqueue, AUX_ACK);
+			msincommand = 0;
+                        mcallback = 20;
                         return;
                 }
         }
@@ -341,42 +344,54 @@ mouse_data_write(uint8_t v)
                 {
                 case AUX_RESET:
                         msreset=2;
+
+			/* Turn off Stream Mode */
+                        mousepoll = 0;
+
                         mcallback=20;
-                        mousepoll=0;
                         break;
+
                 case AUX_RESEND:
-                        msreset=0;
                         mcallback=150;
                         break;
+
                 case AUX_ENABLE_DEV:
-                        mcallback=20;
-                        msreset=0;
+	                ps2_queue(&msqueue, AUX_ACK);
+
+			/* Turn on Stream Mode */
+	                mousepoll = 1;
+
+			mcallback=20;
                         break;
+
                 case AUX_SET_SAMPLE:
                         msincommand = AUX_SET_SAMPLE;
-                        msreset=0;
+			ps2_queue(&msqueue, AUX_ACK);
                         mcallback=20;
                         break;
+
                 case AUX_GET_TYPE:
-                        msincommand=1;
-                        msreset=0;
+			ps2_queue(&msqueue, AUX_ACK);
+			ps2_queue(&msqueue, 0);
                         mcallback=20;
                         break;
+
                 case AUX_SET_RES:
                         msincommand = AUX_SET_RES;
-                        msreset=0;
+			ps2_queue(&msqueue, AUX_ACK);
                         mcallback=20;
                         break;
+
                 case AUX_SET_SCALE21:
-                        msincommand = AUX_SET_SCALE21;
-                        msreset=0;
+			ps2_queue(&msqueue, AUX_ACK);
                         mcallback=20;
                         break;
+
                 case AUX_SET_SCALE11:
-                        msincommand = AUX_SET_SCALE11;
-                        msreset=0;
+			ps2_queue(&msqueue, AUX_ACK);
                         mcallback=20;
                         break;
+
                 default:
                         error("Bad mouse command %02X\n",v);
                         dumpregs();
@@ -403,7 +418,7 @@ mouse_data_read(void)
 
 	/* If there's still more data to send, make sure to call us back the
 	   next time */
-	if (msqueue.count != 0 && mscommand == AUX_RESEND) {
+	if (msqueue.count != 0) {
                 mcallback = 20;
         }
 
@@ -427,6 +442,8 @@ static void mousesend(unsigned char v)
 
 void mscallback(void)
 {
+	assert(mcallback == 0);
+
         /* Set EMPTY Flag, clear BUSY flag */
         msstat = (msstat & 0x3f) | PS2_CONTROL_TX_EMPTY;
 
@@ -436,6 +453,7 @@ void mscallback(void)
 
                 justsent=0;
         }
+
         if (msreset==1)
         {
 		mouse_irq_tx_raise();
@@ -462,48 +480,13 @@ void mscallback(void)
                 mousesend(0);
                 mcallback=0;
         }
-        else switch (mscommand)
+        else
         {
-        case AUX_SET_RES:
-        case AUX_SET_SAMPLE:
-//                printf("%02X callback %i\n",mscommand,mspacketpos);
-                mousesend(AUX_ACK);
-                if (mssetsampres) {
-			msincommand = 0;
-			mssetsampres = 0;
-		}
-                break;
-        case AUX_GET_TYPE:
-                if (msincommand==1)
-                {
-                        msincommand=2;
-                        mcallback=20;
-                        mousesend(AUX_ACK);
-                }
-                else
-                {
-                        mousesend(0);
-                        msincommand=0;
-                }
-                break;
-        case AUX_ENABLE_DEV:
-                mousesend(AUX_ACK);
-                mousepoll=1;
-                break;
-        case AUX_RESEND:
-                mousesend(ps2_read_data(&msqueue));
+		/* For the callback to be sent, there must be some PS/2 data to send */
+		assert(msqueue.count > 0);
 
-		/* If we've run out of data to send there's no reason to call
-		   us back next time */
-                if (msqueue.count == 0) {
-                        mcallback = 0;
-                }
-                break;
-        case AUX_SET_SCALE11:
-        case AUX_SET_SCALE21:
-                mousesend(AUX_ACK);
-                msincommand=0;
-                break;
+		/* Send the next byte of PS/2 data to the host */
+                mousesend(ps2_read_data(&msqueue));
         }
 }
 
@@ -531,7 +514,11 @@ void pollmouse(void)
                 return;
         }
 
-        if (!mousepoll) return;
+	/* Are we in PS/2 Stream Mode? */
+	if (!mousepoll) {
+		return;
+	}
+
         if (!x && !y && (mouseb==oldmouseb)) return;
         oldmouseb=mouseb;
         if (x<-256) x=-256;
