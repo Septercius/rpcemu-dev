@@ -293,24 +293,18 @@ ide_next_sector(void)
 
 static void loadhd(int d, const char *fn)
 {
-        if (ide.hdfile[d] == NULL)
-        {
-                ide.hdfile[d] = fopen(fn, "rb+");
-                if (ide.hdfile[d] == NULL)
-                {
+        if (ide.hdfile[d] == NULL) {
+                ide.hdfile[d] = fopen64(fn, "rb+");
+                if (ide.hdfile[d] == NULL) {
+                        ide.hdfile[d] = fopen64(fn, "wb");
+                        if (ide.hdfile[d] == NULL) {
+                                fatal("Cannot create file %s", fn);
+                        }
+                        putc(0, ide.hdfile[d]);
+                        fclose(ide.hdfile[d]);
                         ide.hdfile[d] = fopen64(fn, "rb+");
-                        if (ide.hdfile[d] == NULL)
-                        {
-                                ide.hdfile[d] = fopen(fn, "wb");
-                                if (ide.hdfile[d] == NULL) {
-                                        fatal("Cannot create file %s", fn);
-                                }
-                                putc(0, ide.hdfile[d]);
-                                fclose(ide.hdfile[d]);
-                                ide.hdfile[d] = fopen64(fn, "rb+");
-                                if (ide.hdfile[d] == NULL) {
-                                        fatal("Cannot open file %s", fn);
-                                }
+                        if (ide.hdfile[d] == NULL) {
+                                fatal("Cannot open file %s", fn);
                         }
                 }
         }
