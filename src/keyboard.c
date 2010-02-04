@@ -77,6 +77,8 @@ static int mousepoll;		/**< Are we in mouse Stream Mode */
 static int msincommand;		/**< Used to store the command received that has a data byte following it */
 static int justsent;
 static PS2Queue msqueue;
+static uint8_t mouse_type;	/**< 0 = PS/2, 3 = IMPS/2, 4 = IMEX */
+static uint8_t mouse_detect_state;
 
 static int point;
 
@@ -154,6 +156,8 @@ void resetkeyboard(void)
 	mscommand = 0;
 	mousepoll = 0;
 	justsent = 0;
+	mouse_type = 0;
+	mouse_detect_state = 0;
         for (c=0;c<128;c++)
             keys2[c]=0;
 }
@@ -343,12 +347,11 @@ mouse_control_write(uint8_t v)
 /**
  * Write to the IOMD PS/2 mouse Data register
  *
- * @param v Value to write
+ * @param val Value to write
  */
 void
-mouse_data_write(uint8_t v)
+mouse_data_write(uint8_t val)
 {
-//        printf("Write mouse %02X %08X  %02X\n",v,PC,msincommand);
         /* Set BUSY flag, clear EMPTY flag */
         msstat = (msstat & 0x3f) | PS2_CONTROL_TX_BUSY;
 
@@ -362,7 +365,41 @@ mouse_data_write(uint8_t v)
 		/* Certain commands are followed by a data byte that
 		   also needs to be acknowledged */
                 case AUX_SET_RES:
+			ps2_queue(&msqueue, AUX_ACK);
+			msincommand = 0;
+			mcallback = 20;
+			return;
+
                 case AUX_SET_SAMPLE:
+			/* Special values to set sample are used to place
+			   the mouse into Intellimouse or Intellimouse Explorer
+			   mode */
+			switch (mouse_detect_state) {
+			default:
+			case 0:
+				if (val == 200)
+					mouse_detect_state = 1;
+				break;
+			case 1:
+				if (val == 100)
+					mouse_detect_state = 2;
+				else if (val == 200)
+					mouse_detect_state = 3;
+				else
+					mouse_detect_state = 0;
+				break;
+			case 2:
+				if (val == 80)
+					mouse_type = 3; /* IMPS/2 */
+				mouse_detect_state = 0;
+				break;
+			case 3:
+				if (val == 80)
+					mouse_type = 4; /* IMEX */
+				mouse_detect_state = 0;
+				break;
+			}
+
 			ps2_queue(&msqueue, AUX_ACK);
 			msincommand = 0;
                         mcallback = 20;
@@ -371,8 +408,8 @@ mouse_data_write(uint8_t v)
         }
         else
         {
-                mscommand=v;
-                switch (v)
+                mscommand = val;
+                switch (val)
                 {
                 case AUX_RESET:
                         msreset=2;
@@ -404,7 +441,7 @@ mouse_data_write(uint8_t v)
 
                 case AUX_GET_TYPE:
 			ps2_queue(&msqueue, AUX_ACK);
-			ps2_queue(&msqueue, 0);
+			ps2_queue(&msqueue, mouse_type);
                         mcallback=20;
                         break;
 
@@ -425,7 +462,7 @@ mouse_data_write(uint8_t v)
                         break;
 
                 default:
-                        error("Bad mouse command %02X\n",v);
+                        error("Bad mouse command %02X\n", val);
                         dumpregs();
                         exit(-1);
                 }
@@ -534,9 +571,13 @@ void mscallback(void)
 
 void pollmouse(void)
 {
-        static unsigned char oldmouseb = 0;
-        int x,y;
-        unsigned char mouseb=mouse_b&7;
+	static uint8_t oldmouseb = 0;
+	static int oldz = 0;
+	int x, y;
+	int z, tmpz;
+	uint8_t mouseb = mouse_b & 7; /* Allegro */
+	uint8_t b;
+
         if (mousehack)
         {
                 iomd.mousex=iomd.mousey=0;
@@ -545,7 +586,13 @@ void pollmouse(void)
         if (key[KEY_MENU]) mouseb|=4;
 //		if (key[KEY_Z]) mouseb|=4;
 //		if (key[KEY_X]) mouseb|=2;
-        get_mouse_mickeys(&x,&y);
+
+	/* Get the relative X/Y movements since the last call to get_mouse_mickeys() */
+	get_mouse_mickeys(&x, &y); /* Allegro */
+
+	/* Get the absolute value of the scroll wheel position */
+	z = mouse_z; /* Allegro */
+
         iomd.mousex+=x;
         iomd.mousey+=y;
 //        rpclog("Poll mouse %i %i %i %i\n",x,y,iomd.mousex,iomd.mousey);
@@ -561,14 +608,28 @@ void pollmouse(void)
 		return;
 	}
 
-        if (!x && !y && (mouseb==oldmouseb)) return;
+	/* Has anything changed from previous poll? */
+	if (x == 0 && y == 0 && (mouseb == oldmouseb) &&
+	    (mouse_type == 0 || (mouse_type != 0 && z == oldz)))
+	{
+		return;
+	}
+
         oldmouseb=mouseb;
+
+	/* Maximum range you can fit in one PS/2 movement packet is -256 to 255 */
         if (x<-256) x=-256;
         if (x>255) x=255;
         if (y<-256) y=-256;
         if (y>255) y=255;
+
         y^=0xFFFFFFFF;
         y++;
+
+	/* Calculate relative scrollwheel position from last call */
+	tmpz = oldz - z;
+	oldz = z;
+	z = tmpz;
 
 	/* Send PS/2 button/movement packet */
 	{
@@ -584,6 +645,27 @@ void pollmouse(void)
 	}
 	ps2_queue(&msqueue, x & 255);
 	ps2_queue(&msqueue, y & 255);
+
+	/* Extra byte for IMPS/2 or IMEX */
+	switch (mouse_type) {
+	default:
+		break;
+	case 3:
+		if (z > 127)
+			z = 127;
+		else if (z < -127)
+			z = -127;
+		ps2_queue(&msqueue, z & 0xff);
+		break;
+	case 4:
+		if (z > 7)
+			z = 7;
+		else if (z < -7)
+			z = -7;
+		b = z & 0x0f;
+		ps2_queue(&msqueue, b);
+		break;
+	}
 
 	/* There's data in the queue, make sure we're called back */
 	mcallback = 20;
