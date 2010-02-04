@@ -63,13 +63,15 @@ typedef struct {
 } PS2Queue;
 
 static int kbdenable, kbdreset;
-static uint8_t kbdstat;		/**<  PS/2 control register for the keyboard */
+static uint8_t kbdstat;		/**< PS/2 control register for the keyboard */
+static uint8_t kbddata;		/**< PS/2 data register for the keyboard */
 static unsigned char kbdcommand;
 static int keys2[128];
 static PS2Queue kbdqueue;
 
 static int msenable, msreset;
-static uint8_t msstat;		/**<  PS/2 control register for the mouse */
+static uint8_t msstat;		/**< PS/2 control register for the mouse */
+static uint8_t msdata;		/**< PS/2 data register for the mouse */
 static unsigned char mscommand;
 static int mousepoll;		/**< Are we in mouse Stream Mode */
 static int msincommand;		/**< Used to store the command received that has a data byte following it */
@@ -227,7 +229,7 @@ keyboard_control_write(uint8_t v)
 static void keyboardsend(unsigned char v)
 {
 //        rpclog("Keyboard send %02X\n",v);
-        iomd.keydat=v;
+        kbddata = v;
         iomd.irqb.status |= IOMD_IRQB_KEYBOARD_RX;
         updateirqs();
 	kbdstat |= PS2_CONTROL_RX_FULL;
@@ -313,7 +315,7 @@ keyboard_data_read(void)
         updateirqs();
         if (kbdcommand==0xFE) kcallback=5*4;
 //        rpclog("Read keyboard data %02X %07X\n",iomd.keydat,PC);
-        return iomd.keydat;
+        return kbddata;
 }
 
 /**
@@ -450,7 +452,7 @@ mouse_status_read(void)
 uint8_t
 mouse_data_read(void)
 {
-        unsigned char temp=iomd.msdat;
+        uint8_t temp = msdata;
 
         msstat &= ~PS2_CONTROL_RX_FULL;
 
@@ -462,13 +464,13 @@ mouse_data_read(void)
                 mcallback = 20;
         }
 
-        iomd.msdat=0;
+        msdata = 0;
         return temp;
 }
 
 static void mousesend(unsigned char v)
 {
-        iomd.msdat=v;
+        msdata = v;
 
         mouse_irq_rx_raise();
 
