@@ -175,6 +175,11 @@ ps2_read_data(PS2Queue *q)
         return val;
 }
 
+/**
+ * Write to the IOMD PS/2 keyboard Data register
+ *
+ * @param v Value to write
+ */
 void
 keyboard_data_write(uint8_t v)
 {
@@ -199,6 +204,11 @@ keyboard_data_write(uint8_t v)
         }
 }
 
+/**
+ * Write to the IOMD PS/2 keyboard Control register
+ *
+ * @param v Value to write
+ */
 void
 keyboard_control_write(uint8_t v)
 {
@@ -278,6 +288,11 @@ void keycallback(void)
         }
 }
 
+/**
+ * Read from the IOMD PS/2 keyboard Status register
+ *
+ * @return Value of register
+ */
 uint8_t
 keyboard_status_read(void)
 {
@@ -285,6 +300,11 @@ keyboard_status_read(void)
         return kbdstat;
 }
 
+/**
+ * Read from the IOMD PS/2 keyboard Data register
+ *
+ * @return Value of register
+ */
 uint8_t
 keyboard_data_read(void)
 {
@@ -296,6 +316,11 @@ keyboard_data_read(void)
         return iomd.keydat;
 }
 
+/**
+ * Write to the IOMD PS/2 mouse Control register
+ *
+ * @param v Value to write
+ */
 void
 mouse_control_write(uint8_t v)
 {
@@ -313,6 +338,11 @@ mouse_control_write(uint8_t v)
 		msstat &= ~PS2_CONTROL_ENABLE;
 }
 
+/**
+ * Write to the IOMD PS/2 mouse Data register
+ *
+ * @param v Value to write
+ */
 void
 mouse_data_write(uint8_t v)
 {
@@ -400,6 +430,11 @@ mouse_data_write(uint8_t v)
         }
 }
 
+/**
+ * Read from the IOMD PS/2 mouse Status register
+ *
+ * @return Value of register
+ */
 uint8_t
 mouse_status_read(void)
 {
@@ -407,6 +442,11 @@ mouse_status_read(void)
         return msstat;
 }
 
+/**
+ * Read from the IOMD PS/2 mouse Data register
+ *
+ * @return Value of register
+ */
 uint8_t
 mouse_data_read(void)
 {
