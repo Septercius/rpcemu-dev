@@ -82,8 +82,6 @@ struct iomd
         unsigned char ctrl;
         unsigned char vidcr;
         unsigned char sndstat;
-        unsigned char keydat;
-        unsigned char msdat;
         int mousex,mousey;
 };
 
