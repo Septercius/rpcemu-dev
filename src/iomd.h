@@ -82,7 +82,7 @@ struct iomd
         unsigned char ctrl;
         unsigned char vidcr;
         unsigned char sndstat;
-        int mousex,mousey;
+        uint16_t mousex, mousey;
 };
 
 extern struct iomd iomd;
