@@ -578,14 +578,17 @@ void pollmouse(void)
 	uint8_t mouseb = mouse_b & 7; /* Allegro */
 	uint8_t b;
 
-        if (mousehack)
-        {
-                iomd.mousex=iomd.mousey=0;
-                return;
-        }
-        if (key[KEY_MENU]) mouseb|=4;
-//		if (key[KEY_Z]) mouseb|=4;
-//		if (key[KEY_X]) mouseb|=2;
+	/* In mousehack mode all movement data is sent via the SWI callbacks */
+	if (mousehack) {
+		iomd.mousex = 0;
+		iomd.mousey = 0;
+		return;
+	}
+
+	/* Use the 'Menu' key on the keyboard as a fake Menu mouse click */
+	if (key[KEY_MENU]) {
+		mouseb |= 4;
+	}
 
 	/* Get the relative X/Y movements since the last call to get_mouse_mickeys() */
 	get_mouse_mickeys(&x, &y); /* Allegro */
@@ -593,9 +596,10 @@ void pollmouse(void)
 	/* Get the absolute value of the scroll wheel position */
 	z = mouse_z; /* Allegro */
 
-        iomd.mousex+=x;
-        iomd.mousey+=y;
-//        rpclog("Poll mouse %i %i %i %i\n",x,y,iomd.mousex,iomd.mousey);
+	/* Update quadrature mouse */
+	iomd.mousex += x;
+	iomd.mousey -= y; /* Allegro and RPC Y axis go in opposite directions */
+
         if (mousecapture) position_mouse(getxs()>>1,getys()>>1);
 
         /* Return if not PS/2 mouse */

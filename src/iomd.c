@@ -539,11 +539,9 @@ uint32_t readiomd(uint32_t addr)
                 return 0; /*Chip version*/
 
         case IOMD_0x0A0_MOUSEX: /* Mouse X position (Quadrature - IOMD) */
-                /*rpclog("Read mousex %i\n",iomd.mousex);*/
                 return iomd.mousex;
         case IOMD_0x0A4_MOUSEY: /* Mouse Y position (Quadrature - IOMD) */
-                /*rpclog("Read mousey %i\n",-iomd.mousey);*/
-                return -iomd.mousey;
+                return iomd.mousey;
 
         case IOMD_0x0A8_MSEDAT: /* Mouse data (PS/2 - ARM7500/FE) */
                 return mouse_data_read();
