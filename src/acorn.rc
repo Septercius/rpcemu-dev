@@ -29,7 +29,7 @@ BEGIN
                 END
                 POPUP "&Mouse"
                 BEGIN
-                        MENUITEM "&Follow Windows mouse",IDM_MOUSE_FOL
+                        MENUITEM "&Follow host mouse", IDM_MOUSE_FOL
                         MENUITEM "&Capture",IDM_MOUSE_CAP
                 END
         END
