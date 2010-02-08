@@ -130,7 +130,6 @@ cp15_tlb_add_entry(uint32_t vaddr, uint32_t paddr)
 #define OPC2 ((opcode>>5)&7)
 void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 {
-        if (output) rpclog("Write CP15 %08X %08X %i %i %07X %i\n",addr,val,OPC2,CRm,PC,blockend);
         switch (addr&15)
         {
         case 1: /* Control */
@@ -307,7 +306,6 @@ uint32_t readcp15(uint32_t addr)
 //54F13001
 //1010042e
 //databort=1;
-//#define output 1
 
 static int checkpermissions(int p, int rw)
 {
@@ -451,7 +449,7 @@ do_fault:
 	}
 	return 0;
 }
-//#undef output
+
 /*uint32_t translateaddress(uint32_t addr, int rw)
 {
         if (!(addr&0xFC000000) && !(tlbcache[(addr>>12)&0x3FFF]&0xFFF))
@@ -466,18 +464,16 @@ do_fault:
 uint32_t *getpccache(uint32_t addr)
 {
         uint32_t addr2;
-//        if (PC==0x97F510) { rpclog("Getpccache... %02X %i\n",armirq,mmu); output=0; }
+
         addr&=~0xFFF;
         if (mmu)
         {
                 armirq&=~0x40;
 //                if (indumpregs) rpclog("Translate prefetch %08X %02X ",addr,armirq);
                 addr2=translateaddress(addr,0,1);
-                //output=0;
                 if (armirq&0x40)
                 {
 //                        rpclog("Translate prefetch abort!!! %07X %07X %07X %07X\n",PC,oldpc,oldpc2,oldpc3);
-//                        output=1;
 //                        if (indumpregs) rpclog("Abort!\n");
                         armirq&=~0x40;
                         armirq|=0x80;
@@ -490,7 +486,7 @@ uint32_t *getpccache(uint32_t addr)
         else     addr2=addr;
         /*Invalidate write pointer for this page - so we can handle code modification*/
         vwaddrl[addr>>12]=0xFFFFFFFF;
-        //output=0;
+
         switch (addr2&0x1F000000)
         {
                 case 0x00000000: /*ROM*/

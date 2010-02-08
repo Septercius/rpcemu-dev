@@ -228,10 +228,10 @@ void updatemode(uint32_t m)
                 r15mask=0xFFFFFFFC;
                 if (!(om&16))
                 {
+			/* Change from 26-bit to 32-bit mode */
                         armregs[16]=(armregs[15]&0xF0000000)|mode;
                         armregs[16]|=((armregs[15]&0xC000000)>>20);
                         armregs[15]&=0x3FFFFFC;
-  //                      if (output) printf("Switching to 32-bit mode : CPSR %08X\n",armregs[16]);
                 }
         }
         else

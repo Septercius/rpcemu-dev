@@ -8,7 +8,6 @@
 #include "rpcemu.h"
 #include "cmos.h"
 
-uint32_t output;
 static int cmosstate = 0;
 static int i2cstate = 0;
 static int lastdata;
