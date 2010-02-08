@@ -2685,7 +2685,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
 void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr)
 {
         int old=codeblockpos;
-//        if ((PC>=0x40050FF0 && PC<0x40051010) || output==1) { rpclog("Instruction %08X %07X %08X %i\n",opcode,PC,&rcodeblock[blockpoint2][codeblockpos],codeblockpos); output=1; }
+
 //        rpclog("%08X %02X %02X %02X %02X %08X %i %02X\n",&rcodeblock[8][0x5F],rcodeblock[8][0x5E],rcodeblock[8][0x5F],rcodeblock[8][0x60],rcodeblock[8][0x61],opcode,blockpoint2,codeblockpos);
         lastrecompiled=0;
         tempinscount++;
@@ -2754,8 +2754,7 @@ void generatepcinc(void)
 void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
 {
         int temp;
-//        if (output) rpclog("endblock! %i\n",codeblockpos);
-//        output=0;
+
         flagsdirty=0;
 //        asm("decl 0x12345678;");
         generateupdatepc();

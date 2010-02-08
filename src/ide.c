@@ -537,7 +537,6 @@ void writeide(uint16_t addr, uint8_t val)
                         ide.atastat[ide.board] = BUSY_STAT;
                         idecallback=30;
                         ide.pos=0;
-//                        output=1;
                         return;
                 }
                 error("Bad IDE command %02X\n",val);
@@ -565,9 +564,6 @@ uint8_t readide(uint16_t addr)
 {
         const uint8_t *idebufferb = (const uint8_t *) ide.buffer;
         uint8_t temp;
-//        FILE *f;
-//        int c;
-//        if (output==1) rpclog("Read IDE %08X %08X %08X\n",addr,PC-8,armregs[9]);
 
         switch (addr)
         {
@@ -928,7 +924,6 @@ static void atapicommand(void)
         case GPCMD_SET_SPEED:
                 ide.packetstatus=2;
                 idecallback=50;
-//                output=1;
                 break;
 
         case GPCMD_READ_TOC_PMA_ATIP:
@@ -1073,8 +1068,6 @@ static void atapicommand(void)
                 for (c=0;c<12;c++)
                     rpclog("%02X ",idebufferb[c]);
                     rpclog("\n");*/
-//                    output=1;
-//                        output=2;
                 }
                 return;
 
@@ -1213,5 +1206,4 @@ static void callreadcd(void)
                 ide.pos=0;
                 idecallback=60;
                 ide.packlen=2048;
-        output=1;
 }

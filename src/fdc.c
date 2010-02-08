@@ -176,7 +176,6 @@ void writefdc(uint32_t addr, uint32_t val)
                 break;
 
         case 0x3f5: /* Data (FIFO) - Command */
-                //output=0;
                 // printf("Command write %02X %i : rate %i\n", val, ins, fdc.rate);
                 if (fdc.params)
                 {
@@ -337,7 +336,6 @@ void writefdc(uint32_t addr, uint32_t val)
                 break;
 
         case 0x3f7: /* Configuration Control Register (CCR) */
-                //output=0;
                 // printf("3f7 write %02X %07X\n", val, PC);
                 fdc.rate=val&3;
                 break;

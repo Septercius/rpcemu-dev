@@ -108,10 +108,6 @@ void updatemode(uint32_t m)
 {
         uint32_t c,om=mode;
 
-//        if (PC==0x8E30) output=1;
-//      if (output) rpclog("Update mode to %s mode %i %08X\n",(m&0x10)?"32-bit":"26-bit",m&15,PC);
-//      if (!m && PC==0x9FB8) output=2;
-//      if (!m && PC==0x9FBC) output=2;
         usrregs[15]=&armregs[15];
         switch (mode&15) /*Store back registers*/
         {
@@ -211,10 +207,10 @@ void updatemode(uint32_t m)
                 r15mask=0xFFFFFFFC;
                 if (!(om&16))
                 {
+			/* Change from 26-bit to 32-bit mode */
                         armregs[16]=(armregs[15]&0xF0000000)|mode;
                         armregs[16]|=((armregs[15]&0xC000000)>>20);
                         armregs[15]&=0x3FFFFFC;
-  //                      if (output) printf("Switching to 32-bit mode : CPSR %08X\n",armregs[16]);
                 }
         }
         else
@@ -771,9 +767,6 @@ int linecyc=0;
         #endif
 #endif
 
-
-//int output=0;
-
 void execarm(int cycs)
 {
         //int target;
@@ -808,11 +801,11 @@ void execarm(int cycs)
                                 while (!blockend && !(armirq&0xC0))
                                 {
                                         opcode=pccache2[PC>>2];
-                                                if ((opcode&0x0E000000)==0x0A000000) { /*if (output) rpclog("Block end on a\n");*/ blockend=1; } /*Always end block on branches*/
-                                                if ((opcode&0x0F000000)==0x0F000000) { /*if (output) rpclog("Block end on b\n");*/ blockend=1; }/*And SWIs and copro stuff*/
-                                                if (!(opcode&0xC000000) && (RD==15)) { /*if (output) rpclog("Block end on c\n");*/ blockend=1; }/*End if R15 can be modified*/
-                                                if ((opcode&0x0E108000)==0x08108000) { /*if (output) rpclog("Block end on d\n");*/ blockend=1; }/*End if R15 reloaded from LDM*/
-                                                if ((opcode&0x0C100000)==0x04100000 && (RD==15)) { /*if (output) rpclog("Block end on e\n");*/ blockend=1; }/*End if R15 reloaded from LDR*/
+                                        if ((opcode & 0x0E000000) == 0x0A000000) { blockend = 1; } /* Always end block on branches */
+                                        if ((opcode & 0x0F000000) == 0x0F000000) { blockend = 1; } /* And SWIs and copro stuff */
+                                        if (!(opcode & 0xC000000) && (RD == 15)) { blockend = 1; } /* End if R15 can be modified */
+                                        if ((opcode & 0x0E108000) == 0x08108000) { blockend = 1; } /* End if R15 reloaded from LDM */
+                                        if ((opcode & 0x0C100000) == 0x04100000 && (RD==15)) { blockend = 1; } /* End if R15 reloaded from LDR */
                                         if (flaglookup[opcode>>28][(*pcpsr)>>28])// && !(armirq&0x80))
                                            opcodes[(opcode>>20)&0xFF](opcode);
 //                                                if ((opcode&0x0E000000)==0x0A000000) blockend=1; /*Always end block on branches*/
