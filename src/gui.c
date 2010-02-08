@@ -387,7 +387,7 @@ static MENU settingsmenu[]=
         {"&Fullscreen mode",menufullscreen,NULL,0,NULL},
         {"&Alternative blitting code",menualt,NULL,0,NULL},
         {"&Blitting optimisation",menublt,NULL,0,NULL},
-        {"&Mouse hack",menumouse,NULL,0,NULL},
+        { "Follow host &mouse", menumouse, NULL, 0, NULL },
 	{"&CD-ROM",NULL,cdmenu,0,NULL},
         {NULL,NULL,NULL,0,NULL}
 };
