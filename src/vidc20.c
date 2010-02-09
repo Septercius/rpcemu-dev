@@ -210,11 +210,24 @@ void initvideo(void)
 }
 
 
-int getxs(void)
+/**
+ * Return the width in pixels of the displayed portion of the screen.
+ *
+ * @return width
+ */
+int
+getxs(void)
 {
         return vidc.hder-vidc.hdsr;
 }
-int getys(void)
+
+/**
+ * Return the height in pixels of the displayed portion of the screen.
+ *
+ * @return height
+ */
+int
+getys(void)
 {
         return vidc.vder-vidc.vdsr;
 }
@@ -496,7 +509,7 @@ void drawscr(int needredraw)
                         static int oldcursorx=0;
                         static int oldcursory=0;
 
-                        getmousepos(&thr.cursorx,&thr.cursory);
+                        mouse_hack_get_pos(&thr.cursorx, &thr.cursory);
                         if (thr.cursory!=oldcursory || thr.cursorx!=oldcursorx) vidc.curchange=1;
                         oldcursory=thr.cursory;
                         oldcursorx=thr.cursorx;
