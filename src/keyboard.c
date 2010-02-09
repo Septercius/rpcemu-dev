@@ -477,7 +477,6 @@ mouse_data_write(uint8_t val)
 uint8_t
 mouse_status_read(void)
 {
-//        printf("Read mouse status %02X\n",msstat);
         return msstat;
 }
 
@@ -505,21 +504,33 @@ mouse_data_read(void)
         return temp;
 }
 
-static void mousesend(unsigned char v)
+/**
+ * Inform the host that the PS/2 mouse has put some data in the IOMD register
+ * for it to read (raises interrupt)
+ */
+static void
+mouse_send(uint8_t v)
 {
         msdata = v;
 
         mouse_irq_rx_raise();
 
         msstat |= PS2_CONTROL_RX_FULL;
-//        printf("Send data %02X\n",v);
+
 	if (calculateparity(v))
 		msstat |= PS2_CONTROL_RXPARITY;
 	else
 		msstat &= ~PS2_CONTROL_RXPARITY;
 }
 
-void mscallback(void)
+/**
+ * Handle sending queued PS/2 mouse messages to the emulated machine; this is
+ * to introduce a slight delay between sent packets.
+ *
+ * Called from within execarm() once the mcallback variable reaches 0.
+ */
+void
+mouse_ps2_callback(void)
 {
 	assert(mcallback == 0);
 
@@ -544,19 +555,19 @@ void mscallback(void)
         else if (msreset==2)
         {
                 msreset=3;
-                mousesend(AUX_ACK);
+                mouse_send(AUX_ACK);
                 mcallback=40;
         }
         else if (msreset==3)
         {
                 mcallback=20;
-                mousesend(AUX_TEST_OK);
+                mouse_send(AUX_TEST_OK);
                 msreset=4;
         }
         else if (msreset==4)
         {
                 msreset=0;
-                mousesend(0);
+                mouse_send(0);
                 mcallback=0;
         }
         else
@@ -565,11 +576,21 @@ void mscallback(void)
 		assert(msqueue.count > 0);
 
 		/* Send the next byte of PS/2 data to the host */
-                mousesend(ps2_read_data(&msqueue));
+                mouse_send(ps2_read_data(&msqueue));
         }
 }
 
-void pollmouse(void)
+/**
+ * Main interface to inform the emulated machine of changes in host OS mouse
+ * movement (Quadrature & PS/2) and buttons (PS/2 only).
+ *
+ * This function returns early in 'mousehack' mode, as that uses RISC OS
+ * specific SWI interception to provide the mouse data.
+ *
+ * Called from emulator main loop.
+ */
+void
+mouse_poll(void)
 {
 	static uint8_t oldmouseb = 0;
 	static int oldz = 0;
@@ -807,18 +828,23 @@ void pollkeyboard(void)
 static short ml,mr,mt,mb;
 static int activex[5],activey[5];
 
-/* Gets the x and y coords in native and OS units */
-static void getmouseosxy(int *x, int *y, int *osx, int *osy)
+/**
+ * Get the x and y coords in native and OS units.
+ *
+ * @param x
+ * @param y
+ * @param osx
+ * @param osy
+ */
+static void
+mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 {
         assert(mousehack);
 
         *osy=(getys()<<1)-(mouse_y<<1);
-//        printf("Mouse Y - %i %i  ",mouse_y,*osy);
         if (*osy<mt) *osy=mt;
         if (*osy>mb) *osy=mb;
-//        printf("%i %i  %i  ",mt,mb,*osy);
         *y=((getys()<<1)-*osy)>>1;
-//        printf("%i\n",*y);
 
         *osx=mouse_x<<1;
         if (*osx>mr) *osx=mr;
@@ -854,7 +880,7 @@ mouse_hack_osword_21_4(uint32_t a)
 
         assert(mousehack);
 
-        getmouseosxy(&x,&y,&osx,&osy);
+        mouse_get_osxy(&x, &y, &osx, &osy);
 
         writememb(a+1,osy&0xFF);
         writememb(a+2,(osy>>8)&0xFF);
@@ -862,14 +888,23 @@ mouse_hack_osword_21_4(uint32_t a)
         writememb(a+4,(osx>>8)&0xFF);
 }
 
-void getmousepos(int *x, int *y)
+/**
+ * Return the X/Y active point of the mouse.
+ *
+ * Used by VIDC to determine if the mouse has moved since its last redraw.
+ *
+ * @param x Filled in with X coordinate of mouse
+ * @param y Filled in with Y coordinate of mouse
+ */
+void
+mouse_hack_get_pos(int *x, int *y)
 {
         int osx;
         int osy;
 
         assert(mousehack);
 
-        getmouseosxy(x,y,&osx,&osy);
+        mouse_get_osxy(x, y, &osx, &osy);
 
         *y-=activey[point];
         *x-=activex[point];

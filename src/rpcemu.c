@@ -274,7 +274,7 @@ execrpcemu(void)
                 if (drawscre>5) drawscre=0;
                 
 //				poll_keyboard();
-                pollmouse();
+                mouse_poll();
 //                sleep(0);
         }
 //                sleep(0);

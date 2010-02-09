@@ -992,7 +992,7 @@ void execarm(int cycs)
                         if (mcallback<=0)
                         {
                                 mcallback=0;
-                                mscallback();
+                                mouse_ps2_callback();
                         }
                 }
                 if (fdccallback)
