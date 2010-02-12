@@ -8,8 +8,6 @@
 #include "mem.h"
 #include "iomd.h"
 
-int getbufferlen(void);
-
 uint32_t soundaddr[4];
 static int samplefreq = 44100;
 int soundinited,soundlatch,soundcount;
@@ -22,9 +20,6 @@ static int bigsoundbuffertail=0; // sound buffer being read from
 static AUDIOSTREAM *as;
 
 #define BUFFERLEN (4410>>1)
-//#define BUFFERLEN 11025
-
-//static FILE *sndfile; // used for debugging
 
 /**
  * Called on program startup to initialise the sound system
@@ -81,7 +76,6 @@ void sound_pause(void)
 void sound_samplefreq_change(int newsamplefreq)
 {
 	if (newsamplefreq != samplefreq) {
-		// rpclog("Change sample freq from %i to %i\n", samplefreq, newsamplefreq);
 		samplefreq = newsamplefreq;
 
 		voice_set_frequency(as->voice, samplefreq); /* allegro */
@@ -139,7 +133,6 @@ void sound_unmute(void)
         end=(soundaddr[offset+1]&0xFF0)+16;
         len=(end-start)>>2;
         soundlatch=(int)((float)((float)len/(float)samplefreq)*2000000.0f);
-        // rpclog("soundlatch is %08X %i %03X %i %04X %04X %i\n", soundlatch, soundlatch, len, len, start, end, offset);
 
         iomd.irqdma.status |= IOMD_IRQDMA_SOUND_0;
         updateirqs();
@@ -154,14 +147,12 @@ void sound_unmute(void)
                 bigsoundbuffer[bigsoundbufferhead][bigsoundpos++]=(temp>>16);//&0x8000;
                 if (bigsoundpos>=(BUFFERLEN<<1))
                 {
-                        // rpclog("Just finished buffer %i\n", bigsoundbufferhead);
                         bigsoundbufferhead++;
                         bigsoundbufferhead &= 7; /* if (bigsoundbufferhead > 7) { bigsoundbufferhead = 0; } */
                         bigsoundpos=0;
                         sound_thread_wakeup();
                 }
         }
-        // fwrite(bigsoundbuffer, len << 2, 1, sndfile);
 }
 
 /**
@@ -178,10 +169,7 @@ void sound_buffer_update(void)
         {
                 return;
         }
-        /* if (!sndfile)
-        {
-                sndfile=fopen("sound.pcm","wb");
-        }*/
+
         while (bigsoundbuffertail!=bigsoundbufferhead)
         {
                 p = get_audio_stream_buffer(as);  /* allegro */
@@ -194,8 +182,6 @@ void sound_buffer_update(void)
                         /* We have filled the stream's buffer, let allegro know about it */
                         free_audio_stream_buffer(as); /* allegro */
 
-                        // rpclog("Writing buffer %i\n", bigsoundbuffertail);
-                        // fwrite(bigsoundbuffer[bigsoundbufferhead ^ 1], BUFFERLEN << 2, 1, sndfile);
                         bigsoundbuffertail++;
                         bigsoundbuffertail &= 7; /* if (bigsoundbuffertail > 7) { bigsoundbuffertail = 0; } */
                 }
