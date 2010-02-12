@@ -44,7 +44,7 @@ opSWI(uint32_t opcode)
 	} else if (mousehack && templ == 0x1c) {
 		/* OS_Mouse */
 		mouse_hack_osmouse();
-		armregs[15] &= ~VFLAG;
+		armregs[cpsr] &= ~VFLAG;
 
 	} else if (templ == ARCEM_SWI_HOSTFS) {
 		ARMul_State state;
@@ -62,7 +62,7 @@ opSWI(uint32_t opcode)
 		tm.tv_nsec = armregs[0];
 		nanosleep(&tm, NULL);
 #endif
-		armregs[15] &= ~VFLAG;
+		armregs[cpsr] &= ~VFLAG;
 	}
 #ifdef RPCEMU_LINUX
 	else if (templ == ARCEM_SWI_NETWORK) {
