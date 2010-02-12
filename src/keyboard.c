@@ -72,7 +72,6 @@ static PS2Queue kbdqueue;
 static int msenable, msreset;
 static uint8_t msstat;		/**< PS/2 control register for the mouse */
 static uint8_t msdata;		/**< PS/2 data register for the mouse */
-static unsigned char mscommand;
 static int mousepoll;		/**< Are we in mouse Stream Mode */
 static int msincommand;		/**< Used to store the command received that has a data byte following it */
 static int justsent;
@@ -153,7 +152,6 @@ void resetkeyboard(void)
         msreset=0;
         msstat=0;
 	msincommand = 0;
-	mscommand = 0;
 	mousepoll = 0;
 	justsent = 0;
 	mouse_type = 0;
@@ -408,7 +406,6 @@ mouse_data_write(uint8_t val)
         }
         else
         {
-                mscommand = val;
                 switch (val)
                 {
                 case AUX_RESET:
@@ -694,7 +691,6 @@ mouse_poll(void)
 
 	/* There's data in the queue, make sure we're called back */
 	mcallback = 20;
-	mscommand = AUX_RESEND;
 }
 
 static const int standardkeys[][2]=
