@@ -42,11 +42,6 @@ void resetfpa(void)
 
 #define GETADDR(r) ((r==15)?(armregs[15]&r15mask):armregs[r])
 
-#define NFLAG 0x80000000
-#define ZFLAG 0x40000000
-#define CFLAG 0x20000000
-#define VFLAG 0x10000000
-
 static inline void setsubf(double op1, double op2)
 {
         armregs[cpsr]&=0xFFFFFFF;

@@ -1,6 +1,9 @@
 #ifndef ARM_COMMON_H
 #define ARM_COMMON_H
 
+/* Functions in arm_common.c */
+extern void opSWI(uint32_t opcode);
+
 /** Evaulate to non-zero if 'mode' is a 32-bit mode */
 #define ARM_MODE_32(mode)	((mode) & 0x10)
 
