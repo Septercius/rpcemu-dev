@@ -55,4 +55,17 @@ extern uint32_t rotatelookup[4096];
 #define countbits(c) countbitstable[c]
 extern int countbitstable[65536];
 
+#define NFLAG 0x80000000
+#define ZFLAG 0x40000000
+#define CFLAG 0x20000000
+#define VFLAG 0x10000000
+
+#define USER       0
+#define FIQ        1
+#define IRQ        2
+#define SUPERVISOR 3
+#define ABORT      7
+#define UNDEFINED  11
+#define SYSTEM     15
+
 #endif //__ARM__

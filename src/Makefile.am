@@ -19,7 +19,7 @@ endif
 rpcemu_SOURCES = superio.c superio.h cdrom-iso.c cmos.c cmos.h cp15.c cp15.h \
 fdc.c fdc.h fpa.c hostfs.c hostfs.h ide.c ide.h iomd.c iomd.h keyboard.c \
 keyboard.h mem.c mem.h romload.c rpcemu.c sound.c sound.h vidc20.c vidc20.h \
-podules.c podulerom.c icside.c arm_common.h
+podules.c podulerom.c icside.c arm_common.h arm_common.c
 
 if DYNAREC
 rpcemu_SOURCES += ArmDynarec.c ArmDynarecOps.h

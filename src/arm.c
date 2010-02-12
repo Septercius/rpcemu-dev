@@ -92,25 +92,10 @@ uint32_t mode;
 int databort;
 int prog32;
 
-
-#define USER       0
-#define FIQ        1
-#define IRQ        2
-#define SUPERVISOR 3
-#define ABORT      7
-#define UNDEFINED  11
-#define SYSTEM     15
-
 #define NFSET ((armregs[cpsr]&0x80000000)?1:0)
 #define ZFSET ((armregs[cpsr]&0x40000000)?1:0)
 #define CFSET ((armregs[cpsr]&0x20000000)?1:0)
 #define VFSET ((armregs[cpsr]&0x10000000)?1:0)
-
-#define NFLAG 0x80000000
-#define ZFLAG 0x40000000
-#define CFLAG 0x20000000
-#define VFLAG 0x10000000
-#define IFLAG 0x08000000
 
 #define GETADDR(r) ((r==15)?(armregs[15]&r15mask):armregs[r])
 #define LOADREG(r,v) if (r==15) { armregs[15]=(armregs[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else armregs[r]=(v);
@@ -2741,84 +2726,17 @@ void execarm(int cycs)
 #endif
                                         break;
 //#endif
-                                        case 0xF0: case 0xF1: case 0xF2: case 0xF3: /*SWI*/
-                                        case 0xF4: case 0xF5: case 0xF6: case 0xF7:
-                                        case 0xF8: case 0xF9: case 0xFA: case 0xFB:
-                                        case 0xFC: case 0xFD: case 0xFE: case 0xFF:
-                                        templ=opcode&0xDFFFF;
-                                        if (mousehack && templ==7 && armregs[0]==0x15)
-                                        {
-//                                                printf("OSWORD call %i\n",readmemb(armregs[1]));
-                                                if (readmemb(armregs[1])==1)
-                                                {
-							/* OS_Word 21, 1 Define Mouse Coordinate bounding box */
-                                                        mouse_hack_osword_21_1(armregs[1]);
-                                                        break;
-                                                }
-                                                else if (readmemb(armregs[1])==4)
-                                                {
-							/* OS_Word 21, 4 Read unbuffered mouse position */
-                                                        mouse_hack_osword_21_4(armregs[1]);
-                                                        break;
-                                                }
-                                                else
-                                                  goto realswi;
-                                        }
-                                        else if (mousehack && templ==0x1C)
-                                        {
-						/* OS_Mouse */
-                                                mouse_hack_osmouse();
-                                                armregs[15]&=~VFLAG;
-                                        }
-                                        else if (templ == ARCEM_SWI_HOSTFS)
-					  {
-					    ARMul_State state;
-					    state.Reg = armregs;
-					    hostfs(&state);
-					  }
-                                        else if (templ == ARCEM_SWI_NANOSLEEP)
-                                          {
-#ifdef RPCEMU_WIN
-                                            Sleep(armregs[0]/1000000);
-#else
-                                            struct timespec tm;
-                                            tm.tv_sec = 0;
-                                            tm.tv_nsec = armregs[0];
-                                            nanosleep(&tm, NULL);
-#endif
-                                            armregs[15]&=~VFLAG;
-                                          }
-#ifdef RPCEMU_LINUX
-                                        else if (templ == ARCEM_SWI_NETWORK)
-                                          {
-                                              networkswi(armregs[0], armregs[1], armregs[2], armregs[3], armregs[4], armregs[5], &armregs[0], &armregs[1]);
-                                          }
-#endif
-					else
-					  {
-                                                        realswi:
-                                                if (mousehack && templ==7 && armregs[0]==0x15 && readmemb(armregs[1])==0) {
-                                                        /* OS_Word 21, 0 Define pointer size, shape and active point */
-                                                        mouse_hack_osword_21_0(armregs[1]);
-                                                }
-                                                if (mousehack && templ==6 && armregs[0]==106) {
-                                                        /* OS_Byte 106 Select pointer / activate mouse */
-                                                        mouse_hack_osbyte_106(armregs[1]);
-                                                }
 
-                                                exception(SUPERVISOR, 0xc, 4);
-                                        }
-                                        break;
+				case 0xF0: case 0xF1: case 0xF2: case 0xF3: /* SWI */
+				case 0xF4: case 0xF5: case 0xF6: case 0xF7:
+				case 0xF8: case 0xF9: case 0xFA: case 0xFB:
+				case 0xFC: case 0xFD: case 0xFE: case 0xFF:
+					opSWI(opcode);
+					break;
 
-				          default:
-					    {
-/*					      int ls_opcode = (opcode >> 20) & 0xff;
-
-					      if (ls_opcode >= 0x80 && ls_opcode <= 0xa0)
-					        ldmstm(ls_opcode, opcode);
-                                              else*/
-					        bad_opcode(opcode);
-					    }
+				default:
+					bad_opcode(opcode);
+					break;
                                 }
                         }
 #ifdef STRONGARM

@@ -30,6 +30,7 @@ endif
 all: config.h $(EXE)
 
 OBJS =	arm.o       \
+	arm_common.o \
 	ArmDynarec.o \
 	cdrom-ioctl.o \
 	cdrom-iso.o \
