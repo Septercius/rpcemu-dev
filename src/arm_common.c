@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <time.h>
 
+#if defined WIN32 || defined _WIN32
+#include <windows.h>
+#endif
+
 #include "rpcemu.h"
 
 #include "arm.h"
