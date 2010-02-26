@@ -47,6 +47,9 @@ OBJS =	arm.o       \
 	iomd.o      \
 	keyboard.o  \
 	mem.o       \
+	network.o   \
+	network-win.o \
+	tap-win32.o \
 	podulerom.o \
 	podules.o   \
 	podules-win.o \

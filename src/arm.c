@@ -5,10 +5,6 @@
 
 #ifndef DYNAREC
 
-#if defined WIN32 || defined _WIN32 || defined _WIN32
-#include <windows.h>
-#endif
-
 int swiout=0;
 int times8000=0;
 /*3/12/06 - databort and prefabort have been rolled into bits 6 and 7 of armirq.
@@ -60,10 +56,6 @@ static int inscounts[256];
 #include "keyboard.h"
 #include "fdc.h"
 #include "ide.h"
-
-#ifdef RPCEMU_LINUX
-#include "network-linux.h"
-#endif
 
 int blockend;
 static int r15diff;

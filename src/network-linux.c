@@ -23,6 +23,7 @@
 #include "rpcemu.h"
 #include "mem.h"
 #include "podules.h"
+#include "network.h"
 
 /* The opened tunnel device */
 static int tunfd = -1;
@@ -34,38 +35,6 @@ static unsigned char buffer[1522];
 static unsigned char hwaddr[6];
 
 static podule *poduleinfo = NULL;
-
-/* Structures to represent the RISC OS view of things */
-struct pkthdr {
-    uint32_t len;
-    uint32_t rcvif;
-};
-
-struct mbuf {
-    uint32_t m_next;
-    uint32_t m_list;
-    uint32_t m_off;
-    uint32_t m_len;
-    uint32_t m_inioff;
-    uint32_t m_inilen;
-    uint8_t m_type;
-    uint8_t m_sys1;
-    uint8_t m_sys2;
-    uint8_t m_flags;
-    struct pkthdr m_pkthdr;
-};
-
-struct rx_hdr {
-    uint32_t rx_ptr;
-    uint32_t rx_tag;
-    uint8_t rx_src_addr[6];
-    uint8_t _spad[2];
-    uint8_t rx_dst_addr[6];
-    uint8_t _dpad[2];
-    uint32_t rx_frame_type;
-    uint32_t rx_error_level;
-    uint32_t rx_cksum;
-};
 
 static void nametouidgid(const char* user, uid_t *uid, gid_t *gid)
 {
@@ -228,31 +197,6 @@ static int tun_alloc(void)
     }
 
     return fd;
-}
-
-
-void memcpytohost(void *dest, uint32_t src, uint32_t len)
-{
-    char *dst = dest;
-    while (len--) {
-        *dst++ = readmemb(src);
-        src++;
-    }
-}
-
-void memcpyfromhost(uint32_t dest, const void *source, uint32_t len)
-{
-    const char *src = source;
-    while (len--) {
-        writememb(dest, *src);
-        src++;
-        dest++;
-    }
-}
-
-void strcpyfromhost(uint32_t dest, const char *source)
-{
-    memcpyfromhost(dest, source, strlen(source) + 1);
 }
 
 #define HEADERLEN 18

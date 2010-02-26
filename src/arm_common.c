@@ -14,6 +14,9 @@
 #include "keyboard.h"
 #include "hostfs.h"
 
+#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+#include "network.h"
+#endif
 
 /**
  * Handler for SWI instructions; includes all the emulator specific SWIs as
@@ -68,7 +71,7 @@ opSWI(uint32_t opcode)
 #endif
 		armregs[cpsr] &= ~VFLAG;
 	}
-#ifdef RPCEMU_LINUX
+#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
 	else if (templ == ARCEM_SWI_NETWORK) {
 		networkswi(armregs[0], armregs[1], armregs[2], armregs[3],
 		           armregs[4], armregs[5], &armregs[0], &armregs[1]);

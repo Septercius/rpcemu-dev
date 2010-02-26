@@ -29,6 +29,8 @@
 #include "cdrom-iso.h"
 #include "cdrom-ioctl.h"
 
+extern void sig_io(int sig);
+
 /*  Declare Windows procedure  */
 static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 static RECT oldclip; /**< Used to store the clip box of the cursor before we
@@ -37,6 +39,7 @@ static RECT oldclip; /**< Used to store the clip box of the cursor before we
 static HWND ghwnd;
 static HMENU menu;
 int infocus; /**< bool of whether the window has the keyboard focus */
+int handle_sigio; /**< bool to indicate new network data is received */
 
 static int quitblitter=0;
 static int blitrunning=0,soundrunning=0;
@@ -392,6 +395,11 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                         SetWindowText(ghwnd, title);
                         updatemips=0;
                 }
+
+		if (handle_sigio) {
+			handle_sigio = 0;
+			sig_io(1);
+		}
 
                 /* Exit full screen? */
                 if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && fullscreen)

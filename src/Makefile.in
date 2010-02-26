@@ -44,7 +44,9 @@ bin_PROGRAMS = rpcemu$(EXEEXT)
 # non-DYNAREC
 @DYNAREC_FALSE@am__append_5 = arm.c arm.h codegen_null.c
 @OS_WIN_TRUE@am__append_6 = cdrom-ioctl.c rpc-win.c resources.h
-@OS_LINUX_TRUE@am__append_7 = rpc-linux.c gui.c cdrom-linuxioctl.c network-linux.c
+@OS_LINUX_TRUE@am__append_7 = rpc-linux.c gui.c cdrom-linuxioctl.c network-linux.c \
+@OS_LINUX_TRUE@network.c network.h
+
 @OS_MACOSX_TRUE@am__append_8 = rpc-macosx.c gui.c
 @OS_OTHER_TRUE@am__append_9 = rpc-linux.c gui.c
 subdir = .
@@ -72,7 +74,8 @@ am__rpcemu_SOURCES_DIST = superio.c superio.h cdrom-iso.c cmos.c \
 	ArmDynarecOps.h codegen_amd64.c codegen_amd64.h \
 	codegen_x86_common.h codegen_x86.c codegen_x86.h arm.c arm.h \
 	codegen_null.c cdrom-ioctl.c rpc-win.c resources.h rpc-linux.c \
-	gui.c cdrom-linuxioctl.c network-linux.c rpc-macosx.c
+	gui.c cdrom-linuxioctl.c network-linux.c network.c network.h \
+	rpc-macosx.c
 @DYNAREC_TRUE@am__objects_1 = rpcemu-ArmDynarec.$(OBJEXT)
 @CPU_X86_64_TRUE@@DYNAREC_TRUE@am__objects_2 =  \
 @CPU_X86_64_TRUE@@DYNAREC_TRUE@	rpcemu-codegen_amd64.$(OBJEXT)
@@ -85,7 +88,8 @@ am__rpcemu_SOURCES_DIST = superio.c superio.h cdrom-iso.c cmos.c \
 @OS_LINUX_TRUE@am__objects_6 = rpcemu-rpc-linux.$(OBJEXT) \
 @OS_LINUX_TRUE@	rpcemu-gui.$(OBJEXT) \
 @OS_LINUX_TRUE@	rpcemu-cdrom-linuxioctl.$(OBJEXT) \
-@OS_LINUX_TRUE@	rpcemu-network-linux.$(OBJEXT)
+@OS_LINUX_TRUE@	rpcemu-network-linux.$(OBJEXT) \
+@OS_LINUX_TRUE@	rpcemu-network.$(OBJEXT)
 @OS_MACOSX_TRUE@am__objects_7 = rpcemu-rpc-macosx.$(OBJEXT) \
 @OS_MACOSX_TRUE@	rpcemu-gui.$(OBJEXT)
 @OS_OTHER_TRUE@am__objects_8 = rpcemu-rpc-linux.$(OBJEXT) \
@@ -353,6 +357,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-keyboard.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-network-linux.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-network.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-podulerom.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-podules.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-romload.Po@am__quote@
@@ -797,6 +802,20 @@ rpcemu-network-linux.obj: network-linux.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='network-linux.c' object='rpcemu-network-linux.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-network-linux.obj `if test -f 'network-linux.c'; then $(CYGPATH_W) 'network-linux.c'; else $(CYGPATH_W) '$(srcdir)/network-linux.c'; fi`
+
+rpcemu-network.o: network.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-network.o -MD -MP -MF $(DEPDIR)/rpcemu-network.Tpo -c -o rpcemu-network.o `test -f 'network.c' || echo '$(srcdir)/'`network.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/rpcemu-network.Tpo $(DEPDIR)/rpcemu-network.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='network.c' object='rpcemu-network.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-network.o `test -f 'network.c' || echo '$(srcdir)/'`network.c
+
+rpcemu-network.obj: network.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-network.obj -MD -MP -MF $(DEPDIR)/rpcemu-network.Tpo -c -o rpcemu-network.obj `if test -f 'network.c'; then $(CYGPATH_W) 'network.c'; else $(CYGPATH_W) '$(srcdir)/network.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/rpcemu-network.Tpo $(DEPDIR)/rpcemu-network.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='network.c' object='rpcemu-network.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-network.obj `if test -f 'network.c'; then $(CYGPATH_W) 'network.c'; else $(CYGPATH_W) '$(srcdir)/network.c'; fi`
 
 rpcemu-rpc-macosx.o: rpc-macosx.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-rpc-macosx.o -MD -MP -MF $(DEPDIR)/rpcemu-rpc-macosx.Tpo -c -o rpcemu-rpc-macosx.o `test -f 'rpc-macosx.c' || echo '$(srcdir)/'`rpc-macosx.c
