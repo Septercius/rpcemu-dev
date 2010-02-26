@@ -6,8 +6,11 @@ void callbackide(void);
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
+#include <errno.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+
 #include <sys/types.h>
 #include "rpcemu.h"
 #include "vidc20.h"
@@ -293,21 +296,27 @@ ide_next_sector(void)
 
 static void loadhd(int d, const char *fn)
 {
-        if (ide.hdfile[d] == NULL) {
-                ide.hdfile[d] = fopen64(fn, "rb+");
-                if (ide.hdfile[d] == NULL) {
-                        ide.hdfile[d] = fopen64(fn, "wb");
-                        if (ide.hdfile[d] == NULL) {
-                                fatal("Cannot create file %s", fn);
-                        }
-                        putc(0, ide.hdfile[d]);
-                        fclose(ide.hdfile[d]);
-                        ide.hdfile[d] = fopen64(fn, "rb+");
-                        if (ide.hdfile[d] == NULL) {
-                                fatal("Cannot open file %s", fn);
-                        }
-                }
-        }
+	if (ide.hdfile[d] == NULL) {
+		/* Try to open existing hard disk image */
+		ide.hdfile[d] = fopen64(fn, "rb+");
+		if (ide.hdfile[d] == NULL) {
+			/* Failed to open existing hard disk image */
+			if (errno == ENOENT) {
+				/* Failed because it does not exist,
+				   so try to create new file */
+				ide.hdfile[d] = fopen64(fn, "wb+");
+				if (ide.hdfile[d] == NULL) {
+					fatal("Cannot create file '%s': %s",
+					      fn, strerror(errno));
+				}
+			} else {
+				/* Failed for another reason */
+				fatal("Cannot open file '%s': %s",
+				      fn, strerror(errno));
+			}
+		}
+	}
+
         fseek(ide.hdfile[d], 0xfc1, SEEK_SET);
         ide.spt[d] = getc(ide.hdfile[d]);
         ide.hpc[d] = getc(ide.hdfile[d]);
