@@ -24,9 +24,9 @@
 #include "podules.h"
 #include "fdc.h"
 
-#ifdef __linux__
-	#include "network-linux.h"
-#endif /* __linux__ */
+#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+#include "network.h"
+#endif
 
 unsigned char flaglookup[16][16];
 
@@ -243,9 +243,9 @@ startrpcemu(void)
 //        iso_open("e:/au_cd8.iso");
 //        config.cdromtype = CDROM_ISO;
 
-#ifdef __linux__
+#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
         initnetwork();
-#endif /* __linux__ */
+#endif
         
 	/* Call back the mips counting function every second */
 	install_int_ex(domips, MSEC_TO_TIMER(1000));

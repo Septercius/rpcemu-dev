@@ -4,10 +4,6 @@
 
 #ifdef DYNAREC
 
-#if defined WIN32 || defined _WIN32 || defined _WIN32
-#include <windows.h>
-#endif
-
 /*RPCemu v0.6 by Tom Walker
   SA110 emulation
   Dynamic recompiling version!*/
@@ -38,10 +34,6 @@ static int inscounts[256];
 #include "arm.h"
 #include "cp15.h"
 #include "fdc.h"
-
-#ifdef RPCEMU_LINUX
-#include "network-linux.h"
-#endif
 
 extern void removeblock(void); /* in codegen_*.c */
 	

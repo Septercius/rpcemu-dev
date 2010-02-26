@@ -47,7 +47,8 @@ rpcemu_LDADD += acorn.o -lcomdlg32 -lwinmm
 endif
 
 if OS_LINUX
-rpcemu_SOURCES += rpc-linux.c gui.c cdrom-linuxioctl.c network-linux.c
+rpcemu_SOURCES += rpc-linux.c gui.c cdrom-linuxioctl.c network-linux.c \
+network.c network.h
 endif
 
 if OS_MACOSX
