@@ -109,8 +109,7 @@ char HOSTFS_ROOT[512];
 #define NOT_IMPLEMENTED 255
 
 #define DEFAULT_ATTRIBUTES  0x03
-int DEFAULT_FILE_TYPE;
-//#define DEFAULT_FILE_TYPE   RISC_OS_FILE_TYPE_TEXT
+#define DEFAULT_FILE_TYPE   RISC_OS_FILE_TYPE_TEXT
 #define MINIMUM_BUFFER_SIZE 32768
 
 static FILE *open_file[MAX_OPEN_FILES + 1]; /* array subscript 0 is never used */
@@ -1684,8 +1683,7 @@ hostfs(ARMul_State *state)
 {
   assert(state);
   assert(state->Reg[9] <= 7);
-  
-  DEFAULT_FILE_TYPE=RISC_OS_FILE_TYPE_TEXT;
+
 //  printf("*** HostFS Call *** %i %i %s\n",state->Reg[9],state->Reg[0],HOSTFS_ROOT);
 
   switch (state->Reg[9]) {
