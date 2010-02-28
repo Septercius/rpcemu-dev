@@ -117,9 +117,9 @@ static FILE *open_file[MAX_OPEN_FILES + 1]; /* array subscript 0 is never used *
 
 static unsigned char *buffer = NULL;
 static size_t buffer_size = 0;
-//#define dbug_hostfs rpclog
+
 #ifdef NDEBUG
-INLINING void dbug_hostfs(const char *format, ...) {}
+static inline void dbug_hostfs(const char *format, ...) {}
 #else
 static void
 dbug_hostfs(const char *format, ...)
@@ -289,7 +289,6 @@ path_construct(const char *old_path, char *new_path, size_t len,
     /* File has load and exec addresses */
     sprintf(new_suffix, ",%x-%x", (unsigned int)load, (unsigned int)exec);
   }
-  //rpclog("path_construct : %s\n",new_suffix);
 }
 
 /**
@@ -322,7 +321,6 @@ name_host_to_riscos(const char *object_name, size_t len, char *riscos_name)
   }
 
   *riscos_name = '\0';
-  //rpclog("Name host to ROS : %s -> %s\n",s2,s);
 }
 
 /**
@@ -384,7 +382,6 @@ hostfs_read_object_info(const char *host_pathname,
   /* Find where the leafname starts */
   slash = strrchr(host_pathname, '/');
   assert(slash); /* A '/' should always be present */
-  //rpclog("host_pathname %s %s\n",host_pathname,HOSTFS_ROOT);
 
   /* Search for a filetype or load-exec after a comma */
   comma = strrchr(slash + 1, ',');
@@ -473,7 +470,6 @@ hostfs_path_scan(const char *host_dir_path,
   if (!d) {
     switch (errno) {
     case ENOENT: /* Object not found */
-//      rpclog("%s - object not found\n",host_dir_path);
       object_info->type = OBJECT_TYPE_NOT_FOUND;
       break;
 
@@ -514,13 +510,11 @@ hostfs_path_scan(const char *host_dir_path,
     if (case_sensitive) {
 
       if (strcmp(ro_leaf, object) != 0) {
-//          rpclog("%s <> %s\n",ro_leaf,object);
         /* Names do not match */
         continue;
       }
     } else {
       if (strcasecmp(ro_leaf, object) != 0) {
-//        rpclog("%s <> %s\n",ro_leaf,object);
         /* Names do not match */
         continue;
       }
@@ -529,14 +523,12 @@ hostfs_path_scan(const char *host_dir_path,
     /* A match has been found - exit the function early */
     strcpy(host_name, entry->d_name);
     closedir(d);
-    //rpclog("Found match for %s - %s\n",host_dir_path,host_name);
     return;
   }
 
   closedir(d);
 
   object_info->type = OBJECT_TYPE_NOT_FOUND;
-//rpclog("%s - object not found 2\n",host_dir_path);
 }
 
 /**
@@ -569,17 +561,14 @@ hostfs_path_process(const char *ro_path,
   /* Initialise working Host component */
   component = &component_name[0];
   *component = '\0';
-  //rpclog("Process path %s\n",ro_path);
 
   while (*ro_path) {
-                //rpclog("%i %c\n",*ro_path,*ro_path);
     switch (*ro_path) {
     case '$':
       strcat(host_pathname, HOSTFS_ROOT);
 
       hostfs_read_object_info(host_pathname, ro_leaf, object_info);
       if (object_info->type == OBJECT_TYPE_NOT_FOUND) {
-                dbug_hostfs("OBJECT NOT FOUND %s %s\n",host_pathname,ro_leaf);
         return;
       }
 
@@ -624,7 +613,6 @@ hostfs_path_process(const char *ro_path,
       break;
     }
 
-    //rpclog("Component now %s\n",component_name);
     ro_path++;
   }
 
@@ -672,7 +660,6 @@ riscos_path_to_host(const char *path, char *host_path)
   assert(path);
   assert(host_path);
 
-        //rpclog("path_to_host %s %s\n",path,host_path);
   hostfs_path_process(path, 0, host_path, ro_leaf, &object_info);
 
   if (object_info.type == OBJECT_TYPE_NOT_FOUND) {
@@ -1393,7 +1380,6 @@ hostfs_func_0_chdir(ARMul_State *state)
 
   get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
 //  riscos_path_to_host(ro_path, host_path);
-//  rpclog("RO path %s host path %s\n",ro_path,host_path);
   dbug_hostfs("\tPATH = %s\n", ro_path);
   dbug_hostfs("\tPATH2 = %s\n", host_path);
 }
@@ -1498,9 +1484,8 @@ hostfs_read_dir(ARMul_State *state, bool with_info)
   dbug_hostfs("\tPATH = %s\n", ro_path);
 
   hostfs_path_process(ro_path, 0, host_pathname, ro_leaf, &object_info);
-dbug_hostfs("ROPATH %s HOSTPATH %s\n",ro_path,host_pathname);
+
   if (object_info.type != OBJECT_TYPE_DIRECTORY) {
-                dbug_hostfs("Bad type %i\n",object_info.type);
     /* TODO Improve error return */
     state->Reg[3] = 0;
     state->Reg[4] = (uint32_t)-1;
@@ -1517,7 +1502,6 @@ dbug_hostfs("ROPATH %s HOSTPATH %s\n",ro_path,host_pathname);
     struct dirent *entry = NULL;
 
     d = opendir(host_pathname);
-    dbug_hostfs("Opendir %s %i\n",host_pathname,d);
     if (!d) {
       fprintf(stderr, "HostFS could not open directory \'%s\': %s\n",
               host_pathname, strerror(errno));
@@ -1529,7 +1513,7 @@ dbug_hostfs("ROPATH %s HOSTPATH %s\n",ro_path,host_pathname);
     /* Skip a number of directory entries according to the offset */
     while ((count < offset) && ((entry = readdir(d)) != NULL)) {
       char entry_path[PATH_MAX];
-dbug_hostfs("Entry %s\n",entry->d_name);
+
       /* Hidden files are completely ignored */
       if (entry->d_name[0] == '.') {
         continue;
