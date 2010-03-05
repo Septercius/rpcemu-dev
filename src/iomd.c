@@ -249,7 +249,7 @@ void writeiomd(uint32_t addr, uint32_t val)
         switch (addr&0x1FC)
         {
         case IOMD_0x000_IOCR: /* I/O control */
-                cmosi2cchange(val&2,val&1);
+                cmosi2cchange((val >> 1) & 1, val & 1);
                 iomd.ctrl=val;
                 return;
 
