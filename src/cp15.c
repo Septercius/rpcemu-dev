@@ -255,6 +255,25 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 // blockend=1;
                 return;
 
+	case 15:
+		switch (config.model) {
+		case CPUModel_SA110: /* Test, Clock and Idle control */
+			if (OPC2 == 2 && CRm == 1) {
+				/* Enable clock switching - no need to implement */
+			} else {
+				UNIMPLEMENTED("CP15 Write",
+				  "Write to SA110 Reg 15, OPC2=0x%02x CRm=0x%02x",
+				  OPC2, CRm);
+			}
+			break;
+
+		default:
+			UNIMPLEMENTED("CP15 Write",
+			  "Unknown processor '%d' writing to reg 15",
+			  config.model);
+		}
+		break;
+
         default:
                 UNIMPLEMENTED("CP15 Write", "Unknown register %u", addr & 15);
                 break;
