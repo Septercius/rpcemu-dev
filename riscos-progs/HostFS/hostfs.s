@@ -23,9 +23,10 @@
 	ArcEm_HostFS    = ARCEM_SWI_CHUNKX + 1
 
 	@ Filing system error codes
-	FILECORE_ERROR_DISCFULL = 0xc6
-	FILECORE_ERROR_BADDISC  = 0xc8
-	FILECORE_ERROR_DISCPROT = 0xc9
+	FILECORE_ERROR_DIRNOTEMPTY	= 0xb4
+	FILECORE_ERROR_DISCFULL		= 0xc6
+	FILECORE_ERROR_BADDISC		= 0xc8
+	FILECORE_ERROR_DISCPROT		= 0xc9
 
 	@ Filing system properties
 	FILING_SYSTEM_NUMBER = 0x99	@ TODO choose unique value
@@ -61,7 +62,7 @@ title:
 	.string	"RPCEmuHostFS"
 
 help:
-	.string	"RPCEmu HostFS\t0.05 (14 Mar 2010)"
+	.string	"RPCEmu HostFS\t0.06 (18 Mar 2010)"
 
 	.align
 
@@ -346,6 +347,10 @@ hostfs_error:
 	teq	r0, #255
 	beq	not_implemented
 
+	teq	r0, #FILECORE_ERROR_DIRNOTEMPTY
+	adreq	r0, err_dirnotempty
+	beq	hostfs_return_error
+
 	teq	r0, #FILECORE_ERROR_DISCFULL
 	adreq	r0, err_discfull
 	beq	hostfs_return_error
@@ -368,6 +373,11 @@ hostfs_return_error:
 err_badfsop:
 	.int	0x100a0 | (FILING_SYSTEM_NUMBER << 8)
 	.string	"BadFSOp"
+	.align
+
+err_dirnotempty:
+	.int	0x10000 | (FILING_SYSTEM_NUMBER << 8) | FILECORE_ERROR_DIRNOTEMPTY
+	.string	"Directory not empty"
 	.align
 
 err_discfull:

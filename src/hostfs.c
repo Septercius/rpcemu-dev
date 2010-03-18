@@ -77,6 +77,7 @@ enum FILE_INFO_WORD {
 
 enum FILECORE_ERROR {
   FILECORE_ERROR_BADRENAME   = 0xb0,
+  FILECORE_ERROR_DIRNOTEMPTY = 0xb4,
   FILECORE_ERROR_TOOMANYOPEN = 0xc0, /* Too many open files */
   FILECORE_ERROR_OPEN        = 0xc2, /* File open */
   FILECORE_ERROR_LOCKED      = 0xc3,
@@ -1228,8 +1229,17 @@ hostfs_file_6_delete(ARMul_State *state)
   case OBJECT_TYPE_DIRECTORY:
     if (rmdir(host_pathname)) {
       /* Error while deleting the directory */
-      fprintf(stderr, "HostFS: Error deleting directory \'%s\': %s %d\n",
-              host_pathname, strerror(errno), errno);
+      switch (errno) {
+      case EEXIST:
+      case ENOTEMPTY: /* POSIX permits either error for directory not empty */
+        state->Reg[9] = FILECORE_ERROR_DIRNOTEMPTY;
+        break;
+
+      default:
+        fprintf(stderr, "HostFS: Error deleting directory \'%s\': %s %d\n",
+                host_pathname, strerror(errno), errno);
+        break;
+      }
     }
     break;
 
