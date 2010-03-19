@@ -1,5 +1,6 @@
 /* RPCemu networking */
 
+#include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,9 +106,17 @@ static int tun_alloc(void)
     struct sockaddr_in *addr;
     int fd;
     int sd;
-    
-    if (config.ipaddress == NULL && config.bridgename == NULL) {
+
+    assert(config.network_type == NetworkType_EthernetBridging ||
+           config.network_type == NetworkType_IPTunnelling);
+
+    if (config.network_type == NetworkType_IPTunnelling && config.ipaddress == NULL) {
         fprintf(stderr, "IP address not configured\n");
+        return -1;
+    }
+    
+    if (config.network_type == NetworkType_EthernetBridging && config.bridgename == NULL) {
+        fprintf(stderr, "Network Bridgename not configured\n");
         return -1;
     }
 
@@ -131,7 +140,7 @@ static int tun_alloc(void)
         return -1;
     }
 
-    if (config.ipaddress != NULL) {
+    if (config.network_type == NetworkType_IPTunnelling) {
         addr = (struct sockaddr_in *)(&(ifr.ifr_addr));
         addr->sin_family = AF_INET;
         addr->sin_port = 0;
@@ -141,7 +150,7 @@ static int tun_alloc(void)
                     ifr.ifr_name, strerror(errno));
             return -1;
         }
-    } else if (config.bridgename != NULL) {
+    } else if (config.network_type == NetworkType_EthernetBridging) {
         struct ifreq brifr;
 
         if (ioctl(sd, SIOCGIFINDEX, &ifr) == -1) {

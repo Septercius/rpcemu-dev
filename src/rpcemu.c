@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <allegro.h>
 #include "rpcemu.h"
+#include "config.h"
 #include "mem.h"
 #include "vidc20.h"
 #include "keyboard.h"
@@ -244,7 +245,11 @@ startrpcemu(void)
 //        config.cdromtype = CDROM_ISO;
 
 #if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
-        initnetwork();
+	if (config.network_type == NetworkType_EthernetBridging ||
+	    config.network_type == NetworkType_IPTunnelling)
+	{
+		initnetwork();
+	}
 #endif
         
 	/* Call back the mips counting function every second */
@@ -365,6 +370,21 @@ loadconfig(void)
         else    strcpy(config.isoname, p);
 
         config.mousehackon = get_config_int(NULL, "mouse_following", 1);
+
+	p = get_config_string(NULL, "network_type", NULL);
+	if (!p) {
+		config.network_type = NetworkType_Off;
+	} else if (!strcmp(p, "off")) {
+		config.network_type = NetworkType_Off;
+	} else if (!strcmp(p, "iptunnelling")) {
+		config.network_type = NetworkType_IPTunnelling;
+	} else if (!strcmp(p, "ethernetbridging")) {
+		config.network_type = NetworkType_EthernetBridging;
+	} else {
+		rpclog("Unknown network_type '%s', defaulting to off", p);
+		config.network_type = NetworkType_Off;
+	}
+
         config.username  = get_config_string(NULL, "username",  NULL);
         config.ipaddress = get_config_string(NULL, "ipaddress", NULL);
         config.macaddress = get_config_string(NULL, "macaddress", NULL);
@@ -411,4 +431,31 @@ saveconfig(void)
         set_config_int(NULL, "cdrom_type",        config.cdromtype);
         set_config_string(NULL, "cdrom_iso",      config.isoname);
         set_config_int(NULL, "mouse_following",   config.mousehackon);
+
+	switch (config.network_type) {
+	case NetworkType_Off:              sprintf(s, "off"); break;
+	case NetworkType_EthernetBridging: sprintf(s, "ethernetbridging"); break;
+	case NetworkType_IPTunnelling:     sprintf(s, "iptunnelling"); break;
+	default:
+		/* Forgotten to add a new network type to the switch()? */
+		fprintf(stderr, "saveconfig(): unknown networktype %d\n",
+		        config.network_type);
+		rpclog("saveconfig(): unknown networktype %d\n",
+		       config.network_type);
+		exit(EXIT_FAILURE);
+	}
+	set_config_string(NULL, "networktype", s);
+
+	if (config.username) {
+		set_config_string(NULL, "username", config.username);
+	}
+	if (config.ipaddress) {
+		set_config_string(NULL, "ipaddress", config.ipaddress);
+	}
+	if (config.macaddress) {
+		set_config_string(NULL, "macaddress", config.macaddress);
+	}
+	if (config.bridgename) {
+		set_config_string(NULL, "bridgename", config.bridgename);
+	}
 }

@@ -97,6 +97,14 @@ extern int fullscreen;
 #define FULLSCREENALWAYS
 #endif
 
+/** The type of networking configured */
+typedef enum {
+	NetworkType_Off,
+	NetworkType_EthernetBridging,
+	NetworkType_IPTunnelling,
+} NetworkType;
+
+/** The type of processor configured */
 typedef enum {
 	CPUModel_ARM610,
 	CPUModel_ARM710,
@@ -106,8 +114,7 @@ typedef enum {
 	CPUModel_ARM810
 } CPUModel;
 
-
-/* Config */
+/** The user's configuration of the emulator */
 typedef struct {
 	CPUModel model;
 	int rammask;
@@ -124,6 +131,7 @@ typedef struct {
 	int cdromtype;
 	char isoname[512];
 	int mousehackon;
+	NetworkType network_type;
 } Config;
 
 extern Config config;

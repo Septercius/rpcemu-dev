@@ -239,6 +239,14 @@ void networkswi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4,
 
 void initnetwork(void) 
 { 
+    assert(config.network_type == NetworkType_EthernetBridging ||
+           config.network_type == NetworkType_IPTunnelling);
+
+    if (config.network_type == NetworkType_IPTunnelling) {
+        rpclog("IP Tunnelling networking is not supported on Windows");
+        return;
+    }
+
     if (config.bridgename == NULL) {
         rpclog("Bridge name not configured\n");
         return;
