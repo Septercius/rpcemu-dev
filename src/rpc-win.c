@@ -54,26 +54,28 @@ static HINSTANCE hinstance; /**< Handle to current program instance */
 
 void error(const char *format, ...)
 {
-   char buf[256];
+	char buf[4096];
+	va_list ap;
 
-   va_list ap;
-   va_start(ap, format);
-   vsprintf(buf, format, ap);
-   va_end(ap);
-   MessageBox(NULL,buf,"RPCemu error",MB_OK);;
+	va_start(ap, format);
+	vsprintf(buf, format, ap);
+	va_end(ap);
+	rpclog("ERROR: %s\n", buf);
+	MessageBox(NULL, buf, "RPCemu error", MB_OK);
 }
 
 void fatal(const char *format, ...)
 {
-   char buf[256];
+	char buf[4096];
+	va_list ap;
 
-   va_list ap;
-   va_start(ap, format);
-   vsprintf(buf, format, ap);
-   va_end(ap);
-   MessageBox(NULL,buf,"RPCemu error",MB_OK);;
+	va_start(ap, format);
+	vsprintf(buf, format, ap);
+	va_end(ap);
+	rpclog("FATAL: %s\n", buf);
+	MessageBox(NULL, buf, "RPCemu error", MB_OK);
 
-   abort();
+	abort();
 }
 
 static void vblupdate(void)

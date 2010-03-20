@@ -79,12 +79,14 @@ void sound_thread_start(void)
 
 void error(const char *format, ...)
 {
-   va_list ap;
-   va_start(ap, format);
-   fprintf(stderr, "RPCemu error: ");
-   vfprintf(stderr, format, ap);
-   fprintf(stderr,"\n");
-   va_end(ap);
+	char buf[4096];
+	va_list ap;
+
+	va_start(ap, format);
+	vsprintf(buf, format, ap);
+	va_end(ap);
+	rpclog("ERROR: %s\n", buf);
+	fprintf(stderr, "RPCemu error: %s\n", buf);
 }
 
 // Similar to error() but aborts the program. 
@@ -94,14 +96,16 @@ void error(const char *format, ...)
 //
 void fatal(const char *format, ...)
 {
-   va_list ap;
-   va_start(ap, format);
-   fprintf(stderr, "RPCemu error: ");
-   vfprintf(stderr, format, ap);
-   fprintf(stderr,"\n");
-   va_end(ap);
+	char buf[4096];
+	va_list ap;
 
-   abort();
+	va_start(ap, format);
+	vsprintf(buf, format, ap);
+	va_end(ap);
+	rpclog("FATAL: %s\n", buf);
+	fprintf(stderr, "RPCemu error: %s\n", buf);
+
+	abort();
 }
 
 static void vblupdate(void)
