@@ -926,6 +926,41 @@ hostfs_args_7_ensure_file_size(ARMul_State *state)
 }
 
 static void
+hostfs_args_8_write_zeros(ARMul_State *state)
+{
+  const unsigned BUFSIZE = MINIMUM_BUFFER_SIZE;
+  FILE *f;
+  ARMword length;
+
+  assert(state);
+
+  f = open_file[state->Reg[1]];
+
+  dbug_hostfs("\tWrite zeros to file\n");
+  dbug_hostfs("\tr1 = %u (our file handle)\n", state->Reg[1]);
+  dbug_hostfs("\tr2 = %u (file offset at which to write)\n", state->Reg[2]);
+  dbug_hostfs("\tr3 = %u (number of zero bytes to write)\n", state->Reg[3]);
+
+  fseek(f, (long) state->Reg[2], SEEK_SET);
+
+  hostfs_ensure_buffer_size(BUFSIZE);
+  memset(buffer, 0, BUFSIZE);
+
+  length = state->Reg[3];
+  while (length > 0) {
+    size_t buffer_amount = MIN(length, BUFSIZE);
+    size_t written;
+
+    written = fwrite(buffer, 1, buffer_amount, f);
+    if (written < buffer_amount) {
+      fprintf(stderr, "fwrite(): %s\n", strerror(errno));
+      return;
+    }
+    length -= written;
+  }
+}
+
+static void
 hostfs_args_9_read_file_datestamp(ARMul_State *state)
 {
   assert(state);
@@ -945,6 +980,9 @@ hostfs_args(ARMul_State *state)
     break;
   case 7:
     hostfs_args_7_ensure_file_size(state);
+    break;
+  case 8:
+    hostfs_args_8_write_zeros(state);
     break;
   case 9:
     hostfs_args_9_read_file_datestamp(state);
