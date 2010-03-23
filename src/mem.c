@@ -236,9 +236,6 @@ uint32_t readmemfl(uint32_t addr)
                 return 0;
         }
         return 0;
-/*        error("Bad readmeml %08X %08X at %07X\n",addr,addr&0x1F000000,PC);
-        dumpregs();
-        exit(-1);*/
 }
 
 
@@ -379,9 +376,6 @@ uint32_t readmemfb(uint32_t addr)
                 return ramb2[addr & config.rammask];
         }
         return 0;
-/*        error("Bad readmemb %08X at %07X\n",addr,PC);
-        dumpregs();
-        exit(-1);*/
 }
 
 #define HASH(l) (((l)>>2)&0x7FFF)
@@ -509,9 +503,6 @@ void writememfl(uint32_t addr, uint32_t val)
                 case 0x1C000000: /*SIMM 1 bank 1*/
                 return;
         }
-/*        error("Bad writememl %08X %08X at %07X\n",addr,val,PC);
-        dumpregs();
-        exit(-1);*/
 }
 
 void writememfb(uint32_t addr, uint8_t val)
@@ -638,7 +629,4 @@ void writememfb(uint32_t addr, uint8_t val)
 //                dirtybuffer[(addr & config.rammask) >> 10] = 1;
                 return;
         }
-/*        error("Bad writememb %08X %02X at %07X\n",addr,val,PC);
-        dumpregs();
-        exit(-1);*/
 }

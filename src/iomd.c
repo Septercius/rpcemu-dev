@@ -444,9 +444,6 @@ void writeiomd(uint32_t addr, uint32_t val)
                 UNIMPLEMENTED("IOMD Register write",
                               "Unknown register 0x%x", addr & 0x1fc);
                 return;
-                error("Bad IOMD write register %03X %08X\n",addr&0x1FC,val);
-                dumpregs();
-                exit(-1);
         }
 }
 

@@ -53,17 +53,15 @@ void loadroms(void)
 
         /* Store current directory to return to later */
         if (getcwd(olddir, sizeof(olddir)) == NULL) {
-                error("getcwd() failed: %s", strerror(errno));
-                exit(EXIT_FAILURE);
+                fatal("getcwd() failed: %s", strerror(errno));
         }
 
         /* Change into roms directory */
         append_filename(fn,exname,dirname,sizeof(fn));
         if (chdir(fn))
         {
-                error("Cannot find roms directory '%s': %s", fn,
+                fatal("Cannot find roms directory '%s': %s", fn,
                       strerror(errno));
-                exit(EXIT_FAILURE);
         }
 
         /* Scan directory for ROM files */
@@ -76,8 +74,7 @@ void loadroms(void)
                 {
                         romfilenames[number_of_files] = strdup(ff.name);
                         if (romfilenames[number_of_files] == NULL) {
-                                error("Out of memory in loadroms()");
-                                exit(EXIT_FAILURE);
+                                fatal("Out of memory in loadroms()");
                         }
                         number_of_files++;
                 }
@@ -87,10 +84,9 @@ void loadroms(void)
 
         /* Empty directory? or only .txt files? */
         if (number_of_files == 0) {
-                error("Could not load ROM files from directory '%s'\n\n"
+                fatal("Could not load ROM files from directory '%s'\n\n"
                       ROM_WEB_SITE_STRING "\n",
                       dirname);
-                exit(EXIT_FAILURE);
         }
 
         /* Sort filenames into alphabetical order */
@@ -103,9 +99,8 @@ void loadroms(void)
 
                 f = fopen(romfilenames[c], "rb");
                 if (f == NULL) {
-                        error("Can't open ROM file '%s': %s", romfilenames[c],
+                        fatal("Can't open ROM file '%s': %s", romfilenames[c],
                               strerror(errno));
-                        exit(EXIT_FAILURE);
                 }
 
                 /* Calculate file size */
@@ -113,16 +108,14 @@ void loadroms(void)
                 len = ftell(f);
 
                 if (pos + len > ROMSIZE) {
-                        error("ROM files larger than 8MB");
-                        exit(EXIT_FAILURE);
+                        fatal("ROM files larger than 8MB");
                 }
 
                 /* Read file data */
                 rewind(f);
                 if (fread(&romb[pos], len, 1, f) != 1) {
-                        error("Error reading from ROM file '%s': %s",
+                        fatal("Error reading from ROM file '%s': %s",
                               romfilenames[c], strerror(errno));
-                        exit(EXIT_FAILURE);
                 }
 
                 fclose(f);
@@ -134,9 +127,8 @@ void loadroms(void)
 
         /* Return to initial directory */
         if (chdir(olddir)) {
-                error("Cannot return to previous directory '%s': %s", olddir,
+                fatal("Cannot return to previous directory '%s': %s", olddir,
                       strerror(errno));
-                exit(EXIT_FAILURE);
         }
 
         /* Reject ROMs that are not sensible sizes
@@ -148,8 +140,7 @@ void loadroms(void)
         if (pos != (2 * 1024 * 1024) && pos != (4 * 1024 * 1024)
             && pos != (6 * 1024 * 1024) && pos != (8 * 1024 * 1024))
         {
-                error("ROM Image of unsupported size: expecting 2MB, 4MB, 6MB or 8MB, got %d bytes", pos);
-                exit(EXIT_FAILURE);
+                fatal("ROM Image of unsupported size: expecting 2MB, 4MB, 6MB or 8MB, got %d bytes", pos);
         }
 
 #ifdef _RPCEMU_BIG_ENDIAN /*Byte swap*/

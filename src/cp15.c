@@ -278,9 +278,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 UNIMPLEMENTED("CP15 Write", "Unknown register %u", addr & 15);
                 break;
         }
-        // error("Bad write CP15 %08X %08X %07X\n",addr,val,PC);
-        // dumpregs();
-        // exit(-1);
+        // fatal("Bad write CP15 %08X %08X %07X\n", addr, val, PC);
 }
 
 uint32_t readcp15(uint32_t addr)
@@ -313,9 +311,7 @@ uint32_t readcp15(uint32_t addr)
                 default:
                 UNIMPLEMENTED("CP15 Read", "Unknown register %u", addr & 15);
         }
-        error("Bad read CP15 %08X %07X\n",addr,PC);
-        dumpregs();
-        exit(-1);
+        fatal("Bad read CP15 %08X %07X\n", addr, PC);
 }
 
 /*DOMAIN -
@@ -453,10 +449,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 return addr;
 
         default:
-                error("Bad descriptor type %i %08X\n",fld&3,fld);
-                error("Address %08X\n",addr);
-                dumpregs();
-                exit(-1);
+                fatal("Bad descriptor type %i %08X Address %08X\n", fld & 3, fld, addr);
         }
         exit(-1);
 
@@ -525,9 +518,7 @@ uint32_t *getpccache(uint32_t addr)
 //                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
                 return &ram2[((long)(addr2 & config.rammask) - (long)addr) >> 2];
         }
-        error("Bad PC %08X %08X\n",addr,addr2);
-        dumpregs();
-        exit(-1);
+        fatal("Bad PC %08X %08X\n", addr, addr2);
 }
 
 int isvalidforfastread(uint32_t addr)

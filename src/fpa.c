@@ -139,9 +139,7 @@ void fpaopcode(uint32_t opcode)
 /*                                armregs[15]+=8;
                                 undefined();
                                 return;*/
-                                error("Bad LDF/STF size %08X %08X\n",opcode&0x408000,opcode);
-                                dumpregs();
-                                exit(-1);
+                                fatal("Bad LDF/STF size %08X %08X\n", opcode & 0x408000, opcode);
                         }
 //                        rpclog("Address %07X len %i\n",addr,len);
                         if (opcode&0x100000)
@@ -367,9 +365,7 @@ void fpaopcode(uint32_t opcode)
                         return;
                 }
                 /*LFM/SFM*/
-                error("SFM opcode %08X\n",opcode);
-                dumpregs();
-                exit(-1);
+                fatal("SFM opcode %08X\n", opcode);
                 return;
                 case 0xE:
                 if (opcode&0x10)
@@ -385,10 +381,7 @@ void fpaopcode(uint32_t opcode)
                                         setsubf(fparegs[FN],tempf);
                                         return;
                                 }
-                                error("Compare opcode %08X %i\n",opcode,(opcode>>21)&7);
-                                rpclog("Compare opcode %08X %i\n",opcode,(opcode>>21)&7);
-                                dumpregs();
-                                exit(-1);
+                                fatal("Compare opcode %08X %i\n", opcode, (opcode >> 21) & 7);
                                 return;
                         }
                         /*Register transfer*/
@@ -415,9 +408,7 @@ void fpaopcode(uint32_t opcode)
                                 armregs[RD]=fpcr;
                                 return;
                         }
-                        error("Register opcode %08X at %07X\n",opcode,PC);
-                        dumpregs();
-                        exit(-1);
+                        fatal("Register opcode %08X at %07X\n", opcode, PC);
                         return;
                 }
                 if (opcode&8) tempf=fconstants[opcode&7];
@@ -506,11 +497,7 @@ void fpaopcode(uint32_t opcode)
                         return;
                 }
                 /*Data processing*/
-                error("Bad data opcode %08X %06X\n",opcode,opcode&0xF08000);
-                rpclog("Bad data opcode %08X %06X\n",opcode,opcode&0xF08000);
-                rpclog("Fm is equal to %f\n",tempf);
-                dumpregs();
-                exit(-1);
+                fatal("Bad data opcode %08X %06X\n", opcode, opcode & 0xF08000);
                 return;
         }
 }

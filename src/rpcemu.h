@@ -13,6 +13,11 @@
 #define NDEBUG
 #endif
 
+/* If we're not using GNU C, elide __attribute__ */
+#ifndef __GNUC__
+# define __attribute__(x) /*NOTHING*/
+#endif
+
 #if defined WIN32 || defined _WIN32 || defined _WIN32
         #define RPCEMU_WIN
 	#ifdef _MSC_VER // Microsoft Visual Studio
@@ -141,7 +146,7 @@ extern int rinscount;
 extern int cyccount;
 
 /* rpc-[linux|win].c */
-extern void fatal(const char *format, ...);
+extern void fatal(const char *format, ...) __attribute__((noreturn));
 extern void error(const char *format, ...);
 extern void updatewindowsize(uint32_t x, uint32_t y);
 extern void updateirqs(void);
