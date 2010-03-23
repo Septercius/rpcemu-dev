@@ -197,8 +197,7 @@ void initvideo(void)
         }
         else
         {
-                error("Your desktop must be set to either 16-bit or 32-bit colour to run RPCemu");
-                exit(0);
+                fatal("Your desktop must be set to either 16-bit or 32-bit colour to run RPCemu");
         }
 #endif
 
@@ -936,8 +935,7 @@ void vidcthread(void)
 //                        textprintf(screen,font,0,16,makecol(255,255,255),"%i %i   ",yl,yh);
                         break;
                         default:
-                        error("Bad BPP %i\n",thr.bpp);
-                        exit(-1);
+                        fatal("Bad BPP %i\n", thr.bpp);
                 }
                 break;
                 case 32:
@@ -1227,8 +1225,7 @@ void vidcthread(void)
                         }
                         break;
                         default:
-                        error("Bad BPP %i\n",thr.bpp);
-                        exit(-1);
+                        fatal("Bad BPP %i\n", thr.bpp);
                 }
         }
         if (thr.cursorheight>1)

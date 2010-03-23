@@ -459,9 +459,7 @@ mouse_data_write(uint8_t val)
                         break;
 
                 default:
-                        error("Bad mouse command %02X\n", val);
-                        dumpregs();
-                        exit(-1);
+                        fatal("Bad mouse command %02X\n", val);
                 }
         }
 }

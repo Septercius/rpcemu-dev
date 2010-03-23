@@ -493,8 +493,7 @@ void writeide(uint16_t addr, uint8_t val)
                 case WIN_READ:
 /*                        if (ide.secount>1)
                         {
-                                error("Read %i sectors from sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
-                                exit(-1);
+                                fatal("Read %i sectors from sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
                         }*/
 //                        rpclog("Read %i sectors from sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
                         ide.atastat[ide.board] = BUSY_STAT;
@@ -504,8 +503,7 @@ void writeide(uint16_t addr, uint8_t val)
                 case WIN_WRITE:
 /*                        if (ide.secount>1)
                         {
-                                error("Write %i sectors to sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
-                                exit(-1);
+                                fatal("Write %i sectors to sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
                         }*/
 //                        rpclog("Write %i sectors to sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
                         ide.atastat[ide.board] = DRQ_STAT;
@@ -548,9 +546,7 @@ void writeide(uint16_t addr, uint8_t val)
                         ide.pos=0;
                         return;
                 }
-                error("Bad IDE command %02X\n",val);
-                dumpregs();
-                exit(-1);
+                fatal("Bad IDE command %02X\n", val);
                 return;
 
         case 0x3F6: /* Device control */
@@ -564,9 +560,7 @@ void writeide(uint16_t addr, uint8_t val)
                 ide.fdisk=val;
                 return;
         }
-        error("Bad IDE write %04X %02X\n",addr,val);
-        dumpregs();
-        exit(-1);
+        fatal("Bad IDE write %04X %02X\n", addr, val);
 }
 
 uint8_t readide(uint16_t addr)
@@ -613,9 +607,7 @@ uint8_t readide(uint16_t addr)
         case 0x3F6: /* Alternate Status */
                 return ide.atastat[ide.board];
         }
-        error("Bad IDE read %04X\n",addr);
-        dumpregs();
-        exit(-1);
+        fatal("Bad IDE read %04X\n", addr);
 }
 
 uint16_t readidew(void)
@@ -703,8 +695,7 @@ void callbackide(void)
 //                rpclog("Read %i %i %i %08X\n",ide.cylinder,ide.head,ide.sector,addr);
                 /*                if (ide.cylinder || ide.head)
                 {
-                        error("Read from other cylinder/head");
-                        exit(-1);
+                        fatal("Read from other cylinder/head");
                 }*/
                 fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
                 fread(ide.buffer, 512, 1, ide.hdfile[ide.drive | ide.board]);

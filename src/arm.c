@@ -191,9 +191,7 @@ void updatemode(uint32_t m)
                 break;
 
             default:
-                error("Bad mode %i\n",mode);
-                dumpregs();
-                exit(-1);
+                fatal("Bad mode %i\n", mode);
         }
 
         if (mode&16)
@@ -458,9 +456,7 @@ shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
                         return (rm>>shiftamount)|(rm<<(32-shiftamount));
 
                         default:
-                        error("Shift2 mode %u amount %u\n", shiftmode, shiftamount);
-                        dumpregs();
-                        exit(-1);
+                        fatal("Shift2 mode %u amount %u\n", shiftmode, shiftamount);
                 }
 }
 //#endif
@@ -1257,15 +1253,11 @@ void execarm(int cycs)
 //                                {
                                 if ((opcode&0xE0000F0)==0xB0) /*LDRH/STRH*/
                                 {
-                                        error("Bad LDRH/STRH opcode %08X\n",opcode);
-                                        dumpregs();
-                                        exit(-1);
+                                        fatal("Bad LDRH/STRH opcode %08X\n", opcode);
                                 }
                                 else if ((opcode&0xE1000D0)==0x1000D0) /*LDRS*/
                                 {
-                                        error("Bad LDRH/STRH opcode %08X\n",opcode);
-                                        dumpregs();
-                                        exit(-1);
+                                        fatal("Bad LDRH/STRH opcode %08X\n", opcode);
 //                                }
 //                                goto domain;
                                 }
@@ -2759,9 +2751,8 @@ void execarm(int cycs)
                                 }
                                 else if (databort==2) /*Address Exception*/
                                 {
-                                error("Exception %i %i %i\n",databort,armirq,prefabort);
-                                dumpregs();
-                                exit(-1);
+                                        fatal("Exception %i %i %i\n", databort, armirq, prefabort);
+
                                         templ=armregs[15];
                                         armregs[15]|=3;
                                         updatemode(SUPERVISOR);

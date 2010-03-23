@@ -234,9 +234,7 @@ int ioctl_open(char d)
 	hIOCTL	= CreateFile(/*"\\\\.\\g:"*/ioctl_path,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,0,NULL);
 	if (!hIOCTL)
 	{
-                error("IOCTL");
-                dumpregs();
-                exit(-1);
+                fatal("IOCTL");
         }
         atapi=&ioctl_atapi;
         ioctl_inited=1;

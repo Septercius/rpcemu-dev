@@ -256,9 +256,7 @@ void writefdc(uint32_t addr, uint32_t val)
                 }
                 if (fdc.incommand)
                 {
-                        error("FDC already in command\n");
-                        dumpregs();
-                        exit(-1);
+                        fatal("FDC already in command\n");
                 }
                 fdc.incommand=1;
                 fdc.commandpos=0;
@@ -329,9 +327,7 @@ void writefdc(uint32_t addr, uint32_t val)
                 default:
                         UNIMPLEMENTED("FDC command 2",
                                       "Unknown command 0x%02x", fdc.command);
-                        error("Bad FDC command %02X\n",val);
-                        dumpregs();
-                        exit(-1);
+                        fatal("Bad FDC command %02X\n", val);
                 }
                 break;
 

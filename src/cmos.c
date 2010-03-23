@@ -126,9 +126,8 @@ void loadcmos(void)
         if (cmosf) {
                 /* File open suceeded, load CMOS data */
                 if (fread(cmosram, 1, 256, cmosf) != 256) {
-                        error("Unable to read from CMOS file '%s', %s", fn,
+                        fatal("Unable to read from CMOS file '%s', %s", fn,
                               strerror(errno));
-                        exit(EXIT_FAILURE);
                 }
                 fclose(cmosf);
         } else {
@@ -159,9 +158,8 @@ void savecmos(void)
 
         if (cmosf) {
                 if(fwrite(cmosram, 256, 1, cmosf) != 1) {
-                        error("Unable to write CMOS file '%s': %s", fn,
+                        fatal("Unable to write CMOS file '%s': %s", fn,
                               strerror(errno));
-                        exit(EXIT_FAILURE);
                         // TODO does it have to be fatal?
                 }
                 fclose(cmosf);

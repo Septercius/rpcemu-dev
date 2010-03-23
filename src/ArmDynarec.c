@@ -170,9 +170,7 @@ void updatemode(uint32_t m)
                 break;
 
             default:
-                error("Bad mode %i\n",mode);
-                dumpregs();
-                exit(-1);
+                fatal("Bad mode %i\n", mode);
         }
 
         if (mode&16)
@@ -438,9 +436,7 @@ shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
                         return (rm>>shiftamount)|(rm<<(32-shiftamount));
 
                         default:
-                        error("Shift2 mode %u amount %u\n", shiftmode, shiftamount);
-                        dumpregs();
-                        exit(-1);
+                        fatal("Shift2 mode %u amount %u\n", shiftmode, shiftamount);
                 }
 }
 //#endif
@@ -535,7 +531,6 @@ static const int ldrlookup[4]={0,8,16,24};
 static void bad_opcode(uint32_t opcode) 
 {
      error("Bad opcode %02X %08X at %07X\n",(opcode >> 20) & 0xFF, opcode, PC);
-     rpclog("Bad opcode %02X %08X at %07X\n",(opcode >> 20) & 0xFF, opcode, PC);
      dumpregs();
      exit(EXIT_FAILURE);
 }
