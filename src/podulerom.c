@@ -53,7 +53,10 @@ void initpodulerom(void)
         if (podulerom) free(podulerom);
         poduleromsize = 0;
 
-        getcwd(olddir,sizeof(olddir));
+	if (getcwd(olddir, sizeof(olddir)) == NULL) {
+		fatal("initpodulerom: Failed to read working directory: %s",
+		      strerror(errno));
+	}
         append_filename(fn,exname,"poduleroms",sizeof(fn));
         if (chdir(fn) == 0)
         {
@@ -92,11 +95,19 @@ void initpodulerom(void)
                 if (podulerom == NULL) fatal("Out of Memory");
 
                 fseek(f,0,SEEK_SET);
-                fread(podulerom+filebase,len,1,f);
+		if (fread(podulerom + filebase, 1, len, f) != len) {
+			fatal("initpodulerom: Failed to read file '%s': %s",
+			      romfns[i], strerror(errno));
+		}
                 fclose(f);
+		rpclog("initpodulerom: Successfully loaded '%s' into podulerom\n",
+		       romfns[i]);
                 makechunk(0x81, filebase, len);
                 filebase+=(len+3)&~3;
         }
-        chdir(olddir);
+	if (chdir(olddir) == -1) {
+		fatal("initpodulerom: Failed to return to previous directory '%s': '%s'",
+		      olddir, strerror(errno));
+	}
         addpodule(NULL,NULL,NULL,NULL,NULL,readpodulerom,NULL,NULL,0);
 }
