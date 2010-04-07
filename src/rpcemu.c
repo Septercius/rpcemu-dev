@@ -385,10 +385,24 @@ loadconfig(void)
 		config.network_type = NetworkType_Off;
 	}
 
-        config.username  = get_config_string(NULL, "username",  NULL);
-        config.ipaddress = get_config_string(NULL, "ipaddress", NULL);
-        config.macaddress = get_config_string(NULL, "macaddress", NULL);
-        config.bridgename = get_config_string(NULL, "bridgename", NULL);
+	/* Take a copy of the string config values, to allow dynamic alteration
+	   later */
+	config.username   = get_config_string(NULL, "username",  NULL);
+	if (config.username) {
+		config.username = strdup(config.username);
+	}
+	config.ipaddress  = get_config_string(NULL, "ipaddress", NULL);
+	if (config.ipaddress) {
+		config.ipaddress = strdup(config.ipaddress);
+	}
+	config.macaddress = get_config_string(NULL, "macaddress", NULL);
+	if (config.macaddress) {
+		config.macaddress = strdup(config.macaddress);
+	}
+	config.bridgename = get_config_string(NULL, "bridgename", NULL);
+	if (config.bridgename) {
+		config.bridgename = strdup(config.bridgename);
+	}
 }
 
 /**
@@ -444,7 +458,7 @@ saveconfig(void)
 		       config.network_type);
 		exit(EXIT_FAILURE);
 	}
-	set_config_string(NULL, "networktype", s);
+	set_config_string(NULL, "network_type", s);
 
 	if (config.username) {
 		set_config_string(NULL, "username", config.username);
