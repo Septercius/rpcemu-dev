@@ -1758,7 +1758,7 @@ hostfs_read_dir(ARMul_State *state, bool with_info)
     }
 
     /* Find out whether we have now completed the directory */
-    if (offset >= cache_entries_count) {
+    if (offset >= cache_entries_count && count == 0) {
       /* We have completed the directory - return this fact */
       dbug_hostfs("HostFS completed directory\n");
       state->Reg[4] = (uint32_t) -1;
