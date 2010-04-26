@@ -23,7 +23,6 @@ typedef struct podule
         int broken;
 } podule;
 
-void initpodules(void);
 void rethinkpoduleints(void);
 
 podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
@@ -37,6 +36,6 @@ podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t va
               int broken);
 
 void runpoduletimers(int t);
-void resetpodules(void);
+void podules_reset(void);
 
 #endif

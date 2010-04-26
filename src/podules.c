@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "rpcemu.h"
 #include "iomd.h"
 #include "podules.h"
@@ -10,21 +12,29 @@
 static podule podules[8];
 static int freepodule;
 
-void initpodules(void)
+/**
+ * Reset and empty all the podule slots
+ *
+ * Safe to call on program startup and user instigated virtual machine
+ * reset.
+ */
+void
+podules_reset(void)
 {
-        int c;
-        for (c=0;c<8;c++)
-        {
-                podules[c].readl=NULL;
-                podules[c].readw=NULL;
-                podules[c].readb=NULL;
-                podules[c].writel=NULL;
-                podules[c].writew=NULL;
-                podules[c].writeb=NULL;
-                podules[c].timercallback=NULL;
-                podules[c].irq=podules[c].fiq=0;
-        }
-        freepodule=0;
+	int c;
+
+	/* Call any reset functions that an open podule may have to allow
+	   then to tidy open files etc */
+	for (c = 0; c < 8; c++) {
+		if (podules[c].reset) {
+                        podules[c].reset(&podules[c]);
+                }
+	}
+
+	/* Blank all 8 podules */
+	memset(podules, 0, 8 * sizeof(podule));
+
+	freepodule = 0;
 }
   
 podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
@@ -171,20 +181,6 @@ void runpoduletimers(int t)
                                         rethinkpoduleints();
                                 }
                         }
-                }
-        }
-}
-
-void resetpodules(void)
-{
-        int c;
-//        rpclog("Reset podules!\n");
-        for (c=0;c<8;c++)
-        {
-                if (podules[c].reset)
-                {
-//                        rpclog("Resetting podule %i\n",c);
-                        podules[c].reset(&podules[c]);
                 }
         }
 }
