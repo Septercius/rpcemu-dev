@@ -1671,16 +1671,17 @@ hostfs_cache_dir(const char *directory_name)
 }
 
 /**
- * Return directory information for FSEntry_Func 14 and 15.
+ * Return directory information for FSEntry_Func 14, 15 and 19.
  * Uses and updates the cached directory information.
  *
  * @param state Emulator state
  * @param with_info Whether the returned data should include information with
  *                  each entry, or just names.
+ * @param with_timestamp Whether the returned information should also include
+ *                       the timestamp.
  */
-
 static void
-hostfs_read_dir(ARMul_State *state, bool with_info)
+hostfs_read_dir(ARMul_State *state, bool with_info, bool with_timestamp)
 {
   static char cached_directory[PATH_MAX] = { '\0' }; /* Directory stored in the cache */
   char ro_path[PATH_MAX], host_pathname[PATH_MAX];
@@ -1728,9 +1729,15 @@ hostfs_read_dir(ARMul_State *state, bool with_info)
       /* Calculate space required to return name and (optionally) info */
       string_space = (unsigned) strlen(cache_names + cache_entries[offset].name_offset) + 1;
       if (with_info) {
-        /* Space required for info, everything word-aligned */
-        string_space = ROUND_UP_TO_4(string_space);
-        entry_space = (5 * sizeof(ARMword)) + string_space;
+        if (with_timestamp) {
+          /* Space required for info with timestamp:
+             6 words of info, a 5-byte timestamp, and the string, rounded up */
+          entry_space = ROUND_UP_TO_4((6 * sizeof(ARMword)) + 5 + string_space);
+        } else {
+          /* Space required for info:
+             5 words of info, and the string, rounded up */
+          entry_space = ROUND_UP_TO_4((5 * sizeof(ARMword)) + string_space);
+        }
       } else {
         entry_space = string_space;
       }
@@ -1747,11 +1754,31 @@ hostfs_read_dir(ARMul_State *state, bool with_info)
         ARMul_StoreWordS(state, ptr + 8,  cache_entries[offset].object_info.length);
         ARMul_StoreWordS(state, ptr + 12, cache_entries[offset].object_info.attribs);
         ARMul_StoreWordS(state, ptr + 16, cache_entries[offset].object_info.type);
-        ptr += 20;
+
+        if (with_timestamp) {
+          ARMul_StoreWordS(state, ptr + 20, 0); /* Always 0 */
+          /* Test if Load and Exec contain timestamp */
+          if ((cache_entries[offset].object_info.load & 0xfff00000u) == 0xfff00000u) {
+            ARMul_StoreWordS(state, ptr + 24,
+                             (cache_entries[offset].object_info.load << 24) |
+                             (cache_entries[offset].object_info.exec >> 8));
+            ARMul_StoreByte(state, ptr + 28,
+                            cache_entries[offset].object_info.exec & 0xff);
+          } else {
+            ARMul_StoreWordS(state, ptr + 24, 0);
+            ARMul_StoreByte(state, ptr + 28, 0);
+          }
+          ptr += 29;
+        } else {
+          ptr += 20;
+        }
       }
       put_string(state, ptr, cache_names + cache_entries[offset].name_offset);
 
       ptr += string_space;
+      if (with_info) {
+        ptr = ROUND_UP_TO_4(ptr);
+      }
       buffer_remaining -= entry_space;
       count ++;
       offset ++;
@@ -1778,7 +1805,7 @@ hostfs_func_14_read_dir(ARMul_State *state)
 
   dbug_hostfs("\tRead directory entries\n");
 
-  hostfs_read_dir(state, false);
+  hostfs_read_dir(state, false, false);
 }
 
 static void
@@ -1788,7 +1815,17 @@ hostfs_func_15_read_dir_info(ARMul_State *state)
 
   dbug_hostfs("\tRead directory entries and information\n");
 
-  hostfs_read_dir(state, true);
+  hostfs_read_dir(state, true, false);
+}
+
+static void
+hostfs_func_19_read_dir_info_timestamp(ARMul_State *state)
+{
+  assert(state);
+
+  dbug_hostfs("\tRead directory entries and information with timestamp\n");
+
+  hostfs_read_dir(state, true, true);
 }
 
 static void
@@ -1817,6 +1854,10 @@ hostfs_func(ARMul_State *state)
 
   case 15:
     hostfs_func_15_read_dir_info(state);
+    break;
+
+  case 19:
+    hostfs_func_19_read_dir_info_timestamp(state);
     break;
   }
 }
