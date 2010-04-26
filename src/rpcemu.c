@@ -177,7 +177,7 @@ resetrpc(void)
         reseti2c();
         resetide();
         superio_reset();
-        resetpodules();
+        podules_reset();
 }
 
 /**
@@ -238,7 +238,7 @@ startrpcemu(void)
         iso_init();
         if (config.cdromtype == 2) /* ISO */
                 iso_open(config.isoname);
-        initpodules();
+        podules_reset();
         initpodulerom();
         //initics();
 //        iso_open("e:/au_cd8.iso");
