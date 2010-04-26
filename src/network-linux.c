@@ -456,3 +456,17 @@ void initnetwork(void)
     }
 }
 
+/**
+ * Shutdown any running network components.
+ *
+ * Called on program shutdown and program reset after
+ * configuration has changed.
+ */
+void
+network_reset(void)
+{
+	if (tunfd != -1) {
+		close(tunfd);
+		tunfd = -1;
+	}
+}

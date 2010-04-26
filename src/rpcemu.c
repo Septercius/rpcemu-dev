@@ -178,6 +178,16 @@ resetrpc(void)
         resetide();
         superio_reset();
         podules_reset();
+
+#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+	network_reset();
+
+	if (config.network_type == NetworkType_EthernetBridging ||
+	    config.network_type == NetworkType_IPTunnelling)
+	{
+		initnetwork();
+	}
+#endif
 }
 
 /**
@@ -305,6 +315,10 @@ endrpcemu(void)
         free(rom);
         savecmos();
         saveconfig();
+
+#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+	network_reset();
+#endif
 }
 
 /**

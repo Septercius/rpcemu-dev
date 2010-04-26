@@ -13,6 +13,7 @@ void networkswi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3,
                 uint32_t r4, uint32_t r5, uint32_t *retr0, uint32_t *retr1);
 
 void initnetwork(void);
+void network_reset(void);
 
 /* Functions shared between each platform, in network.c */
 void memcpytohost(void *dest, uint32_t src, uint32_t len);
