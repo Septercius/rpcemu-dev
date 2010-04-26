@@ -277,3 +277,17 @@ void initnetwork(void)
     }
 }
 
+/**
+ * Shutdown any running network components.
+ *
+ * Called on program shutdown and program reset after
+ * configuration has changed.
+ */
+void
+network_reset(void)
+{
+	if (tap_handle) {
+		tap_cleanup(tap_handle);
+		tap_handle = NULL;
+	}
+}
