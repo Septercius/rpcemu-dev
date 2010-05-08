@@ -9,6 +9,8 @@
 
 #include "rpcemu.h"
 
+#include "config.h"
+
 #include "arm.h"
 #include "mem.h"
 #include "keyboard.h"
