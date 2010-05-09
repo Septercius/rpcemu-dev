@@ -566,8 +566,8 @@ hostfs_path_scan(const char *host_dir_path,
   while ((entry = readdir(d)) != NULL) {
     char entry_path[PATH_MAX], ro_leaf[PATH_MAX];
 
-    /* Hidden files are completely ignored */
-    if (entry->d_name[0] == '.') {
+    /* Ignore the current directory and it's parent */
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
       continue;
     }
 
@@ -1610,8 +1610,8 @@ hostfs_cache_dir(const char *directory_name)
     char entry_path[PATH_MAX], ro_leaf[PATH_MAX];
     unsigned string_space;
 
-    /* Hidden entries are completely ignored */
-    if (entry->d_name[0] == '.') {
+    /* Ignore the current directory and it's parent */
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
       continue;
     }
 
