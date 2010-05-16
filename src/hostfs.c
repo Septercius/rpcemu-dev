@@ -551,6 +551,7 @@ hostfs_path_scan(const char *host_dir_path,
   if (!d) {
     switch (errno) {
     case ENOENT: /* Object not found */
+    case ENOTDIR: /* Object not a directory */
       object_info->type = OBJECT_TYPE_NOT_FOUND;
       break;
 
