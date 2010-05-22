@@ -125,10 +125,10 @@ typedef struct {
 	int rammask;
 	int vrammask;
 	int stretchmode;
-	const char *username;
-	const char *ipaddress;
-	const char *macaddress;
-	const char *bridgename;
+	char *username;
+	char *ipaddress;
+	char *macaddress;
+	char *bridgename;
 	int refresh;		/* Video refresh rate */
 	int soundenabled;
 	int skipblits;
