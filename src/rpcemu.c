@@ -401,21 +401,21 @@ loadconfig(void)
 
 	/* Take a copy of the string config values, to allow dynamic alteration
 	   later */
-	config.username   = get_config_string(NULL, "username",  NULL);
-	if (config.username) {
-		config.username = strdup(config.username);
+	p = get_config_string(NULL, "username", NULL);
+	if (p) {
+		config.username = strdup(p);
 	}
-	config.ipaddress  = get_config_string(NULL, "ipaddress", NULL);
-	if (config.ipaddress) {
-		config.ipaddress = strdup(config.ipaddress);
+	p = get_config_string(NULL, "ipaddress", NULL);
+	if (p) {
+		config.ipaddress = strdup(p);
 	}
-	config.macaddress = get_config_string(NULL, "macaddress", NULL);
-	if (config.macaddress) {
-		config.macaddress = strdup(config.macaddress);
+	p = get_config_string(NULL, "macaddress", NULL);
+	if (p) {
+		config.macaddress = strdup(p);
 	}
-	config.bridgename = get_config_string(NULL, "bridgename", NULL);
-	if (config.bridgename) {
-		config.bridgename = strdup(config.bridgename);
+	p = get_config_string(NULL, "bridgename", NULL);
+	if (p) {
+		config.bridgename = strdup(p);
 	}
 }
 
@@ -442,11 +442,8 @@ saveconfig(void)
                 case CPUModel_ARM7500FE: sprintf(s, "ARM7500FE"); break;
                 default:
                         /* Forgotten to add a new CPU model to the switch()? */
-                        fprintf(stderr, "saveconfig(): unknown cpu model %d\n",
-                                config.model);
-                        rpclog("saveconfig(): unknown cpu model %d\n",
-                               config.model);
-                        exit(EXIT_FAILURE);
+                        fatal("saveconfig(): unknown cpu model %d\n",
+                              config.model);
         }
         set_config_string(NULL,"cpu_type",s);
         if (config.vrammask) set_config_string(NULL, "vram_size", "2");
@@ -466,24 +463,29 @@ saveconfig(void)
 	case NetworkType_IPTunnelling:     sprintf(s, "iptunnelling"); break;
 	default:
 		/* Forgotten to add a new network type to the switch()? */
-		fprintf(stderr, "saveconfig(): unknown networktype %d\n",
-		        config.network_type);
-		rpclog("saveconfig(): unknown networktype %d\n",
-		       config.network_type);
-		exit(EXIT_FAILURE);
+		fatal("saveconfig(): unknown networktype %d\n",
+		      config.network_type);
 	}
 	set_config_string(NULL, "network_type", s);
 
 	if (config.username) {
 		set_config_string(NULL, "username", config.username);
+	} else {
+		set_config_string(NULL, "username", "");
 	}
 	if (config.ipaddress) {
 		set_config_string(NULL, "ipaddress", config.ipaddress);
+	} else {
+		set_config_string(NULL, "ipaddress", "");
 	}
 	if (config.macaddress) {
 		set_config_string(NULL, "macaddress", config.macaddress);
+	} else {
+		set_config_string(NULL, "macaddress", "");
 	}
 	if (config.bridgename) {
 		set_config_string(NULL, "bridgename", config.bridgename);
+	} else {
+		set_config_string(NULL, "bridgename", "");
 	}
 }
