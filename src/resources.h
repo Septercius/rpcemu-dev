@@ -1,8 +1,10 @@
+/* Menu Items */
 #define IDM_FILE_RESET     40000
 #define IDM_FILE_EXIT      40001
 #define IDM_DISC_LD0       40010
 #define IDM_DISC_LD1       40011
 #define IDM_CONFIG         40052
+#define IDM_NETWORKING     40066   /* Last ID */
 #define IDM_STRETCH        40053
 #define IDM_FULLSCR        40054
 #define IDM_BLITOPT        40055
@@ -13,7 +15,7 @@
 #define IDM_MOUSE_FOL      40064
 #define IDM_MOUSE_CAP      40065
 
-
+/* Indexes into the items of the CONFIGUREDLG Dialog */
 #define RadioButton_ARM610	1000
 #define RadioButton_ARM710	1001
 #define RadioButton_SA110	1002
@@ -42,3 +44,9 @@
 #define Slider_Refresh		1040
 
 #define Text_Refresh		1050
+
+/* Indexes into the items of the NETWORKDLG Dialog */
+#define RadioButton_Off			2000
+#define RadioButton_EthernetBridging	2001
+#define Edit_BridgeName			2002
+#define Text_BridgeName			2003

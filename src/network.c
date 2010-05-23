@@ -61,6 +61,7 @@ network_config_changed(NetworkType network_type, const char *bridgename,
 	if (bridgename == NULL && config.bridgename != NULL) {
 		/* Turned off */
 		free(config.bridgename);
+		config.bridgename = NULL;
 		if (config.network_type == NetworkType_EthernetBridging) {
 			restart_required = 1;
 		}
@@ -86,6 +87,7 @@ network_config_changed(NetworkType network_type, const char *bridgename,
 	if (ipaddress == NULL && config.ipaddress != NULL) {
 		/* Turned off */
 		free(config.ipaddress);
+		config.ipaddress = NULL;
 		if (config.network_type == NetworkType_IPTunnelling) {
 			restart_required = 1;
 		}

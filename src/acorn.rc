@@ -18,6 +18,7 @@ BEGIN
         POPUP "&Settings"
         BEGIN
                 MENUITEM "&Configure...",IDM_CONFIG
+                MENUITEM "&Networking...",IDM_NETWORKING
                 MENUITEM "&Fullscreen mode",IDM_FULLSCR
                 MENUITEM "&Alternative blitting code",IDM_STRETCH
                 MENUITEM "&Blitting optimisation",IDM_BLITOPT
@@ -66,4 +67,17 @@ BEGIN
    GROUPBOX "Video refresh rate", GroupBox_Refresh, 5, 152, 168, 30 , WS_TABSTOP
 CONTROL "Slider1", Slider_Refresh, "msctls_trackbar32" , WS_TABSTOP  | TBS_AUTOTICKS,  9, 162, 140, 13
 LTEXT "60hz", Text_Refresh, 150, 162, 20, 8 , WS_TABSTOP
+END
+
+NetworkDlg DIALOGEX 0, 0, 213, 93
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Configure RPCemu Networking"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,57,72,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,111,72,50,14
+    RADIOBUTTON     "Off", RadioButton_Off, 15,16,27,10, WS_TABSTOP
+    RADIOBUTTON     "Ethernet Bridging", RadioButton_EthernetBridging, 15,30,71,10, WS_TABSTOP
+    EDITTEXT        Edit_BridgeName,87,44,102,14,ES_AUTOHSCROLL
+    LTEXT           "Bridge Name",Text_BridgeName,43,47,41,8
 END
