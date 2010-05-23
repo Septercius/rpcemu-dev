@@ -28,6 +28,7 @@
 #include "podules-win.h"
 #include "cdrom-iso.h"
 #include "cdrom-ioctl.h"
+#include "network.h"
 
 extern void sig_io(int sig);
 
@@ -772,6 +773,99 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
 }
 
 /**
+ * Dialog procedure to handle events on the networking window
+ *
+ * @param hdlg    Handle to current program instance
+ * @param message Event type this dialog has just received
+ * @param wParam  message specific data
+ * @param lParam  message specific data
+ * @return
+ */
+static BOOL CALLBACK
+networkdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	char default_bridgename[] = "rpcemu";
+
+	switch (message) {
+	case WM_INITDIALOG:
+		/* Network Type */
+		if (config.network_type == NetworkType_EthernetBridging) {
+			SendMessage(GetDlgItem(hdlg, RadioButton_EthernetBridging), BM_SETCHECK, 1, 0);
+
+			/* Make sure Bridgename is visible */
+			EnableWindow(GetDlgItem(hdlg, Edit_BridgeName), 1);
+			EnableWindow(GetDlgItem(hdlg, Text_BridgeName), 1);
+		} else {
+			SendMessage(GetDlgItem(hdlg, RadioButton_Off), BM_SETCHECK, 1, 0);
+
+			/* Disable bridgename */
+			EnableWindow(GetDlgItem(hdlg, Edit_BridgeName), 0);
+			EnableWindow(GetDlgItem(hdlg, Text_BridgeName), 0);
+		}
+
+		/* Bridge name */
+		SendMessage(GetDlgItem(hdlg, Edit_BridgeName), WM_SETTEXT, 0,
+		            config.bridgename ? (LPARAM) config.bridgename : (LPARAM) default_bridgename);
+
+		return TRUE;
+
+	case WM_COMMAND:
+		switch (LOWORD(wParam)) {
+		case IDOK:
+		{
+			NetworkType selected_network_type = NetworkType_Off;
+			char gui_bridgename[50] = "";
+
+			/* User has clicked on the OK button of the config dialog,
+			   apply their changes */
+
+			if (SendMessage(GetDlgItem(hdlg, RadioButton_Off), BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				selected_network_type = NetworkType_Off;
+			} else if (SendMessage(GetDlgItem(hdlg, RadioButton_EthernetBridging), BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				selected_network_type = NetworkType_EthernetBridging;
+			} else {
+				rpclog("Unknown network type returned from GUI, defaulting to off");
+				selected_network_type = NetworkType_Off;
+			}
+
+			GetWindowText(GetDlgItem(hdlg, Edit_BridgeName), (LPSTR) &gui_bridgename, 50);
+
+			/* Pass on the values to the core, to see if we need to reboot */
+			if (network_config_changed(selected_network_type, gui_bridgename, NULL)) {
+				resetrpc();
+			}
+
+			EndDialog(hdlg, 0);
+			return TRUE;
+		}
+
+		case IDCANCEL:
+			EndDialog(hdlg, 0);
+			return TRUE;
+
+		case RadioButton_EthernetBridging:
+			SendMessage(GetDlgItem(hdlg, RadioButton_Off), BM_SETCHECK, 0, 0);
+			SendMessage(GetDlgItem(hdlg, RadioButton_EthernetBridging), BM_SETCHECK, 1, 0);
+
+			/* Make sure Bridgename is visible */
+			EnableWindow(GetDlgItem(hdlg, Edit_BridgeName), 1);
+			EnableWindow(GetDlgItem(hdlg, Text_BridgeName), 1);
+			return TRUE;
+
+		case RadioButton_Off:
+			SendMessage(GetDlgItem(hdlg, RadioButton_EthernetBridging), BM_SETCHECK, 0, 0);
+			SendMessage(GetDlgItem(hdlg, RadioButton_Off), BM_SETCHECK, 1, 0);
+
+			/* Disable bridgename */
+			EnableWindow(GetDlgItem(hdlg, Edit_BridgeName), 0);
+			EnableWindow(GetDlgItem(hdlg, Text_BridgeName), 0);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+/**
  * Window procedure to handle events on the main program window
  *
  * @param hdlg    Handle to current program instance
@@ -811,6 +905,10 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
 
                 case IDM_CONFIG:
                         DialogBox(hinstance,TEXT("ConfigureDlg"),ghwnd,configdlgproc);
+                        return 0;
+
+                case IDM_NETWORKING:
+                        DialogBox(hinstance, TEXT("NetworkDlg"), ghwnd, networkdlgproc);
                         return 0;
 
                 case IDM_STRETCH:
