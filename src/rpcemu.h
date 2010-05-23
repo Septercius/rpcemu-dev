@@ -107,6 +107,7 @@ typedef enum {
 	NetworkType_Off,
 	NetworkType_EthernetBridging,
 	NetworkType_IPTunnelling,
+	NetworkType_MAX
 } NetworkType;
 
 /** The type of processor configured */
