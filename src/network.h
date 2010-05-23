@@ -1,6 +1,8 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
+#include "rpcemu.h"
+
 /* RPCemu networking */
 
 /* Functions provided by each host platform's network code */
@@ -19,6 +21,9 @@ void network_reset(void);
 void memcpytohost(void *dest, uint32_t src, uint32_t len);
 void memcpyfromhost(uint32_t dest, const void *source, uint32_t len);
 void strcpyfromhost(uint32_t dest, const char *source);
+
+int network_config_changed(NetworkType networktype, const char *bridgename,
+                           const char *ipaddress);
 
 /* Structures and variables shared between each host platform's network code */
 

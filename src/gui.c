@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include <allegro.h>
+
+#include "config.h"
 #include "rpcemu.h"
 #include "vidc20.h"
 #include "sound.h"
@@ -7,12 +9,13 @@
 #include "fdc.h"
 #include "ide.h"
 #include "cdrom-iso.h"
+#include "network.h"
 
 extern void ioctl_init(void);
 
 /* Indexes into the configuregui array */
 //#define CONF_BOX                   0
-//#define CONF_OK                    1
+#define CONF_OK                    1
 //#define CONF_CANCEL                2
 //#define CONF_LABEL_CPU             3
 #define CONF_ARM610                4
@@ -36,15 +39,37 @@ extern void ioctl_init(void);
 #define CONF_HZ_SLIDER            22
 #define CONF_HZ_TEXT              23
 
+/* Indexes into the networkgui array */
+//#define NETWORK_BOX                 0
+#define NETWORK_OK                  1
+//#define NETWORK_CANCEL              2
+#define NETWORK_OFF                 3
+#define NETWORK_ETHERNET_BRIDGING   4
+//#define NETWORK_BRIDGENAME_LABEL    5
+//#define NETWORK_BRIDGENAME_TEXT     6
+#define NETWORK_IP_TUNNELLING       7
+//#define NETWORK_IP_ADDRESS_LABEL    8
+//#define NETWORK_IP_ADDRESS_TEXT     9
+
 /* Indexes into the settingsmenu array */
 //#define MENU_SETTINGS_SETTINGS_WINDOW 0
-#define MENU_SETTINGS_FULLSCREEN      1
-#define MENU_SETTINGS_ALT_BLIT        2
-#define MENU_SETTINGS_BLIT_OPTIMISE   3
-#define MENU_SETTINGS_MOUSEHACK       4
-//#define MENU_SETTINGS_CDROM_SUBMENU   5
+//#define MENU_SETTINGS_NETWORK_WINDOW 1
+#define MENU_SETTINGS_FULLSCREEN      2
+#define MENU_SETTINGS_ALT_BLIT        3
+#define MENU_SETTINGS_BLIT_OPTIMISE   4
+#define MENU_SETTINGS_MOUSEHACK       5
+//#define MENU_SETTINGS_CDROM_SUBMENU   6
+
+/* maximum number of bytes a single (UTF-8 encoded) character can have */
+#define MAX_BYTES_PER_CHAR 4
+
+#define IPADDRLEN 15  /* (123.123.123.123) */
+#define BRNAMELEN 15
+static char gui_ipaddress[(IPADDRLEN + 1) * MAX_BYTES_PER_CHAR] = "123.124.125.126";
+static char gui_bridgename[(BRNAMELEN + 1) * MAX_BYTES_PER_CHAR] = "br0";
 
 static DIALOG configuregui[];
+static DIALOG networkgui[];
 
 static int menuexit(void)
 {
@@ -227,6 +252,10 @@ static int menumouse(void)
 
 static char hzstring[20];
 
+/**
+ * Function to prepare, display and handle user changes on the 'settings'
+ * window.
+ */
 static int menusettings(void)
 {
         int c;
@@ -290,8 +319,7 @@ static int menusettings(void)
 
         position_dialog(configuregui,-((SCREEN_W/2)-80),-((SCREEN_H/2)-88));
         
-        if (c==1)
-        {
+        if (c == CONF_OK) {
                 CPUModel selected_model = CPUModel_ARM7500;
                 int selected_rammask = 0;
                 int selected_vrammask = 0;
@@ -366,6 +394,70 @@ static int menusettings(void)
         return D_CLOSE;
 }
 
+/**
+ * Function to prepare, display and handle user changes on the 'networking'
+ * window.
+ */
+static int menunetworking(void)
+{
+	int c;
+
+	/* Prepare the GUI dialog, based on current dynamic settings */
+	networkgui[NETWORK_OFF].flags = 0;
+	networkgui[NETWORK_ETHERNET_BRIDGING].flags = 0;
+	networkgui[NETWORK_IP_TUNNELLING].flags = 0;
+
+	switch (config.network_type) {
+	case NetworkType_Off:
+		networkgui[NETWORK_OFF].flags = D_SELECTED;
+		break;
+	case NetworkType_EthernetBridging:
+		networkgui[NETWORK_ETHERNET_BRIDGING].flags = D_SELECTED;
+		break;
+	case NetworkType_IPTunnelling:
+		networkgui[NETWORK_IP_TUNNELLING].flags = D_SELECTED;
+		break;
+	default:
+		rpclog("Unknown Network type model %d, defaulting to Off\n",
+		       config.network_type);
+		networkgui[NETWORK_OFF].flags = D_SELECTED;
+	}
+
+	if (config.ipaddress) {
+		strncpy(gui_ipaddress, config.ipaddress, IPADDRLEN * MAX_BYTES_PER_CHAR);
+	}
+
+	if (config.bridgename) {
+		strncpy(gui_bridgename, config.bridgename, BRNAMELEN * MAX_BYTES_PER_CHAR);
+	}
+
+	/* Display the GUI */
+	centre_dialog(networkgui);
+	c = popup_dialog(networkgui, 1);
+
+	/* Handle the user clicking OK and anything changing */
+	if (c == NETWORK_OK) {
+		NetworkType selected_network_type = NetworkType_Off;
+
+		if (networkgui[NETWORK_OFF].flags & D_SELECTED) {
+			selected_network_type = NetworkType_Off;
+		} else if (networkgui[NETWORK_ETHERNET_BRIDGING].flags & D_SELECTED) {
+			selected_network_type = NetworkType_EthernetBridging;
+		} else if (networkgui[NETWORK_IP_TUNNELLING].flags & D_SELECTED) {
+			selected_network_type = NetworkType_IPTunnelling;
+		} else {
+			rpclog("Failed to extract a value for network_type from the GUI, defaulting to Off");
+		}
+
+		/* Pass on the values to the core, to see if we need to restart */
+		if (network_config_changed(selected_network_type, gui_bridgename, gui_ipaddress)) {
+			resetrpc();
+		}
+	}
+
+	return D_CLOSE;
+}
+
 static int hzcallback(void *dp3, int d2)
 {
         sprintf(hzstring, "%iHz", (d2 * 5) + 20);
@@ -384,6 +476,9 @@ static int hzcallback(void *dp3, int d2)
 static MENU settingsmenu[]=
 {
         {"&Settings...",menusettings,NULL,0,NULL},
+#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+        { "&Networking...", menunetworking, NULL, 0, NULL },
+#endif
         {"&Fullscreen mode",menufullscreen,NULL,0,NULL},
         {"&Alternative blitting code",menualt,NULL,0,NULL},
         {"&Blitting optimisation",menublt,NULL,0,NULL},
@@ -438,6 +533,25 @@ static DIALOG configuregui[]=
         {d_text_proc,CX+120,CY+4+152+4+1,40,8,0,-1,0,0,0,0,NULL,0,0}, //23
         
         {0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL}
+};
+
+static DIALOG networkgui[] =
+{
+	/* proc, x, y, w, h, fg, bg */
+	{ d_shadow_box_proc, CX, CY-8,           296,128, 0, -1,0,0,     0,0,0,0,0}, // 0
+
+	{ d_button_proc,   CX+72, CY+96,          64, 16, 0, -1,0,D_EXIT,0,0,"OK",0,0}, // 1
+	{ d_button_proc,   CX+160, CY+96,         64, 16, 0, -1,0,D_EXIT,0,0,"Cancel",0,0}, // 2
+
+	{ d_radio_proc,    CX+8, CY+4,         24+16, 16, 0, -1,0,0,     2, 0, "Off",0,0}, // 18
+	{ d_radio_proc,    CX+8, CY+4+16,     136+16, 16, 0, -1,0,0,     2, 0, "Ethernet Bridging",0,0}, // 18
+	{ d_text_proc,     CX+8+16, CY+4+36,      40,  8, 0, -1,0,0,     0, 0, "Bridge Name :",0,0}, // 21
+	{ d_edit_proc,     CX+8+16+104, CY+4+36, 160, 16, 0, 0xdddddd,0,0, BRNAMELEN, 0, gui_bridgename, NULL, NULL },
+	{ d_radio_proc,    CX+8, CY+4+48,     104+16, 16, 0, -1,0,0,     2, 0, "IP Tunnelling",0,0}, // 18
+	{ d_text_proc,     CX+8+16, CY+4+68,      40,  8, 0, -1,0,0,     0, 0, "IP Address  :",0,0}, // 21
+	{ d_edit_proc,     CX+8+16+104, CY+4+68, 160, 16, 0, 0xdddddd,0,0, IPADDRLEN, 0, gui_ipaddress,  NULL, NULL },
+
+	{ 0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL }
 };
 
 static DIALOG rpcemugui[]=
