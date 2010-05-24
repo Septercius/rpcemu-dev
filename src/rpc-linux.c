@@ -77,6 +77,13 @@ void sound_thread_start(void)
     }
 }
 
+/**
+ * Report a non-fatal error to the user.
+ * The user then clicks the continue button to carry on using the program.
+ *
+ * @param format varargs format
+ * @param ... varargs arguments
+ */
 void error(const char *format, ...)
 {
 	char buf[4096];
@@ -87,13 +94,19 @@ void error(const char *format, ...)
 	va_end(ap);
 	rpclog("ERROR: %s\n", buf);
 	fprintf(stderr, "RPCemu error: %s\n", buf);
+
+	if (gui_get_screen() != NULL) {
+		alert("RPCEmu error", buf, "", "&Continue", NULL, 'c', 0);
+	}
 }
 
-// Similar to error() but aborts the program. 
-//
-// Because of varargs it's not straightforward to just call error()
-// from here.  So some code is duplicated.
-//
+/**
+ * Report a fatal error to the user.
+ * After the user is informed and clicks the 'Exit' button the program exits.
+ *
+ * @param format varargs format
+ * @param ... varargs arguments
+ */
 void fatal(const char *format, ...)
 {
 	char buf[4096];
@@ -103,9 +116,13 @@ void fatal(const char *format, ...)
 	vsprintf(buf, format, ap);
 	va_end(ap);
 	rpclog("FATAL: %s\n", buf);
-	fprintf(stderr, "RPCemu error: %s\n", buf);
+	fprintf(stderr, "RPCemu fatal error: %s\n", buf);
 
-	abort();
+	if (gui_get_screen() != NULL) {
+		alert("RPCEmu fatal error", buf, "", "&Exit", NULL, 'c', 0);
+	}
+
+	exit(EXIT_FAILURE);
 }
 
 static void vblupdate(void)
