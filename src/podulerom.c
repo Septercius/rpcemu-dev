@@ -30,11 +30,9 @@ static const char description[] = "RPCEmu additional ROM";
 
 static uint8_t readpodulerom(podule *p, int easi, uint32_t addr)
 {
-        rpclog("READ EASI %i %08X\n",easi,addr);
         if (easi && (poduleromsize>0))
         {
                 addr=(addr&0x00FFFFFF)>>2;
-                rpclog("Read %08X\n",podulerom[addr]);
                 if (addr<poduleromsize) return podulerom[addr];
                 return 0x00;
         }
