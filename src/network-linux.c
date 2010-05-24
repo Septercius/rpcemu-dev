@@ -95,7 +95,7 @@ static int parsemacaddr(const char *text, unsigned char *hwaddr)
     return 0;
 
 fail:
-    fprintf(stderr, "Error parsing hardware address %s\n", text);
+    error("Error parsing hardware MAC address %s", text);
     return -1;
 }
 
@@ -111,17 +111,17 @@ static int tun_alloc(void)
            config.network_type == NetworkType_IPTunnelling);
 
     if (config.network_type == NetworkType_IPTunnelling && config.ipaddress == NULL) {
-        fprintf(stderr, "IP address not configured\n");
+        error("IP address not configured");
         return -1;
     }
     
     if (config.network_type == NetworkType_EthernetBridging && config.bridgename == NULL) {
-        fprintf(stderr, "Network Bridgename not configured\n");
+        error("Network Bridgename not configured");
         return -1;
     }
 
     if ((fd = open("/dev/net/tun", O_RDWR)) < 0) {
-        fprintf(stderr, "Error opening /dev/net/tun device: %s\n", strerror(errno));
+        error("Error opening /dev/net/tun device: %s", strerror(errno));
         return -1;
     }
     
@@ -129,14 +129,14 @@ static int tun_alloc(void)
     ifr.ifr_flags = IFF_TAP; 
     
     if (ioctl(fd, TUNSETIFF, &ifr) < 0) {
-        fprintf(stderr, "Error setting TAP on tunnel device: %s\n", strerror(errno));
+        error("Error setting TAP on tunnel device: %s", strerror(errno));
         return -1;
     }
 
     ioctl(fd, TUNSETNOCSUM, 1);
 
     if ((sd = socket(PF_INET, SOCK_DGRAM, 0)) == -1) {
-        fprintf(stderr, "Error getting socket: %s\n", strerror(errno));
+        error("Error getting socket: %s", strerror(errno));
         return -1;
     }
 
@@ -146,46 +146,46 @@ static int tun_alloc(void)
         addr->sin_port = 0;
         inet_aton(config.ipaddress, &(addr->sin_addr));
         if (ioctl(sd, SIOCSIFADDR, &ifr) == -1) {
-            fprintf(stderr, "Error assigning %s addr: %s\n",
-                    ifr.ifr_name, strerror(errno));
+            error("Error assigning %s addr: %s",
+                  ifr.ifr_name, strerror(errno));
             return -1;
         }
     } else if (config.network_type == NetworkType_EthernetBridging) {
         struct ifreq brifr;
 
         if (ioctl(sd, SIOCGIFINDEX, &ifr) == -1) {
-            fprintf(stderr, "Error interface index for %s: %s\n",
-                    ifr.ifr_name, strerror(errno));
+            error("Error interface index for %s: %s",
+                  ifr.ifr_name, strerror(errno));
             return -1;
         }
         strncpy(brifr.ifr_name, config.bridgename, IFNAMSIZ);
         brifr.ifr_name[IFNAMSIZ - 1] = '\0';
         brifr.ifr_ifindex = ifr.ifr_ifindex;
         if (ioctl(sd, SIOCBRADDIF, &brifr) == -1) {
-            fprintf(stderr, "Error adding %s to bridge: %s\n",
-                    ifr.ifr_name, strerror(errno));
+            error("Error adding %s to bridge: %s",
+                  ifr.ifr_name, strerror(errno));
             return -1;
         }
     }
 
     /* Get the current flags */
     if (ioctl(sd, SIOCGIFFLAGS, &ifr) == -1) {
-        fprintf(stderr, "Error getting %s flags: %s\n", ifr.ifr_name, strerror(errno));
+        error("Error getting %s flags: %s", ifr.ifr_name, strerror(errno));
         return -1;
     }
     
     /* Turn on the UP flag */
     ifr.ifr_flags |= IFF_UP;
     if (ioctl(sd, SIOCSIFFLAGS, &ifr) == -1) {
-        fprintf(stderr, "Error setting %s flags: %s\n", ifr.ifr_name, strerror(errno));
+        error("Error setting %s flags: %s", ifr.ifr_name, strerror(errno));
         return -1;
     }
 
     if (config.macaddress == NULL || parsemacaddr(config.macaddress, hwaddr) < 0) {
         /* Get the hardware address */
         if (ioctl(sd, SIOCGIFHWADDR, &ifr) == -1) {
-            fprintf(stderr, "Error getting %s hardware address: %s\n",
-                    ifr.ifr_name, strerror(errno));
+            error("Error getting %s hardware address: %s",
+                  ifr.ifr_name, strerror(errno));
             return -1;
         }
 
@@ -201,7 +201,8 @@ static int tun_alloc(void)
     close(sd);
 
     if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
-        fprintf(stderr, "Error setting %s non-blocking: %s\n", ifr.ifr_name, strerror(errno));
+        error("Error setting %s non-blocking: %s",
+              ifr.ifr_name, strerror(errno));
         return -1;
     }
 
@@ -357,23 +358,21 @@ static void set_irqstatus(uint32_t address)
     memset(&sa, 0, sizeof(sa));
 
     if ((flags = fcntl(tunfd, F_GETFL)) == -1) {
-        fprintf(stderr, "Error getting flags for network device: %s\n",
-                strerror(errno));
+        error("Error getting flags for network device: %s", strerror(errno));
         return;
     }
 
     if (irqstatus) {
         if (fcntl(tunfd, F_SETFL, flags & ~O_ASYNC) == -1) {
-            fprintf(stderr, "Error disabling SIGIO for network device: %s\n",
-                    strerror(errno));
+            error("Error disabling SIGIO for network device: %s",
+                  strerror(errno));
             return;
         }
 
         sa.sa_handler = SIG_DFL;
 
         if (sigaction(SIGIO, &sa, NULL) == -1) {
-            fprintf(stderr, "Error uninstalling SIGIO handler: %s\n",
-                    strerror(errno));
+            error("Error uninstalling SIGIO handler: %s", strerror(errno));
             return;
         }
     }
@@ -384,14 +383,13 @@ static void set_irqstatus(uint32_t address)
         sa.sa_handler = sig_io;
 
         if (sigaction(SIGIO, &sa, NULL) == -1) {
-            fprintf(stderr, "Error installing SIGIO handler: %s\n",
-                    strerror(errno));
+            error("Error installing SIGIO handler: %s", strerror(errno));
             return;
         }
 
         if (fcntl(tunfd, F_SETFL, flags | O_ASYNC) == -1) {
-            fprintf(stderr, "Error enabling SIGIO for network device: %s\n",
-                    strerror(errno));
+            error("Error enabling SIGIO for network device: %s",
+                  strerror(errno));
             return;
         }
     }
@@ -439,20 +437,24 @@ void initnetwork(void)
     if (user == NULL) user = getenv("SUDO_USER");
 
     tunfd = tun_alloc();
-    if (tunfd == -1) fprintf(stderr, "Networking unavailable\n");
+    if (tunfd == -1) {
+        error("Networking unavailable");
+    }
 
     /* Once the network has been configured we no longer need root
        privileges, so drop them if possible */
     if (user) {
         nametouidgid(user, &uid, &gid);
         if (dropprivileges(uid, gid) < 0) {
-            fprintf(stderr, "Error dropping privileges: %s\n", strerror(errno));
+            error("Error dropping privileges: %s", strerror(errno));
         }
     }
 
     if (tunfd != -1) {
         poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0);
-        if (poduleinfo == NULL) fprintf(stderr, "No free podule for networking\n");
+        if (poduleinfo == NULL) {
+            error("No free podule for networking");
+        }
     }
 }
 

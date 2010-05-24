@@ -244,12 +244,12 @@ void initnetwork(void)
            config.network_type == NetworkType_IPTunnelling);
 
     if (config.network_type == NetworkType_IPTunnelling) {
-        rpclog("IP Tunnelling networking is not supported on Windows");
+        error("IP Tunnelling networking is not supported on Windows");
         return;
     }
 
     if (config.bridgename == NULL) {
-        rpclog("Bridge name not configured\n");
+        error("Bridge name not configured");
         return;
     }
 
@@ -269,11 +269,13 @@ void initnetwork(void)
 
     tap_handle = tap_init(config.bridgename);
     if (tap_handle == NULL) {
-      rpclog("Networking unavailable\n");
+        error("Networking unavailable");
     } else {
-      rpclog("Networking available\n");
-      poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0);
-      if (poduleinfo == NULL) rpclog("No free podule for networking\n");
+        rpclog("Networking available");
+        poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0);
+        if (poduleinfo == NULL) {
+            error("No free podule for networking");
+        }
     }
 }
 
