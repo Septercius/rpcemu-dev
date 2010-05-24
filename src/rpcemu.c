@@ -395,7 +395,7 @@ loadconfig(void)
 	} else if (!strcmp(p, "ethernetbridging")) {
 		config.network_type = NetworkType_EthernetBridging;
 	} else {
-		rpclog("Unknown network_type '%s', defaulting to off", p);
+		rpclog("Unknown network_type '%s', defaulting to off\n", p);
 		config.network_type = NetworkType_Off;
 	}
 
