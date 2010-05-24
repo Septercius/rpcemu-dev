@@ -204,6 +204,23 @@ startrpcemu(void)
         int c;
         char *p;
 
+	/* On startup log additional information about the build to help
+	   triage reported issues */
+	rpclog("RPCEmu " VERSION " starting [");
+#if defined(DYNAREC)
+	rpclog("DYNAREC");
+#else
+	rpclog("INTERPRETER");
+#endif
+
+#if defined(_DEBUG)
+	rpclog(" DEBUG");
+#else
+	rpclog(" NO_DEBUG");
+#endif
+
+	rpclog("]\n");
+
         install_keyboard(); /* allegro */
         install_timer();    /* allegro */
         install_mouse();    /* allegro */
