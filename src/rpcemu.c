@@ -25,7 +25,7 @@
 #include "podules.h"
 #include "fdc.h"
 
-#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+#ifdef RPCEMU_NETWORKING
 #include "network.h"
 #endif
 
@@ -179,7 +179,7 @@ resetrpc(void)
         superio_reset();
         podules_reset();
 
-#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+#ifdef RPCEMU_NETWORKING
 	network_reset();
 
 	if (config.network_type == NetworkType_EthernetBridging ||
@@ -271,7 +271,7 @@ startrpcemu(void)
 //        iso_open("e:/au_cd8.iso");
 //        config.cdromtype = CDROM_ISO;
 
-#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+#ifdef RPCEMU_NETWORKING
 	if (config.network_type == NetworkType_EthernetBridging ||
 	    config.network_type == NetworkType_IPTunnelling)
 	{
@@ -333,7 +333,7 @@ endrpcemu(void)
         savecmos();
         saveconfig();
 
-#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+#ifdef RPCEMU_NETWORKING
 	network_reset();
 #endif
 }

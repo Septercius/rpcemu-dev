@@ -476,7 +476,7 @@ static int hzcallback(void *dp3, int d2)
 static MENU settingsmenu[]=
 {
         {"&Settings...",menusettings,NULL,0,NULL},
-#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+#ifdef RPCEMU_NETWORKING
         { "&Networking...", menunetworking, NULL, 0, NULL },
 #endif
         {"&Fullscreen mode",menufullscreen,NULL,0,NULL},

@@ -75,6 +75,11 @@
 #endif
 #endif
 
+/* Does this platform support one or more of our networking types? */
+#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+#define RPCEMU_NETWORKING
+#endif
+
 /*This moves the calls to blit() and stretch_blit() to a seperate thread. It
   gives a large speedup on a dual-core processor when lots of screen data is
   being updated (eg a full 800x600 screen), and improves the sound stability a
