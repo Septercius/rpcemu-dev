@@ -16,7 +16,7 @@
 #include "keyboard.h"
 #include "hostfs.h"
 
-#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+#ifdef RPCEMU_NETWORKING
 #include "network.h"
 #endif
 
@@ -73,7 +73,7 @@ opSWI(uint32_t opcode)
 #endif
 		armregs[cpsr] &= ~VFLAG;
 	}
-#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+#ifdef RPCEMU_NETWORKING
 	else if (templ == ARCEM_SWI_NETWORK) {
 		networkswi(armregs[0], armregs[1], armregs[2], armregs[3],
 		           armregs[4], armregs[5], &armregs[0], &armregs[1]);
