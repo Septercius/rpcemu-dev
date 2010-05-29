@@ -76,7 +76,7 @@
 #endif
 
 /* Does this platform support one or more of our networking types? */
-#if defined RPCEMU_LINUX || defined WIN32 || defined _WIN32
+#if defined __linux || defined __linux__ || defined WIN32 || defined _WIN32
 #define RPCEMU_NETWORKING
 #endif
 
