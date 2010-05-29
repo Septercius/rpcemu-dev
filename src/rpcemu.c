@@ -191,6 +191,39 @@ resetrpc(void)
 }
 
 /**
+ * Log additional information about the build and environment.
+ */
+void
+rpcemu_log_information(void)
+{
+	/* Log version and build type */
+	rpclog("RPCEmu " VERSION " [");
+#if defined(DYNAREC)
+	rpclog("DYNAREC");
+#else
+	rpclog("INTERPRETER");
+#endif
+
+#if defined(_DEBUG)
+	rpclog(" DEBUG");
+#else
+	rpclog(" NO_DEBUG");
+#endif
+	rpclog("]\n");
+
+	/* Log 32 or 64-bit */
+	rpclog("Build: %lu-bit binary\n", (unsigned long) sizeof(void *) * 8);
+
+#if defined __GNUC__ && defined __VERSION__
+	rpclog("Compiler: GCC version " __VERSION__ "\n");
+#endif
+
+	/* Log Allegro information */
+	rpclog("Allegro version ID: %s\n", allegro_id);
+	rpclog("Host Colour Depth: %u\n", desktop_color_depth());
+}
+
+/**
  * Set the initial state of all emulated subsystems. Load disc images, CMOS
  * and configuration.
  *
@@ -204,22 +237,9 @@ startrpcemu(void)
         int c;
         char *p;
 
-	/* On startup log additional information about the build to help
-	   triage reported issues */
-	rpclog("RPCEmu " VERSION " starting [");
-#if defined(DYNAREC)
-	rpclog("DYNAREC");
-#else
-	rpclog("INTERPRETER");
-#endif
-
-#if defined(_DEBUG)
-	rpclog(" DEBUG");
-#else
-	rpclog(" NO_DEBUG");
-#endif
-
-	rpclog("]\n");
+	/* On startup log additional information about the build and
+	   environment */
+	rpcemu_log_information();
 
         install_keyboard(); /* allegro */
         install_timer();    /* allegro */
@@ -352,6 +372,19 @@ loadconfig(void)
 
         append_filename(fn,exname,"rpc.cfg",511);
         set_config_file(fn);
+
+	/* Copy the contents of the configfile to the log */
+	{
+		const char **entries = NULL;
+		int n = list_config_entries(NULL, &entries);
+		int i;
+
+		for (i = 0; i < n; i++) {
+			rpclog("loadconfig: %s = \"%s\"\n", entries[i],
+			       get_config_string(NULL, entries[i], "-"));
+		}
+		free_config_entries(&entries);
+	}
 
         p = get_config_string(NULL,"mem_size",NULL);
         if (!p)                    config.rammask = 0x7FFFFF;
