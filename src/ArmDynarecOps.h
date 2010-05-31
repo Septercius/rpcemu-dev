@@ -1308,62 +1308,6 @@ static int opLDRB(uint32_t opcode)
 	return 0;
 }
 
-
-
-#define STMfirst()      mask=1; \
-                        for (c=0;c<15;c++) \
-                        { \
-                                if (opcode&mask) \
-                                { \
-                                        writememl(addr, armregs[c]); \
-                                        addr+=4; \
-                                        break; \
-                                } \
-                                mask<<=1; \
-                        } \
-                        mask<<=1; c++;
-
-#define STMall()        for (;c<15;c++) \
-                        { \
-                                if (opcode&mask) \
-                                { \
-                                        writememl(addr,armregs[c]); \
-                                        addr+=4; \
-                                } \
-                                mask<<=1; \
-                        } \
-                        if (opcode&0x8000) \
-                        { \
-                                writememl(addr,armregs[15]+r15diff); \
-                        }
-
-#define STMfirstS()     mask=1; \
-                        for (c=0;c<15;c++) \
-                        { \
-                                if (opcode&mask) \
-                                { \
-                                        writememl(addr, *usrregs[c]); \
-                                        addr+=4; \
-                                        break; \
-                                } \
-                                mask<<=1; \
-                        } \
-                        mask<<=1; c++;
-
-#define STMallS()       for (;c<15;c++) \
-                        { \
-                                if (opcode&mask) \
-                                { \
-                                        writememl(addr,*usrregs[c]); \
-                                        addr+=4; \
-                                } \
-                                mask<<=1; \
-                        } \
-                        if (opcode&0x8000) \
-                        { \
-                                writememl(addr,armregs[15]+r15diff); \
-                        }
-
 #define LDMall()        mask=1; \
                         for (c=0;c<15;c++) \
                         { \
@@ -1413,66 +1357,62 @@ static int opLDRB(uint32_t opcode)
 
 static int opSTMD(uint32_t opcode)
 {
-        uint32_t temp=armregs[RN];
-	uint32_t addr;
-	uint16_t mask;
-	int c;
+	uint32_t templ, addr, writeback;
 
-        addr=(armregs[RN]-countbits(opcode&0xFFFF))&~3;
-        if (!(opcode&0x1000000)) addr+=4;
-        STMfirst();
-        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
-        STMall()
-        if (armirq&0x40) armregs[RN]=temp;
-        return (armirq&0x40);
+	templ = countbits(opcode & 0xffff);
+	addr = armregs[RN] - templ;
+	writeback = addr;
+	if (!(opcode & (1 << 24))) {
+		/* Decrement After */
+		addr += 4;
+	}
+	arm_store_multiple(opcode, addr, writeback);
+	return (armirq & 0x40);
 }
 
 static int opSTMI(uint32_t opcode)
 {
-        uint32_t temp=armregs[RN];
-	uint32_t addr;
-	uint16_t mask;
-	int c;
+	uint32_t templ, addr, writeback;
 
-        addr=armregs[RN]&~3;
-        if (opcode&0x1000000) addr+=4;
-        STMfirst();
-        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
-        STMall();
-        if (armirq&0x40) armregs[RN]=temp;
-        return (armirq&0x40);
+	templ = countbits(opcode & 0xffff);
+	addr = armregs[RN];
+	writeback = addr + templ;
+	if (opcode & (1 << 24)) {
+		/* Increment Before */
+		addr += 4;
+	}
+	arm_store_multiple(opcode, addr, writeback);
+	return (armirq & 0x40);
 }
 
 static int opSTMDS(uint32_t opcode)
 {
-        uint32_t temp=armregs[RN];
-	uint32_t addr;
-	uint16_t mask;
-	int c;
+	uint32_t templ, addr, writeback;
 
-        addr=(armregs[RN]-countbits(opcode&0xFFFF))&~3;
-        if (!(opcode&0x1000000)) addr+=4;
-        STMfirstS();
-        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
-        STMallS()
-        if (armirq&0x40) armregs[RN]=temp;
-        return (armirq&0x40);
+	templ = countbits(opcode & 0xffff);
+	addr = armregs[RN] - templ;
+	writeback = addr;
+	if (!(opcode & (1 << 24))) {
+		/* Decrement After */
+		addr += 4;
+	}
+	arm_store_multiple_s(opcode, addr, writeback);
+	return (armirq & 0x40);
 }
 
 static int opSTMIS(uint32_t opcode)
 {
-        uint32_t temp=armregs[RN];
-	uint32_t addr;
-	uint16_t mask;
-	int c;
+	uint32_t templ, addr, writeback;
 
-        addr=armregs[RN]&~3;
-        if (opcode&0x1000000) addr+=4;
-        STMfirstS();
-        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
-        STMallS();
-        if (armirq&0x40) armregs[RN]=temp;
-        return (armirq&0x40);
+	templ = countbits(opcode & 0xffff);
+	addr = armregs[RN];
+	writeback = addr + templ;
+	if (opcode & (1 << 24)) {
+		/* Increment Before */
+		addr += 4;
+	}
+	arm_store_multiple_s(opcode, addr, writeback);
+	return (armirq & 0x40);
 }
 
 static int opLDMD(uint32_t opcode)

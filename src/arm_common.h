@@ -316,5 +316,132 @@ arm_write_spsr(uint32_t opcode, uint32_t value)
 	}
 }
 
+/**
+ * Perform a Store Multiple register operation when the S flag is clear.
+ *
+ * @param opcode    Opcode of instruction being emulated
+ * @param address   The address to be used for the first transfer
+ * @param writeback The value to be written to the base register if Writeback
+ *                  is requested
+ */
+static inline void
+arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
+{
+	uint32_t orig_base, addr, mask, exception_flags;
+	int c;
+
+	orig_base = armregs[RN];
+
+	addr = address & ~3;
+
+	/* Store first register */
+	exception_flags = 0;
+	mask = 1;
+	for (c = 0; c < 15; c++) {
+		if (opcode & mask) {
+			writememl(addr, armregs[c]);
+			exception_flags = armirq;
+			addr += 4;
+			break;
+		}
+		mask <<= 1;
+	}
+	mask <<= 1;
+	c++;
+
+	/* Perform Writeback (if requested) at end of 2nd cycle */
+	if ((opcode & (1 << 21)) && (RN != 15)) {
+		armregs[RN] = writeback;
+	}
+
+	/* Store remaining registers up to R14 */
+	for ( ; c < 15; c++) {
+		if (opcode & mask) {
+			writememl(addr, armregs[c]);
+			exception_flags |= armirq;
+			addr += 4;
+		}
+		mask <<= 1;
+	}
+
+	/* Store R15 (if requested) */
+	if (opcode & (1 << 15)) {
+		writememl(addr, armregs[15] + r15diff);
+		exception_flags |= armirq;
+	}
+
+	/* If a Data Abort occurred, update the Data Abort flag and restore
+	   the Base Register to the value it had before the instruction */
+	if (exception_flags & 0x40) {
+		armirq |= 0x40;
+		armregs[RN] = orig_base;
+	}
+}
+
+/**
+ * Perform a Store Multiple register operation when the S flag is set.
+ *
+ * The registers to be stored will be taken from the User bank instead of the
+ * current bank.
+ *
+ * @param opcode    Opcode of instruction being emulated
+ * @param address   The address to be used for the first transfer
+ * @param writeback The value to be written to the base register if Writeback
+ *                  is requested
+ */
+static inline void
+arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
+{
+	uint32_t orig_base, addr, mask, exception_flags;
+	int c;
+
+	orig_base = armregs[RN];
+
+	addr = address & ~3;
+
+	/* Store first register */
+	exception_flags = 0;
+	mask = 1;
+	for (c = 0; c < 15; c++) {
+		if (opcode & mask) {
+			writememl(addr, *usrregs[c]);
+			exception_flags = armirq;
+			addr += 4;
+			break;
+		}
+		mask <<= 1;
+	}
+	mask <<= 1;
+	c++;
+
+	/* Perform Writeback (if requested) at end of 2nd cycle */
+	if ((opcode & (1 << 21)) && (RN != 15)) {
+		armregs[RN] = writeback;
+	}
+
+	/* Store remaining registers up to R14 */
+	for ( ; c < 15; c++) {
+		if (opcode & mask) {
+			writememl(addr, *usrregs[c]);
+			exception_flags |= armirq;
+			addr += 4;
+		}
+		mask <<= 1;
+	}
+
+	/* Store R15 (if requested) */
+	if (opcode & (1 << 15)) {
+		writememl(addr, armregs[15] + r15diff);
+		exception_flags |= armirq;
+	}
+
+	/* If a Data Abort occurred, update the Data Abort flag and restore
+	   the Base Register to the value it had before the instruction */
+	if (exception_flags & 0x40) {
+		armirq |= 0x40;
+		armregs[RN] = orig_base;
+	}
+}
+
 #endif
 

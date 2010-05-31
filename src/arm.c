@@ -1220,8 +1220,8 @@ void execarm(int cycs)
         int c;
 	uint32_t opcode;
 	uint32_t lhs, rhs, dest;
-        uint32_t templ,templ2,addr,addr2,mask;
-//        int RD;
+	uint32_t templ, templ2, addr, addr2, writeback, mask;
+
         cycles+=cycs;
         while (cycles>0)
         {
@@ -2427,60 +2427,6 @@ void execarm(int cycs)
                                         ldmstm((opcode>>20)&0xFF, opcode);
                                         break;*/
 
-#define STMfirst()      mask=1; \
-                        for (c=0;c<15;c++) \
-                        { \
-                                if (opcode&mask) \
-                                { \
-                                        writememl(addr, armregs[c]); \
-                                        addr+=4; \
-                                        break; \
-                                } \
-                                mask<<=1; \
-                        } \
-                        mask<<=1; c++;
-
-#define STMall()        for (;c<15;c++) \
-                        { \
-                                if (opcode&mask) \
-                                { \
-                                        writememl(addr,armregs[c]); \
-                                        addr+=4; \
-                                } \
-                                mask<<=1; \
-                        } \
-                        if (opcode&0x8000) \
-                        { \
-                                writememl(addr,armregs[15]+r15diff); \
-                        }
-
-#define STMfirstS()     mask=1; \
-                        for (c=0;c<15;c++) \
-                        { \
-                                if (opcode&mask) \
-                                { \
-                                        writememl(addr, *usrregs[c]); \
-                                        addr+=4; \
-                                        break; \
-                                } \
-                                mask<<=1; \
-                        } \
-                        mask<<=1; c++;
-
-#define STMallS()       for (;c<15;c++) \
-                        { \
-                                if (opcode&mask) \
-                                { \
-                                        writememl(addr,*usrregs[c]); \
-                                        addr+=4; \
-                                } \
-                                mask<<=1; \
-                        } \
-                        if (opcode&0x8000) \
-                        { \
-                                writememl(addr,armregs[15]+r15diff); \
-                        }
-
 #define LDMall()        mask=1; \
                         for (c=0;c<15;c++) \
                         { \
@@ -2532,53 +2478,57 @@ void execarm(int cycs)
 				case 0x82: /* STMDA ! */
 				case 0x90: /* STMDB */
 				case 0x92: /* STMDB ! */
-                                        templ=armregs[RN];
-                                        addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
-                                        if (!(opcode&0x1000000)) addr+=4;
-                                        STMfirst();
-                                        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
-                                        STMall()
-                                        if (armirq&0x40) armregs[RN]=templ;
-                                        break;
+					templ = countbits(opcode & 0xffff);
+					addr = armregs[RN] - templ;
+					writeback = addr;
+					if (!(opcode & (1 << 24))) {
+						/* Decrement After */
+						addr += 4;
+					}
+					arm_store_multiple(opcode, addr, writeback);
+					break;
 
 				case 0x88: /* STMIA */
 				case 0x8a: /* STMIA ! */
 				case 0x98: /* STMIB */
 				case 0x9a: /* STMIB ! */
-                                        templ=armregs[RN];
-                                        addr=armregs[RN]&~3;
-                                        if (opcode&0x1000000) addr+=4;
-                                        STMfirst();
-                                        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
-                                        STMall();
-                                        if (armirq&0x40) armregs[RN]=templ;
-                                        break;
+					templ = countbits(opcode & 0xffff);
+					addr = armregs[RN];
+					writeback = addr + templ;
+					if (opcode & (1 << 24)) {
+						/* Increment Before */
+						addr += 4;
+					}
+					arm_store_multiple(opcode, addr, writeback);
+					break;
 
 				case 0x84: /* STMDA ^ */
 				case 0x86: /* STMDA ^! */
 				case 0x94: /* STMDB ^ */
 				case 0x96: /* STMDB ^! */
-                                        templ=armregs[RN];
-                                        addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
-                                        if (!(opcode&0x1000000)) addr+=4;
-                                        STMfirstS();
-                                        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
-                                        STMallS()
-                                        if (armirq&0x40) armregs[RN]=templ;
-                                        break;
+					templ = countbits(opcode & 0xffff);
+					addr = armregs[RN] - templ;
+					writeback = addr;
+					if (!(opcode & (1 << 24))) {
+						/* Decrement After */
+						addr += 4;
+					}
+					arm_store_multiple_s(opcode, addr, writeback);
+					break;
 
 				case 0x8c: /* STMIA ^ */
 				case 0x8e: /* STMIA ^! */
 				case 0x9c: /* STMIB ^ */
 				case 0x9e: /* STMIB ^! */
-                                        templ=armregs[RN];
-                                        addr=armregs[RN]&~3;
-                                        if (opcode&0x1000000) addr+=4;
-                                        STMfirstS();
-                                        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
-                                        STMallS();
-                                        if (armirq&0x40) armregs[RN]=templ;
-                                        break;
+					templ = countbits(opcode & 0xffff);
+					addr = armregs[RN];
+					writeback = addr + templ;
+					if (opcode & (1 << 24)) {
+						/* Increment Before */
+						addr += 4;
+					}
+					arm_store_multiple_s(opcode, addr, writeback);
+					break;
 
 				case 0x81: /* LDMDA */
 				case 0x83: /* LDMDA ! */
