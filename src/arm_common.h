@@ -443,5 +443,139 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	}
 }
 
+/**
+ * Perform a Load Multiple register operation when the S flag is clear.
+ *
+ * @param opcode    Opcode of instruction being emulated
+ * @param address   The address to be used for the first transfer
+ * @param writeback The value to be written to the base register if Writeback
+ *                  is requested
+ */
+static inline void
+arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
+{
+	uint32_t orig_base, addr, mask, temp;
+	int c;
+
+	orig_base = armregs[RN];
+
+	addr = address & ~3;
+
+	/* Perform Writeback (if requested) */
+	if ((opcode & (1 << 21)) && (RN != 15)) {
+		armregs[RN] = writeback;
+	}
+
+	/* Load registers up to R14 */
+	mask = 1;
+	for (c = 0; c < 15; c++) {
+		if (opcode & mask) {
+			temp = readmeml(addr);
+			if (armirq & 0x40) {
+				goto data_abort;
+			}
+			armregs[c] = temp;
+			addr += 4;
+		}
+		mask <<= 1;
+	}
+
+	/* Load R15 (if requested) */
+	if (opcode & (1 << 15)) {
+		temp = readmeml(addr);
+		if (armirq & 0x40) {
+			goto data_abort;
+		}
+		/* Only update R15 if no Data Abort occurred */
+		armregs[15] = (armregs[15] & ~r15mask) |
+		              ((temp + 4) & r15mask);
+		refillpipeline();
+	}
+
+	/* No Data Abort */
+	return;
+
+	/* A Data Abort occurred, restore the Base Register to the value it
+	   had before the instruction */
+data_abort:
+	armregs[RN] = orig_base;
+}
+
+/**
+ * Perform a Load Multiple register operation when the S flag is set.
+ *
+ * If R15 is in the list of registers to be loaded, the PSR flags will be
+ * updated as well, subject to the current privilege level.
+ *
+ * If R15 is not in the list of registers to be loaded, the values will be
+ * loaded into the User bank instead of the current bank.
+ *
+ * @param opcode    Opcode of instruction being emulated
+ * @param address   The address to be used for the first transfer
+ * @param writeback The value to be written to the base register if Writeback
+ *                  is requested
+ */
+static inline void
+arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
+{
+	uint32_t orig_base, addr, mask, temp;
+	int c;
+
+	orig_base = armregs[RN];
+
+	addr = address & ~3;
+
+	/* Perform Writeback (if requested) */
+	if ((opcode & (1 << 21)) && (RN != 15)) {
+		armregs[RN] = writeback;
+	}
+
+	mask = 1;
+	/* Is R15 in the list of registers to be loaded? */
+	if (opcode & (1 << 15)) {
+		/* R15 in list - Load registers up to R14 */
+		for (c = 0; c < 15; c++) {
+			if (opcode & mask) {
+				temp = readmeml(addr);
+				if (armirq & 0x40) {
+					goto data_abort;
+				}
+				armregs[c] = temp;
+				addr += 4;
+			}
+			mask <<= 1;
+		}
+
+		/* Perform load of R15 and update CPSR/flags */
+		temp = readmeml(addr);
+		if (armirq & 0x40) {
+			goto data_abort;
+		}
+		arm_write_r15(opcode, temp);
+
+	} else {
+		/* R15 not in list - Perform load into User Bank */
+		for (c = 0; c < 15; c++) {
+			if (opcode & mask) {
+				temp = readmeml(addr);
+				if (armirq & 0x40) {
+					goto data_abort;
+				}
+				*usrregs[c] = temp;
+				addr += 4;
+			}
+			mask <<= 1;
+		}
+	}
+
+	/* No Data Abort */
+	return;
+
+	/* A Data Abort occurred, restore the Base Register to the value it
+	   had before the instruction */
+data_abort:
+	armregs[RN] = orig_base;
+}
+
 #endif
 

@@ -1217,10 +1217,9 @@ void execarm(int cycs)
 {
         int linecyc;
         int target;
-        int c;
 	uint32_t opcode;
 	uint32_t lhs, rhs, dest;
-	uint32_t templ, templ2, addr, addr2, writeback, mask;
+	uint32_t templ, templ2, addr, addr2, writeback;
 
         cycles+=cycs;
         while (cycles>0)
@@ -2427,53 +2426,6 @@ void execarm(int cycs)
                                         ldmstm((opcode>>20)&0xFF, opcode);
                                         break;*/
 
-#define LDMall()        mask=1; \
-                        for (c=0;c<15;c++) \
-                        { \
-                                if (opcode&mask) \
-                                { \
-                                        armregs[c]=readmeml(addr); \
-                                        addr+=4; \
-                                } \
-                                mask<<=1; \
-                        } \
-                        if (opcode&0x8000) \
-                        { \
-                                armregs[15]=(armregs[15]&~r15mask)|((readmeml(addr)+4)&r15mask); \
-                                refillpipeline(); \
-                        }
-
-#define LDMallS()       mask=1; \
-                        if (opcode&0x8000) \
-                        { \
-                                for (c=0;c<15;c++) \
-                                { \
-                                        if (opcode&mask) \
-                                        { \
-                                                armregs[c]=readmeml(addr); \
-                                                addr+=4; \
-                                        } \
-                                        mask<<=1; \
-                                } \
-                                if ((armregs[15]&3) || (mode&16)) armregs[15]=(readmeml(addr)+4); \
-                                else                              armregs[15]=(armregs[15]&0x0C000003)|((readmeml(addr)+4)&0xF3FFFFFC); \
-                                if (mode&16) armregs[cpsr]=spsr[mode&15]; \
-                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask); \
-                                refillpipeline(); \
-                        } \
-                        else \
-                        { \
-                                for (c=0;c<15;c++) \
-                                { \
-                                        if (opcode&mask) \
-                                        { \
-                                                *usrregs[c]=readmeml(addr); \
-                                                addr+=4; \
-                                        } \
-                                        mask<<=1; \
-                                } \
-                        }
-
 				case 0x80: /* STMDA */
 				case 0x82: /* STMDA ! */
 				case 0x90: /* STMDB */
@@ -2534,49 +2486,57 @@ void execarm(int cycs)
 				case 0x83: /* LDMDA ! */
 				case 0x91: /* LDMDB */
 				case 0x93: /* LDMDB ! */
-                                        templ=armregs[RN];
-                                        addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
-                                        if (!(opcode&0x1000000)) addr+=4;
-                                        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
-                                        LDMall();
-                                        if (armirq&0x40) armregs[RN]=templ;
-                                        break;
+					templ = countbits(opcode & 0xffff);
+					addr = armregs[RN] - templ;
+					writeback = addr;
+					if (!(opcode & (1 << 24))) {
+						/* Decrement After */
+						addr += 4;
+					}
+					arm_load_multiple(opcode, addr, writeback);
+					break;
 
 				case 0x89: /* LDMIA */
 				case 0x8b: /* LDMIA ! */
 				case 0x99: /* LDMIB */
 				case 0x9b: /* LDMIB ! */
-                                        templ=armregs[RN];
-                                        addr=armregs[RN]&~3;
-                                        if (opcode&0x1000000) addr+=4;
-                                        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
-                                        LDMall();
-                                        if (armirq&0x40) armregs[RN]=templ;
-                                        break;
+					templ = countbits(opcode & 0xffff);
+					addr = armregs[RN];
+					writeback = addr + templ;
+					if (opcode & (1 << 24)) {
+						/* Increment Before */
+						addr += 4;
+					}
+					arm_load_multiple(opcode, addr, writeback);
+					break;
 
 				case 0x85: /* LDMDA ^ */
 				case 0x87: /* LDMDA ^! */
 				case 0x95: /* LDMDB ^ */
 				case 0x97: /* LDMDB ^! */
-                                        templ=armregs[RN];
-                                        addr=(armregs[RN]&~3)-countbits(opcode&0xFFFF);
-                                        if (!(opcode&0x1000000)) addr+=4;
-                                        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
-                                        LDMallS();
-                                        if (armirq&0x40) armregs[RN]=templ;
-                                        break;
+					templ = countbits(opcode & 0xffff);
+					addr = armregs[RN] - templ;
+					writeback = addr;
+					if (!(opcode & (1 << 24))) {
+						/* Decrement After */
+						addr += 4;
+					}
+					arm_load_multiple_s(opcode, addr, writeback);
+					break;
 
 				case 0x8d: /* LDMIA ^ */
 				case 0x8f: /* LDMIA ^! */
 				case 0x9d: /* LDMIB ^ */
 				case 0x9f: /* LDMIB ^! */
-                                        templ=armregs[RN];
-                                        addr=armregs[RN]&~3;
-                                        if (opcode&0x1000000) addr+=4;
-                                        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
-                                        LDMallS();
-                                        if (armirq&0x40) armregs[RN]=templ;
-                                        break;
+					templ = countbits(opcode & 0xffff);
+					addr = armregs[RN];
+					writeback = addr + templ;
+					if (opcode & (1 << 24)) {
+						/* Increment Before */
+						addr += 4;
+					}
+					arm_load_multiple_s(opcode, addr, writeback);
+					break;
 
                                 case 0xA0: case 0xA1: case 0xA2: case 0xA3: /* B */
                                 case 0xA4: case 0xA5: case 0xA6: case 0xA7:
