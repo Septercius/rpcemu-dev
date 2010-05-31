@@ -1308,53 +1308,6 @@ static int opLDRB(uint32_t opcode)
 	return 0;
 }
 
-#define LDMall()        mask=1; \
-                        for (c=0;c<15;c++) \
-                        { \
-                                if (opcode&mask) \
-                                { \
-                                        armregs[c]=readmeml(addr); \
-                                        addr+=4; \
-                                } \
-                                mask<<=1; \
-                        } \
-                        if (opcode&0x8000) \
-                        { \
-                                armregs[15]=(armregs[15]&~r15mask)|((readmeml(addr)+4)&r15mask); \
-                                refillpipeline(); \
-                        }
-
-#define LDMallS()       mask=1; \
-                        if (opcode&0x8000) \
-                        { \
-                                for (c=0;c<15;c++) \
-                                { \
-                                        if (opcode&mask) \
-                                        { \
-                                                armregs[c]=readmeml(addr); \
-                                                addr+=4; \
-                                        } \
-                                        mask<<=1; \
-                                } \
-                                if ((armregs[15]&3) || (mode&16)) armregs[15]=(readmeml(addr)+4); \
-                                else                              armregs[15]=(armregs[15]&0x0C000003)|((readmeml(addr)+4)&0xF3FFFFFC); \
-                                if (mode&16) armregs[cpsr]=spsr[mode&15]; \
-                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask); \
-                                refillpipeline(); \
-                        } \
-                        else \
-                        { \
-                                for (c=0;c<15;c++) \
-                                { \
-                                        if (opcode&mask) \
-                                        { \
-                                                *usrregs[c]=readmeml(addr); \
-                                                addr+=4; \
-                                        } \
-                                        mask<<=1; \
-                                } \
-                        }
-
 static int opSTMD(uint32_t opcode)
 {
 	uint32_t templ, addr, writeback;
@@ -1417,62 +1370,62 @@ static int opSTMIS(uint32_t opcode)
 
 static int opLDMD(uint32_t opcode)
 {
-        uint32_t temp=armregs[RN];
-	uint32_t addr;
-	uint16_t mask;
-	int c;
+	uint32_t templ, addr, writeback;
 
-        addr=(armregs[RN]-countbits(opcode&0xFFFF))&~3;
-        if (!(opcode&0x1000000)) addr+=4;
-        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
-        LDMall();
-        if (armirq&0x40) armregs[RN]=temp;
-        return (armirq&0x40);
+	templ = countbits(opcode & 0xffff);
+	addr = armregs[RN] - templ;
+	writeback = addr;
+	if (!(opcode & (1 << 24))) {
+		/* Decrement After */
+		addr += 4;
+	}
+	arm_load_multiple(opcode, addr, writeback);
+	return (armirq & 0x40);
 }
 
 static int opLDMI(uint32_t opcode)
 {
-        uint32_t temp=armregs[RN];
-	uint32_t addr;
-	uint16_t mask;
-	int c;
+	uint32_t templ, addr, writeback;
 
-        addr=armregs[RN]&~3;
-        if (opcode&0x1000000) addr+=4;
-        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
-        LDMall();
-        if (armirq&0x40) armregs[RN]=temp;
-        return (armirq&0x40);
+	templ = countbits(opcode & 0xffff);
+	addr = armregs[RN];
+	writeback = addr + templ;
+	if (opcode & (1 << 24)) {
+		/* Increment Before */
+		addr += 4;
+	}
+	arm_load_multiple(opcode, addr, writeback);
+	return (armirq & 0x40);
 }
 
 static int opLDMDS(uint32_t opcode)
 {
-        uint32_t temp=armregs[RN];
-	uint32_t addr;
-	uint16_t mask;
-	int c;
+	uint32_t templ, addr, writeback;
 
-        addr=(armregs[RN]-countbits(opcode&0xFFFF))&~3;
-        if (!(opcode&0x1000000)) addr+=4;
-        if (opcode&0x200000) armregs[RN]-=countbits(opcode&0xFFFF);
-        LDMallS();
-        if (armirq&0x40) armregs[RN]=temp;
-        return (armirq&0x40);
+	templ = countbits(opcode & 0xffff);
+	addr = armregs[RN] - templ;
+	writeback = addr;
+	if (!(opcode & (1 << 24))) {
+		/* Decrement After */
+		addr += 4;
+	}
+	arm_load_multiple_s(opcode, addr, writeback);
+	return (armirq & 0x40);
 }
 
 static int opLDMIS(uint32_t opcode)
 {
-        uint32_t temp=armregs[RN];
-	uint32_t addr;
-	uint16_t mask;
-	int c;
+	uint32_t templ, addr, writeback;
 
-        addr=armregs[RN]&~3;
-        if (opcode&0x1000000) addr+=4;
-        if (opcode&0x200000) armregs[RN]+=countbits(opcode&0xFFFF);
-        LDMallS();
-        if (armirq&0x40) armregs[RN]=temp;
-        return (armirq&0x40);
+	templ = countbits(opcode & 0xffff);
+	addr = armregs[RN];
+	writeback = addr + templ;
+	if (opcode & (1 << 24)) {
+		/* Increment Before */
+		addr += 4;
+	}
+	arm_load_multiple_s(opcode, addr, writeback);
+	return (armirq & 0x40);
 }
 
 
