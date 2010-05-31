@@ -5,6 +5,7 @@
 #ifdef DYNAREC
 #if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
 
+#include <assert.h>
 #include <stdint.h>
 #include "codegen_x86.h"
 #include "mem.h"
@@ -327,9 +328,10 @@ void initcodeblock(uint32_t l)
         gen_x86_ret();
         addbyte(0xE9); /*JMP end*/
         addlong(0); /*Don't know where end is yet - see endblock()*/
-        addbyte(0); addbyte(0); addbyte(0); /*Padding*/
 
 	/* Block Prologue */
+	assert(codeblockpos <= BLOCKSTART);
+	codeblockpos = BLOCKSTART;
 	/* Align stack to a multiple of 16 bytes - required by Mac OS X */
         addbyte(0x83); /*SUBL $12,%esp*/
         addbyte(0xEC);
