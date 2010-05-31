@@ -7,6 +7,7 @@
 #ifdef DYNAREC
 #ifdef __amd64__
 
+#include <assert.h>
 #include <stdint.h>
 #include "codegen_amd64.h"
 #include "mem.h"
@@ -198,9 +199,10 @@ void initcodeblock(uint32_t l)
         addbyte(0xC4);
         addbyte(0x08);
 	gen_x86_ret();
-	addbyte(0); addbyte(0); addbyte(0);
 
 	/* Block Prologue */
+	assert(codeblockpos <= BLOCKSTART);
+	codeblockpos = BLOCKSTART;
 	/* Align stack to a multiple of 16 bytes - required by AMD64 ABI */
 	addbyte(0x48); /*SUBL $8,%rsp*/
         addbyte(0x83);
