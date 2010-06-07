@@ -1109,12 +1109,6 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
 
         generateupdatepc();
         generateupdateinscount();
-	addbyte(0x48); /*ADDL $8,%rsp*/
-        addbyte(0x83);
-        addbyte(0xC4);
-        addbyte(0x08);
-
-	addbyte(0x45); addbyte(0x89); addbyte(0x67); addbyte(15<<2); /*MOVL %r12d,R15*/
 
         if (c<128)
         {
@@ -1133,22 +1127,25 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
                 addlong(c);
         }
 
-        addbyte(0xFF); /*DECL linecyc*/
-        addbyte(0x0C);
+	addbyte(0xff); /* DECL linecyc */
+	addbyte(0x0c);
 	addbyte(0x25);
-        addlong(&linecyc);
-        //gen_x86_ret();
+	addlong(&linecyc);
+	gen_x86_jump(CC_S, 0);
 
-        addbyte(0x79); /*JNS +1*/
-        addbyte(1);
-        gen_x86_ret();
-        addbyte(0xF6); /*TESTB $0xFF,armirq*/
-        addbyte(0x04);
+	addbyte(0xf6); /* TESTB $0xff,armirq */
+	addbyte(0x04);
 	addbyte(0x25);
-        addlong(&armirq);
-        addbyte(0xFF);
-        addbyte(0x75); /*JNZ*/
-        addbyte(-11);
+	addlong(&armirq);
+	addbyte(0xff);
+	gen_x86_jump(CC_NZ, 0);
+
+	addbyte(0x48); /* ADD $8,%rsp */
+	addbyte(0x83);
+	addbyte(0xc4);
+	addbyte(0x08);
+
+	addbyte(0x45); addbyte(0x89); addbyte(0x67); addbyte(15<<2); /* MOV %r12d,R15 */
 
         genloadreg(15); /*MOVL armregs[15],%eax*/
         addbyte(0x83); /*SUBL $8,%eax*/
