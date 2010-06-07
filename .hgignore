@@ -3,11 +3,21 @@ syntax: glob
 
 *~
 *.o
+*.orig
 .deps
 autom4te.cache
 config.h
 config.log
 config.status
+hd4.hdf
+hd5.hdf
+hostfs
 Makefile
+poduleroms
+roms
 rpcemu
+RPCEmu-Interpreter.exe
+RPCEmu-Recompiler.exe
+rpclog.txt
 stamp-h1
+tags
