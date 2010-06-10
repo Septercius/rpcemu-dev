@@ -1140,13 +1140,6 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
 	addbyte(0xff);
 	gen_x86_jump(CC_NZ, 0);
 
-	addbyte(0x48); /* ADD $8,%rsp */
-	addbyte(0x83);
-	addbyte(0xc4);
-	addbyte(0x08);
-
-	addbyte(0x45); addbyte(0x89); addbyte(0x67); addbyte(15<<2); /* MOV %r12d,R15 */
-
         genloadreg(15); /*MOVL armregs[15],%eax*/
         addbyte(0x83); /*SUBL $8,%eax*/
         addbyte(0xE8);
@@ -1162,13 +1155,18 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
         addbyte(0x81); /*ANDL $0x1FFFC,%edx*/
         addbyte(0xE2);
         addlong(0x1FFFC);
-	//addbyte(0x67); /*CMPL codeblockpc[%edx],%eax*/
-        addbyte(0x3B);
-        addbyte(0x82);
-        addlong(codeblockpc);
-        addbyte(0x74); /*JZ +1*/
-        addbyte(1);
-        gen_x86_ret();
+	addbyte(0x3b); /* CMP codeblockpc(%rdx),%eax */
+	addbyte(0x82);
+	addlong(codeblockpc);
+	gen_x86_jump(CC_NE, 0);
+
+	addbyte(0x48); /* ADD $8,%rsp */
+	addbyte(0x83);
+	addbyte(0xc4);
+	addbyte(0x08);
+
+	addbyte(0x45); addbyte(0x89); addbyte(0x67); addbyte(15<<2); /* MOV %r12d,R15 */
+
         addbyte(0x8B); /*MOVL codeblocknum[%rdx],%eax*/
         addbyte(0x82);
         addlong(codeblocknum);
