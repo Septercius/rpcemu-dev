@@ -21,7 +21,7 @@
 void generateupdatepc(void);
 int lastflagchange;
 unsigned char rcodeblock[BLOCKS][1792];
-static uint64_t codeblockaddr[BLOCKS];
+static const void *codeblockaddr[BLOCKS];
 uint32_t codeblockpc[0x8000];
 int codeblocknum[0x8000];
 static unsigned char codeblockpresent[0x10000];
@@ -95,7 +95,9 @@ void initcodeblocks(void)
 //        memset(codeblockcount,0,0x1000);
         blockpoint=0;
         for (c=0;c<BLOCKS;c++) blocks[c]=0xFFFFFFFF;
-        for (c=0;c<BLOCKS;c++) codeblockaddr[c]=(uint64_t) &rcodeblock[c][BLOCKSTART];
+	for (c = 0; c < BLOCKS; c++) {
+		codeblockaddr[c] = &rcodeblock[c][BLOCKSTART];
+	}
 
 #ifdef __linux__
 	/* Set memory pages containing rcodeblock[]s executable -
