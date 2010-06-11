@@ -62,7 +62,7 @@ title:
 	.string	"RPCEmuHostFS"
 
 help:
-	.string	"RPCEmu HostFS\t0.06 (18 Mar 2010)"
+	.string	"RPCEmu HostFS\t0.06 (11 Jun 2010)"
 
 	.align
 
@@ -298,9 +298,6 @@ fs_func:
 
 	mov	r9, #6
 	swi	ArcEm_HostFS
-
-	teq	r9, #255
-	beq	not_implemented
 
 	cmp	r9, #0xb0
 	movhs	r0, r9
