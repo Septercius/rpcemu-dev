@@ -424,7 +424,7 @@ static void tap_win32_overlapped_init(tap_win32_overlapped_t* const overlapped, 
         NULL);  // unnamed semaphore
 
     if(!overlapped->output_queue_semaphore)  {
-        rpclog("error creating output queue semaphore!\n");
+        rpclog("Tap-Win32: error creating output queue semaphore!\n");
     }
 
     overlapped->free_list_semaphore = CreateSemaphore(
@@ -434,7 +434,7 @@ static void tap_win32_overlapped_init(tap_win32_overlapped_t* const overlapped, 
         NULL);  // unnamed semaphore
 
     if(!overlapped->free_list_semaphore)  {
-        rpclog("error creating free list semaphore!\n");
+        rpclog("Tap-Win32: error creating free list semaphore!\n");
     }
 
     overlapped->free_list = overlapped->output_queue_front = overlapped->output_queue_back = NULL;
@@ -450,7 +450,7 @@ static void tap_win32_overlapped_init(tap_win32_overlapped_t* const overlapped, 
     /* To count buffers, initially no-signal. */
     overlapped->tap_semaphore = CreateSemaphore(NULL, 0, TUN_MAX_BUFFER_COUNT, NULL);
     if(!overlapped->tap_semaphore)
-        rpclog("error creating tap_semaphore.\n");
+        rpclog("Tap-Win32: error creating tap_semaphore.\n");
 }
 
 static int tap_win32_write(tap_win32_overlapped_t *overlapped,
@@ -474,9 +474,9 @@ static int tap_win32_write(tap_win32_overlapped_t *overlapped,
         {
         case ERROR_IO_PENDING:
 #ifndef TUN_ASYNCHRONOUS_WRITES
-	    rpclog("ERROR_IO_PENDING - before");
+	    rpclog("Tap-Win32: ERROR_IO_PENDING - before");
             WaitForSingleObject(overlapped->write_event, INFINITE);
-	    rpclog("ERROR_IO_PENDING - after");
+	    rpclog("Tap-Win32: ERROR_IO_PENDING - after");
 #endif
             break;
         default:
@@ -495,11 +495,11 @@ static DWORD WINAPI tap_win32_thread_entry(LPVOID param)
     DWORD dwError;
 
 //    while (go == 0) {
-//        rpclog(".");
+//        rpclog("Tap-Win32: .");
 //	Sleep(500);
 //    }
 //
-//    rpclog("go == 1\n");
+//    rpclog("Tap-Win32: go == 1\n");
 
     tun_buffer_t* buffer = get_buffer_from_free_list(overlapped);
 
@@ -539,7 +539,7 @@ static DWORD WINAPI tap_win32_thread_entry(LPVOID param)
         }
 
         if(read_size > 0) {
-//	    rpclog("read %d bytes\n", read_size);
+//	    rpclog("Tap-Win32: read %d bytes\n", read_size);
             buffer->read_size = read_size;
             put_buffer_on_output_queue(overlapped, buffer);
             // inform rpcemu of new data
@@ -576,6 +576,42 @@ static void tap_win32_free_buffer(tap_win32_overlapped_t *overlapped,
     put_buffer_on_free_list(overlapped, buffer);
 }
 
+/**
+ * Log the last Win32 error that occured in the specified function using
+ * rpclog()
+ *
+ * @param lpszFunction Win32 function that has failed
+ */
+static void tap_log_windows_error(const char *lpszFunction)
+{
+    /* Retrieve the system error message for the last-error code */
+
+    char *lpMsgBuf;
+    LPVOID lpDisplayBuf;
+    int dw = GetLastError();
+
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                  FORMAT_MESSAGE_IGNORE_INSERTS,
+                  NULL,
+                  dw,
+                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                  (LPTSTR) &lpMsgBuf,
+                  0, NULL);
+
+    lpDisplayBuf = (LPVOID) LocalAlloc(LMEM_ZEROINIT,
+        (lstrlen((LPCTSTR) lpMsgBuf) + lstrlen((LPCTSTR) lpszFunction) + 40) *
+         sizeof(TCHAR));
+    snprintf((LPTSTR) lpDisplayBuf,
+             LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+             TEXT("%s failed with error %d: %s"),
+             lpszFunction, dw, lpMsgBuf);
+
+    rpclog("Tap-Win32: %s", lpDisplayBuf);
+    LocalFree(lpMsgBuf);
+    LocalFree(lpDisplayBuf);
+}
+
+
 static int tap_win32_open(tap_win32_overlapped_t **phandle,
                           const char *prefered_name)
 {
@@ -596,18 +632,20 @@ static int tap_win32_open(tap_win32_overlapped_t **phandle,
 
     if (prefered_name != NULL)
         snprintf(name_buffer, sizeof(name_buffer), "%s", prefered_name);
-    rpclog("name: %s\n", name_buffer);
+    rpclog("Tap-Win32: device name: %s\n", name_buffer);
 
     rc = get_device_guid(device_guid, sizeof(device_guid), name_buffer, sizeof(name_buffer));
-    if (rc)
+    if (rc) {
+        rpclog("Tap-Win32: get_device_guid() failed\n");
         return -1;
+    }
 
     snprintf (device_path, sizeof(device_path), "%s%s%s",
               USERMODEDEVICEDIR,
               device_guid,
               TAPSUFFIX);
 
-    rpclog("device path: %s\n", device_path);
+    rpclog("Tap-Win32: device path: %s\n", device_path);
 
     handle = CreateFile (
         device_path,
@@ -619,38 +657,41 @@ static int tap_win32_open(tap_win32_overlapped_t **phandle,
         0 );
 
     if (handle == INVALID_HANDLE_VALUE) {
+	tap_log_windows_error("CreateFile");
         return -1;
     }
 
-    rpclog("File opened\n");
+    rpclog("Tap-Win32: File opened\n");
 
     bret = DeviceIoControl(handle, TAP_IOCTL_GET_VERSION,
                            &version, sizeof (version),
                            &version, sizeof (version), &version_len, NULL);
 
     if (bret == FALSE) {
+	tap_log_windows_error("DeviceIoControl");
         CloseHandle(handle);
         return -1;
     }
 
-    rpclog("version: %d.%d.%d\n", version.major, version.minor, version.debug);
+    rpclog("Tap-Win32: version: %d.%d.%d\n", version.major, version.minor, version.debug);
 
     if (!tap_win32_set_status(handle, TRUE)) {
+        rpclog("Tap-Win32: tap_win32_set_status() failed\n");
         return -1;
     }
 
-    rpclog("status set\n");
+    rpclog("Tap-Win32: status set\n");
 
     tap_win32_overlapped_init(&tap_overlapped, handle);
 
-    rpclog("tap_win32_overlapped_init done\n");
+    rpclog("Tap-Win32: tap_win32_overlapped_init done\n");
 
     *phandle = &tap_overlapped;
 
     hThread = CreateThread(NULL, 0, tap_win32_thread_entry,
                            (LPVOID)&tap_overlapped, 0, &idThread);
 
-    rpclog("Thread created\n");
+    rpclog("Tap-Win32: Thread created\n");
 
     return 0;
 }
@@ -669,7 +710,7 @@ typedef struct TAPState {
 
 void tap_cleanup(void *handle)
 {
-    rpclog("tap_cleanup");
+    rpclog("Tap-Win32: tap_cleanup");
     TAPState *s = (TAPState *)handle;
     tap_win32_close(s->handle);
 }
@@ -705,8 +746,8 @@ void * tap_init(const char *ifname)
     tap_win32_overlapped_t *handle;
 
     if (tap_win32_open(&handle, ifname) < 0) {
-        rpclog("tap: Could not open '%s'\n", ifname);
-        return (void *)0;
+        error("Tap-Win32: Could not open '%s'", ifname);
+        return NULL;
     }
 
     s.handle = handle;
