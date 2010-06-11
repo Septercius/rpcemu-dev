@@ -271,7 +271,7 @@ void initnetwork(void)
     if (tap_handle == NULL) {
         error("Networking unavailable");
     } else {
-        rpclog("Networking available");
+        rpclog("Networking available\n");
         poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0);
         if (poduleinfo == NULL) {
             error("No free podule for networking");
