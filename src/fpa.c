@@ -15,26 +15,11 @@ extern int times8000;
 static double fparegs[8] = {0.0}; /*No C variable type for 80-bit floating point, so use 64*/
 static uint32_t fpsr = 0, fpcr = 0;
 
-static void dumpfpa(void)
-{
-        rpclog("\nF0=%f F1=%f F2=%f F3=%f\n",fparegs[0],fparegs[1],fparegs[2],fparegs[3]);
-        rpclog("F4=%f F5=%f F6=%f F7=%f\n",fparegs[0],fparegs[1],fparegs[2],fparegs[3]);
-        rpclog("FPSR=%08X FPCR=%08X\n",fpsr,fpcr);
-}
-
 void resetfpa(void)
 {
-        uint32_t temp[3];
-        float *tfs;
-        double tf;
-        tfs=(float *)temp;
-        *tfs=0.12f;
-        tf=(double)(*tfs);
-        rpclog("Double size %i Float size %i %f %f\n",sizeof(double),sizeof(float),*tfs,tf);
 //        fpsr=0;
         fpsr=0x81000000; /*FPA system*/
         fpcr=0;
-        atexit(dumpfpa);
 }
 
 #define FD ((opcode>>12)&7)
