@@ -41,7 +41,7 @@
  * Store a 32-bit relative address at the current code generation position.
  * The offset is calculated relative to the current position.
  *
- * @param addr Pointer to the address to be stored relative to current position
+ * @param addr The address to be stored relative to current position
  */
 static inline void
 addrel32(const void *addr)
