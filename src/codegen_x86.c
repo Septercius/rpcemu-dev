@@ -30,7 +30,7 @@ static void codereadmemlnt(void);
 static void codewritememflnt(void);
 //#define mreadmem rcodeblock[BLOCKS+1]
 unsigned char rcodeblock[BLOCKS+4][1792+512+64] = {{0}};
-static unsigned long codeblockaddr[BLOCKS];
+static const void *codeblockaddr[BLOCKS];
 unsigned long codeblockpc[0x8000] = {0};
 static unsigned char codeblockpresent[0x10000];
 int codeblocknum[0x8000] = {0};
@@ -78,7 +78,9 @@ void initcodeblocks(void)
 //        memset(codeblockcount,0,0x1000);
         blockpoint=0;
         for (c=0;c<BLOCKS;c++) blocks[c]=0xFFFFFFFF;
-        for (c=0;c<BLOCKS;c++) codeblockaddr[c]=(unsigned long)&rcodeblock[c][12];
+	for (c = 0; c < BLOCKS; c++) {
+		codeblockaddr[c] = &rcodeblock[c][BLOCKSTART];
+	}
         for (c=0;c<256;c++)
         {
                 lahftable[c]=0;
