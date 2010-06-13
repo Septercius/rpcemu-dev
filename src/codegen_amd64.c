@@ -42,6 +42,7 @@ static int blockpoint = 0, blockpoint2;
 static uint32_t blocks[BLOCKS];
 static int pcinc = 0;
 static int lastrecompiled = 0;
+static int block_enter;
 
 #include "codegen_x86_common.h"
 
@@ -96,7 +97,7 @@ void initcodeblocks(void)
         blockpoint=0;
         for (c=0;c<BLOCKS;c++) blocks[c]=0xFFFFFFFF;
 	for (c = 0; c < BLOCKS; c++) {
-		codeblockaddr[c] = &rcodeblock[c][BLOCKSTART];
+		codeblockaddr[c] = &rcodeblock[c][0];
 	}
 
 #ifdef __linux__
@@ -200,16 +201,32 @@ void initcodeblock(uint32_t l)
         addbyte(0x83);
         addbyte(0xC4);
         addbyte(0x08);
+	/* Restore registers */
+	gen_x86_pop_reg(RBX);
+	gen_x86_pop_reg(R12);
+	gen_x86_pop_reg(R13);
+	gen_x86_pop_reg(R14);
+	gen_x86_pop_reg(R15);
+	gen_x86_leave();
 	gen_x86_ret();
 
 	/* Block Prologue */
 	assert(codeblockpos <= BLOCKSTART);
 	codeblockpos = BLOCKSTART;
+	/* Set up a stack frame and preserve registers that are callee-saved */
+	gen_x86_push_reg(RBP);
+	addbyte(0x48); addbyte(0x89); addbyte(0xe5); /* MOV %rsp,%rbp */
+	gen_x86_push_reg(R15);
+	gen_x86_push_reg(R14);
+	gen_x86_push_reg(R13);
+	gen_x86_push_reg(R12);
+	gen_x86_push_reg(RBX);
 	/* Align stack to a multiple of 16 bytes - required by AMD64 ABI */
-	addbyte(0x48); /*SUBL $8,%rsp*/
-        addbyte(0x83);
-        addbyte(0xEC);
-        addbyte(0x08);
+	addbyte(0x48); /* SUB $8,%rsp */
+	addbyte(0x83);
+	addbyte(0xec);
+	addbyte(0x08);
+
 	addbyte(0x49); /*MOVQ armregs,%r15*/
 	addbyte(0xBF);
 	addlong(&armregs[0]);
@@ -223,7 +240,7 @@ void initcodeblock(uint32_t l)
 	addlong(&vraddrl[0]);
 	addlong(((uint64_t)(&vraddrl[0]))>>32);
 	addbyte(0x45); addbyte(0x8B); addbyte(0x67); addbyte(15<<2); /*MOVL R15,%r12d*/
-//	printf("New block %08X %08X %08X\n",blocknum,l,codeblockpc[blocknum]);
+	block_enter = codeblockpos;
 }
 
 static int recompreadmemb(uint32_t addr)
@@ -1162,13 +1179,6 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
 	addlong(codeblockpc);
 	gen_x86_jump(CC_NE, 0);
 
-	addbyte(0x48); /* ADD $8,%rsp */
-	addbyte(0x83);
-	addbyte(0xc4);
-	addbyte(0x08);
-
-	addbyte(0x45); addbyte(0x89); addbyte(0x67); addbyte(15<<2); /* MOV %r12d,R15 */
-
         addbyte(0x8B); /*MOVL codeblocknum[%rdx],%eax*/
         addbyte(0x82);
         addlong(codeblocknum);
@@ -1177,6 +1187,8 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
         addbyte(0x04);
         addbyte(0xC5);
         addlong(codeblockaddr);
+	/* Jump to next block bypassing function prologue */
+	addbyte(0x48); addbyte(0x83); addbyte(0xc0); addbyte(block_enter); /* ADD $block_enter,%rax */
         addbyte(0xFF); /*JMP *%rax*/
         addbyte(0xE0);
 }
