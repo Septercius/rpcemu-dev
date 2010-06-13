@@ -8,7 +8,7 @@ extern unsigned char rcodeblock[BLOCKS][1792];
 extern uint32_t codeblockpc[0x8000];
 extern int codeblocknum[0x8000];
 
-#define BLOCKSTART 12
+#define BLOCKSTART 32
 
 #define HASH(l) (((l)>>2)&0x7FFF)
 //#define callblock(l) (((codeblockpc[0][HASH(l)]==l)||(codeblockpc[1][HASH(l)]==l))?codecallblock(l):0)
