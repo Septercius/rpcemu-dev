@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "podules.h"
 
-void initpodulerom(void);
+extern void initpodulerom(void);
+extern void podulerom_reset(void);
 
 #endif

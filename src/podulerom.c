@@ -39,6 +39,12 @@ static uint8_t readpodulerom(podule *p, int easi, uint32_t addr)
         return 0xFF;
 }
 
+void
+podulerom_reset(void)
+{
+	addpodule(NULL, NULL, NULL, NULL, NULL, readpodulerom, NULL, NULL, 0);
+}
+
 void initpodulerom(void)
 {
         int finished=0;
