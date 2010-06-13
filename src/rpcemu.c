@@ -178,6 +178,7 @@ resetrpc(void)
         resetide();
         superio_reset();
         podules_reset();
+        podulerom_reset();
 
 #ifdef RPCEMU_NETWORKING
 	network_reset();
