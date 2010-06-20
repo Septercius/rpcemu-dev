@@ -8,6 +8,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+
 #include <allegro.h>
 #include <winalleg.h>
 #include <process.h>
@@ -76,7 +78,7 @@ void fatal(const char *format, ...)
 	rpclog("FATAL: %s\n", buf);
 	MessageBox(NULL, buf, "RPCemu error", MB_OK);
 
-	abort();
+	exit(EXIT_FAILURE);
 }
 
 static void vblupdate(void)
