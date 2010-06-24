@@ -78,8 +78,10 @@ uint8_t *dirtybuffer = dirtybuffer1;
 static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 {
         BITMAP *backbuf=screen;
+	int lfullscreen = fullscreen; /* Take a local copy of the fullscreen var, as other threads can change it mid blit */
+
 #ifdef HARDWAREBLIT
-        if (fullscreen)
+        if (lfullscreen)
         {
                 switch (currentbuffer)
                 {
@@ -92,8 +94,8 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
         switch (doublesize)
         {
         case VIDC_DOUBLE_NONE:
-                if (!(fullscreen && config.stretchmode)) ys = yh - yl;
-                if (fullscreen)
+                if (!(lfullscreen && config.stretchmode)) ys = yh - yl;
+                if (lfullscreen)
                 {
                         if (config.stretchmode) {
                                 blit(b, backbuf, 0, 0,  (SCREEN_W - xs) >> 1, ((SCREEN_H - oldsy) >> 1),      xs, ys);
@@ -109,20 +111,20 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 
         case VIDC_DOUBLE_X:
                 ys=yh-yl;
-                if (fullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
+                if (lfullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
                 else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl,                      xs<<1,ys);
                 break;
 
         case VIDC_DOUBLE_Y:
                 if (config.stretchmode)
                 {
-                        if (fullscreen) stretch_blit(b,backbuf,0,0,xs,ys,0,0,xs,(ys<<1)-1);
+                        if (lfullscreen) stretch_blit(b,backbuf,0,0,xs,ys,0,0,xs,(ys<<1)-1);
                         else            stretch_blit(b,screen, 0,0,xs,ys,0,0,xs,(ys<<1)-1);
                 }
                 else
                 {
                         ys=yh-yl;
-                        if (fullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-xs)>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs,(ys<<1)-1);
+                        if (lfullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-xs)>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs,(ys<<1)-1);
                         else            stretch_blit(b,screen, 0,yl,xs,ys, 0,               yl<<1,                        xs,(ys<<1)-1);
                 }
                 break;
@@ -130,18 +132,18 @@ static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
         case VIDC_DOUBLE_BOTH:
                 if (config.stretchmode)
                 {
-                        if (fullscreen) stretch_blit(b,backbuf,0,0,xs,ys,(SCREEN_W-(xs<<1))>>1,((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
+                        if (lfullscreen) stretch_blit(b,backbuf,0,0,xs,ys,(SCREEN_W-(xs<<1))>>1,((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
                         else            stretch_blit(b,screen, 0,0,xs,ys,0,0,xs<<1,(ys<<1)-1);
                 }
                 else
                 {
                         ys=yh-yl;
-                        if (fullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
+                        if (lfullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
                         else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl<<1,                        xs<<1,(ys<<1)-1);
                 }
                 break;
         }
-        if (fullscreen)
+        if (lfullscreen)
         {
 #ifdef HARDWAREBLIT
                 switch (currentbuffer)
