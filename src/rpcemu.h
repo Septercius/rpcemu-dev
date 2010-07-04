@@ -80,17 +80,6 @@
 #define RPCEMU_NETWORKING
 #endif
 
-/*This moves the calls to blit() and stretch_blit() to a seperate thread. It
-  gives a large speedup on a dual-core processor when lots of screen data is
-  being updated (eg a full 800x600 screen), and improves the sound stability a
-  bit. Not sure how it performs on a single core processor.
-  This alters vidc20.c a little - when the rest of drawscr() finishes, it wakes
-  up the vidc display thread which then reads from VRAM, converts from VIDC 
-  format, then blits to screen.
-  In Windows, on many systems, this _must_ be enabled. Otherwise mouse & keyboard
-  response will be appallingly bad.*/
-#define VIDC_THREAD
-
 /*This makes the RISC OS mouse pointer follow the host pointer exactly. Useful
   for Linux port, however use mouse capturing if possible - mousehack has some
   bugs*/

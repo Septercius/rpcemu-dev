@@ -170,7 +170,6 @@ void vidcthreadrunner(PVOID pvoid)
 
 void vidcendthread(void)
 {
-#ifdef VIDC_THREAD
         if (blitrunning)
         {
                 quitblitter=1;
@@ -179,7 +178,6 @@ void vidcendthread(void)
                       sleep(1);
         }
         DeleteCriticalSection(&vidcmutex);
-#endif
 }
 
 /**
@@ -230,11 +228,7 @@ void sound_thread_close(void)
 
 void vidcwakeupthread(void)
 {
-#ifdef VIDC_THREAD
         SetEvent(waitobject);
-#else
-        vidcthread();
-#endif
 }
 
 /**
@@ -250,28 +244,21 @@ void sound_thread_wakeup(void)
 void vidcstartthread(void)
 {
     HANDLE bltthread;
-#ifdef VIDC_THREAD
+
     waitobject=CreateEvent(NULL, FALSE, FALSE, NULL);
     bltthread=(HANDLE)_beginthread(vidcthreadrunner,0,NULL);
     SetThreadPriority(bltthread,THREAD_PRIORITY_TIME_CRITICAL);
     InitializeCriticalSectionAndSpinCount(&vidcmutex,0);
-#endif
 }
 
 int vidctrymutex(void)
 {
-#ifdef VIDC_THREAD
     return TryEnterCriticalSection(&vidcmutex);
-#else
-    return 1;
-#endif
 }
 
 void vidcreleasemutex(void)
 {
-#ifdef VIDC_THREAD
     LeaveCriticalSection(&vidcmutex);
-#endif
 }
 
 

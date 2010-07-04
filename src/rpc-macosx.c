@@ -138,7 +138,6 @@ void releasemousecapture(void)
 {
 }
 
-#ifdef VIDC_THREAD
 static pthread_t thread;
 static pthread_cond_t vidccond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t vidcmutex = PTHREAD_MUTEX_INITIALIZER;
@@ -154,50 +153,37 @@ static void *vidcthreadrunner(void *threadid)
         pthread_mutex_unlock(&vidcmutex);
 	return NULL;
 }
-#endif
 
 
 
 void vidcstartthread(void)
 {
-#ifdef VIDC_THREAD
     if (pthread_create(&thread,NULL,vidcthreadrunner,NULL)) fatal("Couldn't create vidc thread");
-#endif
 }
 
 void vidcendthread(void)
 {
-#ifdef VIDC_THREAD
 	quited=1;
         if (pthread_cond_signal(&vidccond)) fatal("Couldn't signal vidc thread");
 	pthread_join(thread, NULL);
-#endif
 }
 
 void vidcwakeupthread(void)
 {
-#ifdef VIDC_THREAD
         if (pthread_cond_signal(&vidccond)) fatal("Couldn't signal vidc thread");
-#else
-        vidcthread();
-#endif
 }
 
 int vidctrymutex(void)
 {
-#ifdef VIDC_THREAD
     int ret = pthread_mutex_trylock(&vidcmutex);
     if (ret == EBUSY) return 0;
     if (ret) fatal("Getting vidc mutex failed");
-#endif
     return 1;
 }
 
 void vidcreleasemutex(void)
 {
-#ifdef VIDC_THREAD
     if (pthread_mutex_unlock(&vidcmutex)) fatal("Releasing vidc mutex failed");
-#endif
 }
 
 static void close_button_handler(void)
