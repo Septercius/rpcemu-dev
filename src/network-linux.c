@@ -37,17 +37,27 @@ static unsigned char hwaddr[6];
 
 static podule *poduleinfo = NULL;
 
-static void nametouidgid(const char* user, uid_t *uid, gid_t *gid)
+/**
+ * Given a system username, lookup their uid and gid
+ *
+ * @param user username
+ * @param uid
+ * @param gid
+ * @return 0 on failure (username not found), 1 otherwise
+ */
+static int
+nametouidgid(const char *user, uid_t *uid, gid_t *gid)
 {
-    struct passwd* pw;
-    pw = (struct passwd*) getpwnam(user);
+    const struct passwd *pw = getpwnam(user);
   
     if (pw) {
         *uid = pw->pw_uid;
         if (gid) {
             *gid = pw->pw_gid;
         }
+        return 1;
     }
+    return 0;
 }
 
 static int dropprivileges(uid_t uid, gid_t gid)
@@ -439,15 +449,25 @@ void initnetwork(void)
     tunfd = tun_alloc();
     if (tunfd == -1) {
         error("Networking unavailable");
+        return; /* No use setting privs or adding podule if already failed */
     }
 
     /* Once the network has been configured we no longer need root
-       privileges, so drop them if possible */
+       privileges, so drop them and refuse to carry on if we can't */
     if (user) {
-        nametouidgid(user, &uid, &gid);
-        if (dropprivileges(uid, gid) < 0) {
-            error("Error dropping privileges: %s", strerror(errno));
+        if (nametouidgid(user, &uid, &gid)) {
+            if (dropprivileges(uid, gid) < 0) {
+                fatal("Error dropping privileges: %s", strerror(errno));
+            }
+            rpclog("Networking: Dropping runtime privileges back to '%s'\n",
+                   user);
+        } else {
+            fatal("Could not find username '%s' on the system, or error",
+                  user);
         }
+    } else {
+        fatal("No username available to return to non privileged mode, "
+              "refusing to continue running as root");
     }
 
     if (tunfd != -1) {
