@@ -91,11 +91,6 @@ extern int fullscreen;
   instead - this doesn't appear to break RISC OS, but you never know...*/
 #define ABORTCHECKING
 
-/*This makes RPCemu always run in fullscreen mode. Mostly suitable for DOS*/
-#ifdef DJGPP
-#define FULLSCREENALWAYS
-#endif
-
 /** The type of networking configured */
 typedef enum {
 	NetworkType_Off,
