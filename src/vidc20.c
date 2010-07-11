@@ -163,21 +163,6 @@ void initvideo(void)
 {
         int depth;
 
-#ifdef FULLSCREENALWAYS
-       depth=16;
-       set_color_depth(16);
-       if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,DEFAULT_W,DEFAULT_H,0,0))
-       {
-                set_color_depth(15);
-                depth=15;
-                if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,DEFAULT_W,DEFAULT_H,0,0))
-                {
-                        printf("Failed to set video mode 640x480x16\n");
-                        exit(-1);
-                }
-       }
-       drawcode=16;
-#else
         depth=desktop_color_depth();
         if (depth==16 || depth==15)
         {
@@ -201,7 +186,6 @@ void initvideo(void)
         {
                 fatal("Your desktop must be set to either 16-bit or 32-bit colour to run RPCemu");
         }
-#endif
 
         oldsx=oldsy=-1;
         memset(&thr, 0, sizeof(thr));
@@ -265,10 +249,7 @@ static const int fullresolutions[][2]=
 static void resizedisplay(int x, int y)
 {
         int c;
-//        rpclog("Change mode to %ix%i\n",x,y);
-        #ifdef FULLSCREENALWAYS
-        fullscreen=1;
-        #endif
+
         if (x<16) x=16;
         if (y<16) y=16;
         oldsx=x;
