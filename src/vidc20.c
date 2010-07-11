@@ -10,7 +10,7 @@
 #include "iomd.h"
 
 int fullscreen=0;
-static BITMAP *b = NULL,*bs = NULL,*bs2 = NULL,*bs3=NULL,*bs4=NULL;
+static BITMAP *b = NULL, *bs2 = NULL, *bs3 = NULL, *bs4 = NULL;
 #ifdef HARDWAREBLIT                
 static int currentbuffer=1;
 #endif
@@ -236,12 +236,10 @@ getys(void)
 static void freebitmaps(void)
 {
         if (b) destroy_bitmap(b);
-        if (bs) destroy_bitmap(bs);
         if (bs2) destroy_bitmap(bs2);
         if (bs3) destroy_bitmap(bs3);
         if (bs4) destroy_bitmap(bs4);
         b = NULL;
-        bs = NULL;
         bs2 = NULL;
         bs3 = NULL;
         bs4 = NULL;
@@ -333,12 +331,9 @@ tryagain:
                 }
 #ifdef HARDWAREBLIT                
 //                rpclog("Mode set\n");
-                bs = create_video_bitmap(full_x,  full_y);
                 bs2 = create_video_bitmap(full_x, full_y);
                 bs3 = create_video_bitmap(full_x, full_y);
                 bs4 = create_video_bitmap(full_x, full_y);
-//                rpclog("%08X %08X\n",bs,bs2);
-                clear(bs);
                 clear(bs2);
                 clear(bs3);
                 clear(bs4);
@@ -355,7 +350,6 @@ tryagain:
 		if (x < MIN_X_SIZE) x = MIN_X_SIZE;
 		if (y < MIN_Y_SIZE) y = MIN_Y_SIZE;
                 updatewindowsize(x,y);
-                bs=create_video_bitmap(x,y);
                 b=create_video_bitmap(x,y);
                 if (!b) /*Video bitmaps unavailable for some reason*/
                    b=create_bitmap(x,y);
