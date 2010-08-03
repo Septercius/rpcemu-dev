@@ -70,8 +70,8 @@ am__rpcemu_SOURCES_DIST = superio.c superio.h cdrom-iso.c cmos.c \
 	cmos.h cp15.c cp15.h fdc.c fdc.h fpa.c hostfs.c hostfs.h ide.c \
 	ide.h iomd.c iomd.h keyboard.c keyboard.h mem.c mem.h \
 	romload.c rpcemu.c sound.c sound.h vidc20.c vidc20.h podules.c \
-	podulerom.c icside.c arm_common.h arm_common.c ArmDynarec.c \
-	ArmDynarecOps.h codegen_amd64.c codegen_amd64.h \
+	podulerom.c icside.c rpc-machdep.c arm_common.h arm_common.c \
+	ArmDynarec.c ArmDynarecOps.h codegen_amd64.c codegen_amd64.h \
 	codegen_x86_common.h codegen_x86.c codegen_x86.h arm.c arm.h \
 	codegen_null.c cdrom-ioctl.c rpc-win.c resources.h rpc-linux.c \
 	gui.c cdrom-linuxioctl.c network-linux.c network.c network.h \
@@ -103,10 +103,10 @@ am_rpcemu_OBJECTS = rpcemu-superio.$(OBJEXT) \
 	rpcemu-romload.$(OBJEXT) rpcemu-rpcemu.$(OBJEXT) \
 	rpcemu-sound.$(OBJEXT) rpcemu-vidc20.$(OBJEXT) \
 	rpcemu-podules.$(OBJEXT) rpcemu-podulerom.$(OBJEXT) \
-	rpcemu-icside.$(OBJEXT) rpcemu-arm_common.$(OBJEXT) \
-	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
-	$(am__objects_7) $(am__objects_8)
+	rpcemu-icside.$(OBJEXT) rpcemu-rpc-machdep.$(OBJEXT) \
+	rpcemu-arm_common.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
+	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
+	$(am__objects_6) $(am__objects_7) $(am__objects_8)
 rpcemu_OBJECTS = $(am_rpcemu_OBJECTS)
 am__DEPENDENCIES_1 =
 @OS_WIN_FALSE@rpcemu_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -242,10 +242,10 @@ rpcemu_SOURCES = superio.c superio.h cdrom-iso.c cmos.c cmos.h cp15.c \
 	cp15.h fdc.c fdc.h fpa.c hostfs.c hostfs.h ide.c ide.h iomd.c \
 	iomd.h keyboard.c keyboard.h mem.c mem.h romload.c rpcemu.c \
 	sound.c sound.h vidc20.c vidc20.h podules.c podulerom.c \
-	icside.c arm_common.h arm_common.c $(am__append_1) \
-	$(am__append_3) $(am__append_4) $(am__append_5) \
-	$(am__append_6) $(am__append_7) $(am__append_8) \
-	$(am__append_9)
+	icside.c rpc-machdep.c arm_common.h arm_common.c \
+	$(am__append_1) $(am__append_3) $(am__append_4) \
+	$(am__append_5) $(am__append_6) $(am__append_7) \
+	$(am__append_8) $(am__append_9)
 @OS_WIN_TRUE@rpcemu_CPPFLAGS = -Dsleep=Sleep
 EXTRA_DIST = acorn.rc rpcemu.ico
 all: config.h
@@ -362,6 +362,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-podules.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-romload.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-rpc-linux.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-rpc-machdep.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-rpc-macosx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-rpc-win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-rpcemu.Po@am__quote@
@@ -634,6 +635,20 @@ rpcemu-icside.obj: icside.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='icside.c' object='rpcemu-icside.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-icside.obj `if test -f 'icside.c'; then $(CYGPATH_W) 'icside.c'; else $(CYGPATH_W) '$(srcdir)/icside.c'; fi`
+
+rpcemu-rpc-machdep.o: rpc-machdep.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-rpc-machdep.o -MD -MP -MF $(DEPDIR)/rpcemu-rpc-machdep.Tpo -c -o rpcemu-rpc-machdep.o `test -f 'rpc-machdep.c' || echo '$(srcdir)/'`rpc-machdep.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/rpcemu-rpc-machdep.Tpo $(DEPDIR)/rpcemu-rpc-machdep.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='rpc-machdep.c' object='rpcemu-rpc-machdep.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-rpc-machdep.o `test -f 'rpc-machdep.c' || echo '$(srcdir)/'`rpc-machdep.c
+
+rpcemu-rpc-machdep.obj: rpc-machdep.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-rpc-machdep.obj -MD -MP -MF $(DEPDIR)/rpcemu-rpc-machdep.Tpo -c -o rpcemu-rpc-machdep.obj `if test -f 'rpc-machdep.c'; then $(CYGPATH_W) 'rpc-machdep.c'; else $(CYGPATH_W) '$(srcdir)/rpc-machdep.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/rpcemu-rpc-machdep.Tpo $(DEPDIR)/rpcemu-rpc-machdep.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='rpc-machdep.c' object='rpcemu-rpc-machdep.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-rpc-machdep.obj `if test -f 'rpc-machdep.c'; then $(CYGPATH_W) 'rpc-machdep.c'; else $(CYGPATH_W) '$(srcdir)/rpc-machdep.c'; fi`
 
 rpcemu-arm_common.o: arm_common.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-arm_common.o -MD -MP -MF $(DEPDIR)/rpcemu-arm_common.Tpo -c -o rpcemu-arm_common.o `test -f 'arm_common.c' || echo '$(srcdir)/'`arm_common.c

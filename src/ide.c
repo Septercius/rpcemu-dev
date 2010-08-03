@@ -12,6 +12,9 @@ void callbackide(void);
 #include <string.h>
 
 #include <sys/types.h>
+
+#include <allegro.h>
+
 #include "rpcemu.h"
 #include "vidc20.h"
 #include "mem.h"
@@ -296,23 +299,27 @@ ide_next_sector(void)
 
 static void loadhd(int d, const char *fn)
 {
+	char pathname[512];
+
+	append_filename(pathname, rpcemu_get_datadir(), fn, 512);
+
 	if (ide.hdfile[d] == NULL) {
 		/* Try to open existing hard disk image */
-		ide.hdfile[d] = fopen64(fn, "rb+");
+		ide.hdfile[d] = fopen64(pathname, "rb+");
 		if (ide.hdfile[d] == NULL) {
 			/* Failed to open existing hard disk image */
 			if (errno == ENOENT) {
 				/* Failed because it does not exist,
 				   so try to create new file */
-				ide.hdfile[d] = fopen64(fn, "wb+");
+				ide.hdfile[d] = fopen64(pathname, "wb+");
 				if (ide.hdfile[d] == NULL) {
 					fatal("Cannot create file '%s': %s",
-					      fn, strerror(errno));
+					      pathname, strerror(errno));
 				}
 			} else {
 				/* Failed for another reason */
 				fatal("Cannot open file '%s': %s",
-				      fn, strerror(errno));
+				      pathname, strerror(errno));
 			}
 		}
 	}

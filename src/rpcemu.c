@@ -32,7 +32,6 @@
 unsigned char flaglookup[16][16];
 
 char discname[2][260]={"boot.adf","notboot.adf"};
-char exname[512] = {0};
 
 Config config = {
 	CPUModel_ARM7500,	/* model */
@@ -236,7 +235,6 @@ int
 startrpcemu(void)
 {
         int c;
-        char *p;
 
 	/* On startup log additional information about the build and
 	   environment */
@@ -246,10 +244,7 @@ startrpcemu(void)
         install_timer();    /* allegro */
         install_mouse();    /* allegro */
 
-        get_executable_name(exname,511);
-        p=get_filename(exname);
-        *p=0;
-        append_filename(HOSTFS_ROOT,exname,"hostfs",511);
+ 	append_filename(HOSTFS_ROOT, rpcemu_get_datadir(), "hostfs", 511);
         for (c=0;c<511;c++)
         {
                 if (HOSTFS_ROOT[c]=='\\')
@@ -371,7 +366,7 @@ loadconfig(void)
         char fn[512];
         const char *p;
 
-        append_filename(fn,exname,"rpc.cfg",511);
+	append_filename(fn, rpcemu_get_datadir(), "rpc.cfg", 511);
         set_config_file(fn);
 
 	/* Copy the contents of the configfile to the log */

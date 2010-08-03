@@ -61,7 +61,7 @@ void initpodulerom(void)
 		fatal("initpodulerom: Failed to read working directory: %s",
 		      strerror(errno));
 	}
-        append_filename(fn,exname,"poduleroms",sizeof(fn));
+        append_filename(fn, rpcemu_get_datadir(), "poduleroms", sizeof(fn));
         if (chdir(fn) == 0)
         {
                 finished=al_findfirst("*.*",&ff,FA_ALL&~FA_DIREC);
