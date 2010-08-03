@@ -59,6 +59,7 @@ OBJS =	arm.o       \
 	sound.o     \
 	superio.o   \
 	vidc20.o    \
+	rpc-machdep.o \
 	acorn.o
 
 $(EXE): $(OBJS)

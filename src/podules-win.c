@@ -31,7 +31,7 @@ void opendlls(void)
         dllnum=0;
         
         getcwd(olddir,sizeof(olddir));
-        append_filename(fn,exname,"podules",sizeof(fn));
+        append_filename(fn, rpcemu_get_datadir(), "podules", sizeof(fn));
         if (chdir(fn)) fatal("Cannot find podules directory %s",fn);
         finished=al_findfirst("*.dll",&ff,0xFFFF&~FA_DIREC);
         if (finished)

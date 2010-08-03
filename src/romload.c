@@ -57,7 +57,7 @@ void loadroms(void)
         }
 
         /* Change into roms directory */
-        append_filename(fn,exname,dirname,sizeof(fn));
+        append_filename(fn, rpcemu_get_datadir(), dirname, sizeof(fn));
         if (chdir(fn))
         {
                 fatal("Cannot find roms directory '%s': %s", fn,

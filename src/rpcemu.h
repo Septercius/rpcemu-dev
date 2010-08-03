@@ -135,6 +135,10 @@ extern uint32_t inscount;
 extern int rinscount;
 extern int cyccount;
 
+/* These functions can optionally be overridden by a platform. If not
+   needed to be overridden, there is a generic version in rpc-machdep.c */
+extern const char *rpcemu_get_datadir(void);
+
 /* rpc-[linux|win].c */
 extern void fatal(const char *format, ...) __attribute__((noreturn));
 extern void error(const char *format, ...);
@@ -144,8 +148,6 @@ extern void updateirqs(void);
 extern void sound_thread_wakeup(void);
 extern void sound_thread_start(void);
 extern void sound_thread_close(void);
-
-extern char exname[512];
 
 /*rpcemu.c*/
 extern int startrpcemu(void);

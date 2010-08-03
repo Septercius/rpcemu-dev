@@ -63,7 +63,7 @@ void initics(void)
 {
 /*        FILE *f;
         char fn[512];
-        append_filename(fn,exname,"zidefs",sizeof(fn));
+        append_filename(fn, rpcemu_get_datadir(), "zidefs", sizeof(fn));
         f=fopen(fn,"rb");
         if (!f)
         {

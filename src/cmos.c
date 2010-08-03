@@ -120,7 +120,7 @@ void loadcmos(void)
         FILE *cmosf;
 
         /* Append "cmos.ram" to the given executable path */
-        append_filename(fn, exname, "cmos.ram", sizeof(fn) - 1);
+        append_filename(fn, rpcemu_get_datadir(), "cmos.ram", sizeof(fn) - 1);
         cmosf = fopen(fn, "rb");
 
         if (cmosf) {
@@ -153,7 +153,7 @@ void savecmos(void)
         char fn[512];
         FILE *cmosf;
 
-        append_filename(fn, exname, "cmos.ram", sizeof(fn) - 1);
+        append_filename(fn, rpcemu_get_datadir(), "cmos.ram", sizeof(fn) - 1);
         cmosf = fopen(fn, "wb");
 
         if (cmosf) {
