@@ -97,12 +97,9 @@ static int menuld0(void)
         int xsize=SCREEN_W-32,ysize=SCREEN_H-64;
         memcpy(fn,discname[0],260);
         ret=file_select_ex("Please choose a disc image",fn,"ADF",260,xsize,ysize);
-        if (ret)
-        {
-                saveadf(discname[0], 0);
-                strcpy(discname[0],fn);
-                loadadf(discname[0], 0);
-        }
+	if (ret) {
+		rpcemu_floppy_load(0, fn);
+	}
         return D_EXIT;
 }
 
@@ -113,12 +110,9 @@ static int menuld1(void)
         int xsize=SCREEN_W-32,ysize=SCREEN_H-64;
         memcpy(fn,discname[1],260);
         ret=file_select_ex("Please choose a disc image",fn,"ADF",260,xsize,ysize);
-        if (ret)
-        {
-                saveadf(discname[1], 1);
-                strcpy(discname[1],fn);
-                loadadf(discname[1], 1);
-        }
+	if (ret) {
+		rpcemu_floppy_load(1, fn);
+	}
         return D_EXIT;
 }
 

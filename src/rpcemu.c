@@ -535,3 +535,22 @@ saveconfig(void)
 		set_config_string(NULL, "bridgename", "");
 	}
 }
+
+/**
+ * Load an .adf disc image into the specified drive. Save the previous disc
+ * image before loading new.
+ *
+ * @param drive    RPC Drive number, 0 or 1
+ * @param filename Full filepath of new .adf to load
+ */
+void
+rpcemu_floppy_load(int drive, const char *filename)
+{
+	assert(drive == 0 || drive == 1);
+	assert(filename);
+	assert(*filename);
+
+	saveadf(discname[drive], drive);
+	strncpy(discname[drive], filename, 260);
+	loadadf(discname[drive], drive);
+}

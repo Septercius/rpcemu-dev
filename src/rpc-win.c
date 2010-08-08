@@ -470,12 +470,10 @@ static void changedisc(HWND hwnd, int drive)
 	ofn.lCustData = 0;
 	ofn.lpfnHook = NULL;
 	ofn.lpTemplateName = NULL;
-        if (GetOpenFileName(&ofn))
-        {
-                saveadf(discname[drive], drive);
-                strcpy(discname[drive],fn);
-                loadadf(discname[drive], drive);
-        }
+
+	if (GetOpenFileName(&ofn)) {
+		rpcemu_floppy_load(drive, fn);
+	}
 }
 
 /**
