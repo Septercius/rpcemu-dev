@@ -52,13 +52,22 @@ extern void ioctl_init(void);
 //#define NETWORK_IP_ADDRESS_TEXT     9
 
 /* Indexes into the settingsmenu array */
-//#define MENU_SETTINGS_SETTINGS_WINDOW 0
-//#define MENU_SETTINGS_NETWORK_WINDOW 1
-#define MENU_SETTINGS_FULLSCREEN      2
-#define MENU_SETTINGS_ALT_BLIT        3
-#define MENU_SETTINGS_BLIT_OPTIMISE   4
-#define MENU_SETTINGS_MOUSEHACK       5
-//#define MENU_SETTINGS_CDROM_SUBMENU   6
+#ifdef RPCEMU_NETWORKING
+ //#define MENU_SETTINGS_SETTINGS_WINDOW 0
+ //#define MENU_SETTINGS_NETWORK_WINDOW 1
+ #define MENU_SETTINGS_FULLSCREEN      2
+ #define MENU_SETTINGS_ALT_BLIT        3
+ #define MENU_SETTINGS_BLIT_OPTIMISE   4
+ #define MENU_SETTINGS_MOUSEHACK       5
+ //#define MENU_SETTINGS_CDROM_SUBMENU   6
+#else
+ //#define MENU_SETTINGS_SETTINGS_WINDOW 0
+ #define MENU_SETTINGS_FULLSCREEN      1
+ #define MENU_SETTINGS_ALT_BLIT        2
+ #define MENU_SETTINGS_BLIT_OPTIMISE   3
+ #define MENU_SETTINGS_MOUSEHACK       4
+ //#define MENU_SETTINGS_CDROM_SUBMENU   5
+#endif
 
 /* maximum number of bytes a single (UTF-8 encoded) character can have */
 #define MAX_BYTES_PER_CHAR 4
