@@ -439,35 +439,40 @@ void networkswi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4,
 
 void initnetwork(void) 
 { 
-    uid_t uid = 0;
-    gid_t gid = 0;
-    const char *user = config.username;
-    /* Use configured username if available, otherwise see if
-       we are running from a sudo command */
-    if (user == NULL) user = getenv("SUDO_USER");
-
     tunfd = tun_alloc();
-    if (tunfd == -1) {
-        error("Networking unavailable");
-        return; /* No use setting privs or adding podule if already failed */
-    }
 
-    /* Once the network has been configured we no longer need root
+    /* After attempting to configure the network we no longer need root
        privileges, so drop them and refuse to carry on if we can't */
-    if (user) {
-        if (nametouidgid(user, &uid, &gid)) {
-            if (dropprivileges(uid, gid) < 0) {
-                fatal("Error dropping privileges: %s", strerror(errno));
-            }
-            rpclog("Networking: Dropping runtime privileges back to '%s'\n",
-                   user);
-        } else {
+
+    /* At the moment we only support extended privilege gain via the setuid
+       on the binary or running rpcemu with the sudo command, this should check
+       for both of them */
+    if (getuid() == 0 || geteuid() == 0) { /* Running as root */
+        const char *user = config.username;
+        uid_t uid = 0;
+        gid_t gid = 0;
+
+        /* Use configured username if available, otherwise see if
+           we are running from a sudo command */
+        if (user == NULL) {
+            user = getenv("SUDO_USER");
+        }
+
+        if (user == NULL) {
+            fatal("No username available to return to non privileged mode, "
+                  "refusing to continue running as root");
+        }
+
+        if (!nametouidgid(user, &uid, &gid)) {
             fatal("Could not find username '%s' on the system, or error",
                   user);
         }
-    } else {
-        fatal("No username available to return to non privileged mode, "
-              "refusing to continue running as root");
+
+        if (dropprivileges(uid, gid) < 0) {
+            fatal("Error dropping privileges: %s", strerror(errno));
+        }
+
+        rpclog("Networking: Dropping runtime privileges back to '%s'\n", user);
     }
 
     if (tunfd != -1) {
@@ -475,6 +480,9 @@ void initnetwork(void)
         if (poduleinfo == NULL) {
             error("No free podule for networking");
         }
+    } else {
+        error("Networking unavailable");
+        return;
     }
 }
 
