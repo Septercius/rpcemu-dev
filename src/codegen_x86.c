@@ -1206,19 +1206,14 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 
         case 0x1a: /* MOV reg */
                 flagsdirty=0;
-//                if (RD==15 || RN==15) return 0;
                 if (!generateshiftnoflags(opcode)) return 0;
                 /*Shifted val now in %eax*/
-                if (RD==15)
-                {
-                        if (r15mask!=0xFFFFFFFC) generateloadgen(15,EDX);
-                        addbyte(0x83); addbyte(0xC0); addbyte(4); /*ADDL $4,%eax*/
-                        if (r15mask!=0xFFFFFFFC)
-                        {
-                                addbyte(0x81); addbyte(0xE2); addlong(~r15mask); /*ANDL $~r15mask,%edx*/
-                                addbyte(0x25); addlong(r15mask); /*ANDL $r15mask,%eax*/
-                                addbyte(0x09); addbyte(0xD0); /*ORL %edx,%eax*/
-                        }
+                if (RD == 15) {
+                        generateloadgen(15, EDX);
+                        addbyte(0x83); addbyte(0xc0); addbyte(4); /* ADD $4,%eax */
+                        addbyte(0x81); addbyte(0xe2); addlong(~r15mask); /* AND $~r15mask,%edx */
+                        addbyte(0x25); addlong(r15mask); /* AND $r15mask,%eax */
+                        addbyte(0x09); addbyte(0xd0); /* OR %edx,%eax */
                 }
                 generatesave(RD);
                 break;
