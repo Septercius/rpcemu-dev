@@ -320,10 +320,8 @@ tryagain:
                 clear(bs4);
                 show_video_bitmap(bs4);
                 currentbuffer=1;
-                b=create_video_bitmap(x+16,y+16);
-                if (!b) /*Video bitmaps unavailable for some reason*/
 #endif
-                   b=create_bitmap(x+16,y+16);
+                b = create_bitmap(x + 16, y + 16);
         }
         else
         {
@@ -331,9 +329,7 @@ tryagain:
 		if (x < MIN_X_SIZE) x = MIN_X_SIZE;
 		if (y < MIN_Y_SIZE) y = MIN_Y_SIZE;
                 updatewindowsize(x,y);
-                b=create_video_bitmap(x,y);
-                if (!b) /*Video bitmaps unavailable for some reason*/
-                   b=create_bitmap(x,y);
+                b = create_bitmap(x, y);
         }
         resetbuffer();
 }
