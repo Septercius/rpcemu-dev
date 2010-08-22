@@ -121,7 +121,7 @@ rpclog(const char *format, ...)
 	assert(format);
 
 	if (arclog == NULL) {
-		arclog = fopen("rpclog.txt", "wt");
+		arclog = fopen(rpcemu_get_log_path(), "wt");
 		if (arclog == NULL) {
 			return;
 		}

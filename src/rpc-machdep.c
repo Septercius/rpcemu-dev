@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include <allegro.h>
 
 #include "rpcemu.h"
@@ -7,6 +9,7 @@
    based builds and Windows. Only Mac OS X GUI version needs to override */
 
 static char datadir[512] = "";
+static char logpath[1024] = "";
 
 /**
  * Return the path of the data directory containing all the sub data parts
@@ -26,4 +29,20 @@ rpcemu_get_datadir(void)
 	}
 
 	return datadir;
+}
+
+/**
+ * Return the full path to the RPCEmu log file.
+ *
+ * @return Pointer to static zero-terminated string of full path to log file
+ */
+const char *
+rpcemu_get_log_path(void)
+{
+	if (logpath[0] == '\0') {
+		strcpy(logpath, rpcemu_get_datadir());
+		strcat(logpath, "rpclog.txt");
+	}
+
+	return logpath;
 }
