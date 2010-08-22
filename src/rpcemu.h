@@ -138,6 +138,7 @@ extern int cyccount;
 /* These functions can optionally be overridden by a platform. If not
    needed to be overridden, there is a generic version in rpc-machdep.c */
 extern const char *rpcemu_get_datadir(void);
+extern const char *rpcemu_get_log_path(void);
 
 /* rpc-[linux|win].c */
 extern void fatal(const char *format, ...) __attribute__((noreturn));
