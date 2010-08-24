@@ -76,7 +76,10 @@
 #endif
 
 /* Does this platform support one or more of our networking types? */
-#if defined __linux || defined __linux__ || defined WIN32 || defined _WIN32
+/* Note that networking is currently supported on Mac OS X with the Cocoa GUI
+   version but not with the Allegro GUI. */
+#if defined __linux || defined __linux__ || defined WIN32 || defined _WIN32 || \
+    defined RPCEMU_COCOA_GUI
 #define RPCEMU_NETWORKING
 #endif
 
