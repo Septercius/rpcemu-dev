@@ -11,7 +11,7 @@
 #define MAXROMS 16
 
 /* Website with help on finding romimages */
-#define ROM_WEB_SITE "http://www.marutan.net/rpcemuspoon"
+#define ROM_WEB_SITE "http://www.marutan.net/rpcemu"
 
 #define ROM_WEB_SITE_STRING "For information on how to acquire ROM images please visit\n" ROM_WEB_SITE
 

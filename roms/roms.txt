@@ -6,4 +6,4 @@ length of the ROM files must be 2, 4, 6, or 8MiB long.
 Please see the website for more information on compatibility and
 ROM sources.
 
-http://www.marutan.net/rpcemuspoon/manual/romimage.html
+http://www.marutan.net/rpcemu/manual/romimage.html

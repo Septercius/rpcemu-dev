@@ -46,7 +46,7 @@
             <File Id='cmosram' Name='cmos.ram' DiskId='1' Source='..\cmos.ram' Vital='yes' />
             <File Id='rpccfg' Name='rpc.cfg' DiskId='1' Source='..\rpc.cfg' Vital='yes' />
             <File Id='copying' Name='COPYING' DiskId='1' Source='COPYING' Vital='yes' />
-            <File Id='readme' Name='readme.txt' DiskId='1' Source='..\readme.spoon.txt' Vital='yes'>
+            <File Id='readme' Name='readme.txt' DiskId='1' Source='..\readme.txt' Vital='yes'>
               <Shortcut Id="readme" Directory="ProgramMenuDir" Name="Readme"
                 LongName="Readme" WorkingDirectory='RPCEMUPRODUCTDIR' IconIndex="0" />
             </File>
