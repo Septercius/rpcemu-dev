@@ -1,3 +1,37 @@
+RPCEmu
+~~~~~~
+
+RPCEmu is an emulator of Acorn's Risc PC and A7000 machines. It is a work in
+progress and should be considered of Alpha Quality.
+
+The latest version is available from
+
+    http://www.marutan.net/rpcemu/
+
+The User Manual is available from
+
+    http://www.marutan.net/rpcemu/manual/
+
+RPCEmu requires a RISC OS ROM image to work; check here for details:
+
+    http://www.marutan.net/rpcemu/manual/romimage.html
+
+RPCEmu is licensed under the GPL, see COPYING for more details.
+
+
+
+
+
+------------------------------------------------------------------------------
+Below is the Original readme file for RPCEmu 0.5, it is now out of date
+but is included for historical interest.
+------------------------------------------------------------------------------
+
+
+
+
+
+
 RPCemu v0.5
 ~~~~~~~~~~~
 
