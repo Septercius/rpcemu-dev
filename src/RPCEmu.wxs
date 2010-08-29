@@ -2,7 +2,7 @@
 <Wix xmlns='http://schemas.microsoft.com/wix/2003/01/wi'>
   <Product Name='RPCEmu' Id='????????-????-????-????-????????????'
     Language='1033' Codepage='1252' Version='0.8.6' Manufacturer='Various'
-	UpgradeCode='6F6DCB0A-0F3C-4D42-B746-47D14825163E'>
+    UpgradeCode='6F6DCB0A-0F3C-4D42-B746-47D14825163E'>
 
     <Package Id='????????-????-????-????-????????????' Keywords='Installer'
       Description="RPCEmu 0.8.6 Installer"
@@ -24,87 +24,83 @@
 
 
     <Directory Id='TARGETDIR' Name='SourceDir'>
-	  <Directory Id='ProgramFilesFolder' Name='PFiles'>
-	    <Directory Id='RPCEMUPRODUCTDIR' Name='RPCEmu'>
+      <Directory Id='ProgramFilesFolder' Name='PFiles'>
+        <Directory Id='RPCEMUPRODUCTDIR' Name='RPCEmu'>
 
-	  	  <Component Id='MainExecutable' Guid='629C3CDA-A189-49B6-B191-00EE03DB810F'>
+          <Component Id='MainExecutable' Guid='629C3CDA-A189-49B6-B191-00EE03DB810F'>
 
-		    <!-- Remove the old 0.8.0 shortcut names on upgrade -->
+            <!-- Remove the old 0.8.0 shortcut names on upgrade -->
             <RemoveFile Id="RemoveDesktopShortcut" On="both" Name="shortc_1"
-		     LongName="RPCEmu*" Directory="ProgramMenuDir"/>
+              LongName="RPCEmu*" Directory="ProgramMenuDir"/>
 
-		    <File Id='RPCEmuEXE' Name='rpcemu.exe' LongName='RPCEmu-Interpreter.exe' DiskId='1'
-			  Source='..\RPCEmu-Interpreter.exe' Vital='yes'>
-			  <Shortcut Id="startmenurpcemu" Directory="ProgramMenuDir" Name="RPCEmu" 
-			    LongName="RPCEmu Interpreter" WorkingDirectory='RPCEMUPRODUCTDIR' Icon="rpcemu.exe" IconIndex="0" />
-<!--			  <Shortcut Id="desktoprpcemu" Directory="DesktopFolder" Name="rpcemu"
-			    LongName="rcpemu" WorkingDirectory='RPCEMUPRODUCTDIR' Icon="rpcemu.exe" IconIndex="0" />-->
-		    </File>
-		    <File Id='RPCEmuEXEd' Name='rpcemud.exe' LongName='RPCEmu-Recompiler.exe' DiskId='1'
-			  Source='..\RPCEmu-Recompiler.exe' Vital='yes'>
-			  <Shortcut Id="startmenurpcemud" Directory="ProgramMenuDir" Name="RPCEmu-d" 
-			    LongName="RPCEmu Recompiler" WorkingDirectory='RPCEMUPRODUCTDIR' Icon="rpcemud.exe" IconIndex="0" />
-<!--			  <Shortcut Id="desktoprpcemud" Directory="DesktopFolder" Name="rpcemud"
-			    LongName="rcpemud" WorkingDirectory='RPCEMUPRODUCTDIR' Icon="rpcemud.exe" IconIndex="0" />-->
-		    </File>
-		    <File Id='cmosram' Name='cmos.ram' DiskId='1' Source='..\cmos.ram' Vital='yes' />
-		    <File Id='rpccfg' Name='rpc.cfg' DiskId='1' Source='..\rpc.cfg' Vital='yes' />
-		    <File Id='copying' Name='COPYING' DiskId='1' Source='COPYING' Vital='yes' />
-		    <File Id='readme' Name='readme.txt' DiskId='1' Source='..\readme.spoon.txt' Vital='yes'>
-			   <Shortcut Id="readme" Directory="ProgramMenuDir" Name="Readme"
-			    LongName="Readme" WorkingDirectory='RPCEMUPRODUCTDIR' IconIndex="0" />
-		    </File>
-		    <File Id='allegro' Name='alleg42.dll' DiskId='1' Source='C:\Windows\System32\alleg42.dll' Vital='yes' />
-		    <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
-			<Shortcut Id="startmenudir" Directory="ProgramMenuDir" Name="rpcemudi" 
-			    LongName="Shortcut to RPCEmu Directory" WorkingDirectory='RPCEMUPRODUCTDIR' />
+            <File Id='RPCEmuEXE' Name='rpcemu.exe' LongName='RPCEmu-Interpreter.exe' DiskId='1'
+              Source='..\RPCEmu-Interpreter.exe' Vital='yes'>
+              <Shortcut Id="startmenurpcemu" Directory="ProgramMenuDir" Name="RPCEmu" 
+                LongName="RPCEmu Interpreter" WorkingDirectory='RPCEMUPRODUCTDIR' Icon="rpcemu.exe" IconIndex="0" />
+            </File>
+            <File Id='RPCEmuEXEd' Name='rpcemud.exe' LongName='RPCEmu-Recompiler.exe' DiskId='1'
+              Source='..\RPCEmu-Recompiler.exe' Vital='yes'>
+              <Shortcut Id="startmenurpcemud" Directory="ProgramMenuDir" Name="RPCEmu-d" 
+                LongName="RPCEmu Recompiler" WorkingDirectory='RPCEMUPRODUCTDIR' Icon="rpcemud.exe" IconIndex="0" />
+            </File>
+            <File Id='cmosram' Name='cmos.ram' DiskId='1' Source='..\cmos.ram' Vital='yes' />
+            <File Id='rpccfg' Name='rpc.cfg' DiskId='1' Source='..\rpc.cfg' Vital='yes' />
+            <File Id='copying' Name='COPYING' DiskId='1' Source='COPYING' Vital='yes' />
+            <File Id='readme' Name='readme.txt' DiskId='1' Source='..\readme.spoon.txt' Vital='yes'>
+              <Shortcut Id="readme" Directory="ProgramMenuDir" Name="Readme"
+                LongName="Readme" WorkingDirectory='RPCEMUPRODUCTDIR' IconIndex="0" />
+            </File>
+            <File Id='allegro' Name='alleg42.dll' DiskId='1' Source='C:\Windows\System32\alleg42.dll' Vital='yes' />
+            <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
+            <Shortcut Id="startmenudir" Directory="ProgramMenuDir" Name="rpcemudi" 
+              LongName="Shortcut to RPCEmu Directory" WorkingDirectory='RPCEMUPRODUCTDIR' />
 
-		  </Component>
+          </Component>
 
-	      <Directory Id='roms' Name='roms'>
-	  	    <Component Id='RomsDirectory' Guid='B3BB53E6-7F2B-47C9-AFE1-6971908F601D'>
+          <Directory Id='roms' Name='roms'>
+            <Component Id='RomsDirectory' Guid='B3BB53E6-7F2B-47C9-AFE1-6971908F601D'>
               <CreateFolder Directory="roms" />
-			</Component>
-		  </Directory>
+            </Component>
+          </Directory>
 
- 	      <Directory Id='poduleroms' Name='podulero' LongName="poduleroms">
-	  	    <Component Id='PoduleromsDirectory' Guid='8BF55C3B-E68D-4A64-A5BF-278D0E848DEF'>
+          <Directory Id='poduleroms' Name='podulero' LongName="poduleroms">
+            <Component Id='PoduleromsDirectory' Guid='8BF55C3B-E68D-4A64-A5BF-278D0E848DEF'>
               <File Id='hostfs' Name='hostfs' LongName='hostfs,ffa' DiskId='1' Source='..\riscos-progs\HostFS\hostfs,ffa' Vital='yes' />
               <File Id='hostfsfiler' Name='hostfsfi' LongName='hostfsfiler,ffa' DiskId='1' Source='..\riscos-progs\HostFS\hostfsfiler,ffa' Vital='yes' />
               <File Id='syncclock' Name='synccloc' LongName='SyncClock,ffa' DiskId='1' Source='..\riscos-progs\SyncClock\SyncClock,ffa' Vital='yes' />
-			</Component>
-		  </Directory>
-		  
-		  <Directory Id='podules' Name='podules'>
-	  	    <Component Id='PodulesDirectory' Guid='486E7436-F85D-4C39-8358-9F6A88234C94'>
+            </Component>
+          </Directory>
+
+          <Directory Id='podules' Name='podules'>
+            <Component Id='PodulesDirectory' Guid='486E7436-F85D-4C39-8358-9F6A88234C94'>
               <CreateFolder Directory="podules" />
-			</Component>
-		  </Directory>
-		  
-	      <Directory Id='hostfs' Name='hostfs'>
-	  	    <Component Id='HostfsDirectory' Guid='8E58FAB7-781D-4439-B33E-144F84E2F697'>
-			  <CreateFolder Directory="hostfs">
-			  	<Shortcut Id="startmenuhostfs" Directory="ProgramMenuDir" Name="hostfs" 
-			    LongName="Shortcut to HostFS" WorkingDirectory='RPCEMUPRODUCTDIR' />
-			  </CreateFolder>
-			</Component>
-		  </Directory>
-		  
+            </Component>
+          </Directory>
+
+          <Directory Id='hostfs' Name='hostfs'>
+            <Component Id='HostfsDirectory' Guid='8E58FAB7-781D-4439-B33E-144F84E2F697'>
+              <CreateFolder Directory="hostfs">
+                <Shortcut Id="startmenuhostfs" Directory="ProgramMenuDir" Name="hostfs" 
+                  LongName="Shortcut to HostFS" WorkingDirectory='RPCEMUPRODUCTDIR' />
+              </CreateFolder>
+            </Component>
+          </Directory>
+
 <!--
           <Component Id='HelperLibrary' Guid='1BC0F2F1-7ECA-40BF-8D78-4CE6369F709C'>
-		    <File Id='HelperDLL' Name='Helper.dll' DiskId='1' Source='Helper.dll' Vital='yes' />
-		  </Component>
+            <File Id='HelperDLL' Name='Helper.dll' DiskId='1' Source='Helper.dll' Vital='yes' />
+          </Component>
 -->
 
-<!--		  
-		  <Component Id='Manual' Guid='64D6A0E4-CB25-41E9-904C-D18B681F8168'>
-		    <File Id='Manual' Name='Manual.pdf' DiskId='1' Source='Manual.pdf'>
-			<Shortcut Id="startmenuManual" Directory="ProgramMenuDir" Name="Manual" LongName="Instruction Manual" />
-		    </File>
-		  </Component>
+<!--
+          <Component Id='Manual' Guid='64D6A0E4-CB25-41E9-904C-D18B681F8168'>
+            <File Id='Manual' Name='Manual.pdf' DiskId='1' Source='Manual.pdf'>
+              <Shortcut Id="startmenuManual" Directory="ProgramMenuDir" Name="Manual" LongName="Instruction Manual" />
+            </File>
+          </Component>
 -->
-		  
-	    </Directory>
+
+        </Directory>
       </Directory>
 
       <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
@@ -124,7 +120,7 @@
       <ComponentRef Id='HelperLibrary' />
       <ComponentRef Id='Manual' />
 -->
-	  </Feature>
+    </Feature>
 
     <InstallExecuteSequence>
       <LaunchConditions After='AppSearch'></LaunchConditions>
