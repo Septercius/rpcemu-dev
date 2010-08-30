@@ -1,0 +1,17 @@
+
+These files are used for setting up networking on RPCEmu.
+
+Please refer to the guide at
+
+http://www.marutan.net/rpcemu/manual/network.html
+
+for full instructions on how to configure networking.
+
+These two directories need to be merged (dropped over the top of) with the
+directories inside your !Boot. !System is normally !Boot.Resources.!System
+and Autosense varies depending on which version of RISC OS is used; use the
+RISC OS filer to search for it.
+
+Remember you will also need to have the Castle 32bit SharedCLibary
+installed for these to work. See the guide for more details and the URL.
+

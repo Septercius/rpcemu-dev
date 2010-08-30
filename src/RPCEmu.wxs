@@ -84,6 +84,27 @@
                   LongName="Shortcut to HostFS" WorkingDirectory='RPCEMUPRODUCTDIR' />
               </CreateFolder>
             </Component>
+            <Directory Id='network' Name='Network'>
+              <Component Id='networkReadme' Guid='a4a37610-220d-4104-b376-2a911cca961d'>
+                <File Id='tert' Name='ReadMe' LongName='ReadMe,fff' DiskId='1' Source='..\riscos-progs\EtherRPCEm\ReadMe,fff' Vital='yes' />
+              </Component>
+              <Directory Id='PlingSystem' Name='!System'>
+                <Directory Id='ThreeTen310' Name='310'>
+                  <Directory Id='Modules' Name='Modules'>
+                    <Directory Id='Network' Name='Network'>
+                      <Component Id='networkDriver' Guid='bcdee338-e6b3-402b-8fc4-4f9b2c9618c0'>
+                        <File Id='networkDriverFile' Name='EtherRPC' LongName='EtherRPCEm,ffa' DiskId='1' Source='..\riscos-progs\EtherRPCEm\!System\310\Modules\Network\EtherRPCEm,ffa' Vital='yes' />
+                      </Component>
+                    </Directory>
+                  </Directory>
+                </Directory>
+              </Directory>
+              <Directory Id='AutoSense' Name='AutoSens' LongName='AutoSense'>
+                <Component Id='networkAutoSense' Guid='eec5d325-3f83-4f46-8d8a-b6502a87d7c0'>
+                  <File Id='networkAutoSenseFile' Name='EtherRPC' LongName='EtherRPCEm,ffb' DiskId='1' Source='..\riscos-progs\EtherRPCEm\!Boot\Resources\Configure\!InetSetup\AutoSense\EtherRPCEm,ffb' Vital='yes' />
+                </Component>
+              </Directory>
+            </Directory>
           </Directory>
 
 <!--
@@ -116,6 +137,9 @@
       <ComponentRef Id='PoduleromsDirectory' />
       <ComponentRef Id='PodulesDirectory' />
       <ComponentRef Id='HostfsDirectory' />
+      <ComponentRef Id='networkReadme' />
+      <ComponentRef Id='networkDriver' />
+      <ComponentRef Id='networkAutoSense' />
 <!--
       <ComponentRef Id='HelperLibrary' />
       <ComponentRef Id='Manual' />
