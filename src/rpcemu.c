@@ -24,6 +24,7 @@
 #include "podulerom.h"
 #include "podules.h"
 #include "fdc.h"
+#include "hostfs.h"
 
 #ifdef RPCEMU_NETWORKING
 #include "network.h"
@@ -180,6 +181,7 @@ resetrpc(void)
         superio_reset();
         podules_reset();
         podulerom_reset();
+        hostfs_reset();
 
 #ifdef RPCEMU_NETWORKING
 	network_reset();
