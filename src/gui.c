@@ -72,13 +72,16 @@ extern void ioctl_init(void);
 /* maximum number of bytes a single (UTF-8 encoded) character can have */
 #define MAX_BYTES_PER_CHAR 4
 
+static DIALOG configuregui[];
+
+#ifdef RPCEMU_NETWORKING
 #define IPADDRLEN 15  /* (123.123.123.123) */
 #define BRNAMELEN 15
+
+static DIALOG networkgui[];
 static char gui_ipaddress[(IPADDRLEN + 1) * MAX_BYTES_PER_CHAR] = "123.124.125.126";
 static char gui_bridgename[(BRNAMELEN + 1) * MAX_BYTES_PER_CHAR] = "br0";
-
-static DIALOG configuregui[];
-static DIALOG networkgui[];
+#endif /* RPCEMU_NETWORKING */
 
 static int menuexit(void)
 {
@@ -397,6 +400,7 @@ static int menusettings(void)
         return D_CLOSE;
 }
 
+#ifdef RPCEMU_NETWORKING
 /**
  * Function to prepare, display and handle user changes on the 'networking'
  * window.
@@ -460,6 +464,7 @@ static int menunetworking(void)
 
 	return D_CLOSE;
 }
+#endif /* RPCEMU_NETWORKING */
 
 static int hzcallback(void *dp3, int d2)
 {
@@ -481,7 +486,7 @@ static MENU settingsmenu[]=
         {"&Settings...",menusettings,NULL,0,NULL},
 #ifdef RPCEMU_NETWORKING
         { "&Networking...", menunetworking, NULL, 0, NULL },
-#endif
+#endif /* RPCEMU_NETWORKING */
         {"&Fullscreen mode",menufullscreen,NULL,0,NULL},
         {"&Alternative blitting code",menualt,NULL,0,NULL},
         {"&Blitting optimisation",menublt,NULL,0,NULL},
@@ -538,6 +543,7 @@ static DIALOG configuregui[]=
         {0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL}
 };
 
+#ifdef RPCEMU_NETWORKING
 static DIALOG networkgui[] =
 {
 	/* proc, x, y, w, h, fg, bg */
@@ -556,6 +562,7 @@ static DIALOG networkgui[] =
 
 	{ 0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL }
 };
+#endif /* RPCEMU_NETWORKING */
 
 static DIALOG rpcemugui[]=
 {
