@@ -168,6 +168,8 @@ void domips(void)
 void
 resetrpc(void)
 {
+	rpclog("RPCEmu: Machine reset\n");
+
         mem_reset(config.rammask + 1);
         resetcp15();
         resetarm();
@@ -188,6 +190,8 @@ resetrpc(void)
 		initnetwork();
 	}
 #endif
+
+	rpclog("RPCEmu: Machine reset complete\n");
 }
 
 /**
