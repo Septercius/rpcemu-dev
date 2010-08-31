@@ -43,6 +43,8 @@
 #include "mem.h"
 #include "hostfs.h"
 
+#define HOSTFS_PROTOCOL_VERSION	1
+
 /* Windows mkdir() function only takes one argument name, and
    name clashes with Posix mkdir() function taking two. This
    macro allows us to use one API to work with both variants */
@@ -54,6 +56,13 @@ typedef int bool;
 
 #define true  ((bool) 1)
 #define false ((bool) 0)
+
+/** Registration states of HostFS module with backend code */
+typedef enum {
+  HOSTFS_STATE_UNREGISTERED,	/**< Module not yet registered */
+  HOSTFS_STATE_REGISTERED,	/**< Module successfully registered */
+  HOSTFS_STATE_IGNORE,		/**< Ignoring activity after failing to register */
+} HostFSState;
 
 enum OBJECT_TYPE {
   OBJECT_TYPE_NOT_FOUND = 0,
@@ -135,6 +144,9 @@ static size_t buffer_size = 0;
 static cache_directory_entry *cache_entries = NULL;
 static unsigned cache_entries_count = 0; /**< Number of valid entries in \a cache_entries */
 static char *cache_names = NULL;
+
+/** Current registration state of HostFS module with backend code */
+static HostFSState hostfs_state = HOSTFS_STATE_UNREGISTERED;
 
 #ifdef NDEBUG
 static inline void dbug_hostfs(const char *format, ...) {}
@@ -1871,25 +1883,87 @@ hostfs_gbpb(ARMul_State *state)
   dbug_hostfs("GBPB\n");
 }
 
+/**
+ * Entry point for module to register with emulator. This enables the backend
+ * to verify support for the correct protocol and features.
+ *
+ * If the module requests a protocol version that is not supported this will
+ * be logged and further actions ignored.
+ *
+ * @param state Emulator state
+ */
+static void
+hostfs_register(ARMul_State *state)
+{
+  assert(state);
+
+  /* Does R0 contain the supported protocol? */
+  if (state->Reg[0] == HOSTFS_PROTOCOL_VERSION) {
+    /* Successful registration - acknowledge by setting R0 to 0xffffffff */
+    rpclog("HostFS: Registration request version %u accepted\n", state->Reg[0]);
+    state->Reg[0] = 0xffffffff;
+    hostfs_state = HOSTFS_STATE_REGISTERED;
+
+  } else {
+    /* Failed registration due to an unsupported version */
+    rpclog("HostFS: Registration request version %u rejected\n", state->Reg[0]);
+    hostfs_state = HOSTFS_STATE_IGNORE;
+  }
+}
+
+/**
+ * Reset the HostFS state to initial values.
+ */
+void
+hostfs_reset(void)
+{
+  hostfs_state = HOSTFS_STATE_UNREGISTERED;
+}
+
+/**
+ * Entry point when the HostFS SWI is issued. The ARM register R0 must contain
+ * the HostFS operation.
+ *
+ * @param state Emulator state
+ */
 void
 hostfs(ARMul_State *state)
 {
   assert(state);
-  assert(state->Reg[9] <= 7);
 
-//  printf("*** HostFS Call *** %i %i %s\n",state->Reg[9],state->Reg[0],HOSTFS_ROOT);
+  /* Allow attempts to register regardless of current state */
+  if (state->Reg[9] == 0xffffffff) {
+    hostfs_register(state);
+    return;
+  }
 
-  switch (state->Reg[9]) {
-  case 0: hostfs_open(state);     break;
-  case 1: hostfs_getbytes(state); break;
-  case 2: hostfs_putbytes(state); break;
-  case 3: hostfs_args(state);     break;
-  case 4: hostfs_close(state);    break;
-  case 5: hostfs_file(state);     break;
-  case 6: hostfs_func(state);     break;
-  case 7: hostfs_gbpb(state);     break;
-  default:
-    fprintf(stderr, "!!! ERROR !!! - unknown op in R9\n");
+  /* Other HostFS operations depend on the current registration state */
+  switch (hostfs_state) {
+  case HOSTFS_STATE_REGISTERED:
+    switch (state->Reg[9]) {
+    case 0: hostfs_open(state);     break;
+    case 1: hostfs_getbytes(state); break;
+    case 2: hostfs_putbytes(state); break;
+    case 3: hostfs_args(state);     break;
+    case 4: hostfs_close(state);    break;
+    case 5: hostfs_file(state);     break;
+    case 6: hostfs_func(state);     break;
+    case 7: hostfs_gbpb(state);     break;
+    default:
+      error("!!! ERROR !!! - unknown op in R9\n");
+      break;
+    }
+    break;
+
+  case HOSTFS_STATE_UNREGISTERED:
+    /* Log attempt to use HostFS without registration and ignore further
+       operations */
+    rpclog("HostFS: Attempt to use HostFS without registration - ignoring\n");
+    hostfs_state = HOSTFS_STATE_IGNORE;
+    break;
+
+  case HOSTFS_STATE_IGNORE:
+    /* Ignore further HostFS operations after logging once */
     break;
   }
 }

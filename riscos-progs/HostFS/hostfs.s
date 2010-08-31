@@ -22,6 +22,8 @@
 	ARCEM_SWI_CHUNKX = ARCEM_SWI_CHUNK | 0x20000
 	ArcEm_HostFS    = ARCEM_SWI_CHUNKX + 1
 
+	HOSTFS_PROTOCOL_VERSION = 1
+
 	@ Filing system error codes
 	FILECORE_ERROR_DIRNOTEMPTY	= 0xb4
 	FILECORE_ERROR_DISCFULL		= 0xc6
@@ -62,7 +64,7 @@ title:
 	.string	"RPCEmuHostFS"
 
 help:
-	.string	"RPCEmu HostFS\t0.06 (11 Jun 2010)"
+	.string	"RPCEmu HostFS\t0.07 (31 Aug 2010)"
 
 	.align
 
@@ -117,16 +119,36 @@ fs_text:
 	 *   other may be corrupted
 	 */
 init:
-	@ Declare filing system
-	stmfd	sp!, {lr}
+	stmfd	sp!, {r9, lr}
 
+	@ Register with emulator
+	mov	r0, #HOSTFS_PROTOCOL_VERSION
+	mov	r9, #0xffffffff		@ HostFS operation for Register
+	swi	ArcEm_HostFS
+	cmp	r0, #0xffffffff		@ Look for acknowledge response
+	bne	init_failed_registration
+
+	@ Declare filing system
 	mov	r0, #FSControl_AddFS
 	adr	r1, module_start
 	mov	r2, #(fs_info_block - module_start)
 	mov	r3, r12
 	swi	XOS_FSControl
 
-	ldmfd	sp!, {pc}
+	ldmfd	sp!, {r9, pc}
+
+init_failed_registration:
+	adr	r0, err_failed_registration
+	cmp	r0, #NBIT	@ compare r0 with most negative number (r0-1<<31)
+	cmnvc	r0, #NBIT	@ no overflow then compare R0 with most non existent positive number (r0+1<<31)
+	ldmfd	sp!, {r9, pc}	@ exit init with V set
+
+err_failed_registration:
+	.int	0
+	.string	"Failed registration with emulator"
+	.align
+
+
 
 	/* Entry:
 	 *   r10 = fatality indication: 0 is non-fatal, 1 is fatal
