@@ -817,6 +817,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x90: /* STMDB */
 	case 0x92: /* STMDB ! */
 		if (RN==15) return 0;
+		if (opcode & 0x200000) return 0;
 		if (lastjumppos) return 0;
 		genloadreggen(RN,EDI);
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
@@ -869,6 +870,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x91: /* LDMDB */
 	case 0x93: /* LDMDB ! */
 		if (RN==15) return 0;
+		if (opcode & 0x200000) return 0;
 		if (lastjumppos) return 0;
 		genloadreggen(RN,EDI);
 		//if (opcode&0x1000000) { addbyte(0x83); addbyte(0xEF); addbyte(4); /*SUBL $4,%edi*/ }
