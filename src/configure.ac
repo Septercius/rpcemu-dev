@@ -78,6 +78,12 @@ AM_CONDITIONAL(CPU_I386, test "$CPU" = "i386")
 AC_CONFIG_SRCDIR(arm.c)
 AM_CONFIG_HEADER(config.h)
 AM_PROG_CC_C_O
+
+# Checks for libraries
+AC_SEARCH_LIBS(sin, m)
+AC_SEARCH_LIBS(pthread_create, pthread)
+AC_SEARCH_LIBS(nanosleep, rt)
+
 AC_C_BIGENDIAN(, , AC_MSG_ERROR(unknown endianness))
 AC_ISC_POSIX
 
