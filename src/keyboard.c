@@ -960,7 +960,7 @@ mouse_hack_osbyte_106(uint32_t a)
 void
 mouse_hack_osmouse(void)
 {
-        uint32_t temp;
+        int32_t temp;
 
         assert(mousehack);
 
