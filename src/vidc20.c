@@ -340,9 +340,16 @@ void closevideo(void)
         vidcendthread();
         freebitmaps();
 }
-        
+
+/**
+ * Called to enter or leave fullscreen mode.
+ *
+ * @param fs Bool of leaving (0) or entering (!0) fullscreen
+ */
 void togglefullscreen(int fs)
 {
+	rpclog("Fullscreen: %s\n", fs ? "Enter" : "Leave");
+
         fullscreen=fs;
         oldsx=oldsy=-1;
         memset(dirtybuffer,1,512*4);
