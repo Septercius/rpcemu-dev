@@ -41,7 +41,6 @@ static RECT oldclip; /**< Used to store the clip box of the cursor before we
 
 static HWND ghwnd;
 static HMENU menu;
-int infocus; /**< bool of whether the window has the keyboard focus */
 int handle_sigio; /**< bool to indicate new network data is received */
 
 static int quitblitter=0;
@@ -328,8 +327,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         allegro_init();     /* allegro */
 
-        infocus = 0;
-
         /* Initialise the emulation and read the config file */
         if (startrpcemu())
            return -1;
@@ -356,18 +353,14 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         atexit(releasemousecapture);
 
 //        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
-        infocus = 1;
         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
         drawscre=0;
 
         /* Program main loop */
         while (!quited)
         {
-                /* Execute the emulation, if it has the keyboard focus */
-                if (infocus)
-                {
-                        execrpcemu();
-                }
+                /* Execute the emulation */
+                execrpcemu();
 
                 /* Update title with mips speed */
                 if (updatemips)
@@ -423,8 +416,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         }
 
         /* Program has exited. Tidy up */
-
-        infocus=0;
 
         dumpregs();
         endrpcemu();
@@ -1011,17 +1002,14 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
 
         case WM_DESTROY:
                 closevideo();
-                infocus=0;
                 PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
                 break;
 
         case WM_SETFOCUS:
-                infocus=1;
                 resetbuffer();
                 break;
 
         case WM_KILLFOCUS:
-                infocus=0;
                 if (mousecapture)
                 {
                         ClipCursor(&oldclip);

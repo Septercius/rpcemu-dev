@@ -331,6 +331,14 @@ tryagain:
                 updatewindowsize(x,y);
                 b = create_bitmap(x, y);
         }
+
+#ifdef RPCEMU_WIN
+	/* On Windows, we need to reset the BACKGROUND mode on every screen
+	   mode change; this enables the app to continue running when it
+	   doesn't have the focus. */
+	set_display_switch_mode(SWITCH_BACKGROUND);
+#endif
+
         resetbuffer();
 }
 
