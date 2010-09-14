@@ -62,8 +62,6 @@
 	#define _RPCEMU_BIG_ENDIAN
 #endif
 
-#define GRAPHICS_TYPE GFX_AUTODETECT_WINDOWED
-
 /*This determines whether RPCemu can use hardware to blit and scale the display.
   If this is disabled then modes lower than 640x480 can look odd, and the system
   is slower. However, this must be commented out on some ports (Linux)*/
