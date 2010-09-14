@@ -936,17 +936,22 @@ mouse_hack_osword_21_0(uint32_t a)
 void
 mouse_hack_osbyte_106(uint32_t a)
 {
-        assert(mousehack);
+	assert(mousehack);
 
-        point = a;
-        /* Bit 7 =  Unlink visible pointer from mouse */
-        if (point & 0x80)
-		point = 0;
-        if (point > 4)
+	/* Bits 0-6 Select pointer number (1 to 4, or 0 to turn off)
+	   Bit  7   Unlink visible pointer from mouse, if set */
+
+	point = a & 0x7f; /* We're only interested in specific bits */
+
+	/* Bit 7 =  Unlink visible pointer from mouse */
+	if (a & 0x80)
 		point = 0;
 
-        /* point should now contain selected number 1-4 or
-           0 if turned off */
+	/* Bounds check, we ignore pointer values greater than 4 */
+	if (point > 4)
+		point = 0;
+
+	/* point should now contain selected number 1-4 or 0 if turned off */
 	assert(point >= 0 && point <= 4);
 }
 
