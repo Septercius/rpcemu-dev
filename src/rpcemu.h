@@ -199,7 +199,6 @@ extern float mipstotal;
 #endif
 
 /*Generic*/
-extern int lastinscount;
 extern int infocus;
 
 /*FPA*/
