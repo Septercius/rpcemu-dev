@@ -80,6 +80,67 @@ void fatal(const char *format, ...)
 	exit(EXIT_FAILURE);
 }
 
+/**
+ * Log details about the current Operating System version.
+ *
+ * Called during program start-up.
+ */
+void
+rpcemu_log_os(void)
+{
+	typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
+	typedef BOOL (WINAPI *PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
+
+	OSVERSIONINFOEX osvi;
+	SYSTEM_INFO si;
+	PGNSI pGNSI;
+
+	rpclog("OS: Microsoft Windows\n");
+
+	memset(&osvi, 0, sizeof(osvi));
+	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+	if (!GetVersionEx((OSVERSIONINFO *) &osvi)) {
+		rpclog("OS: Failed GetVersionEx()\n");
+		return;
+	}
+
+	pGNSI = (PGNSI) GetProcAddress(GetModuleHandle("kernel32.dll"),
+	                               "GetNativeSystemInfo");
+	if (pGNSI != NULL) {
+		pGNSI(&si);
+	} else {
+		GetSystemInfo(&si);
+	}
+
+	rpclog("OS: PlatformId = %ld\n", osvi.dwPlatformId);
+	rpclog("OS: MajorVersion = %ld\n", osvi.dwMajorVersion);
+	rpclog("OS: MinorVersion = %ld\n", osvi.dwMinorVersion);
+
+	/* If earlier than Windows 2000, log no more detail */
+	if (osvi.dwPlatformId != VER_PLATFORM_WIN32_NT || osvi.dwMajorVersion < 5) {
+		return;
+	}
+
+	rpclog("OS: ProductType = %d\n",  osvi.wProductType);
+	rpclog("OS: SuiteMask = 0x%x\n",  osvi.wSuiteMask);
+	rpclog("OS: ServicePackMajor = %d\n", osvi.wServicePackMajor);
+	rpclog("OS: ServicePackMinor = %d\n", osvi.wServicePackMinor);
+
+	rpclog("OS: ProcessorArchitecture = %d\n", si.wProcessorArchitecture);
+
+	rpclog("OS: SystemMetricsServerR2 = %d\n", GetSystemMetrics(SM_SERVERR2));
+
+	if (osvi.dwMajorVersion >= 6) {
+		PGPI pGPI;
+		DWORD dwType;
+
+		pGPI = (PGPI) GetProcAddress(GetModuleHandle("kernel32.dll"),
+		                             "GetProductInfo");
+		pGPI(osvi.dwMajorVersion, osvi.dwMinorVersion, 0, 0, &dwType);
+		rpclog("OS: ProductInfoType = %ld\n", dwType);
+	}
+}
+
 static void vblupdate(void)
 {
         drawscre++;
