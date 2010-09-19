@@ -2,10 +2,16 @@
   Main loop
   Not just for Linux - works as a Win32 console app as well*/
 
-#include "config.h"
+#include <errno.h>
+#include <string.h>
+
+#include <pthread.h>
+#include <sys/utsname.h>
 
 #include <allegro.h>
-#include <pthread.h>
+
+#include "config.h"
+
 #include "rpcemu.h"
 #include "mem.h"
 #include "sound.h"
@@ -123,6 +129,29 @@ void fatal(const char *format, ...)
 	}
 
 	exit(EXIT_FAILURE);
+}
+
+/**
+ * Log details about the current Operating System version.
+ *
+ * This function should work on all Unix and Unix-like systems.
+ *
+ * Called during program start-up.
+ */
+void
+rpcemu_log_os(void)
+{
+	struct utsname u;
+
+	if (uname(&u) == -1) {
+		rpclog("OS: Could not determine: %s\n", strerror(errno));
+		return;
+	}
+
+	rpclog("OS: SysName = %s\n", u.sysname);
+	rpclog("OS: Release = %s\n", u.release);
+	rpclog("OS: Version = %s\n", u.version);
+	rpclog("OS: Machine = %s\n", u.machine);
 }
 
 static void vblupdate(void)
