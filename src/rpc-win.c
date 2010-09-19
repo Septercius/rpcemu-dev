@@ -477,8 +477,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         }
 
         /* Program has exited. Tidy up */
-
-        dumpregs();
         endrpcemu();
         
         /* The program return-value is 0 - The value that PostQuitMessage() gave */
