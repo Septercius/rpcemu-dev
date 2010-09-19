@@ -722,7 +722,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         /* The model enum and the dialog IDs are in different orders */
 
                         /* Clear previous CPU model choice */
-                        switch (config.model) {
+                        switch (chosen_config.model) {
                         case CPUModel_ARM610:
                                 cpu = 0; break;
                         case CPUModel_ARM710:
