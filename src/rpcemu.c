@@ -224,10 +224,8 @@ rpcemu_log_information(void)
 	rpclog("Compiler: GCC version " __VERSION__ "\n");
 #endif
 
-#if defined(RPCEMU_WIN)
 	/* Log details of Operating System */
 	rpcemu_log_os();
-#endif
 
 	/* Log Allegro information */
 	rpclog("Allegro version ID: %s\n", allegro_id);
