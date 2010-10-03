@@ -119,6 +119,9 @@ void loadroms(void)
                 }
 
                 fclose(f);
+
+		rpclog("romload: Loaded '%s' %d bytes\n", romfilenames[c], len);
+
                 pos += len;
 
                 /* Free up filename allocated earlier */
@@ -142,6 +145,8 @@ void loadroms(void)
         {
                 fatal("ROM Image of unsupported size: expecting 2MB, 4MB, 6MB or 8MB, got %d bytes", pos);
         }
+
+	rpclog("romload: Total ROM size %d MB\n", pos / 1048576);
 
 #ifdef _RPCEMU_BIG_ENDIAN /*Byte swap*/
 #error "It's defined..."
