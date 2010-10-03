@@ -2809,11 +2809,10 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
 
 //        addbyte(0xA1); /*MOVL armregs[15],%eax*/
 //        addlong(&armregs[15]);
-        if (((opcode>>20)&0xFF)==0xAF)
-        {
-                addbyte(0x3D); addlong(currentblockpc); /*CMP $thisblock,%eax*/
-                addbyte(0x0F); addbyte(0x84); addlong(BLOCKSTART-(codeblockpos+4)); /*JZ back*/
-        }
+	if (((opcode >> 20) & 0xff) == 0xaf) {
+		addbyte(0x3d); addlong(currentblockpc); /* CMP $currentblockpc,%eax */
+		gen_x86_jump(CC_E, BLOCKSTART);
+	}
         addbyte(0x83); /*SUBL $8,%eax*/
         addbyte(0xE8);
         addbyte(0x08);
