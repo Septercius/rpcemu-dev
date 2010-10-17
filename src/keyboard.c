@@ -602,7 +602,7 @@ mouse_poll(void)
 	}
 
 	/* Use the 'Menu' key on the keyboard as a fake Menu mouse click */
-	if (key[KEY_MENU]) {
+	if (key[KEY_MENU] || key[KEY_ALTGR]) {
 		mouseb |= 4;
 	}
 
@@ -653,7 +653,19 @@ mouse_poll(void)
 
 	/* Send PS/2 button/movement packet */
 	{
-		uint8_t tmp = (mouseb & 7) | 8;
+		uint8_t tmp;
+
+		if (config.mousetwobutton) {
+			/* To help people with only two buttons on their mouse,
+			   swap the behaviour of middle and right buttons */
+			uint8_t mousel = mouseb & 1;
+			uint8_t mouser = (mouseb & 2) >> 1;
+			uint8_t mousem = (mouseb & 4) >> 2;
+
+			mouseb = mousel | (mousem << 1) | (mouser << 2);
+		}
+
+		tmp = (mouseb & 7) | 8;
 
 		if (x & 0x100) {
 			tmp |= 0x10; /* X overflow bit */
@@ -980,10 +992,18 @@ mouse_hack_osmouse(void)
         armregs[0] = temp;                      /* R0 = mouse x coordinate */
 
         temp=0;
-        if (mouse_b & 1) temp |= 4;             /* Allegro */
-        if (mouse_b & 2) temp |= 1;             /* Allegro */
-        if (mouse_b & 4) temp |= 2;             /* Allegro */
-        if (key[KEY_MENU]) temp|=2;
+	if (mouse_b & 1) temp |= 4;             /* Left button */
+	if (config.mousetwobutton) {
+		/* To help people with only two buttons on their mouse, swap
+		   the behaviour of middle and right buttons */
+		if (mouse_b & 2) temp |= 2;             /* Middle button */
+		if (mouse_b & 4) temp |= 1;             /* Right button */
+		if (key[KEY_MENU] || key[KEY_ALTGR]) temp |= 1;
+	} else {
+		if (mouse_b & 2) temp |= 1;             /* Right button */
+		if (mouse_b & 4) temp |= 2;             /* Middle button */
+		if (key[KEY_MENU] || key[KEY_ALTGR]) temp |= 2;
+	}
         armregs[2] = temp;                      /* R2 = mouse buttons */
 
         armregs[3] = 0;                         /* R3 = time of button change */

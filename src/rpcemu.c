@@ -50,6 +50,7 @@ Config config = {
 	0,			/* cdromtype  -- Only used on Windows build */
 	"",			/* isoname */
 	1,			/* mousehackon */
+	0,			/* mousetwobutton */
 };
 
 int infocus = 0;
@@ -438,7 +439,8 @@ loadconfig(void)
         if (!p) strcpy(config.isoname, "");
         else    strcpy(config.isoname, p);
 
-        config.mousehackon = get_config_int(NULL, "mouse_following", 1);
+        config.mousehackon    = get_config_int(NULL, "mouse_following", 1);
+        config.mousetwobutton = get_config_int(NULL, "mouse_twobutton", 0);
 
 	p = get_config_string(NULL, "network_type", NULL);
 	if (!p) {
@@ -511,6 +513,7 @@ saveconfig(void)
         set_config_int(NULL, "cdrom_type",        config.cdromtype);
         set_config_string(NULL, "cdrom_iso",      config.isoname);
         set_config_int(NULL, "mouse_following",   config.mousehackon);
+        set_config_int(NULL, "mouse_twobutton",   config.mousetwobutton);
 
 	switch (config.network_type) {
 	case NetworkType_Off:              sprintf(s, "off"); break;

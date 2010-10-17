@@ -59,14 +59,16 @@ extern void ioctl_init(void);
  #define MENU_SETTINGS_ALT_BLIT        3
  #define MENU_SETTINGS_BLIT_OPTIMISE   4
  #define MENU_SETTINGS_MOUSEHACK       5
- //#define MENU_SETTINGS_CDROM_SUBMENU   6
+ #define MENU_SETTINGS_MOUSETWOBUTTON  6
+ //#define MENU_SETTINGS_CDROM_SUBMENU   7
 #else
  //#define MENU_SETTINGS_SETTINGS_WINDOW 0
  #define MENU_SETTINGS_FULLSCREEN      1
  #define MENU_SETTINGS_ALT_BLIT        2
  #define MENU_SETTINGS_BLIT_OPTIMISE   3
  #define MENU_SETTINGS_MOUSEHACK       4
- //#define MENU_SETTINGS_CDROM_SUBMENU   5
+ #define MENU_SETTINGS_MOUSETWOBUTTON  5
+ //#define MENU_SETTINGS_CDROM_SUBMENU   6
 #endif
 
 /* maximum number of bytes a single (UTF-8 encoded) character can have */
@@ -254,6 +256,15 @@ static int menumouse(void)
         config.mousehackon ^= 1;
         settingsmenu[MENU_SETTINGS_MOUSEHACK].flags = config.mousehackon ? D_SELECTED : 0;
         return D_CLOSE;
+}
+
+static int
+menutwobutton(void)
+{
+	config.mousetwobutton ^= 1;
+	settingsmenu[MENU_SETTINGS_MOUSETWOBUTTON].flags =
+	    config.mousetwobutton ? D_SELECTED : 0;
+	return D_CLOSE;
 }
 
 static char hzstring[20];
@@ -491,6 +502,7 @@ static MENU settingsmenu[]=
         {"&Alternative blitting code",menualt,NULL,0,NULL},
         {"&Blitting optimisation",menublt,NULL,0,NULL},
         { "Follow host &mouse", menumouse, NULL, 0, NULL },
+        { "&Two-button Mouse Mode", menutwobutton, NULL, 0, NULL },
 	{"&CD-ROM",NULL,cdmenu,0,NULL},
         {NULL,NULL,NULL,0,NULL}
 };
@@ -587,7 +599,9 @@ void entergui(void)
         settingsmenu[MENU_SETTINGS_ALT_BLIT].flags      = config.stretchmode ? D_SELECTED : 0;
         settingsmenu[MENU_SETTINGS_BLIT_OPTIMISE].flags = config.skipblits   ? D_SELECTED : 0;
         settingsmenu[MENU_SETTINGS_MOUSEHACK].flags     = config.mousehackon ? D_SELECTED : 0;
-        
+        settingsmenu[MENU_SETTINGS_MOUSETWOBUTTON].flags =
+            config.mousetwobutton ? D_SELECTED : 0;
+
         dp=init_dialog(rpcemugui,0);
         show_mouse(screen);
         while (x && !(mouse_b&2) && !key[KEY_ESC])

@@ -589,18 +589,26 @@ uint8_t mouse_buttons_read(void)
         /* 'mouse_b' and 'key' are Allegro variables containing
            the current host OS mouse and keyboard state */
 
-        /* Left (select) */
-        if (mouse_b & 1) {
-               temp |= 0x40; // bit 7
-        }
-        /* Middle (menu) */
-        if ((mouse_b & 4) || key[KEY_MENU] || key[KEY_ALTGR]) {
-               temp |= 0x20; // bit 6
-        }
-        /* Right (adjust) */
-        if ((mouse_b & 2)) {
-               temp |= 0x10; // bit 5
-        }
+	/* Left */
+	if (mouse_b & 1) {
+		temp |= 0x40; // bit 7
+	}
+	/* Middle */
+	if ((mouse_b & 4) || key[KEY_MENU] || key[KEY_ALTGR]) {
+		if (config.mousetwobutton) {
+			temp |= 0x10; // bit 5
+		} else {
+			temp |= 0x20; // bit 6
+		}
+	}
+	/* Right */
+	if (mouse_b & 2) {
+		if (config.mousetwobutton) {
+			temp |= 0x20; // bit 6
+		} else {
+			temp |= 0x10; // bit 5
+		}
+	}
 
         return temp ^ 0x70; // bit 5 6 and 7
 }
