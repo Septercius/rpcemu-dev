@@ -120,13 +120,15 @@ typedef struct {
 	char *ipaddress;
 	char *macaddress;
 	char *bridgename;
-	int refresh;		/* Video refresh rate */
+	int refresh;		/**< Video refresh rate */
 	int soundenabled;
 	int skipblits;
 	int cdromenabled;
 	int cdromtype;
 	char isoname[512];
 	int mousehackon;
+	int mousetwobutton;	/**< Swap the behaviour of the right and middle
+	                             buttons, for mice with two buttons */
 	NetworkType network_type;
 } Config;
 

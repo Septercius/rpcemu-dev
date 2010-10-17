@@ -403,6 +403,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         
         CheckMenuItem(menu, IDM_STRETCH, config.stretchmode ? MF_CHECKED : MF_UNCHECKED);
         CheckMenuItem(menu, IDM_BLITOPT, config.skipblits   ? MF_CHECKED : MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_MOUSE_TWOBUTTON,
+                      config.mousetwobutton ? MF_CHECKED : MF_UNCHECKED);
         
         if (config.mousehackon) {
                 CheckMenuItem(menu, IDM_MOUSE_FOL, MF_CHECKED);
@@ -1035,6 +1037,12 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
                         CheckMenuItem(hmenu,IDM_MOUSE_FOL,MF_UNCHECKED);
                         CheckMenuItem(hmenu,IDM_MOUSE_CAP,MF_CHECKED);
                         config.mousehackon = 0;
+                        return 0;
+
+                case IDM_MOUSE_TWOBUTTON:
+                        config.mousetwobutton ^= 1;
+                        CheckMenuItem(hmenu, IDM_MOUSE_TWOBUTTON,
+                                      config.mousetwobutton ? MF_CHECKED : MF_UNCHECKED);
                         return 0;
                 }
 

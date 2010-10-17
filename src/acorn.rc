@@ -32,6 +32,7 @@ BEGIN
                 BEGIN
                         MENUITEM "&Follow host mouse", IDM_MOUSE_FOL
                         MENUITEM "&Capture",IDM_MOUSE_CAP
+                        MENUITEM "&Two-button Mouse Mode", IDM_MOUSE_TWOBUTTON
                 END
         END
 END

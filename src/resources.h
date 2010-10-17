@@ -4,7 +4,7 @@
 #define IDM_DISC_LD0       40010
 #define IDM_DISC_LD1       40011
 #define IDM_CONFIG         40052
-#define IDM_NETWORKING     40066   /* Last ID */
+#define IDM_NETWORKING     40066
 #define IDM_STRETCH        40053
 #define IDM_FULLSCR        40054
 #define IDM_BLITOPT        40055
@@ -14,6 +14,7 @@
 #define IDM_CDROM_REAL     40063
 #define IDM_MOUSE_FOL      40064
 #define IDM_MOUSE_CAP      40065
+#define IDM_MOUSE_TWOBUTTON 40067   /* Last ID */
 
 /* Indexes into the items of the CONFIGUREDLG Dialog */
 #define RadioButton_ARM610	1000
