@@ -2778,20 +2778,20 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
         addlong(&rcodeblock[blockpoint2][temp]-((uint32_t)&rcodeblock[blockpoint2][codeblockpos+4]));
         codeblockpos=temp;
 
-        addbyte(0x83); /*ADDL $12,%esp*/
-        addbyte(0xC4);
-        addbyte(0x0c);
+	addbyte(0xff); /* DECL linecyc */
+	addbyte(0x0d);
+	addlong(&linecyc);
+	gen_x86_jump(CC_S, 0);
 
-        addbyte(0xFF); /*DECL linecyc*/
-        addbyte(0x0D);
-        addlong(&linecyc);
+	addbyte(0xf6); /* TESTB $0xff,armirq */
+	addbyte(0x05);
+	addlong(&armirq);
+	addbyte(0xff);
+	gen_x86_jump(CC_NZ, 0);
 
-        //gen_x86_ret();
-
-        addbyte(0x79); /*JNS +1*/
-        addbyte(1);
-        temp=codeblockpos;
-        gen_x86_ret();
+	addbyte(0x83); /* ADD $12,%esp */
+	addbyte(0xc4);
+	addbyte(0x0c);
 
         generateloadgen(15,EAX); /*MOVL armregs[15],%eax*/
         if (r15mask != 0xfffffffc)
@@ -2799,13 +2799,6 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
                 addbyte(0x25); /*ANDL $r15mask,%eax*/
                 addlong(r15mask);
         }
-
-        addbyte(0xF6); /*TESTB $0xFF,armirq*/
-        addbyte(0x05);
-        addlong(&armirq);
-        addbyte(0xFF);
-        addbyte(0x75); /*JNZ*/
-        addbyte(temp-(codeblockpos+1));
 
 //        addbyte(0xA1); /*MOVL armregs[15],%eax*/
 //        addlong(&armregs[15]);
