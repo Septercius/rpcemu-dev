@@ -768,7 +768,7 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x08: /* ADD reg */
-                                #ifdef STRONGARM
+#ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMULL */
 					{
                                                 uint64_t mula = (uint64_t) armregs[MULRS];
@@ -777,19 +777,15 @@ void execarm(int cycs)
 
                                                 armregs[MULRN] = (uint32_t) mulres;
                                                 armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                break;
                                         }
-                                        else
-                                        {
-                                #endif
+#endif
                                         dest = GETADDR(RN) + shift2(opcode);
                                         arm_write_dest(opcode, dest);
-                                #ifdef STRONGARM
-                                        }
-                                #endif
                                         break;
 
                                 case 0x09: /* ADDS reg */
-                                #ifdef STRONGARM
+#ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMULLS */
 					{
                                                 uint64_t mula = (uint64_t) armregs[MULRS];
@@ -799,10 +795,9 @@ void execarm(int cycs)
                                                 armregs[MULRN] = (uint32_t) mulres;
                                                 armregs[MULRD] = (uint32_t) (mulres >> 32);
                                                 arm_flags_long_multiply(mulres);
+                                                break;
                                         }
-                                        else
-                                        {
-                                #endif
+#endif
                                         lhs = GETADDR(RN);
                                         templ=shift2(opcode);
                                         if (RD==15)
@@ -814,13 +809,10 @@ void execarm(int cycs)
                                                 setadd(lhs, templ, lhs + templ);
                                                 armregs[RD] = lhs + templ;
                                         }
-                                #ifdef STRONGARM                                                                                
-                                        }
-                                #endif
                                         break;
                                 
                                 case 0x0A: /* ADC reg */
-                                #ifdef STRONGARM
+#ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMLAL */
 					{
                                                 uint64_t mula = (uint64_t) armregs[MULRS];
@@ -831,19 +823,15 @@ void execarm(int cycs)
 
                                                 armregs[MULRN] = (uint32_t) mulres;
                                                 armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                break;
                                         }
-                                        else
-                                        {
-                                #endif
+#endif
                                         dest = GETADDR(RN) + shift2(opcode) + CFSET;
                                         arm_write_dest(opcode, dest);
-                                #ifdef STRONGARM                                        
-                                        }
-                                #endif
                                         break;
 
                                 case 0x0B: /* ADCS reg */
-                                #ifdef STRONGARM
+#ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMLALS */
 					{
                                                 uint64_t mula = (uint64_t) armregs[MULRS];
@@ -855,10 +843,9 @@ void execarm(int cycs)
                                                 armregs[MULRN] = (uint32_t) mulres;
                                                 armregs[MULRD] = (uint32_t) (mulres >> 32);
                                                 arm_flags_long_multiply(mulres);
+                                                break;
                                         }
-                                        else
-                                        {
-                                #endif                                                
+#endif
                                         lhs = GETADDR(RN);
                                         templ2=CFSET;
                                         templ=shift2(opcode);
@@ -871,13 +858,10 @@ void execarm(int cycs)
                                                 setadc(lhs, templ, lhs + templ + templ2);
                                                 armregs[RD] = lhs + templ + templ2;
                                         }
-                                #ifdef STRONGARM                                        
-                                        }
-                                #endif
                                         break;
 
                                 case 0x0C: /* SBC reg */
-                                #ifdef STRONGARM
+#ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMULL */
 					{
                                                 int64_t mula = (int64_t) (int32_t) armregs[MULRS];
@@ -886,19 +870,15 @@ void execarm(int cycs)
 
                                                 armregs[MULRN] = (uint32_t) mulres;
                                                 armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                break;
                                         }
-                                        else
-                                        {
-                                #endif
+#endif
                                         dest = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
                                         arm_write_dest(opcode, dest);
-                                #ifdef STRONGARM                                        
-                                        }
-                                #endif
                                         break;
 
                                 case 0x0D: /* SBCS reg */
-                                #ifdef STRONGARM
+#ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMULLS */
 					{
                                                 int64_t mula = (int64_t) (int32_t) armregs[MULRS];
@@ -908,10 +888,9 @@ void execarm(int cycs)
                                                 armregs[MULRN] = (uint32_t) mulres;
                                                 armregs[MULRD] = (uint32_t) (mulres >> 32);
                                                 arm_flags_long_multiply(mulres);
+                                                break;
                                         }
-                                        else
-                                        {
-                                #endif
+#endif
                                         lhs = GETADDR(RN);
                                         templ2=(CFSET)?0:1;
                                         templ=shift2(opcode);
@@ -924,13 +903,10 @@ void execarm(int cycs)
                                                 setsbc(lhs, templ, lhs - (templ + templ2));
                                                 armregs[RD] = lhs - (templ + templ2);
                                         }
-                                #ifdef STRONGARM                                        
-                                        }
-                                #endif
                                         break;
 
                                 case 0x0E: /* RSC reg */
-                                #ifdef STRONGARM
+#ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMLAL */
 					{
                                                 int64_t mula = (int64_t) (int32_t) armregs[MULRS];
@@ -941,19 +917,15 @@ void execarm(int cycs)
 
                                                 armregs[MULRN] = (uint32_t) mulres;
                                                 armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                break;
                                         }
-                                        else
-                                        {
-                                #endif
+#endif
                                         dest = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
                                         arm_write_dest(opcode, dest);
-                                #ifdef STRONGARM                                        
-                                        }
-                                #endif
                                         break;
 
                                 case 0x0F: /* RSCS reg */
-                                #ifdef STRONGARM
+#ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMLALS */
 					{
                                                 int64_t mula = (int64_t) (int32_t) armregs[MULRS];
@@ -965,10 +937,9 @@ void execarm(int cycs)
                                                 armregs[MULRN] = (uint32_t) mulres;
                                                 armregs[MULRD] = (uint32_t) (mulres >> 32);
                                                 arm_flags_long_multiply(mulres);
+                                                break;
                                         }
-                                        else
-                                        {
-                                #endif
+#endif
                                         lhs = GETADDR(RN);
                                         templ2=(CFSET)?0:1;
                                         templ=shift2(opcode);
@@ -981,9 +952,6 @@ void execarm(int cycs)
                                                 setsbc(templ, lhs, templ - (lhs + templ2));
                                                 armregs[RD] = templ - (lhs + templ2);
                                         }
-                                #ifdef STRONGARM                                        
-                                        }
-                                #endif
                                         break;
 
                                 case 0x10: /* MRS reg,CPSR and SWP word */

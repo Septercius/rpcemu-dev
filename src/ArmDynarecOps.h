@@ -147,15 +147,11 @@ static void opADDreg(uint32_t opcode)
 
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
-        }
-        else
-        {
+		return;
+	}
 #endif
-		dest = GETADDR(RN) + shift2(opcode);
-		arm_write_dest(opcode, dest);
-#ifdef STRONGARM
-        }
-#endif
+	dest = GETADDR(RN) + shift2(opcode);
+	arm_write_dest(opcode, dest);
 }
 
 static void opADDregS(uint32_t opcode)
@@ -172,24 +168,17 @@ static void opADDregS(uint32_t opcode)
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
 		arm_flags_long_multiply(mulres);
-        }
-        else
-        {
+		return;
+	}
 #endif
-                lhs = GETADDR(RN);
-                templ=shift2(opcode);
-                if (RD==15)
-                {
-                        arm_write_r15(opcode, lhs + templ);
-                }
-                else
-                {
-                        setadd(lhs, templ, lhs + templ);
-                        armregs[RD] = lhs + templ;
-                }
-#ifdef STRONGARM
-        }
-#endif
+	lhs = GETADDR(RN);
+	templ = shift2(opcode);
+	if (RD == 15) {
+		arm_write_r15(opcode, lhs + templ);
+	} else {
+		setadd(lhs, templ, lhs + templ);
+		armregs[RD] = lhs + templ;
+	}
 }
 
 static void opADCreg(uint32_t opcode)
@@ -207,15 +196,11 @@ static void opADCreg(uint32_t opcode)
 
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
-        }
-        else
-        {
+		return;
+	}
 #endif
-		dest = GETADDR(RN) + shift2(opcode) + CFSET;
-		arm_write_dest(opcode, dest);
-#ifdef STRONGARM
-        }
-#endif
+	dest = GETADDR(RN) + shift2(opcode) + CFSET;
+	arm_write_dest(opcode, dest);
 }
 
 static void opADCregS(uint32_t opcode)
@@ -234,25 +219,18 @@ static void opADCregS(uint32_t opcode)
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
 		arm_flags_long_multiply(mulres);
-        }
-        else
-        {
+		return;
+	}
 #endif
-                lhs = GETADDR(RN);
-                templ2=CFSET;
-                templ=shift2(opcode);
-                if (RD==15)
-                {
-                        arm_write_r15(opcode, lhs + templ + templ2);
-                }
-                else
-                {
-                        setadc(lhs, templ, lhs + templ + templ2);
-                        armregs[RD] = lhs + templ + templ2;
-                }
-#ifdef STRONGARM
-        }
-#endif
+	lhs = GETADDR(RN);
+	templ2 = CFSET;
+	templ = shift2(opcode);
+	if (RD == 15) {
+		arm_write_r15(opcode, lhs + templ + templ2);
+	} else {
+		setadc(lhs, templ, lhs + templ + templ2);
+		armregs[RD] = lhs + templ + templ2;
+	}
 }
 
 static void opSBCreg(uint32_t opcode)
@@ -268,15 +246,11 @@ static void opSBCreg(uint32_t opcode)
 
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
-        }
-        else
-        {
+		return;
+	}
 #endif
-		dest = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
-		arm_write_dest(opcode, dest);
-#ifdef STRONGARM
-        }
-#endif
+	dest = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
+	arm_write_dest(opcode, dest);
 }
 
 static void opSBCregS(uint32_t opcode)
@@ -293,25 +267,18 @@ static void opSBCregS(uint32_t opcode)
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
 		arm_flags_long_multiply(mulres);
-        }
-        else
-        {
+		return;
+	}
 #endif
-                lhs = GETADDR(RN);
-                templ2=(CFSET)?0:1;
-                templ=shift2(opcode);
-                if (RD==15)
-                {
-                        arm_write_r15(opcode, lhs - (templ + templ2));
-                }
-                else
-                {
-                        setsbc(lhs, templ, lhs - (templ + templ2));
-                        armregs[RD] = lhs - (templ + templ2);
-                }
-#ifdef STRONGARM
-        }
-#endif
+	lhs = GETADDR(RN);
+	templ2 = (CFSET) ? 0 : 1;
+	templ = shift2(opcode);
+	if (RD == 15) {
+		arm_write_r15(opcode, lhs - (templ + templ2));
+	} else {
+		setsbc(lhs, templ, lhs - (templ + templ2));
+		armregs[RD] = lhs - (templ + templ2);
+	}
 }
 
 static void opRSCreg(uint32_t opcode)
@@ -329,15 +296,11 @@ static void opRSCreg(uint32_t opcode)
 
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
-        }
-        else
-        {
+		return;
+	}
 #endif
-		dest = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
-		arm_write_dest(opcode, dest);
-#ifdef STRONGARM
-        }
-#endif
+	dest = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
+	arm_write_dest(opcode, dest);
 }
 
 static void opRSCregS(uint32_t opcode)
@@ -356,25 +319,18 @@ static void opRSCregS(uint32_t opcode)
 		armregs[MULRN] = (uint32_t) mulres;
 		armregs[MULRD] = (uint32_t) (mulres >> 32);
 		arm_flags_long_multiply(mulres);
-        }
-        else
-        {
+		return;
+	}
 #endif
-                lhs = GETADDR(RN);
-                templ2=(CFSET)?0:1;
-                templ=shift2(opcode);
-                if (RD==15)
-                {
-                        arm_write_r15(opcode, templ - (lhs + templ2));
-                }
-                else
-                {
-                        setsbc(templ, lhs, templ - (lhs + templ2));
-                        armregs[RD] = templ - (lhs + templ2);
-                }
-#ifdef STRONGARM
-        }
-#endif
+	lhs = GETADDR(RN);
+	templ2 = (CFSET) ? 0 : 1;
+	templ = shift2(opcode);
+	if (RD == 15) {
+		arm_write_r15(opcode, templ - (lhs + templ2));
+	} else {
+		setsbc(templ, lhs, templ - (lhs + templ2));
+		armregs[RD] = templ - (lhs + templ2);
+	}
 }
 
 static void opSWPword(uint32_t opcode)
