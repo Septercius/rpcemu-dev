@@ -387,7 +387,7 @@ static uint32_t shift3(uint32_t opcode)
                 }
                 if (!shiftamount)
                 {
-                        armregs[cpsr]|=cflag;
+                        armregs[cpsr] |= (cflag << 29);
                         return temp;
                 }
                 if (!(shiftamount&0x1F))
