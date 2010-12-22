@@ -4986,7 +4986,7 @@ echo "${ECHO_T}no" >&6; }
 fi
 
 
-  min_allegro_version=4.0.0
+  min_allegro_version=4.2.2
   { echo "$as_me:$LINENO: checking for Allegro - version >= $min_allegro_version" >&5
 echo $ECHO_N "checking for Allegro - version >= $min_allegro_version... $ECHO_C" >&6; }
   no_allegro=""
