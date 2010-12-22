@@ -93,7 +93,7 @@ AC_ISC_POSIX
 #       allegro.m4 from the DOS/Windows Allegro sources (the file is contained
 #       in `misc') and copy it to this directory or MSYS's `/share/aclocal'.
 if test "$OS" != "win"; then
-   AM_PATH_ALLEGRO(, , AC_MSG_ERROR(building RPCemu requires Allegro to be installed))
+   AM_PATH_ALLEGRO([4.2.2], , AC_MSG_ERROR(building RPCemu requires Allegro to be installed))
 fi
 
 AC_OUTPUT([Makefile])
