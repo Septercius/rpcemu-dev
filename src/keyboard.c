@@ -953,14 +953,15 @@ mouse_hack_osbyte_106(uint32_t a)
 	/* Bits 0-6 Select pointer number (1 to 4, or 0 to turn off)
 	   Bit  7   Unlink visible pointer from mouse, if set */
 
-	point = a & 0x7f; /* We're only interested in specific bits */
+	/* If Bits 0-6 are outside the range 0 to 4 then ignore, because the
+	   pointer number is invalid and RISC OS ignores it. */
+	if ((a & 0x7f) > 4)
+		return;
+
+	point = a & 0x7f; /* Obtain pointer number (range 0 to 4) */
 
 	/* Bit 7 =  Unlink visible pointer from mouse */
 	if (a & 0x80)
-		point = 0;
-
-	/* Bounds check, we ignore pointer values greater than 4 */
-	if (point > 4)
 		point = 0;
 
 	/* point should now contain selected number 1-4 or 0 if turned off */
