@@ -349,8 +349,6 @@ static uint32_t shift3(uint32_t opcode)
         if (opcode&0x10)
         {
                 shiftamount=armregs[(opcode>>8)&15]&0xFF;
-                if (shiftmode==3)
-                   shiftamount&=0x1F;
         }
         temp=armregs[RM];
         if (shiftamount) armregs[cpsr]&=~CFLAG;
@@ -426,40 +424,39 @@ static uint32_t shift3(uint32_t opcode)
 #define shift_ldrstr(o) shift2(o)
 //#define shift_ldrstr(o) ((o&0xFF0)?shift_ldrstr2(o):armregs[RM])
 
-//#if 0
 static unsigned
 shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
 {
-                switch (shiftmode)
-                {
-                        case 0: /*LSL*/
-                        if (!shiftamount)    return rm;
-                        return 0; /*shiftamount>=32*/
+	switch (shiftmode) {
+	case 0: /* LSL */
+		if (shiftamount == 0)
+			return rm;
+		return 0; /* shiftamount >= 32 */
 
-                        case 0x20: /*LSR*/
-                        if (!shiftamount && (opcode&0x10)) return rm;
-                        return 0; /*shiftamount>=32*/
+	case 0x20: /* LSR */
+		if (shiftamount == 0 && (opcode & 0x10))
+			return rm;
+		return 0; /* shiftamount >= 32 */
 
-                        case 0x40: /*ASR*/
-                        if (!shiftamount && !(opcode&0x10)) shiftamount=32;
-                        if (shiftamount>=32)
-                        {
-                                if (rm&0x80000000)
-                                   return 0xFFFFFFFF;
-                                return 0;
-                        }
-                        return (int)rm>>shiftamount;
+	case 0x40: /* ASR */
+		if (shiftamount == 0 && !(opcode & 0x10))
+			shiftamount = 32;
+		if (shiftamount >= 32) {
+			if (rm & 0x80000000)
+				return 0xffffffff;
+			return 0;
+		}
+		return (int) rm >> shiftamount;
 
-                        case 0x60: /*ROR*/
-                        if (!(opcode&0x10)) return (((CFSET)?1:0)<<31)|(rm>>1);
-                        shiftamount&=0x1F;
-                        return (rm>>shiftamount)|(rm<<(32-shiftamount));
-
-                        default:
-                        fatal("Shift2 mode %u amount %u\n", shiftmode, shiftamount);
-                }
+	default: /* ROR */
+		if (!(opcode & 0x10)) {
+			/* RRX */
+			return (((CFSET) ? 1 : 0) << 31) | (rm >> 1);
+		}
+		shiftamount &= 0x1f;
+		return (rm >> shiftamount) | (rm << (32 - shiftamount));
+	}
 }
-//#endif
 
 static inline unsigned shift4(unsigned opcode)
 {
