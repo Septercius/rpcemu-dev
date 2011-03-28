@@ -85,6 +85,17 @@ cmos_update_settings(void)
 	cmosram[0xc0] = (t->tm_year + 1900) % 100;
 	cmosram[0xc1] = (t->tm_year + 1900) / 100;
 
+	/* Automatically configure the mousetype depending on which machine
+	   model is selected. CMOS location has been verified on 3.50-Select 4
+	   and 5.17 (*configure mousetype <number>) */
+	if (config.model == CPUModel_ARM7500 ||
+	    config.model == CPUModel_ARM7500FE)
+	{
+		cmosram[0x5d] = 3; /* PS/2 mouse */
+	} else {
+		cmosram[0x5d] = 0; /* Quadrature mouse */
+	}
+
 	// What about also initialising some parts to sensible defaults?
 	// eg default bootfs, number of IDE discs, floppy etc....
 }
