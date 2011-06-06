@@ -173,15 +173,13 @@ void updatemode(uint32_t m)
                 fatal("Bad mode %i\n", mode);
         }
 
-        if (mode&16)
-        {
+        if (ARM_MODE_32(mode)) {
                 mmask=31;
                 cpsr=16;
                 pcpsr=&armregs[16];
 //                printf("Now 32-bit mode %i %08X %i\n",mode&15,PC,ins);
                 r15mask=0xFFFFFFFC;
-                if (!(om&16))
-                {
+                if (!ARM_MODE_32(om)) {
 			/* Change from 26-bit to 32-bit mode */
                         armregs[16]=(armregs[15]&0xF0000000)|mode;
                         armregs[16]|=((armregs[15]&0xC000000)>>20);
@@ -196,8 +194,7 @@ void updatemode(uint32_t m)
 //                printf("Now 26-bit mode %i %08X %i\n",mode&15,PC,ins);
                 r15mask=0x3FFFFFC;
                 armregs[16]=(armregs[16]&0xFFFFFFE0)|mode;
-                if (om&16)
-                {
+                if (ARM_MODE_32(om)) {
                         armregs[15]&=r15mask;
                         armregs[15]|=(mode&3);
                         armregs[15]|=(armregs[16]&0xF0000000);
@@ -544,8 +541,7 @@ void exception(int mmode, uint32_t address, int diff)
 		irq_disable = 0x80;
 	}
 
-        if (mode&16)
-        {
+        if (ARM_MODE_32(mode)) {
                 templ=armregs[15]-diff;
                 spsr[mmode]=armregs[16];
                 updatemode(mmode|16);
@@ -824,18 +820,11 @@ void execarm(int cycs)
 //                        linecyc+=10;
                         if (/*databort|*/armirq&0xC3)//|prefabort)
                         {
-/*                                if (mode&16)
-                                {
-                                        printf("32-bit Exception %i %i %i\n",databort,armirq,prefabort);
-                                        dumpregs();
-                                        exit(-1);
-                                }
-                                else*/
-                                if (!(mode&16))
-                                {
+                                if (!ARM_MODE_32(mode)) {
                                         armregs[16]&=~0xC0;
                                         armregs[16]|=((armregs[15]&0xC000000)>>20);
                                 }
+
                                 if (armirq&0xC0)
                                 {
 //                                        if (armirq&0xC0) rpclog("Will abort\n");

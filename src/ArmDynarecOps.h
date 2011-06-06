@@ -347,8 +347,7 @@ static void opSWPword(uint32_t opcode)
         }
         else if (!(opcode&0xFFF)) /*MRS CPSR*/
         {
-                if (!(mode&16))
-                {
+                if (!ARM_MODE_32(mode)) {
                         armregs[16]=(armregs[15]&0xF0000000)|(armregs[15]&3);
                         armregs[16]|=((armregs[15]&0xC000000)>>20);
                 }
