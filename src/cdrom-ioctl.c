@@ -23,7 +23,7 @@ static void ioctl_playaudio(uint32_t pos, uint32_t len)
 {
         uint32_t addr=pos+150;
         CDROM_PLAY_AUDIO_MSF msf;
-        long size;
+        unsigned long size;
         msf.StartingF=(uint8_t)(addr%75); addr/=75;
         msf.StartingS=(uint8_t)(addr%60); addr/=60;
         msf.StartingM=(uint8_t)(addr);
@@ -38,7 +38,7 @@ static void ioctl_playaudio(uint32_t pos, uint32_t len)
 
 static void ioctl_seek(uint32_t pos)
 {
-        long size;
+        unsigned long size;
         rpclog("%08X ",pos);
         pos+=150;
         CDROM_SEEK_AUDIO_MSF msf;
@@ -53,7 +53,7 @@ static void ioctl_seek(uint32_t pos)
 
 static int ioctl_ready(void)
 {
-        long size;
+        unsigned long size;
         int temp;
         CDROM_TOC ltoc;
         ioctl_open(0);
@@ -79,7 +79,7 @@ static uint8_t ioctl_getcurrentsubchannel(uint8_t *b, int msf)
 {
 	CDROM_SUB_Q_DATA_FORMAT insub;
 	SUB_Q_CHANNEL_DATA sub;
-	long size;
+	unsigned long size;
 	int pos=0;
 	int c;
 	uint32_t temp;
@@ -113,7 +113,7 @@ static uint8_t ioctl_getcurrentsubchannel(uint8_t *b, int msf)
 
 static void ioctl_eject(void)
 {
-        long size;
+        unsigned long size;
         ioctl_open(0);
         DeviceIoControl(hIOCTL,IOCTL_STORAGE_EJECT_MEDIA,NULL,0,NULL,0,&size,NULL);
         ioctl_close();
@@ -121,7 +121,7 @@ static void ioctl_eject(void)
 
 static void ioctl_load(void)
 {
-        long size;
+        unsigned long size;
         ioctl_open(0);
         DeviceIoControl(hIOCTL,IOCTL_STORAGE_LOAD_MEDIA,NULL,0,NULL,0,&size,NULL);
         ioctl_close();
@@ -129,7 +129,7 @@ static void ioctl_load(void)
 
 static void ioctl_pause(void)
 {
-        long size;
+        unsigned long size;
         ioctl_open(0);
         DeviceIoControl(hIOCTL,IOCTL_CDROM_PAUSE_AUDIO,NULL,0,NULL,0,&size,NULL);
         ioctl_close();
@@ -137,7 +137,7 @@ static void ioctl_pause(void)
 
 static void ioctl_resume(void)
 {
-        long size;
+        unsigned long size;
         ioctl_open(0);
         DeviceIoControl(hIOCTL,IOCTL_CDROM_RESUME_AUDIO,NULL,0,NULL,0,&size,NULL);
         ioctl_close();
@@ -146,7 +146,7 @@ static void ioctl_resume(void)
 static void ioctl_readsector(uint8_t *b, int sector)
 {
         LARGE_INTEGER pos;
-        long size;
+        unsigned long size;
 
         pos.QuadPart=sector*2048;
         ioctl_open(0);
@@ -158,7 +158,7 @@ static void ioctl_readsector(uint8_t *b, int sector)
 static int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
 {
         int len=4;
-        long size;
+        unsigned long size;
         int c,d;
         uint32_t temp;
         ioctl_open(0);
@@ -215,7 +215,7 @@ static int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
 
 static void ioctl_stop(void)
 {
-        long size;
+        unsigned long size;
         ioctl_open(0);
         DeviceIoControl(hIOCTL,IOCTL_CDROM_STOP_AUDIO,NULL,0,NULL,0,&size,NULL);
         ioctl_close();
