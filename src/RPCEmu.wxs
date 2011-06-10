@@ -50,7 +50,7 @@
               <Shortcut Id="readme" Directory="ProgramMenuDir" Name="Readme"
                 LongName="Readme" WorkingDirectory='RPCEMUPRODUCTDIR' IconIndex="0" />
             </File>
-            <File Id='allegro' Name='alleg42.dll' DiskId='1' Source='C:\Windows\System32\alleg42.dll' Vital='yes' />
+            <File Id='allegro' Name='alleg.dll' DiskId='1' Source='C:\MinGW\bin\allegro-4.4.2-mt.dll' Vital='yes' />
             <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
             <Shortcut Id="startmenudir" Directory="ProgramMenuDir" Name="rpcemudi" 
               LongName="Shortcut to RPCEmu Directory" WorkingDirectory='RPCEMUPRODUCTDIR' />
