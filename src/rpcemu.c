@@ -261,28 +261,19 @@ startrpcemu(void)
                    HOSTFS_ROOT[c]='/';
         }
         mem_init();
-//printf("Mem inited...\n");
 	loadroms();
-//printf("ROMs loaded!\n");
         resetarm();
         resetfpa();
         resetiomd();
-//printf("IOMD reset!\n");
         resetkeyboard();
-//printf("Keyboard reset!\n");
         superio_reset();
-//printf("SuperIO reset!\n");
         loadconfig();
         resetide();
-//printf("IDE reset!\n");
         reseti2c();
-//printf("i2C reset!\n");
         loadcmos();
         loadadf("boot.adf",0);
         loadadf("notboot.adf",1);
-//printf("About to init video...\n");
         initvideo();
-//printf("Video inited!\n");
 
         sound_init();
 
@@ -293,9 +284,6 @@ startrpcemu(void)
                 iso_open(config.isoname);
         podules_reset();
         initpodulerom();
-        //initics();
-//        iso_open("e:/au_cd8.iso");
-//        config.cdromtype = CDROM_ISO;
 
 #ifdef RPCEMU_NETWORKING
 	if (config.network_type == NetworkType_EthernetBridging ||
