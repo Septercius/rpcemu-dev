@@ -106,8 +106,6 @@ extern void writeiomd(uint32_t addr, uint32_t val);
 extern uint8_t mouse_buttons_read(void);
 extern void iomdvsync(int vsync);
 
-extern char HOSTFS_ROOT[512];
-
 extern char discname[2][260];
 
 #endif //__IOMD__

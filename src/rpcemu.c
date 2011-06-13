@@ -244,8 +244,6 @@ rpcemu_log_information(void)
 int
 startrpcemu(void)
 {
-        int c;
-
 	/* On startup log additional information about the build and
 	   environment */
 	rpcemu_log_information();
@@ -254,12 +252,7 @@ startrpcemu(void)
         install_timer();    /* allegro */
         install_mouse();    /* allegro */
 
- 	append_filename(HOSTFS_ROOT, rpcemu_get_datadir(), "hostfs", 511);
-        for (c=0;c<511;c++)
-        {
-                if (HOSTFS_ROOT[c]=='\\')
-                   HOSTFS_ROOT[c]='/';
-        }
+	hostfs_init();
         mem_init();
 	loadroms();
         resetarm();

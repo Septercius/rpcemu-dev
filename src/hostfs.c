@@ -39,6 +39,8 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <stdint.h>
+#include <allegro.h>
+
 #include "arm.h"
 #include "mem.h"
 #include "hostfs.h"
@@ -125,9 +127,6 @@ typedef struct {
 
 #define MIN(x,y) (((x) < (y)) ? (x) : (y))
 
-char HOSTFS_ROOT[512];
-//#define HOSTFS_ROOT "./hostfs"
-
 #define MAX_OPEN_FILES 255
 
 #define NOT_IMPLEMENTED 255
@@ -135,6 +134,8 @@ char HOSTFS_ROOT[512];
 #define DEFAULT_ATTRIBUTES  0x03
 #define DEFAULT_FILE_TYPE   RISC_OS_FILE_TYPE_TEXT
 #define MINIMUM_BUFFER_SIZE 32768
+
+static char HOSTFS_ROOT[512];
 
 static FILE *open_file[MAX_OPEN_FILES + 1]; /* array subscript 0 is never used */
 
@@ -1908,6 +1909,22 @@ hostfs_register(ARMul_State *state)
     /* Failed registration due to an unsupported version */
     rpclog("HostFS: Registration request version %u rejected\n", state->Reg[0]);
     hostfs_state = HOSTFS_STATE_IGNORE;
+  }
+}
+
+/**
+ * Initialise HostFS module. Called on program startup.
+ */
+void
+hostfs_init(void)
+{
+  int c;
+
+  append_filename(HOSTFS_ROOT, rpcemu_get_datadir(), "hostfs", 511);
+  for (c = 0; c < 511; c++) {
+    if (HOSTFS_ROOT[c] == '\\') {
+      HOSTFS_ROOT[c] = '/';
+    }
   }
 }
 
