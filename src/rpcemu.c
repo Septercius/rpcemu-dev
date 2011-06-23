@@ -181,7 +181,7 @@ resetrpc(void)
         resetide();
         superio_reset();
         podules_reset();
-        podulerom_reset();
+        podulerom_reset(); // must be called after podules_reset()
         hostfs_reset();
 
 #ifdef RPCEMU_NETWORKING
@@ -252,17 +252,10 @@ startrpcemu(void)
         install_timer();    /* allegro */
         install_mouse();    /* allegro */
 
+	loadconfig();
 	hostfs_init();
-        mem_init();
+	mem_init();
 	loadroms();
-        resetarm();
-        resetfpa();
-        resetiomd();
-        resetkeyboard();
-        superio_reset();
-        loadconfig();
-        resetide();
-        reseti2c();
         loadcmos();
         loadadf("boot.adf",0);
         loadadf("notboot.adf",1);
@@ -270,22 +263,16 @@ startrpcemu(void)
 
         sound_init();
 
-        mem_reset(config.rammask + 1);
         initcodeblocks();
         iso_init();
         if (config.cdromtype == 2) /* ISO */
                 iso_open(config.isoname);
-        podules_reset();
         initpodulerom();
 
-#ifdef RPCEMU_NETWORKING
-	if (config.network_type == NetworkType_EthernetBridging ||
-	    config.network_type == NetworkType_IPTunnelling)
-	{
-		initnetwork();
-	}
-#endif
-        
+	/* Other components are initialised in the same way as the hardware
+	   being reset */
+	resetrpc();
+
 	/* Call back the mips counting function every second */
 	install_int_ex(domips, MSEC_TO_TIMER(1000));
 
