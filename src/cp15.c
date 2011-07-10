@@ -91,12 +91,17 @@ void resetcp15(void)
         memset(tlbcache, 0xff, 0x100000 * sizeof(uint32_t));
         memset(tlbcache2, 0xff, TLBCACHESIZE * sizeof(uint32_t));
         tlbcachepos=0;
-        if (!vraddrl) vraddrl=malloc(0x100000*sizeof(uint32_t *));
         memset(vraddrl,0xFF,0x100000*sizeof(uint32_t *));
         memset(vraddrls,0xFF,1024*sizeof(uint32_t));
-        if (!vwaddrl) vwaddrl=malloc(0x100000*sizeof(uint32_t *));
         memset(vwaddrl,0xFF,0x100000*sizeof(uint32_t *));
         memset(vwaddrls,0xFF,1024*sizeof(uint32_t));
+}
+
+void
+cp15_init(void)
+{
+	vraddrl = malloc(0x100000 * sizeof(uint32_t *));
+	vwaddrl = malloc(0x100000 * sizeof(uint32_t *));
 }
 
 static int translations;
