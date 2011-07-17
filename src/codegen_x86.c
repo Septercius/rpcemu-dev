@@ -2746,7 +2746,9 @@ void generateupdateinscount(void)
 void generatepcinc(void)
 {
         pcinc+=4;
-        if (pcinc==252) generateupdatepc();
+	if (pcinc == 124) {
+		generateupdatepc();
+	}
         if (codeblockpos>=1800) blockend=1;
 }
 
