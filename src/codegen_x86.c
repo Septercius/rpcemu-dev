@@ -56,6 +56,7 @@ static void generatesavegen(int reg, int x86reg);
 static int blockpoint = 0, blockpoint2 = 0;
 static uint32_t blocks[BLOCKS];
 static int pcinc = 0;
+static int block_enter;
 
 #include "codegen_x86_common.h"
 
@@ -341,6 +342,7 @@ void initcodeblock(uint32_t l)
 #ifndef _MSC_VER
         addbyte(0xBE); addlong(armregs); /*MOVL armregs,%esi*/
 #endif
+	block_enter = codeblockpos;
         currentblockpc=armregs[15]&r15mask;
         currentblockpc2=PC;
         flagsdirty=0;
@@ -2791,10 +2793,6 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
 	addbyte(0xff);
 	gen_x86_jump(CC_NZ, 0);
 
-	addbyte(0x83); /* ADD $12,%esp */
-	addbyte(0xc4);
-	addbyte(0x0c);
-
         generateloadgen(15,EAX); /*MOVL armregs[15],%eax*/
         if (r15mask != 0xfffffffc)
         {
@@ -2802,12 +2800,15 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
                 addlong(r15mask);
         }
 
-//        addbyte(0xA1); /*MOVL armregs[15],%eax*/
-//        addlong(&armregs[15]);
 	if (((opcode >> 20) & 0xff) == 0xaf) {
 		addbyte(0x3d); addlong(currentblockpc); /* CMP $currentblockpc,%eax */
-		gen_x86_jump(CC_E, BLOCKSTART);
+		gen_x86_jump(CC_E, block_enter);
 	}
+
+	addbyte(0x83); /* ADD $12,%esp */
+	addbyte(0xc4);
+	addbyte(0x0c);
+
         addbyte(0x83); /*SUBL $8,%eax*/
         addbyte(0xE8);
         addbyte(0x08);
