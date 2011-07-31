@@ -647,8 +647,10 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 switch (LOWORD(wParam))
                 {
                 case IDOK:
+		{
                         /* User has clicked on the OK button of the config dialog, 
                            apply their changes */
+			int needs_reset = 0;
 
                         /* Sound turned off */
                         if (config.soundenabled && !chosen_config.soundenabled)
@@ -675,20 +677,26 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                             config.vrammask != chosen_config.vrammask ||
                             chngram)
                         {
-                                resetrpc();
+                                needs_reset = 1;
                         }
 
                         if (chngram)
                         {
                                 config.rammask = chosen_config.rammask;
-                                mem_reset(config.rammask + 1);
                         }
                         config.model = chosen_config.model;
                         config.vrammask = chosen_config.vrammask;
                         config.refresh = chosen_config.refresh;
+
+			/* Reset the machine after the config variables have been set to their
+			   new values */
+			if (needs_reset) {
+				resetrpc();
+			}
                         install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
                         EndDialog(hdlg,0);
                         return TRUE;
+		}
 
                 case IDCANCEL:
                         EndDialog(hdlg,0);

@@ -56,6 +56,15 @@
 #define IOMD_DMA_STATUS_INTERRUPT	0x02
 #define IOMD_DMA_STATUS_OVERRUN		0x04
 
+/**
+ * IOMD component supports various types of IOMD hardware
+ */
+typedef enum {
+	IOMDType_IOMD,
+	IOMDType_ARM7500,
+	IOMDType_ARM7500FE
+} IOMDType;
+
 typedef struct {
         uint8_t status;
         uint8_t mask;
@@ -99,7 +108,7 @@ extern  int motoron;
 
 extern int idecallback;
 
-extern void resetiomd(void);
+extern void iomd_reset(IOMDType type);
 extern void endiomd(void);
 extern uint32_t readiomd(uint32_t addr);
 extern void writeiomd(uint32_t addr, uint32_t val);
