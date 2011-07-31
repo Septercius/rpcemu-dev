@@ -1,5 +1,6 @@
 /*RPCemu v0.6 by Tom Walker
   IOMD emulation*/
+#include <assert.h>
 #include <stdint.h>
 #include <allegro.h>
 #include <stdio.h>
@@ -155,15 +156,6 @@
 #define IOMD_0x1F4_DMARQ    0x1F4 /* DMA interupt request */
 #define IOMD_0x1F8_DMAMSK   0x1F8 /* DMA interupt mask */
 
-
-/* IOMD Chip Identifiers */
-#define CHIP_ID_LOW_IOMD        0xe7     /* IOMD */
-#define CHIP_ID_HIGH_IOMD       0xd4
-#define CHIP_ID_LOW_ARM7500     0x98     /* ARM7500 */
-#define CHIP_ID_HIGH_ARM7500    0x5b
-#define CHIP_ID_LOW_ARM7500FE   0x7c     /* ARM7500FE */
-#define CHIP_ID_HIGH_ARM7500FE  0xaa
-
 struct iomd iomd;
 
 int fdccallback = 0;
@@ -172,6 +164,27 @@ int motoron = 0;
 int kcallback = 0, mcallback = 0;
 int idecallback = 0;
 uint32_t cinit = 0;
+
+/**
+ * Structure to hold information about the variants of IOMD that are supported.
+ */
+typedef struct {
+	uint8_t id_low;  /**< Low byte of ID */
+	uint8_t id_high; /**< High byte of ID */
+} IOMDVariant;
+
+/**
+ * Details of the variants of IOMD that are supported.
+ *
+ * This array must be kept in the same order as IOMDType in iomd.h
+ */
+static const IOMDVariant iomds[] = {
+	{ 0xe7, 0xd4 }, /* IOMD */
+	{ 0x98, 0x5b }, /* ARM7500 */
+	{ 0x7c, 0xaa }  /* ARM7500FE */
+};
+
+static IOMDType iomd_type; /**< The current type of IOMD we're emulating */
 
 static int sndon = 0;
 static int flyback=0;
@@ -513,23 +526,9 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.romcr1;
 
         case IOMD_0x094_ID0: /* Chip ID no. low byte */
-                if (config.model == CPUModel_ARM7500) {
-                        return CHIP_ID_LOW_ARM7500;
-                } else if (config.model == CPUModel_ARM7500FE) {
-                        return CHIP_ID_LOW_ARM7500FE;
-                } else {
-                        /* RPC IOMD */
-                        return CHIP_ID_LOW_IOMD;
-                }
+		return iomds[iomd_type].id_low;
         case IOMD_0x098_ID1: /* Chip ID no. high byte */
-                if (config.model == CPUModel_ARM7500) {
-                        return CHIP_ID_HIGH_ARM7500;
-                } else if (config.model == CPUModel_ARM7500FE) {
-                        return CHIP_ID_HIGH_ARM7500FE;
-                } else {
-                        /* RPC IOMD */
-                        return CHIP_ID_HIGH_IOMD;
-                }
+		return iomds[iomd_type].id_high;
         case IOMD_0x09C_VERSION: /* Chip version number */
                 return 0; /*Chip version*/
 
@@ -633,9 +632,15 @@ void dumpiomd(void)
  *
  * Called on program startup and on program reset when
  * the configuration is changed.
+ *
+ * @param type Variant of IOMD chip to emulate
  */
-void resetiomd(void)
+void
+iomd_reset(IOMDType type)
 {
+	assert(type == IOMDType_IOMD || type == IOMDType_ARM7500 || type == IOMDType_ARM7500FE);
+	iomd_type = type;
+
         remove_int(gentimerirq);
         iomd.romcr0=iomd.romcr1=0x40;
 

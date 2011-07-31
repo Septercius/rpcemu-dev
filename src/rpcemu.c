@@ -170,13 +170,24 @@ void domips(void)
 void
 resetrpc(void)
 {
+	IOMDType iomd_type;
+
 	rpclog("RPCEmu: Machine reset\n");
 
         mem_reset(config.rammask + 1);
         resetcp15();
         resetarm();
         resetkeyboard();
-        resetiomd();
+
+	if (config.model == CPUModel_ARM7500) {
+		iomd_type = IOMDType_ARM7500;
+	} else if (config.model == CPUModel_ARM7500FE) {
+		iomd_type = IOMDType_ARM7500FE;
+	} else {
+		iomd_type = IOMDType_IOMD;
+	}
+	iomd_reset(iomd_type);
+
         reseti2c();
         resetide();
         superio_reset();
