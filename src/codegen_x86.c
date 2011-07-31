@@ -2805,10 +2805,6 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
 		gen_x86_jump(CC_E, block_enter);
 	}
 
-	addbyte(0x83); /* ADD $12,%esp */
-	addbyte(0xc4);
-	addbyte(0x0c);
-
         addbyte(0x83); /*SUBL $8,%eax*/
         addbyte(0xE8);
         addbyte(0x08);
@@ -2817,12 +2813,15 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
         addbyte(0x81); /*ANDL $0x1FFFC,%edx*/
         addbyte(0xE2);
         addlong(0x1FFFC);
-        addbyte(0x3B); /*CMPL codeblockpc[%edx],%eax*/
-        addbyte(0x82);
-        addlong(codeblockpc);
-        addbyte(0x74); /*JZ +1*/
-        addbyte(1);
-        gen_x86_ret();
+	addbyte(0x3b); /* CMP codeblockpc(%edx),%eax */
+	addbyte(0x82);
+	addlong(codeblockpc);
+	gen_x86_jump(CC_NE, 0);
+
+	addbyte(0x83); /* ADD $12,%esp */
+	addbyte(0xc4);
+	addbyte(0x0c);
+
         addbyte(0x8B); /*MOVL codeblocknum[%edx],%eax*/
         addbyte(0x82);
         addlong(codeblocknum);
