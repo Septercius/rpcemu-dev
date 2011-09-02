@@ -386,7 +386,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 
         fld=tlbram[(vaddr>>2)&tlbrammask];
         domain = (fld >> 5) & 0xf;
-        if (fld & 3) domain_access = checkdomain(domain);
+
         switch (fld&3)
         {
         case 0: /* Fault (Section Translation) */
@@ -394,6 +394,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 goto do_fault;
 
         case 1: /* Page */
+                domain_access = checkdomain(domain);
                 sldaddr=((addr&0xFF000)>>10)|(fld&0xFFFFFC00);
                 if ((sldaddr&0x1F000000)==0x02000000)
                    sld = vram[(sldaddr & config.vrammask) >> 2];
@@ -438,6 +439,7 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 return addr;
 
         case 2: /* Section */
+                domain_access = checkdomain(domain);
                 if (domain_access == 0 || domain_access == 2) {
                         fault_code = CP15_FAULT_DOMAIN_SECTION;
                         goto do_fault;
