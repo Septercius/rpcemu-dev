@@ -79,7 +79,12 @@ static PS2Queue msqueue;
 static uint8_t mouse_type;	/**< 0 = PS/2, 3 = IMPS/2, 4 = IMEX */
 static uint8_t mouse_detect_state;
 
+/* Mousehack variables */
 static int point;
+
+static int cursor_linked;       /**< Is the cursor image currently linked to the mouse pointer location */
+static int cursor_unlinked_x;   /**< If cursor and mouse pointer are unlinked the X position of the cursor */
+static int cursor_unlinked_y;   /**< If cursor and mouse pointer are unlinked the Y position of the cursor */
 
 static inline void
 mouse_irq_tx_raise(void)
@@ -158,6 +163,10 @@ void resetkeyboard(void)
 	mouse_detect_state = 0;
         for (c=0;c<128;c++)
             keys2[c]=0;
+
+	/* Mousehack reset */
+	point = 0;
+	cursor_linked = 1;
 }
 
 static uint8_t
@@ -895,12 +904,12 @@ mouse_hack_osword_21_4(uint32_t a)
 }
 
 /**
- * Return the X/Y active point of the mouse.
+ * Return the X/Y active point of the cursor.
  *
- * Used by VIDC to determine if the mouse has moved since its last redraw.
+ * Used by VIDC to determine if the cursor has moved since its last redraw.
  *
- * @param x Filled in with X coordinate of mouse
- * @param y Filled in with Y coordinate of mouse
+ * @param x Filled in with X coordinate of cursor
+ * @param y Filled in with Y coordinate of cursor
  */
 void
 mouse_hack_get_pos(int *x, int *y)
@@ -910,10 +919,17 @@ mouse_hack_get_pos(int *x, int *y)
 
         assert(mousehack);
 
-        mouse_get_osxy(x, y, &osx, &osy);
+	if (cursor_linked) {
+		/* Cursor is at current mouse pointer pos */
+		mouse_get_osxy(x, y, &osx, &osy);
 
-        *y-=activey[point];
-        *x-=activex[point];
+		*x -= activex[point];
+		*y -= activey[point];
+	} else {
+		/* Cursor has been detached from mouse pointer and is independent and not moving */
+		*x = cursor_unlinked_x;
+		*y = cursor_unlinked_y;
+	}
 }
 
 /**
@@ -961,8 +977,14 @@ mouse_hack_osbyte_106(uint32_t a)
 	point = a & 0x7f; /* Obtain pointer number (range 0 to 4) */
 
 	/* Bit 7 =  Unlink visible pointer from mouse */
-	if (a & 0x80)
-		point = 0;
+	if (a & 0x80) {
+		/* Remember the location of the cursor as the mouse pointer is now independent */
+		mouse_hack_get_pos(&cursor_unlinked_x, &cursor_unlinked_y);
+
+		cursor_linked = 0;
+	} else {
+		cursor_linked = 1;
+	}
 
 	/* point should now contain selected number 1-4 or 0 if turned off */
 	assert(point >= 0 && point <= 4);
