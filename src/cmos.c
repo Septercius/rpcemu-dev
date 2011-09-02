@@ -523,9 +523,7 @@ cmosi2cchange(int scl, int sda)
 		if (oldscl && !scl) {
 			I2C_Slave *slave = serdes->active_slave;
 			if (serdes->bitcount == 8) {
-				int result;
-
-				result = slave->devops->read(slave->dev, &serdes->outbuf);
+				(void) slave->devops->read(slave->dev, &serdes->outbuf);
 			}
 			if (serdes->bitcount > 0) {
 				serdes->bitcount--;

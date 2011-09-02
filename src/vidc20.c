@@ -167,11 +167,9 @@ void initvideo(void)
         if (depth==16 || depth==15)
         {
                 set_color_depth(15);
-                depth=15;
                 if (set_gfx_mode(GFX_AUTODETECT_WINDOWED,DEFAULT_W,DEFAULT_H,0,0))
                 {
                         set_color_depth(16);
-                        depth=16;
                         set_gfx_mode(GFX_AUTODETECT_WINDOWED,DEFAULT_W,DEFAULT_H,0,0);
                 }
                 drawcode=16;
@@ -257,14 +255,18 @@ static void resizedisplay(int x, int y)
         freebitmaps();
         if (fullscreen)
         {
+#ifdef HARDWAREBLIT
                 int full_x, full_y; /* resolution we're going to try to use for full screen */
+#endif
                 c=0;
 
                 if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN, x, y, 0, 0) == 0)
                 {
+#ifdef HARDWAREBLIT
                         /* Successfully set the screen size to the emulated mode size */
                         full_x = x;
                         full_y = y;
+#endif
                 }
                 else
                 {
@@ -293,8 +295,10 @@ tryagain:
                                 {
                                         /* Ran out of possible host modes to try - falling back on 640x480 */
                                         set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,640,480,0,0);
+#ifdef HARDWAREBLIT
                                         full_x = fullresolutions[c][0];
                                         full_y = fullresolutions[c][1];
+#endif
                                 }
                                 else
                                 {
@@ -303,12 +307,14 @@ tryagain:
                                         goto tryagain;
                                 }
                         }
+#ifdef HARDWAREBLIT
                         else
                         {
                                 /* Successfully set mode */
                                 full_x = fullresolutions[c][0];
                                 full_y = fullresolutions[c][1];
                         }
+#endif
                 }
 #ifdef HARDWAREBLIT                
 //                rpclog("Mode set\n");
