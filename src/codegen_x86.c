@@ -80,7 +80,7 @@ void initcodeblocks(void)
         blockpoint=0;
         for (c=0;c<BLOCKS;c++) blocks[c]=0xFFFFFFFF;
 	for (c = 0; c < BLOCKS; c++) {
-		codeblockaddr[c] = &rcodeblock[c][BLOCKSTART];
+		codeblockaddr[c] = &rcodeblock[c][0];
 	}
         for (c=0;c<256;c++)
         {
@@ -2818,10 +2818,6 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
 	addlong(codeblockpc);
 	gen_x86_jump(CC_NE, 0);
 
-	addbyte(0x83); /* ADD $12,%esp */
-	addbyte(0xc4);
-	addbyte(0x0c);
-
         addbyte(0x8B); /*MOVL codeblocknum[%edx],%eax*/
         addbyte(0x82);
         addlong(codeblocknum);
@@ -2829,6 +2825,10 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
         addbyte(0x04);
         addbyte(0x85);
         addlong(codeblockaddr);
+
+	/* Jump to next block bypassing function prologue */
+	addbyte(0x83); addbyte(0xc0); addbyte(block_enter); /* ADD $block_enter,%eax */
+
         addbyte(0xFF); /*JMP *%eax*/
         addbyte(0xE0);
 }
