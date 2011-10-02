@@ -148,18 +148,18 @@ void loadroms(void)
 
 	rpclog("romload: Total ROM size %d MB\n", pos / 1048576);
 
-#ifdef _RPCEMU_BIG_ENDIAN /*Byte swap*/
-#error "It's defined..."
-//printf("Byte swapping...\n");
-		for (c=0;c<0x800000;c+=4)
-		{
-                                uint32_t temp;
-				temp=rom[c>>2];
-				temp=((temp&0xFF000000)>>24)|((temp&0x00FF0000)>>8)|((temp&0x0000FF00)<<8)|((temp&0x000000FF)<<24);
-//				temp=((temp>>24)&0xFF)|((temp>>8)&0xFF00)|((temp<<8)&0xFF0000)|((temp<<24)|0xFF000000);
-				rom[c>>2]=temp;
-		}
+#ifdef _RPCEMU_BIG_ENDIAN
+	/* Endian swap */
+	for (c = 0; c < pos; c += 4) {
+		uint32_t temp = rom[c >> 2];
+
+		rom[c >> 2] = (temp >> 24) |
+		              ((temp >> 8) & 0x0000ff00) |
+		              ((temp << 8) & 0x00ff0000) |
+		              (temp << 24);
+	}
 #endif
+
         /*Patch ROM for 8 meg vram!*/
         if (rom[0x14820>>2]==0xE3560001 && /*Check for ROS 4.02 startup*/
             rom[0x14824>>2]==0x33A02050 &&
