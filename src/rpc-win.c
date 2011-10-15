@@ -179,13 +179,13 @@ static void initmenu(void)
  */
 void updatewindowsize(uint32_t x, uint32_t y)
 {
-        RECT r;
-//        rpclog("Updatewindowsize %i %i %i\n",x,y,ins);
-        GetWindowRect(ghwnd,&r);
-        MoveWindow(ghwnd,r.left,r.top,
-                     x+(GetSystemMetrics(SM_CXFIXEDFRAME)*2),
-                     y+(GetSystemMetrics(SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION),
-                     TRUE);
+	RECT r;
+
+	GetWindowRect(ghwnd, &r);
+	MoveWindow(ghwnd, r.left, r.top,
+	           x + (GetSystemMetrics(SM_CXFIXEDFRAME) * 2),
+	           y + (GetSystemMetrics(SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION),
+	           TRUE);
         if (mousecapture)
         {
                 RECT arcclip;
@@ -374,8 +374,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX, /* overlapped window with no sizeing frame */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
-           64+(GetSystemMetrics(SM_CXFIXEDFRAME)*2),/* The programs width */
-           48+(GetSystemMetrics(SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION)+2,/* and height in pixels */
+           640 + (GetSystemMetrics(SM_CXFIXEDFRAME) * 2), /* The window width */
+           480 + (GetSystemMetrics(SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION), /* and height in pixels */
            HWND_DESKTOP,        /* The window is a child-window to desktop */
            menu, /* No menu */
            hThisInstance,       /* Program Instance handler */
