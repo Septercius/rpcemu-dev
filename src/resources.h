@@ -51,3 +51,4 @@
 #define RadioButton_EthernetBridging	2001
 #define Edit_BridgeName			2002
 #define Text_BridgeName			2003
+#define GroupBox_Networking		2004
