@@ -593,7 +593,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 SendMessage(h,TBM_SETRANGE,TRUE,MAKELONG(20/5,100/5));
                 SendMessage(h, TBM_SETPOS, TRUE, config.refresh / 5);
                 h = GetDlgItem(hdlg, Text_Refresh);
-                sprintf(s, "%ihz", config.refresh);
+                sprintf(s, "%d Hz", config.refresh);
                 SendMessage(h,WM_SETTEXT,0,(LPARAM)s);
 
                 /* Set Sound enabled */
@@ -811,7 +811,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 h = GetDlgItem(hdlg, Slider_Refresh);
                 c=SendMessage(h,TBM_GETPOS,0,0);
                 h = GetDlgItem(hdlg, Text_Refresh);
-                sprintf(s,"%ihz",c*5);
+                sprintf(s, "%d Hz", c * 5);
                 SendMessage(h,WM_SETTEXT,0,(LPARAM)s);
                 chosen_config.refresh = c * 5;
                 break;
