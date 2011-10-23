@@ -570,9 +570,6 @@ uint32_t readiomd(uint32_t addr)
 
         }
         return 0;
-        printf("Bad IOMD read register %03X\n",addr&0x1FC);
-        dumpregs();
-        exit(-1);
 }
 
 /**
@@ -610,21 +607,6 @@ uint8_t mouse_buttons_read(void)
 	}
 
         return temp ^ 0x70; // bit 5 6 and 7
-}
-
-void dumpiomd(void)
-{
-        error("IOMD :\n"
-              "STATA %02X STATB %02X STATC %02X STATD %02X\n"
-              "MASKA %02X MASKB %02X MASKC %02X MASKD %02X\n",
-              iomd.irqa.status,
-              iomd.irqb.status,
-              iomd.irqc.status,
-              iomd.irqd.status,
-              iomd.irqa.mask,
-              iomd.irqb.mask,
-              iomd.irqc.mask,
-              iomd.irqd.mask);
 }
 
 /**
@@ -706,14 +688,4 @@ void iomdvsync(int vsync)
 //                rpclog("Vsync low\n");
                 flyback=0;
         }
-}
-
-void dumpiomdregs(void)
-{
-        printf("IRQ STAT A %02X B %02X D %02X F %02X\n",
-               iomd.irqa.status, iomd.irqb.status,
-               iomd.irqd.status, iomd.fiq.status);
-        printf("IRQ MASK A %02X B %02X D %02X F %02X\n",
-               iomd.irqa.mask, iomd.irqb.mask,
-               iomd.irqd.mask, iomd.fiq.mask);
 }
