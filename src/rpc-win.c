@@ -371,14 +371,13 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
            0,                   /* Extended possibilites for variation */
            szClassName,         /* Classname */
            "RPCemu v" VERSION,      /* Title Text */
-/*           WS_OVERLAPPEDWINDOW,*/ /* default window */           
-           WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX, /* overlapped window with no sizeing frame */
+           WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX, /* overlapped window with no sizing frame */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
            640 + (GetSystemMetrics(SM_CXFIXEDFRAME) * 2), /* The window width */
            480 + (GetSystemMetrics(SM_CYFIXEDFRAME) * 2) + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION), /* and height in pixels */
            HWND_DESKTOP,        /* The window is a child-window to desktop */
-           menu, /* No menu */
+           menu,                /* Menu handle */
            hThisInstance,       /* Program Instance handler */
            NULL                 /* No Window Creation data */
            );
