@@ -182,7 +182,7 @@ void initvideo(void)
         }
         else
         {
-                fatal("Your desktop must be set to either 16-bit or 32-bit colour to run RPCemu");
+                fatal("Your desktop must be set to either 16-bit or 32-bit colour to run RPCEmu");
         }
 
         oldsx=oldsy=-1;

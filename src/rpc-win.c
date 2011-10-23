@@ -63,7 +63,7 @@ void error(const char *format, ...)
 	vsprintf(buf, format, ap);
 	va_end(ap);
 	rpclog("ERROR: %s\n", buf);
-	MessageBox(NULL, buf, "RPCemu error", MB_OK);
+	MessageBox(NULL, buf, "RPCEmu error", MB_OK);
 }
 
 void fatal(const char *format, ...)
@@ -75,7 +75,7 @@ void fatal(const char *format, ...)
 	vsprintf(buf, format, ap);
 	va_end(ap);
 	rpclog("FATAL: %s\n", buf);
-	MessageBox(NULL, buf, "RPCemu error", MB_OK);
+	MessageBox(NULL, buf, "RPCEmu error", MB_OK);
 
 	exit(EXIT_FAILURE);
 }
@@ -370,7 +370,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         ghwnd = CreateWindowEx (
            0,                   /* Extended possibilites for variation */
            szClassName,         /* Classname */
-           "RPCemu v" VERSION,      /* Title Text */
+           "RPCEmu v" VERSION,      /* Title Text */
            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX, /* overlapped window with no sizing frame */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
@@ -431,10 +431,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                         char title[128];
 
                         if (mousehack) {
-                               sprintf(title, "RPCemu v" VERSION " - MIPS: %.1f, AVG: %.1f",
+                               sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f",
                                        mips, mipstotal / mipscount);
                         } else {
-                               sprintf(title, "RPCemu v" VERSION " - MIPS: %.1f, AVG: %.1f - %s",
+                               sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f - %s",
                                        mips, mipstotal / mipscount,
                                        (mousecapture) ?
                                            "Press CTRL-END to release mouse" :
@@ -980,7 +980,7 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
                 case IDM_CDROM_DISABLED:
                         if (config.cdromenabled)
                         {
-                                if (MessageBox(ghwnd,"This will reset RPCemu!\nOkay to continue?","RPCemu",MB_OKCANCEL)==IDOK)
+                                if (MessageBox(ghwnd, "This will reset RPCEmu!\nOkay to continue?", "RPCEmu", MB_OKCANCEL) == IDOK)
                                 {
                                         config.cdromenabled = 0;
                                         resetrpc();
@@ -994,7 +994,7 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
                 case IDM_CDROM_EMPTY:
                         if (!config.cdromenabled)
                         {
-                                if (MessageBox(ghwnd,"This will reset RPCemu!\nOkay to continue?","RPCemu",MB_OKCANCEL)==IDOK)
+                                if (MessageBox(ghwnd, "This will reset RPCEmu!\nOkay to continue?", "RPCEmu", MB_OKCANCEL) == IDOK)
                                 {
                                         config.cdromenabled = 1;
                                         resetrpc();
@@ -1014,7 +1014,7 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
                         {
                                 if (!config.cdromenabled)
                                 {
-                                        if (MessageBox(ghwnd,"This will reset RPCemu!\nOkay to continue?","RPCemu",MB_OKCANCEL)==IDOK)
+                                        if (MessageBox(ghwnd, "This will reset RPCEmu!\nOkay to continue?", "RPCEmu", MB_OKCANCEL) == IDOK)
                                         {
                                                 config.cdromenabled = 1;
                                                 resetrpc();
@@ -1058,7 +1058,7 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
                 {
                         if (!config.cdromenabled)
                         {
-                                if (MessageBox(ghwnd,"This will reset RPCemu!\nOkay to continue?","RPCemu",MB_OKCANCEL)==IDOK)
+                                if (MessageBox(ghwnd, "This will reset RPCEmu!\nOkay to continue?", "RPCEmu", MB_OKCANCEL) == IDOK)
                                 {
                                         config.cdromenabled = 1;
                                         resetrpc();

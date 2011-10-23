@@ -19,14 +19,14 @@ typedef struct
 } podule;
 
 This is the basic podule structure that is used for everything. This is filled out at
-startup by RPCemu, don't set any of the functions yourself.
+startup by RPCEmu, don't set any of the functions yourself.
 
 
 Functions that must be exported from DLL :
 
 InitDll() - do any initialisation stuff. Since no real work can be done in DllMain 
             (apparently), do any ROM loading / timer/interrupt initialisation here.
-RPCemu will ignore your DLL if this function is not present.
+RPCEmu will ignore your DLL if this function is not present.
 
 
 Functions that may be exported :
@@ -39,14 +39,14 @@ read*/write* - These deal with IO read/writes. There are three word sizes - long
 timercallback - This is called when msectimer underflows. It must return the time until the
                 next call.
                 Due to timing granulinity, calls may not happen exactly when desired, and
-                RPCemu may burst calls.
+                RPCEmu may burst calls.
 
-reset - Resets the podule when RPCemu is reset.
+reset - Resets the podule when RPCEmu is reset.
 
 Variables in podule struct :
 
 irq,fiq - These deal with podule interrupts. Simply set to raise an interrupt, clear to
-          lower. RPCemu deals with everything else.
+          lower. RPCEmu deals with everything else.
 
 msectimer - This is the millisecond timer. This is decremented every millisecond (roughly)
             and timercallback is called when it underflows. timercallback will return the

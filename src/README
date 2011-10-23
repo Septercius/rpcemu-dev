@@ -11,7 +11,7 @@ To use:
   $ ./configure
   $ make
 
-Currently RPCemu looks for configuration and ROMs relative to
+Currently RPCEmu looks for configuration and ROMs relative to
 its executable image, so you'll need to copy the resultant
 binary to the top-level directory with:
 
