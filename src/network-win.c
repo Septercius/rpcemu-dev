@@ -41,7 +41,7 @@ static uint32_t tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src,
     int i;
 
     if (tap_handle == NULL) {
-        strcpyfromhost(errbuf, "RPCemu: Networking not available");
+        strcpyfromhost(errbuf, "RPCEmu: Networking not available");
         return errbuf;
     }
 
@@ -86,7 +86,7 @@ static uint32_t tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src,
         memcpytohost(&txb, mbufs, sizeof(struct mbuf));
         packetlength += txb.m_len;
         if (packetlength > sizeof(buffer)) {
-            strcpyfromhost(errbuf, "RPCemu: Packet too large to send");
+            strcpyfromhost(errbuf, "RPCEmu: Packet too large to send");
             return errbuf;
         }
         memcpytohost(buf, mbufs + txb.m_off, txb.m_len);
@@ -127,7 +127,7 @@ static uint32_t rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dat
     *dataavail = 0;
 
     if (tap_handle == NULL) {
-        strcpyfromhost(errbuf, "RPCemu: Networking not available");
+        strcpyfromhost(errbuf, "RPCEmu: Networking not available");
         return errbuf;
     }
 
@@ -171,7 +171,7 @@ static uint32_t rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dat
         memcpytohost(&rxb, mbuf, sizeof(rxb));
 
         if (packetlength > rxb.m_inilen) {
-            strcpyfromhost(errbuf, "RPCemu: Mbuf too small for recieved packet");
+            strcpyfromhost(errbuf, "RPCEmu: Mbuf too small for received packet");
             return errbuf;
         } else {
             /* Copy payload in to the mbuf */
@@ -233,7 +233,7 @@ void networkswi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4,
        *retr0 = 0;
        break;
     default:
-        strcpyfromhost(r1, "Unknown RPCemu network SWI");
+        strcpyfromhost(r1, "Unknown RPCEmu network SWI");
         *retr0 = r1;
     }
 }

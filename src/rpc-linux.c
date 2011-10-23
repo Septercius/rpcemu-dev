@@ -99,7 +99,7 @@ void error(const char *format, ...)
 	vsprintf(buf, format, ap);
 	va_end(ap);
 	rpclog("ERROR: %s\n", buf);
-	fprintf(stderr, "RPCemu error: %s\n", buf);
+	fprintf(stderr, "RPCEmu error: %s\n", buf);
 
 	if (gui_get_screen() != NULL) {
 		alert("RPCEmu error", buf, "", "&Continue", NULL, 'c', 0);
@@ -122,7 +122,7 @@ void fatal(const char *format, ...)
 	vsprintf(buf, format, ap);
 	va_end(ap);
 	rpclog("FATAL: %s\n", buf);
-	fprintf(stderr, "RPCemu fatal error: %s\n", buf);
+	fprintf(stderr, "RPCEmu fatal error: %s\n", buf);
 
 	if (gui_get_screen() != NULL) {
 		alert("RPCEmu fatal error", buf, "", "&Exit", NULL, 'c', 0);

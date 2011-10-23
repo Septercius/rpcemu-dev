@@ -142,7 +142,7 @@ static int cddisabled(void)
 	int res;
 	if (config.cdromenabled)
 	{
-		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
+		res = alert("This will reset RPCEmu!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0);
 		if (res==1)
 		{
 			config.cdromenabled = 0;
@@ -157,7 +157,7 @@ static int cdempty(void)
 	int res;
 	if (!config.cdromenabled)
 	{
-		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
+		res = alert("This will reset RPCEmu!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0);
 		if (res==1)
 		{
 			config.cdromenabled = 1;
@@ -178,7 +178,7 @@ static int cdisoimage(void)
         int xsize=SCREEN_W-32,ysize=SCREEN_H-64;
 	if (!config.cdromenabled)
 	{
-		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
+		res = alert("This will reset RPCEmu!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0);
 		if (res==1)
 		{
 			config.cdromenabled = 1;
@@ -203,7 +203,7 @@ static int cdioctl(void)
 	int res;
 	if (!config.cdromenabled)
 	{
-		res=alert("This will reset RPCemu!","Okay to continue?",NULL,"OK","Cancel",0,0);
+		res = alert("This will reset RPCEmu!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0);
 		if (res==1)
 		{
 			config.cdromenabled = 1;

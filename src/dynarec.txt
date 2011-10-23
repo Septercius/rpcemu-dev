@@ -1,4 +1,4 @@
-Notes on RPCemu dynarec :
+Notes on RPCEmu dynarec :
 
 The makefile does not include the relevant files as of yet, as this is totally experimental.
 In order to compile, you must remove arm.c, and include ArmDynarec.c and 
@@ -33,12 +33,12 @@ Delirium
 You must be in SA110 emulation for this to work. ARM610, ARM710 and ARM7500 appear to work, but
 there are many problems.
 
-Compatibility is mostly the same as a real StrongARM RiscPC. RPCemu now supports self modifying
+Compatibility is mostly the same as a real StrongARM RiscPC. RPCEmu now supports self modifying
 code, so some stuff that didn't work before (eg Ovation, SparkFS) works now. There are still
 problems with some older programs though.
 
 In order to disable the dynarec disable the cache (ie *cache 0). This returns compatibility (mostly) 
-to normal, and to a speed only a little slower than previous versions of RPCemu.
+to normal, and to a speed only a little slower than previous versions of RPCEmu.
 
 The instruction cache currently uses 1.8 megs. This is much improved over previous versions,
 but could probably be improved further by shrinking the block size (shrinking the number of
@@ -54,7 +54,7 @@ The x86-32 emulator is now an (almost) full dynarec. Native code is generated mo
 The x86-64 version is still a threaded interpreter and as such is slower.
 
 
-The code blocks are flushed when the StrongARM Icache is flushed. RPCemu also handles self modifying
+The code blocks are flushed when the StrongARM Icache is flushed. RPCEmu also handles self modifying
 code - when a memory page is written to, all code blocks in that page are invalidated, and when a code
 block is built in a page, that page is invalidated.
 
