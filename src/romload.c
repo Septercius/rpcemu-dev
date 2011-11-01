@@ -160,12 +160,15 @@ void loadroms(void)
 	}
 #endif
 
-        /*Patch ROM for 8 meg vram!*/
-        if (rom[0x14820>>2]==0xE3560001 && /*Check for ROS 4.02 startup*/
-            rom[0x14824>>2]==0x33A02050 &&
-            rom[0x14828>>2]==0x03A02004 &&
-            rom[0x1482C>>2]==0x83A02008)
-           rom[0x14824>>2]=0xE3A06008; /*MOV R6,#8 - 8 megs*/
+	/* Patch ROM for 8MB VRAM */
+	/* (RISC OS 4.02) */
+	if (rom[0x14744 >> 2] == 0xe3a00402 &&
+	    rom[0x14748 >> 2] == 0xe2801004 &&
+	    rom[0x1474c >> 2] == 0xeb000148 &&
+	    rom[0x14750 >> 2] == 0x03a06002)
+	{
+		rom[0x14750 >> 2] = 0x03a06008; /* MOVEQ r6, #8 */
+	}
 
 //        initpodulerom();
 }
