@@ -156,7 +156,7 @@ mem_phys_read32(uint32_t addr)
 	case 0x17000000:
 		return ram2[(addr & config.rammask) >> 2];
 	}
-	return 0xffffffff;
+	return 0;
 }
 
 /**
