@@ -658,22 +658,6 @@ void endiomd(void)
         remove_int(gentimerirq);
 }
 
-void updateiomdtimers(void)
-{
-        if (iomd.t0.counter < 0)
-        {
-                iomd.t0.counter += iomd.t0.in_latch;
-                iomd.irqa.status |= IOMD_IRQA_TIMER_0;
-                updateirqs();
-        }
-        if (iomd.t1.counter < 0)
-        {
-                iomd.t1.counter += iomd.t1.in_latch;
-                iomd.irqa.status |= IOMD_IRQA_TIMER_1;
-                updateirqs();
-        }
-}
-
 void iomdvsync(int vsync)
 {
         if (vsync)
