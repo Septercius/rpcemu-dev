@@ -861,9 +861,7 @@ void execarm(int cycs)
 //                        armirq=(armirq&0xCC)|((armirq>>2)&3);
                 }
                 linecyc+=256;
-/*                iomd.t0c--;
-                iomd.t1c--;
-                if ((iomd.t0c<0) || (iomd.t1c<0)) updateiomdtimers();*/
+
                 if (kcallback)
                 {
                         kcallback--;
