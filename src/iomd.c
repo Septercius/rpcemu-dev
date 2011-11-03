@@ -163,7 +163,7 @@ int motoron = 0;
 
 int kcallback = 0, mcallback = 0;
 int idecallback = 0;
-uint32_t cinit = 0;
+uint32_t cinit = 0; /**< Cursor DMA Init */
 
 /**
  * Structure to hold information about the variants of IOMD that are supported.
@@ -648,6 +648,15 @@ iomd_reset(IOMDType type)
         iomd.t0.in_latch = 0xffff;
         iomd.t1.in_latch = 0xffff;
         install_int_ex(gentimerirq, BPS_TO_TIMER(500)); /* 500 Hz */
+
+	fdccallback = 0;
+	motoron = 0;
+	kcallback = 0;
+	mcallback = 0;
+	idecallback = 0;
+	cinit = 0;
+	sndon = 0;
+	flyback = 0;
 }
 
 /**
