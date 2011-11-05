@@ -2596,12 +2596,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         addbyte(0xFF); /*DECL linecyc*/
                         addbyte(0x0D);
                         addlong(&linecyc);
-                        addbyte(0x78); addbyte(12+10); /*JS endit*/
-
-                addbyte(0x81); /*ADDL $c,rinscount*/
-                addbyte(0x05);
-                addlong(&rinscount);
-                addlong(rins);
+                        addbyte(0x78); addbyte(12); /*JS endit*/
 
                         addbyte(0x83); /*ADD $4,armregs[15]*/
                         addbyte(0x05);
@@ -2762,20 +2757,6 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
 //        asm("decl 0x12345678;");
         generateupdatepc();
         generateupdateinscount();
-        if (c<128)
-        {
-                addbyte(0x83); /*ADDL $c,rinscount*/
-                addbyte(0x05);
-                addlong(&rinscount);
-                addbyte(c);
-        }
-        else
-        {
-                addbyte(0x81); /*ADDL $c,rinscount*/
-                addbyte(0x05);
-                addlong(&rinscount);
-                addlong(c);
-        }
 
         temp=codeblockpos;
         codeblockpos=5;
