@@ -1131,23 +1131,6 @@ asm("movq 0x12345678(,%rax,8),%rax;");*/
         generateupdatepc();
         generateupdateinscount();
 
-        if (c<128)
-        {
-                addbyte(0x83); /*ADDL $c,rinscount*/
-                addbyte(0x04);
-		addbyte(0x25);
-                addlong(&rinscount);
-                addbyte(c);
-        }
-        else
-        {
-                addbyte(0x81); /*ADDL $c,rinscount*/
-                addbyte(0x04);
-		addbyte(0x25);
-                addlong(&rinscount);
-                addlong(c);
-        }
-
 	addbyte(0xff); /* DECL linecyc */
 	addbyte(0x0c);
 	addbyte(0x25);

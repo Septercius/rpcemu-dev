@@ -135,7 +135,6 @@ typedef struct {
 extern Config config;
 
 extern uint32_t inscount;
-extern int rinscount;
 extern int cyccount;
 
 /* These functions can optionally be overridden by a platform. If not

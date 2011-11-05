@@ -711,7 +711,6 @@ void execarm(int cycs)
                                         if (!((PC)&0xFFC)) blockend=1;
 //                                        if (armirq) blockend=1;
                                         inscount++;
-                                        rinscount++;
 //                                        linecyc++;
                                 }
                         linecyc--;
@@ -804,7 +803,6 @@ void execarm(int cycs)
                                                 }
                                                 //blockend=1;
 //                                                inscount++;
-                                                rinscount++;
                                                 c++;
                                         }
                                         if (!(armirq & 0x80)) {

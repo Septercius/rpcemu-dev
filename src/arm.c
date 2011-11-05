@@ -2032,7 +2032,6 @@ void execarm(int cycs)
 //                        ins++;
                 }
                 inscount+=200;
-                rinscount+=200;
 
                 if (kcallback)
                 {

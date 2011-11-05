@@ -40,7 +40,6 @@ opSWI(uint32_t opcode)
 	uint32_t swinum = opcode & 0xdffff;
 
 	inscount++;
-	rinscount++;
 
 	/* Get actual SWI number from OS_CallASWI and OS_CallASWIR12 */
 	if (swinum == SWI_OS_CallASWI) {
