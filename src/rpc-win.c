@@ -156,7 +156,7 @@ static void initmenu(void)
         char s[32];
 
 	m = GetSubMenu(menu, 2); /* Settings */
-	m = GetSubMenu(m, 5); /* CD-ROM */
+	m = GetSubMenu(m, 7); /* CD-ROM */
 
         /* Loop through each Windows drive letter and test to see if
            it's a CDROM */
