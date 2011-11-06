@@ -664,7 +664,6 @@ int linecyc=0;
 void execarm(int cycs)
 {
         //int target;
-        int c;
         int hash;
         void (*gen_func)(void);
 	uint32_t opcode;
@@ -755,7 +754,6 @@ void execarm(int cycs)
 						//printf("New block %08X %04X %08X\n",PC,hash,codeblockpc[hash]);
 //codeblockpc[hash]=PC;
 }
-                                        c=0;
                                         while (!blockend && !(armirq&0xC0))
                                         {
                                                 opcode=pccache2[PC>>2];
@@ -803,10 +801,9 @@ void execarm(int cycs)
                                                 }
                                                 //blockend=1;
 //                                                inscount++;
-                                                c++;
                                         }
                                         if (!(armirq & 0x80)) {
-                                                endblock(opcode, c, pcpsr);
+                                                endblock(opcode, pcpsr);
                                         } else {
                                                 removeblock();
                                         }
