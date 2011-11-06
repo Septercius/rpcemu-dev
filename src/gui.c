@@ -313,15 +313,14 @@ static int menusettings(void)
         configuregui[CONF_RAM_32].flags  = 0;
         configuregui[CONF_RAM_64].flags  = 0;
         configuregui[CONF_RAM_128].flags = 0;
-        switch (config.rammask)
-        {
-                case 0x01FFFFF: configuregui[CONF_RAM_4].flags   = D_SELECTED; break;
-                case 0x03FFFFF: configuregui[CONF_RAM_8].flags   = D_SELECTED; break;
-                case 0x07FFFFF: configuregui[CONF_RAM_16].flags  = D_SELECTED; break;
-                case 0x0FFFFFF: configuregui[CONF_RAM_32].flags  = D_SELECTED; break;
-                case 0x1FFFFFF: configuregui[CONF_RAM_64].flags  = D_SELECTED; break;
-                case 0x3FFFFFF: configuregui[CONF_RAM_128].flags = D_SELECTED; break;
-        }
+	switch (config.mem_size) {
+	case 4:   configuregui[CONF_RAM_4].flags   = D_SELECTED; break;
+	case 8:   configuregui[CONF_RAM_8].flags   = D_SELECTED; break;
+	case 16:  configuregui[CONF_RAM_16].flags  = D_SELECTED; break;
+	case 32:  configuregui[CONF_RAM_32].flags  = D_SELECTED; break;
+	case 64:  configuregui[CONF_RAM_64].flags  = D_SELECTED; break;
+	case 128: configuregui[CONF_RAM_128].flags = D_SELECTED; break;
+	}
 
         configuregui[CONF_VRAM_0].flags = config.vrammask     ? 0          : D_SELECTED;
         configuregui[CONF_VRAM_2].flags = config.vrammask     ? D_SELECTED : 0;
@@ -338,7 +337,7 @@ static int menusettings(void)
         
         if (c == CONF_OK) {
                 CPUModel selected_model = CPUModel_ARM7500;
-                int selected_rammask = 0;
+                unsigned selected_mem_size = 0;
                 int selected_vrammask = 0;
 
                 if (configuregui[CONF_ARM7500].flags & D_SELECTED) {
@@ -361,20 +360,20 @@ static int menusettings(void)
                 }
 
                 if (configuregui[CONF_RAM_4].flags & D_SELECTED) {
-                        selected_rammask = 0x01FFFFF;
+                        selected_mem_size = 4;
                 } else if (configuregui[CONF_RAM_8].flags & D_SELECTED) {
-                        selected_rammask = 0x03FFFFF;
+                        selected_mem_size = 8;
                 } else if (configuregui[CONF_RAM_16].flags & D_SELECTED) {
-                        selected_rammask = 0x07FFFFF;
+                        selected_mem_size = 16;
                 } else if (configuregui[CONF_RAM_32].flags & D_SELECTED) {
-                        selected_rammask = 0x0FFFFFF;
+                        selected_mem_size = 32;
                 } else if (configuregui[CONF_RAM_64].flags & D_SELECTED) {
-                        selected_rammask = 0x1FFFFFF;
+                        selected_mem_size = 64;
                 } else if (configuregui[CONF_RAM_128].flags & D_SELECTED) {
-                        selected_rammask = 0x3FFFFFF;
+                        selected_mem_size = 128;
                 }
-                if (config.rammask != selected_rammask) {
-                        config.rammask = selected_rammask;
+                if (config.mem_size != selected_mem_size) {
+                        config.mem_size = selected_mem_size;
                         changed = 1;
                 }
 

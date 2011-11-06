@@ -36,7 +36,7 @@ char discname[2][260]={"boot.adf","notboot.adf"};
 
 Config config = {
 	CPUModel_ARM7500,	/* model */
-	0,			/* rammask */
+	0,			/* mem_size */
 	0,			/* vrammask */
 	0,			/* stretchmode */
 	NULL,			/* username */
@@ -173,7 +173,7 @@ resetrpc(void)
 
 	rpclog("RPCEmu: Machine reset\n");
 
-        mem_reset(config.rammask + 1);
+        mem_reset(config.mem_size);
         resetcp15();
         resetarm();
         resetkeyboard();
@@ -371,14 +371,22 @@ loadconfig(void)
 		free_config_entries(&entries);
 	}
 
-        p = get_config_string(NULL,"mem_size",NULL);
-        if (!p)                    config.rammask = 0x7FFFFF;
-        else if (!strcmp(p,"4"))   config.rammask = 0x1FFFFF;
-        else if (!strcmp(p,"8"))   config.rammask = 0x3FFFFF;
-        else if (!strcmp(p,"32"))  config.rammask = 0xFFFFFF;
-        else if (!strcmp(p,"64"))  config.rammask = 0x1FFFFFF;
-        else if (!strcmp(p,"128")) config.rammask = 0x3FFFFFF;
-        else                       config.rammask = 0x7FFFFF;
+	p = get_config_string(NULL, "mem_size", NULL);
+	if (p == NULL) {
+		config.mem_size = 16;
+	} else if (!strcmp(p, "4")) {
+		config.mem_size = 4;
+	} else if (!strcmp(p, "8")) {
+		config.mem_size = 8;
+	} else if (!strcmp(p, "32")) {
+		config.mem_size = 32;
+	} else if (!strcmp(p, "64")) {
+		config.mem_size = 64;
+	} else if (!strcmp(p, "128")) {
+		config.mem_size = 128;
+	} else {
+		config.mem_size = 16;
+	}
 
         p = get_config_string(NULL,"vram_size",NULL);
         if (!p) config.vrammask = 0x7FFFFF;
@@ -466,8 +474,8 @@ saveconfig(void)
 {
         char s[256];
 
-        sprintf(s, "%i", ((config.rammask + 1) >> 20) << 1);
-        set_config_string(NULL,"mem_size",s);
+	sprintf(s, "%u", config.mem_size);
+	set_config_string(NULL, "mem_size", s);
         switch (config.model)
         {
                 case CPUModel_ARM610:    sprintf(s, "ARM610"); break;

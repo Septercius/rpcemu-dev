@@ -625,17 +625,16 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 h = GetDlgItem(hdlg, config.vrammask ? RadioButton_VRAM_2 : RadioButton_VRAM_0);
                 SendMessage(h,BM_SETCHECK,1,0);
 
-                /* Set RAM Size */
-                switch (config.rammask)
-                {
-                case 0x1FFFFF:  h = GetDlgItem(hdlg, RadioButton_Mem_4); break;
-                case 0x3FFFFF:  h = GetDlgItem(hdlg, RadioButton_Mem_8); break;
-                case 0x7FFFFF:  h = GetDlgItem(hdlg, RadioButton_Mem_16); break;
-                case 0xFFFFFF:  h = GetDlgItem(hdlg, RadioButton_Mem_32); break;
-                case 0x1FFFFFF: h = GetDlgItem(hdlg, RadioButton_Mem_64); break;
-                case 0x3FFFFFF: h = GetDlgItem(hdlg, RadioButton_Mem_128); break;
-                }
-                SendMessage(h,BM_SETCHECK,1,0);
+		/* Set RAM Size */
+		switch (config.mem_size) {
+		case 4:   h = GetDlgItem(hdlg, RadioButton_Mem_4); break;
+		case 8:   h = GetDlgItem(hdlg, RadioButton_Mem_8); break;
+		case 16:  h = GetDlgItem(hdlg, RadioButton_Mem_16); break;
+		case 32:  h = GetDlgItem(hdlg, RadioButton_Mem_32); break;
+		case 64:  h = GetDlgItem(hdlg, RadioButton_Mem_64); break;
+		case 128: h = GetDlgItem(hdlg, RadioButton_Mem_128); break;
+		}
+		SendMessage(h, BM_SETCHECK, 1, 0);
 
                 chosen_config.model        = config.model;
                 chosen_config.vrammask     = config.vrammask;
@@ -682,7 +681,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
 
                         if (chngram)
                         {
-                                config.rammask = chosen_config.rammask;
+                                config.mem_size = chosen_config.mem_size;
                         }
                         config.model = chosen_config.model;
                         config.vrammask = chosen_config.vrammask;
@@ -766,9 +765,8 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         case 5:
                                 chosen_config.model = CPUModel_ARM810; break;
                         default:
-                                fprintf(stderr, "configdlgproc(): unknown dialog item for CPUModel %d\n",
-                                        LOWORD(wParam) - RadioButton_ARM610);
-                                exit(EXIT_FAILURE);
+                                fatal("configdlgproc(): unknown dialog item for CPUModel %d\n",
+                                      LOWORD(wParam) - RadioButton_ARM610);
                         }
 
                         h = GetDlgItem(hdlg, LOWORD(wParam));
@@ -782,7 +780,14 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 case RadioButton_Mem_32:
                 case RadioButton_Mem_64:
                 case RadioButton_Mem_128:
-                        chosen_config.rammask = (0x200000 << (LOWORD(wParam) - RadioButton_Mem_4)) - 1;
+			switch (LOWORD(wParam)) {
+			case RadioButton_Mem_4:   chosen_config.mem_size = 4; break;
+			case RadioButton_Mem_8:   chosen_config.mem_size = 8; break;
+			case RadioButton_Mem_16:  chosen_config.mem_size = 16; break;
+			case RadioButton_Mem_32:  chosen_config.mem_size = 32; break;
+			case RadioButton_Mem_64:  chosen_config.mem_size = 64; break;
+			case RadioButton_Mem_128: chosen_config.mem_size = 128; break;
+			}
                         for (c = RadioButton_Mem_4; c <= RadioButton_Mem_128; c++)
                         {
                                 h=GetDlgItem(hdlg,c);
@@ -790,7 +795,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         }
                         h=GetDlgItem(hdlg,LOWORD(wParam));
                         SendMessage(h,BM_SETCHECK,1,0);
-                        if (chosen_config.rammask != config.rammask) {
+                        if (chosen_config.mem_size != config.mem_size) {
                                 chngram = 1;
                         } else {
                                 chngram = 0;

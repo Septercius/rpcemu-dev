@@ -538,7 +538,7 @@ void drawscr(int needredraw)
                         /*Not looking good for screen redraw - check to see if cursor data has changed*/
                         if (cinit&0x4000000) ramp = (const unsigned char *) ram2;
                         else                 ramp = (const unsigned char *) ram;
-                        addr = (cinit & config.rammask); // >> 2;
+                        addr = (cinit & mem_rammask); // >> 2;
                         for (c=0;c<(thr.cursorheight<<3);c++)
                             calccrc(&crc, ramp[addr++]);
                         /*If cursor data matches then no point redrawing screen - return*/
@@ -1269,7 +1269,7 @@ void vidcthread(void)
         {
                 if (cinit&0x4000000) ramp = (const unsigned char *) ram2;
                 else                 ramp = (const unsigned char *) ram;
-                addr = cinit & config.rammask;
+                addr = cinit & mem_rammask;
 //                printf("Mouse now at %i,%i\n",thr.cursorx,thr.cursory);
                 switch (drawcode)
                 {

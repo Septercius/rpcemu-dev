@@ -22,6 +22,8 @@ uint8_t *ramb = NULL, *ramb2 = NULL, *romb = NULL, *vramb = NULL;
 
 int mmu = 0, memmode = 0;
 
+uint32_t mem_rammask;
+
 static uint32_t readmemcache = 0,readmemcache2 = 0;
 static uint32_t writememcache = 0,writememcache2 = 0;
 static uint32_t writemembcache = 0,writemembcache2 = 0;
@@ -48,21 +50,26 @@ void mem_init(void)
 /**
  * Initialise/reset RAM (called on startup and emulated machine reset)
  *
- * @param ramsize Amount of RAM in bytes for each of two RAM banks
- *                (i.e. half the desired RAM)
+ * @param ramsize Amount of RAM in megabytes
  */
 void mem_reset(uint32_t ramsize)
 {
-	assert(ramsize >= 2 * 1024 * 1024); /* At least 2MB per bank */
-	assert(ramsize <= 64 * 1024 * 1024); /* At most 64MB per bank */
+	assert(ramsize >= 4); /* At least 4MB */
+	assert(ramsize <= 128); /* At most 128MB */
 	assert(((ramsize - 1) & ramsize) == 0); /* Must be a power of 2 */
 
-	ram  = realloc(ram, ramsize);
-	ram2 = realloc(ram2, ramsize);
-	ramb  = (unsigned char *) ram;
-	ramb2 = (unsigned char *) ram2;
-	memset(ram, 0, ramsize);
-	memset(ram2, 0, ramsize);
+	/* Convert ramsize from bytes to megabytes */
+	ramsize *= (1024 * 1024);
+
+	/* Calculate mem_rammask */
+	mem_rammask = (ramsize / 2) - 1;
+
+	ram  = realloc(ram, ramsize / 2);
+	ram2 = realloc(ram2, ramsize / 2);
+	ramb  = (uint8_t *) ram;
+	ramb2 = (uint8_t *) ram2;
+	memset(ram, 0, ramsize / 2);
+	memset(ram2, 0, ramsize / 2);
 
 	vraddrlpos = vwaddrlpos = 0;
 }
@@ -148,13 +155,13 @@ mem_phys_read32(uint32_t addr)
 	case 0x11000000:
 	case 0x12000000:
 	case 0x13000000:
-		return ram[(addr & config.rammask) >> 2];
+		return ram[(addr & mem_rammask) >> 2];
 
 	case 0x14000000: /* SIMM 0 bank 1 */
 	case 0x15000000:
 	case 0x16000000:
 	case 0x17000000:
-		return ram2[(addr & config.rammask) >> 2];
+		return ram2[(addr & mem_rammask) >> 2];
 	}
 	return 0;
 }
@@ -238,7 +245,7 @@ mem_phys_read8(uint32_t addr)
 #ifdef _RPCEMU_BIG_ENDIAN
 		addr ^= 3;
 #endif
-		return ramb[addr & config.rammask];
+		return ramb[addr & mem_rammask];
 
 	case 0x14000000: /* SIMM 0 bank 1 */
 	case 0x15000000:
@@ -247,7 +254,7 @@ mem_phys_read8(uint32_t addr)
 #ifdef _RPCEMU_BIG_ENDIAN
 		addr ^= 3;
 #endif
-		return ramb2[addr & config.rammask];
+		return ramb2[addr & mem_rammask];
 	}
 	return 0xff;
 }
@@ -329,18 +336,18 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 	case 0x11000000:
 	case 0x12000000:
 	case 0x13000000:
-		ram[(addr & config.rammask) >> 2] = val;
-//		  if (config.vrammask == 0 && (addr & config.rammask) < 0x100000)
-//			  dirtybuffer[(addr & config.rammask) >> 12] = 1;
-//		  dirtybuffer[(addr & config.rammask) >> 10] = 1;
+		ram[(addr & mem_rammask) >> 2] = val;
+//		  if (config.vrammask == 0 && (addr & mem_rammask) < 0x100000)
+//			  dirtybuffer[(addr & mem_rammask) >> 12] = 1;
+//		  dirtybuffer[(addr & mem_rammask) >> 10] = 1;
 		return;
 
 	case 0x14000000: /* SIMM 0 bank 1 */
 	case 0x15000000:
 	case 0x16000000:
 	case 0x17000000:
-		ram2[(addr & config.rammask) >> 2] = val;
-//		  dirtybuffer[(addr & config.rammask) >> 10] = 1;
+		ram2[(addr & mem_rammask) >> 2] = val;
+//		  dirtybuffer[(addr & mem_rammask) >> 10] = 1;
 		return;
 	}
 }
@@ -426,9 +433,9 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 #ifdef _RPCEMU_BIG_ENDIAN
 		addr ^= 3;
 #endif
-		ramb[addr & config.rammask] = val;
-//		  if (config.vrammask == 0 && (addr & config.rammask) < 0x100000)
-//			  dirtybuffer[(addr & config.rammask) >> 12] = 1;
+		ramb[addr & mem_rammask] = val;
+//		  if (config.vrammask == 0 && (addr & mem_rammask) < 0x100000)
+//			  dirtybuffer[(addr & mem_rammask) >> 12] = 1;
 		return;
 
 	case 0x14000000: /* SIMM 0 bank 1 */
@@ -438,8 +445,8 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 #ifdef _RPCEMU_BIG_ENDIAN
 		addr ^= 3;
 #endif
-		ramb2[addr & config.rammask] = val;
-//		  dirtybuffer[(addr & config.rammask) >> 10] = 1;
+		ramb2[addr & mem_rammask] = val;
+//		  dirtybuffer[(addr & mem_rammask) >> 10] = 1;
 		return;
 	}
 }
@@ -482,14 +489,14 @@ uint32_t readmemfl(uint32_t addr)
                                 case 0x11000000:
                                 case 0x12000000:
                                 case 0x13000000:
-                                vradd(addr2, &ram[((readmemcache2 & config.rammask) - (long)(addr2 & ~0xFFF))>>2], 0, readmemcache2);
+                                vradd(addr2, &ram[((readmemcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
                                 return *(uint32_t *)(vraddrl[addr2>>12]+(addr2&~3));
                                 
                                 case 0x14000000: /*SIMM 0 bank 1*/
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                vradd(addr2, &ram2[((readmemcache2 & config.rammask) - (long)(addr2 & ~0xFFF))>>2], 0, readmemcache2);
+                                vradd(addr2, &ram2[((readmemcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
                                 return *(uint32_t *)(vraddrl[addr2>>12]+(addr2&~3));
                                 
                                 default:
@@ -511,13 +518,13 @@ uint32_t readmemfl(uint32_t addr)
                        case 0x11000000:
                        case 0x12000000:
                        case 0x13000000:
-                       vradd(addr, &ram[((addr & config.rammask & ~0xFFF) - (long)(addr & ~0xFFF)) >> 2], 0, addr);
+                       vradd(addr, &ram[((addr & mem_rammask & ~0xfff) - (long) (addr & ~0xfff)) >> 2], 0, addr);
                        break;
                        case 0x14000000: /*SIMM 0 bank 1*/
                        case 0x15000000:
                        case 0x16000000:
                        case 0x17000000:
-                       vradd(addr, &ram2[((addr & config.rammask & ~0xFFF) - (long)(addr & ~0xFFF)) >> 2], 0, addr);
+                       vradd(addr, &ram2[((addr & mem_rammask & ~0xfff) - (long) (addr & ~0xfff)) >> 2], 0, addr);
                        break;
                        default:
                        vraddrl[addr>>12]=0xFFFFFFFF;
@@ -569,7 +576,7 @@ uint32_t readmemfb(uint32_t addr)
                                 case 0x11000000:
                                 case 0x12000000:
                                 case 0x13000000:
-                                vradd(addr2, &ram[((readmemcache2 & config.rammask) - (long)(addr2 & ~0xFFF))>>2], 0, readmemcache2);
+                                vradd(addr2, &ram[((readmemcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
 								addr2^=3;
 #endif
@@ -579,7 +586,7 @@ uint32_t readmemfb(uint32_t addr)
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                vradd(addr2, &ram2[((readmemcache2 & config.rammask) - (long)(addr2 & ~0xFFF))>>2], 0, readmemcache2);
+                                vradd(addr2, &ram2[((readmemcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
 								addr2^=3;
 #endif
@@ -620,17 +627,17 @@ void writememfl(uint32_t addr, uint32_t val)
                                 break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 if ((!config.vrammask) && (addr & 0x1FF00000) == 0x10000000)
-                                   dirtybuffer[(addr & config.rammask) >> 12] = 2;
+                                        dirtybuffer[(addr & mem_rammask) >> 12] = 2;
                                 case 0x11000000:
                                 case 0x12000000:
                                 case 0x13000000:
-                                vwadd(addr2, &ram[((writememcache2 & config.rammask) - (long)(addr2 & ~0xFFF))>>2], 0, writememcache2);
+                                vwadd(addr2, &ram[((writememcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
                                 break;
                                 case 0x14000000: /*SIMM 0 bank 1*/
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                vwadd(addr2, &ram2[((writememcache2 & config.rammask) - (long)(addr2 & ~0xFFF))>>2], 0, writememcache2);
+                                vwadd(addr2, &ram2[((writememcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
                                 break;
                         }
         }
@@ -667,17 +674,17 @@ void writememfb(uint32_t addr, uint8_t val)
                                 break;
                                 case 0x10000000: /*SIMM 0 bank 0*/
                                 if (!config.vrammask && (addr & 0x1FF00000) == 0x10000000)
-                                   dirtybuffer[(addr & config.rammask) >> 12] = 2;
+                                        dirtybuffer[(addr & mem_rammask) >> 12] = 2;
                                 case 0x11000000:
                                 case 0x12000000:
                                 case 0x13000000:
-                                vwadd(addr2, &ram[((writemembcache2 & config.rammask) - (long)(addr2 & ~0xFFF)) >> 2], 0, writemembcache2);
+                                vwadd(addr2, &ram[((writemembcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
                                 break;
                                 case 0x14000000: /*SIMM 0 bank 1*/
                                 case 0x15000000:
                                 case 0x16000000:
                                 case 0x17000000:
-                                vwadd(addr2, &ram2[((writemembcache2 & config.rammask) - (long)(addr2 & ~0xFFF)) >> 2], 0, writemembcache2);
+                                vwadd(addr2, &ram2[((writemembcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
                                 break;
                         }
         }
