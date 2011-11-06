@@ -5,36 +5,40 @@ allegro_icon ICON rpcemu.ico
 
 MainMenu MENU DISCARDABLE
 BEGIN
-        POPUP "&File"
-        BEGIN
-                MENUITEM "&Reset",      IDM_FILE_RESET
-                MENUITEM "E&xit",       IDM_FILE_EXIT
-        END
-        POPUP "&Disc"
-        BEGIN
-                MENUITEM "Load Disc :&0",IDM_DISC_LD0
-                MENUITEM "Load Disc :&1",IDM_DISC_LD1
-        END
-        POPUP "&Settings"
-        BEGIN
-                MENUITEM "&Configure...",IDM_CONFIG
-                MENUITEM "&Networking...",IDM_NETWORKING
-                MENUITEM "&Fullscreen mode",IDM_FULLSCR
-                MENUITEM "&Alternative blitting code",IDM_STRETCH
-                MENUITEM "&Blitting optimisation",IDM_BLITOPT
-                POPUP "&CD-ROM"
-                BEGIN
-                        MENUITEM "&Disabled",IDM_CDROM_DISABLED
-                        MENUITEM "&Empty",IDM_CDROM_EMPTY
-                        MENUITEM "&ISO image...",IDM_CDROM_ISO
-                END
-                POPUP "&Mouse"
-                BEGIN
-                        MENUITEM "&Follow host mouse", IDM_MOUSE_FOL
-                        MENUITEM "&Capture",IDM_MOUSE_CAP
-                        MENUITEM "&Two-button Mouse Mode", IDM_MOUSE_TWOBUTTON
-                END
-        END
+	POPUP "&File"
+	BEGIN
+		MENUITEM "&Reset", IDM_FILE_RESET
+		MENUITEM SEPARATOR
+		MENUITEM "E&xit", IDM_FILE_EXIT
+	END
+	POPUP "&Disc"
+	BEGIN
+		MENUITEM "Load Disc :&0", IDM_DISC_LD0
+		MENUITEM "Load Disc :&1", IDM_DISC_LD1
+	END
+	POPUP "&Settings"
+	BEGIN
+		MENUITEM "&Configure...", IDM_CONFIG
+		MENUITEM "&Networking...", IDM_NETWORKING
+		MENUITEM SEPARATOR
+		MENUITEM "&Fullscreen mode", IDM_FULLSCR
+		MENUITEM "&Alternative blitting code", IDM_STRETCH
+		MENUITEM "&Blitting optimisation", IDM_BLITOPT
+		MENUITEM SEPARATOR
+		POPUP "&CD-ROM"
+		BEGIN
+			MENUITEM "&Disabled", IDM_CDROM_DISABLED
+			MENUITEM "&Empty", IDM_CDROM_EMPTY
+			MENUITEM "&ISO image...", IDM_CDROM_ISO
+		END
+		MENUITEM SEPARATOR
+		POPUP "&Mouse"
+		BEGIN
+			MENUITEM "&Follow host mouse", IDM_MOUSE_FOL
+			MENUITEM "&Capture", IDM_MOUSE_CAP
+			MENUITEM "&Two-button Mouse Mode", IDM_MOUSE_TWOBUTTON
+		END
+	END
 END
 
 ConfigureDlg DIALOG 20, 20, 187, 225
