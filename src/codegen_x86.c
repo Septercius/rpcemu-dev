@@ -2761,7 +2761,8 @@ void generatepcinc(void)
         if (codeblockpos>=1800) blockend=1;
 }
 
-void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
+void
+endblock(uint32_t opcode, uint32_t *pcpsr)
 {
         int temp;
 

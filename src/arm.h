@@ -12,7 +12,7 @@ extern void generateupdateinscount(void);
 extern void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr);
 extern void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr);
 extern void generateirqtest(void);
-extern void endblock(uint32_t opcode, int c, uint32_t *pcpsr);
+extern void endblock(uint32_t opcode, uint32_t *pcpsr);
 extern void initcodeblock(uint32_t l);
 extern uint32_t *usrregs[16];
 extern uint32_t armregs[18];
