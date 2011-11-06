@@ -325,20 +325,32 @@ void initcodeblock(uint32_t l)
         blockpoint2=blockpoint;
         
 	/* Block Epilogue */
-        addbyte(0x83); /*ADDL $12,%esp*/
-        addbyte(0xC4);
-        addbyte(0x0c);
-        gen_x86_ret();
+	addbyte(0x83); /* ADD $12,%esp */
+	addbyte(0xc4);
+	addbyte(0x0c);
+	/* Restore registers */
+	gen_x86_pop_reg(EBX);
+	gen_x86_pop_reg(ESI);
+	gen_x86_pop_reg(EDI);
+	gen_x86_leave();
+	gen_x86_ret();
+
         addbyte(0xE9); /*JMP end*/
         addlong(0); /*Don't know where end is yet - see endblock()*/
 
 	/* Block Prologue */
 	assert(codeblockpos <= BLOCKSTART);
 	codeblockpos = BLOCKSTART;
+	/* Set up a stack frame and preserve registers that are callee-saved */
+	gen_x86_push_reg(EBP);
+	addbyte(0x89); addbyte(0xe5); /* MOV %esp,%ebp */
+	gen_x86_push_reg(EDI);
+	gen_x86_push_reg(ESI);
+	gen_x86_push_reg(EBX);
 	/* Align stack to a multiple of 16 bytes - required by Mac OS X */
-        addbyte(0x83); /*SUBL $12,%esp*/
-        addbyte(0xEC);
-        addbyte(0x0c);
+	addbyte(0x83); /* SUB $12,%esp */
+	addbyte(0xec);
+	addbyte(0x0c);
 #ifndef _MSC_VER
         addbyte(0xBE); addlong(armregs); /*MOVL armregs,%esi*/
 #endif
@@ -2602,13 +2614,13 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         addbyte(0x05);
                         addlong(&armregs[15]);
                         addbyte(4);
-                        addbyte(0xE9); addlong((-(codeblockpos+4))+BLOCKSTART+8); /*JMP start*/
+                        gen_x86_jump(CC_ALWAYS, block_enter); /*JMP start*/
                         /*.endit*/
                 }
                 #endif
                 if (!flaglookup[opcode>>28][(*pcpsr)>>28])
                 {
-                        gen_x86_jump(CC_ALWAYS, 4);
+                        gen_x86_jump(CC_ALWAYS, 8);
                 }
    //     addbyte(0xA3); /*MOVL %eax,armregs[RN]*/
 //        addlong(0);
@@ -2663,7 +2675,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 }
                 if (!flaglookup[opcode>>28][(*pcpsr)>>28])
                 {
-                        gen_x86_jump(CC_ALWAYS, 4);
+                        gen_x86_jump(CC_ALWAYS, 8);
                 }
                 break;
 
@@ -2709,7 +2721,7 @@ void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr)
                         addbyte(pcinc);
 //                pcinc=0;
                 }
-                gen_x86_jump(CC_ALWAYS, 4);
+                gen_x86_jump(CC_ALWAYS, 8);
         }
 	if (lastflagchange != 0) {
 		gen_x86_jump_here_long(lastflagchange);
@@ -2759,7 +2771,7 @@ void endblock(uint32_t opcode, int c, uint32_t *pcpsr)
         generateupdateinscount();
 
         temp=codeblockpos;
-        codeblockpos=5;
+        codeblockpos = 9;
         addlong(&rcodeblock[blockpoint2][temp]-((uint32_t)&rcodeblock[blockpoint2][codeblockpos+4]));
         codeblockpos=temp;
 
