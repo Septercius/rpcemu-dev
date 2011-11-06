@@ -50,4 +50,6 @@ extern int mmu,memmode;
 
 extern void cacheclearpage(uint32_t a);
 
+extern uint32_t mem_rammask;
+
 #endif /* MEM_H */

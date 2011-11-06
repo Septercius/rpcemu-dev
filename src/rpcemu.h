@@ -113,7 +113,7 @@ typedef enum {
 /** The user's configuration of the emulator */
 typedef struct {
 	CPUModel model;
-	int rammask;
+	unsigned mem_size;	/**< Amount of RAM in megabytes */
 	int vrammask;
 	int stretchmode;
 	char *username;
