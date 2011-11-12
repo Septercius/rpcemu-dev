@@ -944,6 +944,7 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
                         return 0;
 
                 case IDM_FILE_EXIT:
+                        closevideo();
                         PostQuitMessage(0);
                         return 0;
 
