@@ -30,7 +30,7 @@
 #define IOMD_0x014_IRQRQA   0x014 /* IRQA request/clear */
 #define IOMD_0x018_IRQMSKA  0x018 /* IRQA mask */
 
-//#define IOMD_0x01C_SUSMODE  0x01C /* Enter SUSPEND mode (ARM7500/FE) */
+#define IOMD_0x01C_SUSMODE  0x01C /* Enter SUSPEND mode (ARM7500/FE) */
 
 #define IOMD_0x020_IRQSTB   0x020 /* IRQB status */
 #define IOMD_0x024_IRQRQB   0x024 /* IRQB request/clear */
@@ -67,7 +67,7 @@
 #define IOMD_0x080_ROMCR0   0x080 /* ROM control bank 0 */
 #define IOMD_0x084_ROMCR1   0x084 /* ROM control bank 1 */
 #define IOMD_0x088_DRAMCR   0x088 /* DRAM control (IOMD) */
-#define IOMD_0x08C_VREFCR   0x08C /* VRAM and refresh control */
+#define IOMD_0x08C_VREFCR   0x08C /* IOMD VRAM control, IOMD/7500/FE DRAM refresh speed */
 
 #define IOMD_0x090_FSIZE    0x090 /* Flyback line size (IOMD) */
 #define IOMD_0x094_ID0      0x094 /* Chip ID no. low byte */
@@ -84,11 +84,11 @@
 #define IOMD_0x0C8_ECTCR    0x0C8 /* Expansion card timing */
 
 /* This register has two different names depending on chip */
-//#define IOMD_0x0CC_DMAEXT   0x0CC /* DMA external control     (IOMD) */
+#define IOMD_0x0CC_DMAEXT   0x0CC /* DMA external control     (IOMD) */
 //#define IOMD_0x0CC_ASTCR    0x0CC /* Async I/O timing control (ARM7500/FE) */
 
 #define IOMD_0x0D0_DRAMWID  0x0D0 /* DRAM width control      (ARM7500/FE) */
-//#define IOMD_0x0D4_SELFREF  0x0D4 /* Force CAS/RAS lines low (ARM7500/FE) */
+#define IOMD_0x0D4_SELFREF  0x0D4 /* Force CAS/RAS lines low (ARM7500/FE) */
 
 
 #define IOMD_0x0E0_ATODICR  0x0E0 /* A to D interrupt control (ARM7500/FE) */
@@ -271,8 +271,16 @@ void writeiomd(uint32_t addr, uint32_t val)
                 keyboard_control_write(val & 8);
                 return;
 
-        case IOMD_0x00C_IOLINES: /* General Purpose I/O lines (ARM7500/FE) */
-                return;
+	case IOMD_0x00C_IOLINES: /* General Purpose I/O lines (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			/* Connected to pin/bit 0 is the Monitor Id bit */
+			/* All other pin/bit connections are currently unknown */
+			if ((val & 0xfe) != 0) {
+				UNIMPLEMENTED("IOMD ARM7500 IOLINES",
+				              "Write to enable unknown IO device 0x%x", val);
+			}
+		}
+		return;
 
         case IOMD_0x014_IRQRQA: /* IRQA request/clear */
                 iomd.irqa.status &= ~val;
@@ -284,6 +292,14 @@ void writeiomd(uint32_t addr, uint32_t val)
                 updateirqs();
                 return;
 
+	case IOMD_0x01C_SUSMODE: /* Enter SUSPEND mode (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			UNIMPLEMENTED("IOMD Register write",
+			              "Call to enter SUSPEND mode 0x%x", val);
+			iomd.susmode = val;
+		}
+		return;
+
         case IOMD_0x028_IRQMSKB: /* IRQB mask */
                 iomd.irqb.mask = val;
                 updateirqs();
@@ -293,8 +309,11 @@ void writeiomd(uint32_t addr, uint32_t val)
                 iomd.fiq.mask = val;
                 return;
 
-        case IOMD_0x03C_CLKCTL: /* Clock divider control (ARM7500/FE) */
-                return;
+	case IOMD_0x03C_CLKCTL: /* Clock divider control (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			iomd.clkctrl = val;
+		}
+		return;
 
         case IOMD_0x040_T0LOW: /* Timer 0 low bits */
                 iomd.t0.in_latch = (iomd.t0.in_latch & 0xff00) | (val & 0xff);
@@ -340,8 +359,11 @@ void writeiomd(uint32_t addr, uint32_t val)
                 iomd.irqc.mask = val;
                 return;
 
-        case IOMD_0x06C_VIDIMUX: /* LCD and IIS control bits (ARM7500/FE) */
-                return;
+	case IOMD_0x06C_VIDIMUX: /* LCD and IIS control bits (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			iomd.vidimux = val;
+		}
+		return;
 
         case IOMD_0x074_IRQRQD: /* IRQD request/clear (ARM7500/FE) */
                 return;
@@ -360,11 +382,23 @@ void writeiomd(uint32_t addr, uint32_t val)
                 /* Control the DRAM row address options, no need to implement */
                 return;
 
-        case IOMD_0x08C_VREFCR: /* VRAM refresh control */
-                return;
+	case IOMD_0x08C_VREFCR: /* IOMD VRAM control, IOMD/7500/FE DRAM refresh speed */
+		iomd.refcr = val;
+		return;
 
         case IOMD_0x090_FSIZE: /* Flyback line size (IOMD) */
                 return;
+
+	case IOMD_0x0A0_MOUSEX: /* Mouse X position (Quadrature - IOMD) */
+		if (iomd_type == IOMDType_IOMD) {
+			iomd.mousex = val;
+		}
+		return;
+	case IOMD_0x0A4_MOUSEY: /* Mouse Y position (Quadrature - IOMD) */
+		if (iomd_type == IOMDType_IOMD) {
+			iomd.mousey = val;
+		}
+		return;
 
         case IOMD_0x0A8_MSEDAT: /* Mouse data (PS/2 - ARM7500/FE) */
                 mouse_data_write(val);
@@ -373,10 +407,35 @@ void writeiomd(uint32_t addr, uint32_t val)
                 mouse_control_write(val);
                 return;
 
-        case IOMD_0x0C4_IOTCR: /* I/O timing control */
-        case IOMD_0x0C8_ECTCR: /* I/O expansion timing control */
-        case IOMD_0x0D0_DRAMWID: /* DRAM width control (ARM7500/FE) */
-                return;
+	case IOMD_0x0C4_IOTCR: /* I/O timing control */
+		iomd.iotcr = val;
+		return;
+
+	case IOMD_0x0C8_ECTCR: /* I/O expansion timing control */
+		iomd.ectcr = val;
+		return;
+
+	case IOMD_0x0CC_DMAEXT: /* DMA external control (IOMD) */
+		if (iomd_type == IOMDType_IOMD) {
+			iomd.dmaext = val;
+			return;
+		}
+		/* Register 0xcc has a different meaning in ARM7500 */
+		UNIMPLEMENTED("IOMD Register write",
+		              "Write to register 0xcc in ARM7500/FE mode val 0x%x", val);
+		return;
+
+	case IOMD_0x0D0_DRAMWID: /* DRAM width control (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			iomd.dramcr = val;
+		}
+		return;
+
+	case IOMD_0x0D4_SELFREF: /* Force CAS/RAS lines low (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			iomd.selfref = val;
+		}
+		return;
 
         case IOMD_0x0E0_ATODICR: /* A to D interrupt control (ARM7500/FE) */
                 /* We do not support enabling any of the interrupts */
@@ -453,7 +512,7 @@ void writeiomd(uint32_t addr, uint32_t val)
 
         default:
                 UNIMPLEMENTED("IOMD Register write",
-                              "Unknown register 0x%x", addr & 0x1fc);
+                              "Unknown register 0x%x val 0x%x", addr & 0x1fc, val);
                 return;
         }
 }
@@ -476,8 +535,13 @@ uint32_t readiomd(uint32_t addr)
         case IOMD_0x008_KBDCR: /* Keyboard control */
                 return keyboard_status_read();
 
-        case IOMD_0x00C_IOLINES: /* General Purpose I/O lines (ARM7500/FE) */
-                return 0;
+	case IOMD_0x00C_IOLINES: /* General Purpose I/O lines (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			/* Connected to pin/bit 0 is the Monitor Id bit, 0 for VGA, 1 for TV res */
+			/* All other pin/bit connections are currently unknown */
+			return 0;
+		}
+		return 0;
 
         case IOMD_0x010_IRQSTA: /* IRQA status */
                 return iomd.irqa.status;
@@ -485,6 +549,12 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.irqa.status & iomd.irqa.mask;
         case IOMD_0x018_IRQMSKA: /* IRQA mask */
                 return iomd.irqa.mask;
+
+	case IOMD_0x01C_SUSMODE: /* Enter SUSPEND mode (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			return iomd.susmode;
+		}
+		return 0;
 
         case IOMD_0x020_IRQSTB: /* IRQB status */
                 return iomd.irqb.status;
@@ -495,6 +565,12 @@ uint32_t readiomd(uint32_t addr)
 
         case IOMD_0x038_FIQMSK: /* FIQ mask */
                 return iomd.fiq.mask;
+
+	case IOMD_0x03C_CLKCTL: /* Clock divider control (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			return iomd.clkctrl;
+		}
+		return 0;
 
         case IOMD_0x040_T0LOW: /* Timer 0 low bits */
                 return iomd.t0.out_latch & 0xff;
@@ -513,6 +589,12 @@ uint32_t readiomd(uint32_t addr)
         case IOMD_0x068_IRQMSKC: /* IRQC mask (ARM7500/FE) */
                 return iomd.irqc.mask;
 
+	case IOMD_0x06C_VIDIMUX: /* LCD and IIS control bits (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			return iomd.vidimux;
+		}
+		return 0;
+
         case IOMD_0x070_IRQSTD: /* IRQD status (ARM7500/FE) */
                 return iomd.irqd.status;
         case IOMD_0x074_IRQRQD: /* IRQD request/clear (ARM7500/FE) */
@@ -524,6 +606,8 @@ uint32_t readiomd(uint32_t addr)
                 return iomd.romcr0;
         case IOMD_0x084_ROMCR1: /* ROM control bank 1 */
                 return iomd.romcr1;
+	case IOMD_0x08C_VREFCR: /* IOMD VRAM control, IOMD/7500/FE DRAM refresh speed */
+		return iomd.refcr;
 
         case IOMD_0x094_ID0: /* Chip ID no. low byte */
 		return iomds[iomd_type].id_low;
@@ -532,15 +616,53 @@ uint32_t readiomd(uint32_t addr)
         case IOMD_0x09C_VERSION: /* Chip version number */
                 return 0; /*Chip version*/
 
-        case IOMD_0x0A0_MOUSEX: /* Mouse X position (Quadrature - IOMD) */
-                return iomd.mousex;
-        case IOMD_0x0A4_MOUSEY: /* Mouse Y position (Quadrature - IOMD) */
-                return iomd.mousey;
+	case IOMD_0x0A0_MOUSEX: /* Mouse X position (Quadrature - IOMD) */
+		if (iomd_type == IOMDType_IOMD) {
+			return iomd.mousex;
+		}
+		return 0;
+	case IOMD_0x0A4_MOUSEY: /* Mouse Y position (Quadrature - IOMD) */
+		if (iomd_type == IOMDType_IOMD) {
+			return iomd.mousey;
+		}
+		return 0;
 
-        case IOMD_0x0A8_MSEDAT: /* Mouse data (PS/2 - ARM7500/FE) */
-                return mouse_data_read();
-        case IOMD_0x0AC_MSECR: /* Mouse control (PS/2 - ARM7500/FE) */
-                return mouse_status_read();
+	case IOMD_0x0A8_MSEDAT: /* Mouse data (PS/2 - ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			return mouse_data_read();
+		}
+		return 0;
+	case IOMD_0x0AC_MSECR: /* Mouse control (PS/2 - ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			return mouse_status_read();
+		}
+		return 0;
+
+	case IOMD_0x0C4_IOTCR: /* I/O timing control */
+		return iomd.iotcr;
+	case IOMD_0x0C8_ECTCR: /* I/O expansion timing control */
+		return iomd.ectcr;
+
+	case IOMD_0x0CC_DMAEXT: /* DMA external control     (IOMD) */
+		if (iomd_type != IOMDType_ARM7500 && iomd_type != IOMDType_ARM7500FE) {
+			return iomd.dmaext;
+		}
+		/* 0xcc has a different meaning in ARM7500 */
+		UNIMPLEMENTED("IOMD Register read",
+		              "Read from register 0xcc in ARM7500/FE mode");
+		return 0;
+
+	case IOMD_0x0D0_DRAMWID: /* DRAM width control (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			return iomd.dramcr;
+		}
+		return 0;
+
+	case IOMD_0x0D4_SELFREF: /* Force CAS/RAS lines low (ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			return iomd.selfref;
+		}
+		return 0;
 
         case IOMD_0x180_SD0CURA: /* Sound DMA 0 CurA */
         case IOMD_0x184_SD0ENDA: /* Sound DMA 0 EndA */
@@ -576,7 +698,7 @@ uint32_t readiomd(uint32_t addr)
  * Read the state of the Quadrature (bus) mouse
  * found on the RPC.
  *
- * Also contains the monitor ID bit IMPROVE
+ * Also contains the monitor ID bit in bit 0
  */
 uint8_t mouse_buttons_read(void)
 {
@@ -606,6 +728,9 @@ uint8_t mouse_buttons_read(void)
 		}
 	}
 
+	/* bit 0 contains the monitor id bit, 0 for VGA, 1 for TV type monitors.
+	   As we will probably always need VGA, leave as 0 */
+
         return temp ^ 0x70; // bit 5 6 and 7
 }
 
@@ -624,7 +749,9 @@ iomd_reset(IOMDType type)
 	iomd_type = type;
 
         remove_int(gentimerirq);
-        iomd.romcr0=iomd.romcr1=0x40;
+
+	iomd.romcr0 = 0x40; /* ROM Control 0, set to 16bit slowest access time */
+	iomd.romcr1 = 0x40; /* ROM Control 1, set to 16bit slowest access time */
 
         iomd.sndstat = IOMD_DMA_STATUS_INTERRUPT | IOMD_DMA_STATUS_OVERRUN;
 
@@ -642,12 +769,30 @@ iomd_reset(IOMDType type)
         iomd.fiq.mask    = 0;
         iomd.irqdma.mask = 0;
 
+	/* Investigate further */
+	// iomd.ctrl = 0x0b; /* I/O Control, ID and I2C pins set as input */
+
         soundcount=100000;
         iomd.t0.counter = 0xffff;
         iomd.t1.counter = 0xffff;
         iomd.t0.in_latch = 0xffff;
         iomd.t1.in_latch = 0xffff;
-        install_int_ex(gentimerirq, BPS_TO_TIMER(500)); /* 500 Hz */
+
+	if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+		/* ARM7500/ARM7500FE only */
+		iomd.susmode = 0;    /* SUSPEND Mode, not in suspend mode */
+		iomd.vidimux = 0;    /* LCD and IIS control bits, set to normal */
+		iomd.refcr = 1;      /* DRAM refresh, fastest possible refresh rate */
+		iomd.dramcr = 0;     /* 3 mem clockcycles RAS precharge, 2 mem clockcycles
+		                        RAS-to-CAS delay, FPM memory, all banks set to 32bit wide */
+		iomd.selfref = 0;    /* DRAM self refresh control, nCAS and nRAS to normal */
+
+		/* Power on Reset only, push button reset has no effect */
+		iomd.clkctrl = 0;    /* Clock Control, all clocks set to divide-by-2 */
+	} else {
+		/* RPC IOMD21 only */
+		iomd.refcr = 0;      /* DRAM refresh */
+	}
 
 	fdccallback = 0;
 	motoron = 0;
@@ -657,6 +802,8 @@ iomd_reset(IOMDType type)
 	cinit = 0;
 	sndon = 0;
 	flyback = 0;
+
+	install_int_ex(gentimerirq, BPS_TO_TIMER(500)); /* 500 Hz */
 }
 
 /**

@@ -84,14 +84,29 @@ struct iomd
         iomd_irq irqd;
         iomd_irq fiq;
         iomd_irq irqdma;
-        unsigned char romcr0,romcr1;
+	uint8_t romcr0; /**< ROM Control 0 */
+	uint8_t romcr1; /**< ROM Control 1 */
         uint32_t vidstart,vidend,vidcur,vidinit;
         iomd_timer t0;
         iomd_timer t1;
-        unsigned char ctrl;
+	uint8_t ctrl; /**< I/O Control */
         unsigned char vidcr;
         unsigned char sndstat;
-        uint16_t mousex, mousey;
+	uint8_t refcr; /**< IOMD VRAM control, IOMD/7500/FE DRAM refresh speed */
+	uint8_t iotcr; /**< I/O Timing Control */
+	uint8_t ectcr; /**< Expansion card timing */
+
+	/* IOMD21 only */
+	uint16_t mousex; /**< Quadrature mouse X */
+	uint16_t mousey; /**< Quadrature mouse Y */
+	uint8_t  dmaext; /**< DMA external control */
+
+	/* ARM7500/ARM7500FE only */
+	uint8_t susmode; /**< SUSPEND Mode */
+	uint8_t clkctrl; /**< Clock Control */
+	uint8_t vidimux; /**< LCD and IIS control bits */
+	uint8_t dramcr;  /**< DRAM Control */
+	uint8_t selfref; /**< DRAM Self-Refresh Control */
 };
 
 extern struct iomd iomd;
