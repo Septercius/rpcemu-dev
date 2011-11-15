@@ -181,7 +181,6 @@ void writefdc(uint32_t addr, uint32_t val)
                 break;
 
         case 0x3f5: /* Data (FIFO) - Command */
-                // printf("Command write %02X %i : rate %i\n", val, ins, fdc.rate);
                 if (fdc.params)
                 {
                         fdc.parameters[fdc.curparam++]=val;
@@ -513,7 +512,6 @@ void callbackfdc(void)
                                 fdc.incommand=0;
                                 fdc.params=fdc.curparam=0;
                                 fdccallback=0;
-//                                printf("Ins %i\n",ins);
                                 break;
                         }
                         fdc.commandpos++;
@@ -572,7 +570,6 @@ void callbackfdc(void)
                                 fdc.incommand=0;
                                 fdc.params=fdc.curparam=0;
                                 fdccallback=0;
-//                                printf("Ins %i\n",ins);
                                 break;
                         }
                         fdc.commandpos++;

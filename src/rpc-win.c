@@ -4,7 +4,6 @@
   the moment.
   Since I'm the only maintainer of this file, it's a complete mess.*/
 
-//int ins;
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>

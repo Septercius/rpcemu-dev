@@ -83,7 +83,7 @@ void fpaopcode(uint32_t opcode)
         tf=(double *)temp;
         tf2=(double *)&temp[4];
         tfs=(float *)temp;
-//        rpclog("FPA op %08X %08X %f %i %i\n",opcode,PC,fparegs[1],times8000,ins);
+
         switch ((opcode>>24)&0xF)
         {
                 case 0xC: case 0xD:

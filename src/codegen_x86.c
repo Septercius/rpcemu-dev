@@ -280,7 +280,6 @@ void cacheclearpage(uint32_t a)
         int c,d;
         if (!codeblockpresent[a&0xFFFF]) return;
         codeblockpresent[a&0xFFFF]=0;
-        ins++;
 //        a>>=10;
 d=HASH(a<<12);
         for (c=0;c<0x400;c++)

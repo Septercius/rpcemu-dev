@@ -143,10 +143,6 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                        resetcodeblocks();
                 icache = val & CP15_CTRL_ICACHE;
                 dcache = val & CP15_CTRL_CACHE;
-                if (!(val & CP15_CTRL_MMU)) {
-                        /* MMU disable */
-                        ins = 0;
-                }
 
                 if (mmu != (val & CP15_CTRL_MMU))
                 {
