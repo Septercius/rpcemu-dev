@@ -249,7 +249,8 @@ static void gentimerirq(void)
  * @param addr Absolute memory address in IOMD space
  * @param val Value to write to that addresses' function
  */
-void writeiomd(uint32_t addr, uint32_t val)
+void
+iomd_write(uint32_t addr, uint32_t val)
 {
         static int readinc = 0;
 
@@ -519,7 +520,8 @@ void writeiomd(uint32_t addr, uint32_t val)
  * @param addr Absolute memory address in IOMD space
  * @return Value associated with that memory address function
  */
-uint32_t readiomd(uint32_t addr)
+uint32_t
+iomd_read(uint32_t addr)
 {
         switch (addr&0x1FC)
         {
@@ -696,7 +698,8 @@ uint32_t readiomd(uint32_t addr)
  *
  * Also contains the monitor ID bit in bit 0
  */
-uint8_t mouse_buttons_read(void)
+uint8_t
+iomd_mouse_buttons_read(void)
 {
         unsigned char temp = 0;
 
@@ -802,12 +805,14 @@ iomd_reset(IOMDType type)
 /**
  * Called on program shutdown, free up any resources
  */
-void endiomd(void)
+void
+iomd_end(void)
 {
         remove_int(gentimerirq);
 }
 
-void iomdvsync(int vsync)
+void
+iomd_vsync(int vsync)
 {
         if (vsync)
         {

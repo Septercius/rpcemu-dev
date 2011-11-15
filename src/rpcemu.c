@@ -328,7 +328,7 @@ endrpcemu(void)
 {
         sound_thread_close();
         closevideo();
-        endiomd();
+        iomd_end();
         saveadf(discname[0], 0);
         saveadf(discname[1], 1);
         free(vram);

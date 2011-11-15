@@ -117,11 +117,11 @@ mem_phys_read32(uint32_t addr)
 			switch (bank) {
 			case 0:
 				/* IOMD Registers */
-				return readiomd(addr);
+				return iomd_read(addr);
 			case 1:
 			case 2:
 				if (addr == 0x3310000)
-					return mouse_buttons_read();
+					return iomd_mouse_buttons_read();
 				if (addr >= 0x3010000 && addr < 0x3012000) {
 					/* SuperIO */
 					if ((addr & 0xffc) == 0x7c0) {
@@ -202,11 +202,11 @@ mem_phys_read8(uint32_t addr)
 			switch (bank) {
 			case 0:
 				/* IOMD Registers */
-				return readiomd(addr);
+				return iomd_read(addr);
 			case 1:
 			case 2:
 				if (addr == 0x3310000)
-					return mouse_buttons_read();
+					return iomd_mouse_buttons_read();
 				if (addr >= 0x3012000 && addr <= 0x302a000)
 					return readfdcdma(addr);
 				if ((addr & 0xfff400) == 0x02b000) {
@@ -285,7 +285,7 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 
 			switch (bank) {
 			case 0:
-				writeiomd(addr, val);
+				iomd_write(addr, val);
 				return;
 			case 1:
 			case 2:
@@ -381,7 +381,7 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 
 			switch (bank) {
 			case 0:
-				writeiomd(addr, val);
+				iomd_write(addr, val);
 				return;
 			case 1:
 			case 2:
