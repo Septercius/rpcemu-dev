@@ -158,11 +158,7 @@
 
 struct iomd iomd;
 
-int fdccallback = 0;
-int motoron = 0;
-
 int kcallback = 0, mcallback = 0;
-int idecallback = 0;
 uint32_t cinit = 0; /**< Cursor DMA Init */
 
 /**
@@ -794,11 +790,8 @@ iomd_reset(IOMDType type)
 		iomd.refcr = 0;      /* DRAM refresh */
 	}
 
-	fdccallback = 0;
-	motoron = 0;
 	kcallback = 0;
 	mcallback = 0;
-	idecallback = 0;
 	cinit = 0;
 	sndon = 0;
 	flyback = 0;

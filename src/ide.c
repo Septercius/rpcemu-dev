@@ -89,6 +89,7 @@ void callbackide(void);
 	(config.cdromenabled && (ide.drive | ide.board) == 1)
 
 ATAPI *atapi;
+int idecallback = 0;
 
 static void callreadcd(void);
 static void atapicommand(void);
@@ -359,7 +360,7 @@ void resetide(void)
         }
 
         ide.atastat[0] = ide.atastat[2] = READY_STAT;
-        idecallback=0;
+        idecallback = 0;
         loadhd(0,"hd4.hdf");
         if (config.cdromenabled)
         {

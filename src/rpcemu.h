@@ -167,6 +167,7 @@ extern void domips(void);
 extern int mousecapture;
 extern int drawscre;
 extern int quited;
+extern char discname[2][260];
 
 /* Performance measuring variables */
 extern int updatemips;

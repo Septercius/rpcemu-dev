@@ -26,6 +26,7 @@ typedef struct ATAPI
 } ATAPI;
 
 extern ATAPI *atapi;
+extern int idecallback;
 
 void atapi_discchanged(void);
 

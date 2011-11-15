@@ -61,9 +61,14 @@ typedef struct {
 /** Floppy controller has two disc drives attached */
 static drive drives[2];
 
-void fdc_reset(void)
+int fdccallback = 0;
+int motoron = 0;
+
+void
+fdc_reset(void)
 {
-        fdccallback=0;
+	fdccallback = 0;
+	motoron = 0;
 }
 
 /**

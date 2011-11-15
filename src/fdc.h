@@ -10,4 +10,7 @@ extern void saveadf(const char *fn, int drive);
 extern uint8_t readfdc(uint32_t addr);
 extern void writefdc(uint32_t addr, uint32_t val);
 
+extern int fdccallback;
+extern int motoron;
+
 #endif /* FDC_H */

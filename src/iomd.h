@@ -111,17 +111,9 @@ struct iomd
 
 extern struct iomd iomd;
 
-extern  int delaygenirqleft, delaygenirq;
-
-extern  int i2cclock,i2cdata;
-
 extern  int kcallback,mcallback;
 
 extern  uint32_t cinit;
-extern  int fdccallback;
-extern  int motoron;
-
-extern int idecallback;
 
 extern void iomd_reset(IOMDType type);
 extern void endiomd(void);
@@ -129,7 +121,5 @@ extern uint32_t readiomd(uint32_t addr);
 extern void writeiomd(uint32_t addr, uint32_t val);
 extern uint8_t mouse_buttons_read(void);
 extern void iomdvsync(int vsync);
-
-extern char discname[2][260];
 
 #endif //__IOMD__
