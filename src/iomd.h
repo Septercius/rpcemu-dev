@@ -116,10 +116,10 @@ extern  int kcallback,mcallback;
 extern  uint32_t cinit;
 
 extern void iomd_reset(IOMDType type);
-extern void endiomd(void);
-extern uint32_t readiomd(uint32_t addr);
-extern void writeiomd(uint32_t addr, uint32_t val);
-extern uint8_t mouse_buttons_read(void);
-extern void iomdvsync(int vsync);
+extern void iomd_end(void);
+extern uint32_t iomd_read(uint32_t addr);
+extern void iomd_write(uint32_t addr, uint32_t val);
+extern uint8_t iomd_mouse_buttons_read(void);
+extern void iomd_vsync(int vsync);
 
 #endif //__IOMD__

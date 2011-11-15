@@ -571,12 +571,12 @@ void drawscr(int needredraw)
 
         if (thr.needvsync) 
         {
-            iomdvsync(1);
+            iomd_vsync(1);
             thr.needvsync = 0;
         }
         if (needredraw)
         {
-            iomdvsync(0);
+            iomd_vsync(0);
         }
         vidcreleasemutex();
 
