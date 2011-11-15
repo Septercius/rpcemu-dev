@@ -77,8 +77,6 @@ int prog32;
 
 #include "arm_common.h"
 
-uint32_t ins=0;
-
 uint32_t pccache,*pccache2;
 
 void updatemode(uint32_t m)
@@ -177,7 +175,6 @@ void updatemode(uint32_t m)
                 mmask=31;
                 cpsr=16;
                 pcpsr=&armregs[16];
-//                printf("Now 32-bit mode %i %08X %i\n",mode&15,PC,ins);
                 r15mask=0xFFFFFFFC;
                 if (!ARM_MODE_32(om)) {
 			/* Change from 26-bit to 32-bit mode */
@@ -191,7 +188,6 @@ void updatemode(uint32_t m)
                 mmask=3;
                 cpsr=15;
                 pcpsr=&armregs[15];
-//                printf("Now 26-bit mode %i %08X %i\n",mode&15,PC,ins);
                 r15mask=0x3FFFFFC;
                 armregs[16]=(armregs[16]&0xFFFFFFE0)|mode;
                 if (ARM_MODE_32(om)) {
@@ -298,13 +294,13 @@ void dumpregs(void)
                    "R 1=%08X R 5=%08X R 9=%08X R13=%08X\n"
                    "R 2=%08X R 6=%08X R10=%08X R14=%08X\n"
                    "R 3=%08X R 7=%08X R11=%08X R15=%08X\n"
-                   "%u %s\n"
+                   "%s\n"
                    "%08X %08X %08X",
                    armregs[0], armregs[4], armregs[8], armregs[12],
                    armregs[1], armregs[5], armregs[9], armregs[13],
                    armregs[2], armregs[6], armregs[10], armregs[14],
                    armregs[3], armregs[7], armregs[11], armregs[15],
-                   ins, (mmu) ? "MMU enabled" : "MMU disabled",
+                   mmu ? "MMU enabled" : "MMU disabled",
                    oldpc, oldpc2, oldpc3);
         rpclog("%s",s);
         printf("%s",s);
