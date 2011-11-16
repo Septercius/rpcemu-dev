@@ -10,8 +10,6 @@
 #define UNDEFINED  11
 #define undefined() exception(UNDEFINED,8,4)
 
-extern int times8000;
-
 static double fparegs[8] = {0.0}; /*No C variable type for 80-bit floating point, so use 64*/
 static uint32_t fpsr = 0, fpcr = 0;
 
