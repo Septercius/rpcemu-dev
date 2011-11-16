@@ -5,8 +5,6 @@
 
 #ifndef DYNAREC
 
-int swiout=0;
-int times8000=0;
 /*3/12/06 - databort and prefabort have been rolled into bits 6 and 7 of armirq.
   This gives a minor speedup.
   MSR fixes from John-Mark Bell allow RISC OS 6 to work.
@@ -59,10 +57,7 @@ static int inscounts[256];
 
 int blockend;
 static int r15diff;
-//static int r11check=0;
 static int fdci=0;
-//static int out2=0;
-//static int r8match=0;
 static int mmask;
 uint32_t r15mask;
 int memmode;

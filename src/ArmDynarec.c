@@ -7,7 +7,7 @@
 /*RPCemu v0.6 by Tom Walker
   SA110 emulation
   Dynamic recompiling version!*/
-int swiout=0;
+
 int blockend;
 #define STRONGARM
 
@@ -38,10 +38,7 @@ static int inscounts[256];
 extern void removeblock(void); /* in codegen_*.c */
 	
 static int r15diff;
-//static int r11check=0;
 static int fdci=0;
-//static int out2=0;
-//static int r8match=0;
 static int mmask;
 uint32_t r15mask;
 int memmode;
