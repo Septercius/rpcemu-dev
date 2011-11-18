@@ -1,7 +1,5 @@
 #include "rpcemu.h"
 
-#include "config.h"
-
 #ifdef DYNAREC
 
 /*RPCemu v0.6 by Tom Walker

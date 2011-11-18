@@ -44,8 +44,6 @@
 
 static int inscounts[256];
 
-#include "config.h"
-
 #include "hostfs.h"
 #include "arm.h"
 #include "cp15.h"

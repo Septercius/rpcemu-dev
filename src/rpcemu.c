@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <allegro.h>
 #include "rpcemu.h"
-#include "config.h"
 #include "mem.h"
 #include "vidc20.h"
 #include "keyboard.h"

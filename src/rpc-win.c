@@ -14,7 +14,6 @@
 #include <process.h>
 #include <commctrl.h>
 #include "rpcemu.h"
-#include "config.h"
 #include "resources.h"
 #include "vidc20.h"
 #include "keyboard.h"
