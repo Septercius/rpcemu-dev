@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <allegro.h>
 
-#include "config.h"
 #include "rpcemu.h"
 #include "vidc20.h"
 #include "sound.h"

@@ -10,8 +10,6 @@
 
 #include <allegro.h>
 
-#include "config.h"
-
 #include "rpcemu.h"
 #include "mem.h"
 #include "sound.h"

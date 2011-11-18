@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
+
 #if !defined(_DEBUG) && !defined(NDEBUG)
 #define NDEBUG
 #endif
