@@ -68,6 +68,10 @@ static uint8_t kbddata;		/**< PS/2 data register for the keyboard */
 static unsigned char kbdcommand;
 static int keys2[128];
 static PS2Queue kbdqueue;
+#ifdef RPCEMU_MACOSX
+/* Non-zero if the last F12 keydown event was translated into Break because Cmd was pressed */
+static int f12transtobreak;
+#endif
 
 static int msenable, msreset;
 static uint8_t msstat;		/**< PS/2 control register for the mouse */
@@ -786,6 +790,20 @@ static int findextkey(int c)
         return -1;
 }
 
+static void
+ps2_queue_break(void)
+{
+	/* Break has 8-byte key-down code, and no key-up */
+	ps2_queue(&kbdqueue, 0xe1);
+	ps2_queue(&kbdqueue, 0x14);
+	ps2_queue(&kbdqueue, 0x77);
+	ps2_queue(&kbdqueue, 0xe1);
+	ps2_queue(&kbdqueue, 0xf0);
+	ps2_queue(&kbdqueue, 0x14);
+	ps2_queue(&kbdqueue, 0xf0);
+	ps2_queue(&kbdqueue, 0x77);
+}
+
 void pollkeyboard(void)
 {
         int c;
@@ -799,7 +817,28 @@ void pollkeyboard(void)
                 }
 
                 keys2[c] = key[c];
+#ifdef RPCEMU_MACOSX
+                /* map Cmd-F12 to Break on OS X because Apple laptops don't have a Break key
+                   (F15 is equivalent to Break on Apple desktop keyboards) */
+                if (c == KEY_F12 && keys2[KEY_F12] && (key_shifts & KB_COMMAND_FLAG)) {
+                        /* Cmd-F12 - Translate to break */
+                        f12transtobreak = 1;
+                        ps2_queue_break();
+                } else if (c == KEY_F12 && !keys2[KEY_F12] && f12transtobreak) {
+                        /* F12 key down corresponding to this key up was
+                           translated to break - eat the key up event
+                           (otherwise the emulated Risc PC would receive a
+                           key up without a key down) */
+                        continue;
+                } else
+#endif
                 if ((idx = findkey(c)) != -1) {
+#ifdef RPCEMU_MACOSX
+                        if (c == KEY_F12 && keys2[KEY_F12]) {
+                                /* F12 key down was NOT translated to break */
+                                f12transtobreak = 0;
+                        }
+#endif
                         if (!keys2[c]) {
                                 /* key-up modifier */
                                 ps2_queue(&kbdqueue, 0xF0);
@@ -818,15 +857,7 @@ void pollkeyboard(void)
                         ps2_queue(&kbdqueue, extendedkeys[idx][2]);
 
                 } else if (c == KEY_PAUSE) {
-                        /* Break has 8-byte key-down code, and no key-up */
-                        ps2_queue(&kbdqueue, 0xe1);
-                        ps2_queue(&kbdqueue, 0x14);
-                        ps2_queue(&kbdqueue, 0x77);
-                        ps2_queue(&kbdqueue, 0xe1);
-                        ps2_queue(&kbdqueue, 0xf0);
-                        ps2_queue(&kbdqueue, 0x14);
-                        ps2_queue(&kbdqueue, 0xf0);
-                        ps2_queue(&kbdqueue, 0x77);
+                        ps2_queue_break();
                 } else {
                         /* unhandled key */
                         continue;
