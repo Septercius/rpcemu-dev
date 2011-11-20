@@ -13,7 +13,7 @@
 #include "mem.h"
 #include "arm.h"
 
-#ifdef __linux__
+#if defined __linux__ || defined __MACH__
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
@@ -85,7 +85,7 @@ gen_x86_pop_reg(int x86reg)
 void initcodeblocks(void)
 {
         int c;
-#ifdef __linux__
+#if defined __linux__ || defined __MACH__
 	void *start;
 	size_t len;
 	long pagesize = sysconf(_SC_PAGESIZE);
@@ -100,7 +100,7 @@ void initcodeblocks(void)
 		codeblockaddr[c] = &rcodeblock[c][0];
 	}
 
-#ifdef __linux__
+#if defined __linux__ || defined __MACH__
 	/* Set memory pages containing rcodeblock[]s executable -
 	   necessary when NX/XD feature is active on CPU(s) */
 	start = (void *)((long)rcodeblock & pagemask);
