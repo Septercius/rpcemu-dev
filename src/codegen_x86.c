@@ -12,7 +12,7 @@
 #include "arm.h"
 #include "cp15.h"
 
-#ifdef __linux__
+#if defined __linux__ || defined __MACH__
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
@@ -68,7 +68,7 @@ void initcodeblocks(void)
 	int jump_next, jump_notinbuffer, jump_samepage;
 	int label_backup;
         int c;
-#ifdef __linux__
+#if defined __linux__ || defined __MACH__
 	void *start;
 	size_t len;
 	long pagesize = sysconf(_SC_PAGESIZE);
@@ -228,7 +228,7 @@ addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
         }
         gen_x86_ret();
 
-#ifdef __linux__
+#if defined __linux__ || defined __MACH__
 	/* Set memory pages containing rcodeblock[]s executable -
 	   necessary when NX/XD feature is active on CPU(s) */
 	start = (void *)((long)rcodeblock & pagemask);
