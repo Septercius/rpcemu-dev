@@ -289,14 +289,12 @@ void dumpregs(void)
                    "R 1=%08X R 5=%08X R 9=%08X R13=%08X\n"
                    "R 2=%08X R 6=%08X R10=%08X R14=%08X\n"
                    "R 3=%08X R 7=%08X R11=%08X R15=%08X\n"
-                   "%s\n"
-                   "%08X %08X %08X",
+                   "%s\n",
                    armregs[0], armregs[4], armregs[8], armregs[12],
                    armregs[1], armregs[5], armregs[9], armregs[13],
                    armregs[2], armregs[6], armregs[10], armregs[14],
                    armregs[3], armregs[7], armregs[11], armregs[15],
-                   mmu ? "MMU enabled" : "MMU disabled",
-                   oldpc, oldpc2, oldpc3);
+                   mmu ? "MMU enabled" : "MMU disabled");
         rpclog("%s",s);
         printf("%s",s);
 
@@ -694,9 +692,6 @@ void execarm(int cycs)
                                            opcodes[(opcode>>20)&0xFF](opcode);
 //                                                if ((opcode&0x0E000000)==0x0A000000) blockend=1; /*Always end block on branches*/
 //                                                if ((opcode&0x0C000000)==0x0C000000) blockend=1; /*And SWIs and copro stuff*/
-                                        oldpc3=oldpc2;
-                                        oldpc2=oldpc;
-                                        oldpc=PC;
                                         armregs[15]+=4;
                                         if (!((PC)&0xFFC)) blockend=1;
 //                                        if (armirq) blockend=1;

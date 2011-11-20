@@ -307,14 +307,12 @@ void dumpregs(void)
                    "R 1=%08X R 5=%08X R 9=%08X R13=%08X\n"
                    "R 2=%08X R 6=%08X R10=%08X R14=%08X\n"
                    "R 3=%08X R 7=%08X R11=%08X R15=%08X\n"
-                   "%s\n"
-                   "%08X %08X %08X",
+                   "%s\n",
                    armregs[0], armregs[4], armregs[8], armregs[12],
                    armregs[1], armregs[5], armregs[9], armregs[13],
                    armregs[2], armregs[6], armregs[10], armregs[14],
                    armregs[3], armregs[7], armregs[11], armregs[15],
-                   mmu ? "MMU enabled" : "MMU disabled",
-                   oldpc, oldpc2, oldpc3);
+                   mmu ? "MMU enabled" : "MMU disabled");
         rpclog("%s",s);
         printf("%s",s);
 
@@ -600,10 +598,6 @@ void execarm(int cycs)
 //                while (linecyc>0)
                 for (linecyc=0;linecyc<200;linecyc++)
                 {
-/*                        oldpc3=oldpc2;
-                        oldpc2=oldpc;
-                        oldpc=PC;*/
-
                         if ((PC>>12)!=pccache)
                         {
                                 pccache=PC>>12;
