@@ -35,8 +35,6 @@ extern int prog32;
 extern int indumpregs;
 extern int blockend;
 
-extern uint32_t oldpc,oldpc2,oldpc3;
-
 extern int lastflagchange;
 
 #define RD ((opcode>>12)&0xF)

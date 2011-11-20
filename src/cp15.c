@@ -4,7 +4,6 @@
 #include "mem.h"
 #include "arm.h"
 
-uint32_t oldpc = 0, oldpc2 = 0, oldpc3 = 0;
 int dcache = 0; /* Data cache on StrongARM, unified cache pre-StrongARM */
 
 #define TLBCACHESIZE 256
@@ -488,7 +487,6 @@ uint32_t *getpccache(uint32_t addr)
                 addr2=translateaddress(addr,0,1);
                 if (armirq&0x40)
                 {
-//                        rpclog("Translate prefetch abort!!! %07X %07X %07X %07X\n",PC,oldpc,oldpc2,oldpc3);
 //                        if (indumpregs) rpclog("Abort!\n");
                         armirq&=~0x40;
                         armirq|=0x80;

@@ -372,7 +372,6 @@ void fpaopcode(uint32_t opcode)
                         {
                                 case 0: /*FLT*/
                                 fparegs[FN]=(double)armregs[RD];
-//                                rpclog("FLT F%i now %f from R%i %08X %i %07X %07X %07X %07X\n",FN,fparegs[FN],RD,armregs[RD],armregs[RD],PC,oldpc,oldpc2,oldpc3);
                                 return;
                                 case 1: /*FIX*/
                                 armregs[RD]=(int)fparegs[opcode&7];
