@@ -208,7 +208,7 @@ mem_phys_read8(uint32_t addr)
 				if (addr == 0x3310000)
 					return iomd_mouse_buttons_read();
 				if (addr >= 0x3012000 && addr <= 0x302a000)
-					return readfdcdma(addr);
+					return fdc_dma_read(addr);
 				if ((addr & 0xfff400) == 0x02b000) {
 					/* Network podule */
 					return 0xffffffff;
@@ -390,7 +390,7 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 				if ((addr & 0xfc0000) == 0x240000)
 					return;
 				if (addr >= 0x3012000 && addr <= 0x302a000) {
-					writefdcdma(addr, val);
+					fdc_dma_write(addr, val);
 					return;
 				}
 				if (addr >= 0x3010000 && addr < 0x3012000) {

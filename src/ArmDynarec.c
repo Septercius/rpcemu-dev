@@ -867,7 +867,7 @@ void execarm(int cycs)
                         if (fdccallback<=0)
                         {
                                 fdccallback=0;
-                                callbackfdc();
+                                fdc_callback();
                         }
                 }
                 if (idecallback)
