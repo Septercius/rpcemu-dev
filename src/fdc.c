@@ -79,7 +79,7 @@ fdc_reset(void)
  * @param drive Which drive to load image into 0 or 1
  */
 void
-loadadf(const char *fn, int drive)
+fdc_adf_load(const char *fn, int drive)
 {
         FILE *f;
         int h,t,s,b;
@@ -128,7 +128,7 @@ loadadf(const char *fn, int drive)
  * @param drive Which drive to save image from 0 or 1
  */
 void
-saveadf(const char *fn, int drive)
+fdc_adf_save(const char *fn, int drive)
 {
         FILE *f;
         int h,t,s,b;
@@ -161,7 +161,8 @@ saveadf(const char *fn, int drive)
 }
 
 
-void writefdc(uint32_t addr, uint32_t val)
+void
+fdc_write(uint32_t addr, uint32_t val)
 {
         //printf("FDC write %03X %08X %08X\n", addr, val, PC);
         switch (addr)
@@ -347,7 +348,8 @@ void writefdc(uint32_t addr, uint32_t val)
 }
 
 
-uint8_t readfdc(uint32_t addr)
+uint8_t
+fdc_read(uint32_t addr)
 {
         //printf("FDC read %03X %08X\n", addr, PC);
         switch (addr)
@@ -400,7 +402,8 @@ static void fdcsenddata(uint8_t val)
 }
 
 
-void callbackfdc(void)
+void
+fdc_callback(void)
 {
   //        int maxsector=5;
         if (fdc.reset)
@@ -640,7 +643,8 @@ void callbackfdc(void)
         }
 }
 
-uint8_t readfdcdma(uint32_t addr)
+uint8_t
+fdc_dma_read(uint32_t addr)
 {
 //        printf("Read FDC DMA %08X\n",addr);
         iomd.fiq.status &= ~IOMD_FIQ_FLOPPY_DMA_REQUEST;
@@ -659,7 +663,8 @@ uint8_t readfdcdma(uint32_t addr)
         return fdc.dmadat;
 }
 
-void writefdcdma(uint32_t addr, uint8_t val)
+void
+fdc_dma_write(uint32_t addr, uint8_t val)
 {
         iomd.fiq.status &= ~IOMD_FIQ_FLOPPY_DMA_REQUEST;
         updateirqs();

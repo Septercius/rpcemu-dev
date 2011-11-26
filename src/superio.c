@@ -199,7 +199,7 @@ superio_write(uint32_t addr, uint32_t val)
 
 	} else if ((addr >= 0x3f0) && (addr <= 0x3f7)) {
 		/* Floppy */
-		writefdc(addr, val);
+		fdc_write(addr, val);
 
 	} else if ((addr >= 0x3f8) && (addr <= 0x3ff)) {
 		/* Serial Port 1 */
@@ -257,7 +257,7 @@ superio_read(uint32_t addr)
 
 	} else if ((addr >= 0x3f0) && (addr <= 0x3f7)) {
 		/* Floppy */
-		return readfdc(addr);
+		return fdc_read(addr);
 
 	} else if ((addr >= 0x3f8) && (addr <= 0x3ff)) {
 		/* Serial Port 1 */

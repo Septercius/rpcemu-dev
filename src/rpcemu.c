@@ -267,8 +267,8 @@ startrpcemu(void)
 	cp15_init();
 	loadroms();
         loadcmos();
-        loadadf("boot.adf",0);
-        loadadf("notboot.adf",1);
+        fdc_adf_load("boot.adf",0);
+        fdc_adf_load("notboot.adf",1);
         initvideo();
 
         sound_init();
@@ -328,8 +328,8 @@ endrpcemu(void)
         sound_thread_close();
         closevideo();
         iomd_end();
-        saveadf(discname[0], 0);
-        saveadf(discname[1], 1);
+        fdc_adf_save(discname[0], 0);
+        fdc_adf_save(discname[1], 1);
         free(vram);
         free(ram);
         free(ram2);
@@ -548,7 +548,7 @@ rpcemu_floppy_load(int drive, const char *filename)
 	assert(filename);
 	assert(*filename);
 
-	saveadf(discname[drive], drive);
+	fdc_adf_save(discname[drive], drive);
 	strncpy(discname[drive], filename, 260);
-	loadadf(discname[drive], drive);
+	fdc_adf_load(discname[drive], drive);
 }

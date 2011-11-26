@@ -2,13 +2,13 @@
 #define FDC_H
 
 extern void fdc_reset(void);
-extern void callbackfdc(void);
-extern uint8_t readfdcdma(uint32_t addr);
-extern void writefdcdma(uint32_t addr, uint8_t val);
-extern void loadadf(const char *fn, int drive);
-extern void saveadf(const char *fn, int drive);
-extern uint8_t readfdc(uint32_t addr);
-extern void writefdc(uint32_t addr, uint32_t val);
+extern void fdc_callback(void);
+extern uint8_t fdc_dma_read(uint32_t addr);
+extern void fdc_dma_write(uint32_t addr, uint8_t val);
+extern void fdc_adf_load(const char *fn, int drive);
+extern void fdc_adf_save(const char *fn, int drive);
+extern uint8_t fdc_read(uint32_t addr);
+extern void fdc_write(uint32_t addr, uint32_t val);
 
 extern int fdccallback;
 extern int motoron;
