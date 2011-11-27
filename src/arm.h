@@ -23,7 +23,6 @@ extern int cpsr;
 
 extern uint32_t r15mask;
 extern uint32_t mode;
-extern int irq;
 extern unsigned char flaglookup[16][16];
 extern void resetarm(void);
 extern void execarm(int cycles);
