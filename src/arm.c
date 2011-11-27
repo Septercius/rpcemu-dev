@@ -2020,7 +2020,7 @@ void execarm(int cycs)
                         if (kcallback<=0)
                         {
                                 kcallback=0;
-                                keycallback();
+                                keyboard_callback_rpcemu();
                         }
                 }
                 if (mcallback)

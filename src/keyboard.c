@@ -142,7 +142,8 @@ static int calculateparity(unsigned char v)
         return 1;
 }
 
-void resetkeyboard(void)
+void
+keyboard_reset(void)
 {
         int c;
         kbdenable=0;
@@ -254,7 +255,9 @@ static void keyboardsend(unsigned char v)
 		kbdstat &= ~PS2_CONTROL_RXPARITY;
 }
 
-void keycallback(void)
+/* Cannot be called keyboard_callback() due to allegro name clash */
+void
+keyboard_callback_rpcemu(void)
 {
         PS2Queue *q = &kbdqueue;
 
@@ -300,7 +303,7 @@ void keycallback(void)
                 {
                         kcallback=5;
                 }*/
-//                rpclog("keycallback now %i\n",kcallback);
+//                rpclog("kcallback now %i\n", kcallback);
                 break;
         }
 }
@@ -804,7 +807,8 @@ ps2_queue_break(void)
 	ps2_queue(&kbdqueue, 0x77);
 }
 
-void pollkeyboard(void)
+void
+keyboard_poll(void)
 {
         int c;
 
