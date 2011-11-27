@@ -42,8 +42,6 @@
 #include <stdint.h>
 #include <time.h>
 
-static int inscounts[256];
-
 #include "hostfs.h"
 #include "arm.h"
 #include "cp15.h"
@@ -59,7 +57,6 @@ static int fdci=0;
 static int mmask;
 uint32_t r15mask;
 int memmode;
-int irq;
 static int cycles;
 int prefabort;
 uint32_t rotatelookup[4096];
@@ -225,7 +222,7 @@ void resetarm(void)
         int c,d,exec = 0,data;
 //        atexit(dumpregs);
         uint32_t rotval,rotamount;
-        for (c=0;c<256;c++) inscounts[c]=0;
+
         for (c=0;c<256;c++)
         {
                 stmlookup[c]=0;
@@ -294,7 +291,6 @@ void resetarm(void)
 }
 
 int indumpregs=0;
-int insnum[256];
 
 void dumpregs(void)
 {
@@ -611,7 +607,6 @@ void execarm(int cycs)
                         target=(opcode>>20)&0xFF;
                         if (flaglookup[opcode>>28][(*pcpsr)>>28] && !(armirq&0x80))//prefabort)
                         {
-//                                inscounts[(opcode>>20)&0xFF]++;
 #ifdef STRONGARM
 //                                if ((opcode&0xE000090)==0x90)
 //                                {
@@ -2004,7 +1999,7 @@ void execarm(int cycs)
                                 }
 //                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
                         }
-//                        armirq=irq;
+
                         armregs[15]+=4;
 
 //                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);

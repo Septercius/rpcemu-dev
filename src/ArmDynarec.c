@@ -19,9 +19,6 @@ int blockend;
 #include <stdint.h>
 #include <time.h>
 
-static int inscounts[256];
-//#include <allegro.h>
-
 #include "rpcemu.h"
 #include "hostfs.h"
 //#include "codegen_x86.h"
@@ -40,7 +37,6 @@ static int fdci=0;
 static int mmask;
 uint32_t r15mask;
 int memmode;
-int irq;
 static int cycles;
 int prefabort;
 uint32_t rotatelookup[4096];
@@ -207,7 +203,7 @@ void resetarm(void)
 //        atexit(dumpregs);
         uint32_t rotval,rotamount;
         resetcodeblocks();
-        for (c=0;c<256;c++) inscounts[c]=0;
+
         for (c=0;c<256;c++)
         {
                 stmlookup[c]=0;
@@ -276,7 +272,6 @@ void resetarm(void)
 }
 
 int indumpregs=0;
-int insnum[256];
 
 void dumpregs(void)
 {
