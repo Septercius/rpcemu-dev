@@ -175,7 +175,7 @@ resetrpc(void)
         mem_reset(config.mem_size);
         resetcp15();
         resetarm();
-        resetkeyboard();
+        keyboard_reset();
 
 	if (config.model == CPUModel_ARM7500) {
 		iomd_type = IOMDType_ARM7500;
@@ -309,12 +309,10 @@ execrpcemu(void)
                 drawscre--;
                 if (drawscre>5) drawscre=0;
                 
-//				poll_keyboard();
                 mouse_poll();
-//                sleep(0);
         }
-//                sleep(0);
-                pollkeyboard();
+
+	keyboard_poll();
 }
 
 /**
