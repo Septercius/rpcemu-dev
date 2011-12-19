@@ -977,9 +977,7 @@ static int opLDRT(uint32_t opcode)
 		return 1;
 
 	/* Rotate if load is unaligned */
-	if (addr & 3) {
-		templ2 = ldrresult(templ2, addr);
-	}
+	templ2 = arm_ldr_rotate(templ2, addr);
 
 	/* Writeback */
 	if (opcode & 0x2000000) {
@@ -1150,9 +1148,7 @@ static int opLDR(uint32_t opcode)
 		return 1;
 
 	/* Rotate if load is unaligned */
-	if (addr & 3) {
-		templ = ldrresult(templ, addr);
-	}
+	templ = arm_ldr_rotate(templ, addr);
 
 	if (!(opcode & 0x1000000)) {
 		/* Post-indexed */
