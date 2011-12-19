@@ -62,7 +62,6 @@ int prog32;
 #define GETADDR(r) ((r==15)?(armregs[15]&r15mask):armregs[r])
 #define LOADREG(r,v) if (r==15) { armregs[15]=(armregs[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else armregs[r]=(v);
 #define GETREG(r) ((r==15) ? armregs[15]+4 : armregs[r])
-#define LDRRESULT(a,v) ((a&3)?(v>>((a&3)<<3))|(v<<(((a&3)^3)<<3)):v)
 
 #define refillpipeline() blockend=1;
 
@@ -498,10 +497,6 @@ static inline unsigned rotate(unsigned data)
         }
         return rotval;
 }
-
-static const int ldrlookup[4]={0,8,16,24};
-
-#define ldrresult(v,a) ((v>>ldrlookup[addr&3])|(v<<(32-ldrlookup[addr&3])))
 
 #define undefined() exception(UNDEFINED,8,4)
 

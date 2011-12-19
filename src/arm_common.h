@@ -317,6 +317,21 @@ arm_write_spsr(uint32_t opcode, uint32_t value)
 }
 
 /**
+ * Handle unaligned LDR by rotating loaded value if necessary.
+ *
+ * @param value Value loaded
+ * @param addr  Address from which the load was performed
+ * @return Modified value (rotated if necessary)
+ */
+static inline uint32_t
+arm_ldr_rotate(uint32_t value, uint32_t addr)
+{
+	uint32_t rotate = (addr & 3) * 8;
+
+	return (value >> rotate) | (value << (32 - rotate));
+}
+
+/**
  * Perform a Store Multiple register operation when the S flag is clear.
  *
  * @param opcode    Opcode of instruction being emulated
