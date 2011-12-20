@@ -174,7 +174,7 @@ fdc_write(uint32_t addr, uint32_t val)
                         fdccallback=500;
                 }
                 if (!(val&4)) fdc.status=0x80;
-                if (val&0x10) motoron=1;
+                motoron = val & 0x30;
                 break;
 
         case 0x3f4: /* Data Rate Select Register (DSR) */
