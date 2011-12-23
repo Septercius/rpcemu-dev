@@ -7,7 +7,6 @@
 #define IDM_NETWORKING     40066
 #define IDM_STRETCH        40053
 #define IDM_FULLSCR        40054
-#define IDM_BLITOPT        40055
 #define IDM_CDROM_DISABLED 40060
 #define IDM_CDROM_EMPTY    40061
 #define IDM_CDROM_ISO      40062

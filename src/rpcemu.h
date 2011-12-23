@@ -124,7 +124,6 @@ typedef struct {
 	char *bridgename;
 	int refresh;		/**< Video refresh rate */
 	int soundenabled;
-	int skipblits;
 	int cdromenabled;
 	int cdromtype;
 	char isoname[512];
