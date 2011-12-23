@@ -288,7 +288,7 @@ static const int canrecompile[256]=
 {
 	1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0, /*00*/
 	0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0, /*10*/
-	1,0,1,0,1,0,0,0,1,0,1,0,0,0,0,0, /*20*/
+	1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0, /*20*/
 	0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0, /*30*/
 
 	1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0, /*40*/
@@ -536,6 +536,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
 		break;
 
 	case 0x0a: /* ADC reg */
+		/* Currently not used */
                 if (RD==15) return 0;
 		if (!generateshift(opcode,pcpsr)) return 0;
 		genloadreggen(15,ECX);
@@ -580,6 +581,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 break;
 
 	case 0x2a: /* ADC imm */
+		/* Currently not used */
                 if (RD==15) return 0;
 		genloadreggen(15,ECX);
 		addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx - puts ARM carry into x64 carry*/
