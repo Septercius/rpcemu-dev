@@ -56,18 +56,16 @@ extern void ioctl_init(void);
  //#define MENU_SETTINGS_NETWORK_WINDOW 1
  #define MENU_SETTINGS_FULLSCREEN      2
  #define MENU_SETTINGS_ALT_BLIT        3
- #define MENU_SETTINGS_BLIT_OPTIMISE   4
- #define MENU_SETTINGS_MOUSEHACK       5
- #define MENU_SETTINGS_MOUSETWOBUTTON  6
- //#define MENU_SETTINGS_CDROM_SUBMENU   7
+ #define MENU_SETTINGS_MOUSEHACK       4
+ #define MENU_SETTINGS_MOUSETWOBUTTON  5
+ //#define MENU_SETTINGS_CDROM_SUBMENU   6
 #else
  //#define MENU_SETTINGS_SETTINGS_WINDOW 0
  #define MENU_SETTINGS_FULLSCREEN      1
  #define MENU_SETTINGS_ALT_BLIT        2
- #define MENU_SETTINGS_BLIT_OPTIMISE   3
- #define MENU_SETTINGS_MOUSEHACK       4
- #define MENU_SETTINGS_MOUSETWOBUTTON  5
- //#define MENU_SETTINGS_CDROM_SUBMENU   6
+ #define MENU_SETTINGS_MOUSEHACK       3
+ #define MENU_SETTINGS_MOUSETWOBUTTON  4
+ //#define MENU_SETTINGS_CDROM_SUBMENU   5
 #endif
 
 /* maximum number of bytes a single (UTF-8 encoded) character can have */
@@ -240,13 +238,6 @@ static int menualt(void)
 {
         config.stretchmode ^= 1;
         settingsmenu[MENU_SETTINGS_ALT_BLIT].flags = config.stretchmode ? D_SELECTED : 0;
-        return D_CLOSE;
-}
-
-static int menublt(void)
-{
-        config.skipblits ^= 1;
-        settingsmenu[MENU_SETTINGS_BLIT_OPTIMISE].flags = config.skipblits ? D_SELECTED : 0;
         return D_CLOSE;
 }
 
@@ -498,7 +489,6 @@ static MENU settingsmenu[]=
 #endif /* RPCEMU_NETWORKING */
         {"&Fullscreen mode",menufullscreen,NULL,0,NULL},
         {"&Alternative blitting code",menualt,NULL,0,NULL},
-        {"&Blitting optimisation",menublt,NULL,0,NULL},
         { "Follow host &mouse", menumouse, NULL, 0, NULL },
         { "&Two-button Mouse Mode", menutwobutton, NULL, 0, NULL },
 	{"&CD-ROM",NULL,cdmenu,0,NULL},
@@ -595,7 +585,6 @@ void entergui(void)
         
         settingsmenu[MENU_SETTINGS_FULLSCREEN].flags    = fullscreen  ? D_SELECTED : 0;
         settingsmenu[MENU_SETTINGS_ALT_BLIT].flags      = config.stretchmode ? D_SELECTED : 0;
-        settingsmenu[MENU_SETTINGS_BLIT_OPTIMISE].flags = config.skipblits   ? D_SELECTED : 0;
         settingsmenu[MENU_SETTINGS_MOUSEHACK].flags     = config.mousehackon ? D_SELECTED : 0;
         settingsmenu[MENU_SETTINGS_MOUSETWOBUTTON].flags =
             config.mousetwobutton ? D_SELECTED : 0;

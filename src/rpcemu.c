@@ -44,7 +44,6 @@ Config config = {
 	NULL,			/* bridgename */
 	0,			/* refresh */
 	1,			/* soundenabled */
-	0,			/* skipblits (blit_optimisation) */
 	1,			/* cdromenabled */
 	0,			/* cdromtype  -- Only used on Windows build */
 	"",			/* isoname */
@@ -415,7 +414,6 @@ loadconfig(void)
         config.soundenabled = get_config_int(NULL, "sound_enabled", 1);
         config.stretchmode  = get_config_int(NULL, "stretch_mode",  0);
         config.refresh      = get_config_int(NULL, "refresh_rate", 60);
-        config.skipblits    = get_config_int(NULL, "blit_optimisation", 0);
         config.cdromenabled = get_config_int(NULL, "cdrom_enabled", 0);
         config.cdromtype    = get_config_int(NULL, "cdrom_type", 0);
 
@@ -492,7 +490,6 @@ saveconfig(void)
         set_config_int(NULL, "sound_enabled",     config.soundenabled);
         set_config_int(NULL, "stretch_mode",      config.stretchmode);
         set_config_int(NULL, "refresh_rate",      config.refresh);
-        set_config_int(NULL, "blit_optimisation", config.skipblits);
         set_config_int(NULL, "cdrom_enabled",     config.cdromenabled);
         set_config_int(NULL, "cdrom_type",        config.cdromtype);
         set_config_string(NULL, "cdrom_iso",      config.isoname);

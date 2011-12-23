@@ -154,7 +154,7 @@ static void initmenu(void)
         char s[32];
 
 	m = GetSubMenu(menu, 2); /* Settings */
-	m = GetSubMenu(m, 7); /* CD-ROM */
+	m = GetSubMenu(m, 6); /* CD-ROM */
 
         /* Loop through each Windows drive letter and test to see if
            it's a CDROM */
@@ -400,7 +400,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         CheckMenuItem(menu, IDM_CDROM_DISABLED + config.cdromtype, MF_CHECKED);
         
         CheckMenuItem(menu, IDM_STRETCH, config.stretchmode ? MF_CHECKED : MF_UNCHECKED);
-        CheckMenuItem(menu, IDM_BLITOPT, config.skipblits   ? MF_CHECKED : MF_UNCHECKED);
         CheckMenuItem(menu, IDM_MOUSE_TWOBUTTON,
                       config.mousetwobutton ? MF_CHECKED : MF_UNCHECKED);
         
@@ -974,11 +973,6 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
                                 mousecapture=0;
                         }
                         togglefullscreen(1);
-                        return 0;
-
-                case IDM_BLITOPT:
-                        config.skipblits ^= 1;
-                        CheckMenuItem(hmenu, IDM_BLITOPT, config.skipblits ? MF_CHECKED : MF_UNCHECKED);
                         return 0;
 
                 case IDM_CDROM_DISABLED:

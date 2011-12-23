@@ -375,21 +375,6 @@ void togglefullscreen(int fs)
 
 static const int xdiff[8]={8192,4096,2048,1024,512,512,256,256};
 
-static void calccrc(unsigned short *crc, unsigned char byte)
-{
-        int i;
-        for (i = 0; i < 8; i++) {
-                if (*crc & 0x8000) {
-                        *crc <<= 1;
-                        if (!(byte & 0x80)) *crc ^= 0x1021;
-                } else {
-                        *crc <<= 1;
-                        if (byte & 0x80) *crc ^= 0x1021;
-                }
-                byte <<= 1;
-        }
-}
-
 static void
 vidc_palette_update(void)
 {
@@ -533,26 +518,6 @@ void drawscr(int needredraw)
                 thr.dirtybuffer = dirtybuffer;
                 dirtybuffer = (dirtybuffer == dirtybuffer1) ? dirtybuffer2 : dirtybuffer1;
 
-                if (firstblock==-1 && !vidc.curchange) 
-                {
-                        unsigned short crc=0xFFFF;
-                        static uint32_t curcrc=0;
-                        const unsigned char *ramp;
-                        int addr;
-                        /*Not looking good for screen redraw - check to see if cursor data has changed*/
-                        if (cinit&0x4000000) ramp = (const unsigned char *) ram2;
-                        else                 ramp = (const unsigned char *) ram;
-                        addr = (cinit & mem_rammask); // >> 2;
-                        for (c=0;c<(thr.cursorheight<<3);c++)
-                            calccrc(&crc, ramp[addr++]);
-                        /*If cursor data matches then no point redrawing screen - return*/
-                        if (crc == curcrc && config.skipblits)
-                        {
-                                needredraw = 0;
-                                thr.needvsync = 1;
-                        }
-                        curcrc=crc;
-                }
                 vidc.curchange=0;
 //                rpclog("First block %i %08X last block %i %08X finished at %i %08X\n",firstblock,firstblock,lastblock,lastblock,c,c);
         }

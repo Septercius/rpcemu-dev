@@ -23,7 +23,6 @@ BEGIN
 		MENUITEM SEPARATOR
 		MENUITEM "&Fullscreen mode", IDM_FULLSCR
 		MENUITEM "&Alternative blitting code", IDM_STRETCH
-		MENUITEM "&Blitting optimisation", IDM_BLITOPT
 		MENUITEM SEPARATOR
 		POPUP "&CD-ROM"
 		BEGIN
