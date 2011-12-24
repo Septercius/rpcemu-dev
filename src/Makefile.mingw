@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -mtune=i686
+CFLAGS = -Wall -march=pentium -mtune=generic
 LD = $(CC)
 LDFLAGS =
 LIBS = -lcomdlg32
