@@ -5,7 +5,6 @@
 #define IDM_DISC_LD1       40011
 #define IDM_CONFIG         40052
 #define IDM_NETWORKING     40066
-#define IDM_STRETCH        40053
 #define IDM_FULLSCR        40054
 #define IDM_CDROM_DISABLED 40060
 #define IDM_CDROM_EMPTY    40061

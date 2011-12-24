@@ -154,7 +154,7 @@ static void initmenu(void)
         char s[32];
 
 	m = GetSubMenu(menu, 2); /* Settings */
-	m = GetSubMenu(m, 6); /* CD-ROM */
+	m = GetSubMenu(m, 5); /* CD-ROM */
 
         /* Loop through each Windows drive letter and test to see if
            it's a CDROM */
@@ -398,8 +398,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
                 WindowProcedure(ghwnd, WM_COMMAND, IDM_CDROM_DISABLED + config.cdromtype, 0);
         }
         CheckMenuItem(menu, IDM_CDROM_DISABLED + config.cdromtype, MF_CHECKED);
-        
-        CheckMenuItem(menu, IDM_STRETCH, config.stretchmode ? MF_CHECKED : MF_UNCHECKED);
+
         CheckMenuItem(menu, IDM_MOUSE_TWOBUTTON,
                       config.mousetwobutton ? MF_CHECKED : MF_UNCHECKED);
         
@@ -959,11 +958,6 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
 
                 case IDM_NETWORKING:
                         DialogBox(hinstance, TEXT("NetworkDlg"), ghwnd, networkdlgproc);
-                        return 0;
-
-                case IDM_STRETCH:
-                        config.stretchmode ^= 1;
-                        CheckMenuItem(hmenu, IDM_STRETCH, config.stretchmode ? MF_CHECKED : MF_UNCHECKED);
                         return 0;
 
                 case IDM_FULLSCR:
