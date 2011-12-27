@@ -52,18 +52,24 @@ extern void ioctl_init(void);
 
 /* Indexes into the settingsmenu array */
 #ifdef RPCEMU_NETWORKING
- //#define MENU_SETTINGS_SETTINGS_WINDOW 0
- //#define MENU_SETTINGS_NETWORK_WINDOW 1
- #define MENU_SETTINGS_FULLSCREEN      2
- #define MENU_SETTINGS_MOUSEHACK       3
- #define MENU_SETTINGS_MOUSETWOBUTTON  4
- //#define MENU_SETTINGS_CDROM_SUBMENU   5
+ #define MENU_SETTINGS_SETTINGS_WINDOW 0
+ #define MENU_SETTINGS_NETWORK_WINDOW  1
+ #define MENU_SETTINGS_SEPARATOR_0     2
+ #define MENU_SETTINGS_FULLSCREEN      3
+ #define MENU_SETTINGS_SEPARATOR_1     4
+ #define MENU_SETTINGS_MOUSEHACK       5
+ #define MENU_SETTINGS_MOUSETWOBUTTON  6
+ #define MENU_SETTINGS_SEPARATOR_2     7
+ #define MENU_SETTINGS_CDROM_SUBMENU   8
 #else
- //#define MENU_SETTINGS_SETTINGS_WINDOW 0
- #define MENU_SETTINGS_FULLSCREEN      1
- #define MENU_SETTINGS_MOUSEHACK       2
- #define MENU_SETTINGS_MOUSETWOBUTTON  3
- //#define MENU_SETTINGS_CDROM_SUBMENU   4
+ #define MENU_SETTINGS_SETTINGS_WINDOW 0
+ #define MENU_SETTINGS_SEPARATOR_0     1
+ #define MENU_SETTINGS_FULLSCREEN      2
+ #define MENU_SETTINGS_SEPARATOR_1     3
+ #define MENU_SETTINGS_MOUSEHACK       4
+ #define MENU_SETTINGS_MOUSETWOBUTTON  5
+ #define MENU_SETTINGS_SEPARATOR_2     6
+ #define MENU_SETTINGS_CDROM_SUBMENU   7
 #endif
 
 /* maximum number of bytes a single (UTF-8 encoded) character can have */
@@ -94,9 +100,10 @@ static int menureset(void)
 
 static MENU filemenu[]=
 {
-        {"&Reset",menureset,NULL,0,NULL},
-        {"E&xit",menuexit,NULL,0,NULL},
-        {NULL,NULL,NULL,0,NULL}
+	{ "&Reset", menureset, NULL, 0, NULL },
+	{ "",       NULL,      NULL, 0, NULL },
+	{ "E&xit",  menuexit,  NULL, 0, NULL },
+	{ NULL,     NULL,      NULL, 0, NULL }
 };
 
 static int menuld0(void)
@@ -474,15 +481,18 @@ static int hzcallback(void *dp3, int d2)
 
 static MENU settingsmenu[]=
 {
-        {"&Settings...",menusettings,NULL,0,NULL},
+	{ "&Settings...",           menusettings,   NULL,   0, NULL },
 #ifdef RPCEMU_NETWORKING
-        { "&Networking...", menunetworking, NULL, 0, NULL },
+	{ "&Networking...",         menunetworking, NULL,   0, NULL },
 #endif /* RPCEMU_NETWORKING */
-        {"&Fullscreen mode",menufullscreen,NULL,0,NULL},
-        { "Follow host &mouse", menumouse, NULL, 0, NULL },
-        { "&Two-button Mouse Mode", menutwobutton, NULL, 0, NULL },
-	{"&CD-ROM",NULL,cdmenu,0,NULL},
-        {NULL,NULL,NULL,0,NULL}
+	{ "",                       NULL,           NULL,   0, NULL },
+	{ "&Fullscreen mode",       menufullscreen, NULL,   0, NULL },
+	{ "",                       NULL,           NULL,   0, NULL },
+	{ "Follow host &mouse",     menumouse,      NULL,   0, NULL },
+	{ "&Two-button Mouse Mode", menutwobutton,  NULL,   0, NULL },
+	{ "",                       NULL,           NULL,   0, NULL },
+	{ "&CD-ROM",                NULL,           cdmenu, 0, NULL },
+	{ NULL,                     NULL,           NULL,   0, NULL }
 };
 
 static MENU mainmenu[]=
