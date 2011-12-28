@@ -3,6 +3,8 @@
 
 allegro_icon ICON rpcemu.ico
 
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "rpcemu.manifest"
+
 MainMenu MENU DISCARDABLE
 BEGIN
 	POPUP "&File"

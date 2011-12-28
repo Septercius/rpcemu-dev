@@ -67,7 +67,7 @@ OBJS =	arm.o       \
 $(EXE): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $+ $(LIBS)
 
-acorn.o: acorn.rc rpcemu.ico
+acorn.o: acorn.rc rpcemu.ico rpcemu.manifest
 	windres -O COFF acorn.rc acorn.o
 	
 config.h: config.h.mingw
