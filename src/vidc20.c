@@ -572,8 +572,11 @@ void vidcthread(void)
 
         if (b == NULL) abort();
 
-        if (thr.iomd_vidinit&0x10000000) ramp=ramb;
-        else                         ramp=vramb;
+	if (thr.iomd_vidinit & 0x10000000) {
+		ramp = (const uint8_t *) ram;
+	} else {
+		ramp = (const uint8_t *) vram;
+	}
         ramw = (const unsigned short *) ramp;
 
         addr=thr.iomd_vidinit&0x7FFFFF;
