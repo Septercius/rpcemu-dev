@@ -41,7 +41,7 @@ extern uint32_t vwaddrls[1024],vwaddrphys[1024];
 #define ROMSIZE (8*1024*1024)
 
 extern uint32_t *ram,*ram2,*rom,*vram;
-extern uint8_t *ramb,*romb,*vramb;
+extern uint8_t *romb;
 
 extern uint32_t tlbcache[0x100000];
 #define translateaddress(addr,rw,prefetch) ((/*!((addr)&0xFC000000) && */!(tlbcache[((addr)>>12)/*&0x3FFF*/]&0xFFF))?(tlbcache[(addr)>>12]|((addr)&0xFFF)):translateaddress2(addr,rw,prefetch))

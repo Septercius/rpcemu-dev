@@ -18,11 +18,13 @@
 */
 
 uint32_t *ram = NULL, *ram2 = NULL, *rom = NULL, *vram = NULL;
-uint8_t *ramb = NULL, *ramb2 = NULL, *romb = NULL, *vramb = NULL;
+uint8_t *romb = NULL;
 
 int mmu = 0, memmode = 0;
 
 uint32_t mem_rammask;
+
+static uint8_t *ramb = NULL, *ramb2 = NULL, *vramb = NULL;
 
 static uint32_t readmemcache = 0,readmemcache2 = 0;
 static uint32_t writememcache = 0,writememcache2 = 0;
