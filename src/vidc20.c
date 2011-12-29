@@ -573,7 +573,7 @@ void vidcthread(void)
         if (b == NULL) abort();
 
 	if (thr.iomd_vidinit & 0x10000000) {
-		ramp = (const uint8_t *) ram;
+		ramp = (const uint8_t *) ram00;
 	} else {
 		ramp = (const uint8_t *) vram;
 	}
@@ -1239,8 +1239,11 @@ void vidcthread(void)
         }
         if (thr.cursorheight>1)
         {
-                if (cinit&0x4000000) ramp = (const unsigned char *) ram2;
-                else                 ramp = (const unsigned char *) ram;
+                if (cinit & 0x4000000) {
+                        ramp = (const uint8_t *) ram01;
+                } else {
+                        ramp = (const uint8_t *) ram00;
+                }
                 addr = cinit & mem_rammask;
 //                printf("Mouse now at %i,%i\n",thr.cursorx,thr.cursory);
                 switch (drawcode)

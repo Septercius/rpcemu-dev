@@ -171,14 +171,14 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 case 0x11000000:
                 case 0x12000000:
                 case 0x13000000:
-                        tlbram = ram;
+                        tlbram = ram00;
                         tlbrammask = mem_rammask >> 2;
                         break;
                 case 0x14000000: /*SIMM 0 bank 1*/
                 case 0x15000000:
                 case 0x16000000:
                 case 0x17000000:
-                        tlbram = ram2;
+                        tlbram = ram01;
                         tlbrammask = mem_rammask >> 2;
                         break;
                 }
@@ -394,9 +394,9 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 if ((sldaddr&0x1F000000)==0x02000000)
                    sld = vram[(sldaddr & config.vrammask) >> 2];
                 else if (sldaddr&0x4000000)
-                   sld = ram2[(sldaddr & mem_rammask) >> 2];
+                   sld = ram01[(sldaddr & mem_rammask) >> 2];
                 else
-                   sld = ram[(sldaddr & mem_rammask) >> 2];
+                   sld = ram00[(sldaddr & mem_rammask) >> 2];
 
                 /* Check for invalid Page Table Entry */
                 if ((sld & 3) == 0 || (sld & 3) == 3) {
@@ -510,14 +510,12 @@ uint32_t *getpccache(uint32_t addr)
                 case 0x11000000:
                 case 0x12000000:
                 case 0x13000000:
-//                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
-                return &ram[((long) (addr2 & mem_rammask) - (long) addr) >> 2];
+                return &ram00[((long) (addr2 & mem_rammask) - (long) addr) >> 2];
                 case 0x14000000: /*SIMM 0 bank 1*/
                 case 0x15000000:
                 case 0x16000000:
                 case 0x17000000:
-//                printf("SIMM0 r %08X %08X %07X\n",addr,ram[(addr&0x3FFFFF)>>2],PC);
-                return &ram2[((long) (addr2 & mem_rammask) - (long) addr) >> 2];
+                return &ram01[((long) (addr2 & mem_rammask) - (long) addr) >> 2];
         }
         fatal("Bad PC %08X %08X\n", addr, addr2);
 }

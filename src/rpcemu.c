@@ -328,8 +328,8 @@ endrpcemu(void)
         fdc_adf_save(discname[0], 0);
         fdc_adf_save(discname[1], 1);
         free(vram);
-        free(ram);
-        free(ram2);
+        free(ram00);
+        free(ram01);
         free(rom);
         savecmos();
         saveconfig();
