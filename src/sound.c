@@ -142,7 +142,7 @@ void sound_unmute(void)
 
         for (c=start;c<end;c+=4)
         {
-                temp = ram[((c + page) & mem_rammask) >> 2];
+                temp = ram00[((c + page) & mem_rammask) >> 2];
                 bigsoundbuffer[bigsoundbufferhead][bigsoundpos++]=(temp&0xFFFF);//^0x8000;
                 bigsoundbuffer[bigsoundbufferhead][bigsoundpos++]=(temp>>16);//&0x8000;
                 if (bigsoundpos>=(BUFFERLEN<<1))
