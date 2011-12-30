@@ -629,6 +629,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
 		case 32:  h = GetDlgItem(hdlg, RadioButton_Mem_32); break;
 		case 64:  h = GetDlgItem(hdlg, RadioButton_Mem_64); break;
 		case 128: h = GetDlgItem(hdlg, RadioButton_Mem_128); break;
+		case 256: h = GetDlgItem(hdlg, RadioButton_Mem_256); break;
 		}
 		SendMessage(h, BM_SETCHECK, 1, 0);
 
@@ -776,6 +777,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 case RadioButton_Mem_32:
                 case RadioButton_Mem_64:
                 case RadioButton_Mem_128:
+                case RadioButton_Mem_256:
 			switch (LOWORD(wParam)) {
 			case RadioButton_Mem_4:   chosen_config.mem_size = 4; break;
 			case RadioButton_Mem_8:   chosen_config.mem_size = 8; break;
@@ -783,8 +785,9 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
 			case RadioButton_Mem_32:  chosen_config.mem_size = 32; break;
 			case RadioButton_Mem_64:  chosen_config.mem_size = 64; break;
 			case RadioButton_Mem_128: chosen_config.mem_size = 128; break;
+			case RadioButton_Mem_256: chosen_config.mem_size = 256; break;
 			}
-                        for (c = RadioButton_Mem_4; c <= RadioButton_Mem_128; c++)
+                        for (c = RadioButton_Mem_4; c <= RadioButton_Mem_256; c++)
                         {
                                 h=GetDlgItem(hdlg,c);
                                 SendMessage(h,BM_SETCHECK,0,0);
