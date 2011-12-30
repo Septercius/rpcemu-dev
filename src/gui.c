@@ -13,30 +13,30 @@
 extern void ioctl_init(void);
 
 /* Indexes into the configuregui array */
-//#define CONF_BOX                   0
-#define CONF_OK                    1
-//#define CONF_CANCEL                2
-//#define CONF_LABEL_CPU             3
-#define CONF_ARM610                4
-#define CONF_ARM710                5
-#define CONF_SA110                 6
-#define CONF_ARM7500               7
-#define CONF_ARM7500FE             8
-#define CONF_ARM810                9
-//#define CONF_LABEL_RAM             10
-#define CONF_RAM_4                11
-#define CONF_RAM_8                12
-#define CONF_RAM_16               13
-#define CONF_RAM_32               14
-#define CONF_RAM_64               15
-#define CONF_RAM_128              16
-//#define CONF_LABEL_VRAM           17
-#define CONF_VRAM_0               18
-#define CONF_VRAM_2               19
-#define CONF_SOUND                20
-//#define CONF_LABEL_HZ             21
-#define CONF_HZ_SLIDER            22
-#define CONF_HZ_TEXT              23
+#define CONF_BOX		 0
+#define CONF_LABEL_CPU		 1
+#define CONF_ARM610		 2
+#define CONF_ARM710		 3
+#define CONF_SA110		 4
+#define CONF_ARM7500		 5
+#define CONF_ARM7500FE		 6
+#define CONF_ARM810		 7
+#define CONF_LABEL_RAM		 8
+#define CONF_RAM_4		 9
+#define CONF_RAM_8		10
+#define CONF_RAM_16		11
+#define CONF_RAM_32		12
+#define CONF_RAM_64		13
+#define CONF_RAM_128		14
+#define CONF_LABEL_VRAM		15
+#define CONF_VRAM_0		16
+#define CONF_VRAM_2		17
+#define CONF_SOUND		18
+#define CONF_LABEL_REFRESH	19
+#define CONF_HZ_SLIDER		20
+#define CONF_HZ_TEXT		21
+#define CONF_OK			22
+#define CONF_CANCEL		23
 
 /* Indexes into the networkgui array */
 //#define NETWORK_BOX                 0
@@ -316,13 +316,11 @@ static int menusettings(void)
         configuregui[CONF_HZ_SLIDER].d2 = (config.refresh - 20) / 5;
         sprintf(hzstring, "%iHz", config.refresh);
         configuregui[CONF_HZ_TEXT].dp = hzstring;
-        
-        position_dialog(configuregui,(SCREEN_W/2)-80,(SCREEN_H/2)-88);
-        
+
+	centre_dialog(configuregui);
+
         c=popup_dialog(configuregui,1);
 
-        position_dialog(configuregui,-((SCREEN_W/2)-80),-((SCREEN_H/2)-88));
-        
         if (c == CONF_OK) {
                 CPUModel selected_model = CPUModel_ARM7500;
                 unsigned selected_mem_size = 0;
@@ -506,41 +504,39 @@ static MENU mainmenu[]=
 #define CY 0
 #define CX 0
 /* This array must be kept in sync with the CONF_ defines above */
-static DIALOG configuregui[]=
-{
-        {d_shadow_box_proc, CX,CY-8, 168,208,0,-1,0,0,     0,0,0,0,0}, // 0
-        
-        {d_button_proc,CX+8, CY+176,64, 16, 0,-1,0,D_EXIT,0,0,"OK",0,0}, // 1
-        {d_button_proc,CX+96,CY+176,64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0}, // 2
+static DIALOG configuregui[] = {
+	{ d_shadow_box_proc, 0, 0, 26*8, 31*8, 0,-1,0,0, 0,0,0,0,0 }, // 0
 
-        {d_text_proc,CX+8,CY-4,40,8,0,-1,0,0,0,0,"CPU :",0,0}, // 3
-        {d_radio_proc,CX+8,CY+4,   64,16,0,-1,0,0, 0 ,0,"ARM610",0,0},    // 4
-        {d_radio_proc,CX+8,CY+4+16,64,16,0,-1,0,0, 0 ,0,"ARM710",0,0},    // 5
-        {d_radio_proc,CX+8,CY+4+32,64,16,0,-1,0,0, 0 ,0,"SA110",0,0},     // 6
-        {d_radio_proc,CX+8,CY+4+48,64,16,0,-1,0,0, 0 ,0,"ARM7500",0,0},   // 7
-        {d_radio_proc,CX+8,CY+4+64,64,16,0,-1,0,0, 0 ,0,"ARM7500FE",0,0}, // 8
-        {d_radio_proc,CX+8,CY+4+80,64,16,0,-1,0,0, 0 ,0,"ARM810",0,0},    // 9
+	{ d_text_proc,   2*8,  2*8, 40, 16, 0,-1,0,0, 0, 0,"CPU:",0,0 }, // 1
+	{ d_radio_proc,  3*8,  3*8, 60, 16, 0,-1,0,0, 0, 0,"ARM610",0,0 }, // 2
+	{ d_radio_proc,  3*8,  5*8, 60, 16, 0,-1,0,0, 0, 0,"ARM710",0,0 }, // 3
+	{ d_radio_proc,  3*8,  7*8, 52, 16, 0,-1,0,0, 0, 0,"SA110",0,0 }, // 4
+	{ d_radio_proc,  3*8,  9*8, 68, 16, 0,-1,0,0, 0, 0,"ARM7500",0,0 }, // 5
+	{ d_radio_proc,  3*8, 11*8, 84, 16, 0,-1,0,0, 0, 0,"ARM7500FE",0,0 }, // 6
+	{ d_radio_proc,  3*8, 13*8, 60, 16, 0,-1,0,0, 0, 0,"ARM810",0,0 }, // 7
 
+	{ d_text_proc,  16*8,  2*8, 40, 16, 0,-1,0,0, 0, 0,"RAM:",0,0 }, // 8
+	{ d_radio_proc, 17*8,  3*8, 36, 16, 0,-1,0,0, 1, 0,"4MB",0,0 }, // 9
+	{ d_radio_proc, 17*8,  5*8, 36, 16, 0,-1,0,0, 1, 0,"8MB",0,0 }, // 10
+	{ d_radio_proc, 17*8,  7*8, 44, 16, 0,-1,0,0, 1, 0,"16MB",0,0 }, // 11
+	{ d_radio_proc, 17*8,  9*8, 44, 16, 0,-1,0,0, 1, 0,"32MB",0,0 }, // 12
+	{ d_radio_proc, 17*8, 11*8, 44, 16, 0,-1,0,0, 1, 0,"64MB",0,0 }, // 13
+	{ d_radio_proc, 17*8, 13*8, 52, 16, 0,-1,0,0, 1, 0,"128MB",0,0 }, // 14
 
-        {d_text_proc,CX+96,CY-4,40,8,0,-1,0,0,0,0,"RAM :",0,0}, // 10
-        {d_radio_proc,CX+96,CY+4,64,16,0,-1,0,0, 1, 0,"4mb",0,0}, // 11
-        {d_radio_proc,CX+96,CY+4+16,64,16,0,-1,0,0, 1, 0,"8mb",0,0}, // 12
-        {d_radio_proc,CX+96,CY+4+32,64,16,0,-1,0,0, 1, 0,"16mb",0,0}, // 13
-        {d_radio_proc,CX+96,CY+4+48,64,16,0,-1,0,0, 1, 0,"32mb",0,0}, // 14
-        {d_radio_proc,CX+96,CY+4+64,64,16,0,-1,0,0, 1, 0,"64mb",0,0}, // 15
-        {d_radio_proc,CX+96,CY+4+80,64,16,0,-1,0,0, 1, 0,"128mb",0,0}, // 16
-        
-        {d_text_proc,CX+8,CY+4+104,40,8,0,-1,0,0,0,0,"VRAM :",0,0}, // 17
-        {d_radio_proc,CX+8,CY+4+112,64,16,0,-1,0,0, 2, 0,"None",0,0}, // 18
-        {d_radio_proc,CX+8,CY+4+128,64,16,0,-1,0,0, 2, 0,"2mb",0,0}, // 19
-        
-        {d_check_proc,CX+96,CY+4+128,64,16,0,-1,0,D_DISABLED,1,0,  "Sound",0,0}, // 10
-        
-        {d_text_proc,CX+8,CY+4+144,40,8,0,-1,0,0,0,0,"Refresh rate :",0,0}, // 21
-        {d_slider_proc,CX+8,CY+4+152,104,16,0,-1,0,0,80/5,0,NULL,hzcallback,0}, // 22
-        {d_text_proc,CX+120,CY+4+152+4+1,40,8,0,-1,0,0,0,0,NULL,0,0}, //23
-        
-        {0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL}
+	{ d_text_proc,   2*8, 16*8, 52, 16, 0,-1,0,0, 0, 0,"VRAM:",0,0 }, // 15
+	{ d_radio_proc,  3*8, 17*8, 44, 16, 0,-1,0,0, 2, 0,"None",0,0 }, // 16
+	{ d_radio_proc,  3*8, 19*8, 36, 16, 0,-1,0,0, 2, 0,"2MB",0,0 }, // 17
+
+	{ d_check_proc, 16*8, 17*8, 52, 16, 0,-1,0,D_DISABLED,1,0, "Sound",0,0 }, // 18
+
+	{ d_text_proc,    2*8, 22*8,   40,  8, 0,-1,0,0,0,0,"Video refresh rate:",0,0 }, // 19
+	{ d_slider_proc,  3*8, 23*8,  128, 16, 0,-1,0,0,80/5,0,NULL,hzcallback,0 }, // 20
+	{ d_text_proc,   20*8, 23*8+5, 40,  8, 0,-1,0,0,0,0,NULL,0,0 }, // 21
+
+	{ d_button_proc,  4*8, 27*8, 64, 16, 0,-1,0,D_EXIT,0,0,"OK",0,0 }, // 22
+	{ d_button_proc, 14*8, 27*8, 64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0 }, // 23
+
+	{ NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL }
 };
 
 #ifdef RPCEMU_NETWORKING
