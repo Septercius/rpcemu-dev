@@ -181,6 +181,17 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                         tlbram = ram01;
                         tlbrammask = mem_rammask >> 2;
                         break;
+                case 0x18000000: /*SIMM 1 bank 0*/
+                case 0x19000000:
+                case 0x1a000000:
+                case 0x1b000000:
+                case 0x1c000000: /*SIMM 1 bank 1*/
+                case 0x1d000000:
+                case 0x1e000000:
+                case 0x1f000000:
+                        tlbram = ram1;
+                        tlbrammask = 0x7ffffff >> 2;
+                        break;
                 }
                 // printf("CP15 tlb base now %08X\n",cp15.tlbbase);
                 return;
@@ -393,6 +404,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
                 sldaddr=((addr&0xFF000)>>10)|(fld&0xFFFFFC00);
                 if ((sldaddr&0x1F000000)==0x02000000)
                    sld = vram[(sldaddr & config.vrammask) >> 2];
+                else if (sldaddr & 0x8000000)
+                   sld = ram1[(sldaddr & 0x7ffffff) >> 2];
                 else if (sldaddr&0x4000000)
                    sld = ram01[(sldaddr & mem_rammask) >> 2];
                 else
@@ -516,6 +529,17 @@ uint32_t *getpccache(uint32_t addr)
                 case 0x16000000:
                 case 0x17000000:
                 return &ram01[((long) (addr2 & mem_rammask) - (long) addr) >> 2];
+                case 0x18000000: /*SIMM 1 bank 0*/
+                case 0x19000000:
+                case 0x1a000000:
+                case 0x1b000000:
+                case 0x1c000000: /*SIMM 1 bank 1*/
+                case 0x1d000000:
+                case 0x1e000000:
+                case 0x1f000000:
+                if (ram1 != NULL) {
+                	return &ram1[((long) (addr2 & 0x7ffffff) - (long) addr) >> 2];
+                }
         }
         fatal("Bad PC %08X %08X\n", addr, addr2);
 }
@@ -543,6 +567,14 @@ int isvalidforfastread(uint32_t addr)
                 case 0x15000000:
                 case 0x16000000:
                 case 0x17000000:
+                case 0x18000000: /*SIMM 1 bank 0*/
+                case 0x19000000:
+                case 0x1a000000:
+                case 0x1b000000:
+                case 0x1c000000: /*SIMM 1 bank 1*/
+                case 0x1d000000:
+                case 0x1e000000:
+                case 0x1f000000:
                 return 1;
         }
         return 0;
@@ -570,6 +602,14 @@ int isvalidforfastwrite(uint32_t addr)
                 case 0x15000000:
                 case 0x16000000:
                 case 0x17000000:
+                case 0x18000000: /*SIMM 1 bank 0*/
+                case 0x19000000:
+                case 0x1a000000:
+                case 0x1b000000:
+                case 0x1c000000: /*SIMM 1 bank 1*/
+                case 0x1d000000:
+                case 0x1e000000:
+                case 0x1f000000:
                 return 1;
         }
         return 0;

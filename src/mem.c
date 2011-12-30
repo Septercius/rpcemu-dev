@@ -17,14 +17,14 @@
    Acorn Risc PC - Technical Reference Manual
 */
 
-uint32_t *ram00 = NULL, *ram01 = NULL, *rom = NULL, *vram = NULL;
+uint32_t *ram00 = NULL, *ram01 = NULL, *ram1 = NULL, *rom = NULL, *vram = NULL;
 uint8_t *romb = NULL;
 
 int mmu = 0, memmode = 0;
 
 uint32_t mem_rammask;
 
-static uint8_t *ramb00 = NULL, *ramb01 = NULL, *vramb = NULL;
+static uint8_t *ramb00 = NULL, *ramb01 = NULL, *ramb1 = NULL, *vramb = NULL;
 
 static uint32_t readmemcache = 0,readmemcache2 = 0;
 static uint32_t writememcache = 0,writememcache2 = 0;
@@ -57,11 +57,24 @@ void mem_init(void)
 void mem_reset(uint32_t ramsize)
 {
 	assert(ramsize >= 4); /* At least 4MB */
-	assert(ramsize <= 128); /* At most 128MB */
+	assert(ramsize <= 256); /* At most 256MB */
 	assert(((ramsize - 1) & ramsize) == 0); /* Must be a power of 2 */
 
 	/* Convert ramsize from bytes to megabytes */
 	ramsize *= (1024 * 1024);
+
+	if (ramsize == (256 * 1024 * 1024)) {
+		ramsize = 128 * 1024 * 1024; /* 128MB for first SIMM */
+
+		/* Allocate additional 128MB */
+		ram1 = realloc(ram1, 128 * 1024 * 1024);
+		ramb1 = (uint8_t *) ram1;
+		memset(ram1, 0, 128 * 1024 * 1024);
+	} else {
+		free(ram1);
+		ram1 = NULL;
+		ramb1 = NULL;
+	}
 
 	/* Calculate mem_rammask */
 	mem_rammask = (ramsize / 2) - 1;
@@ -164,6 +177,18 @@ mem_phys_read32(uint32_t addr)
 	case 0x16000000:
 	case 0x17000000:
 		return ram01[(addr & mem_rammask) >> 2];
+
+	case 0x18000000: /* SIMM 1 bank 0 */
+	case 0x19000000:
+	case 0x1a000000:
+	case 0x1b000000:
+	case 0x1c000000: /* SIMM 1 bank 1 */
+	case 0x1d000000:
+	case 0x1e000000:
+	case 0x1f000000:
+		if (ram1 != NULL) {
+			return ram1[(addr & 0x7ffffff) >> 2];
+		}
 	}
 	return 0;
 }
@@ -257,6 +282,21 @@ mem_phys_read8(uint32_t addr)
 		addr ^= 3;
 #endif
 		return ramb01[addr & mem_rammask];
+
+	case 0x18000000: /* SIMM 1 bank 0 */
+	case 0x19000000:
+	case 0x1a000000:
+	case 0x1b000000:
+	case 0x1c000000: /* SIMM 1 bank 1 */
+	case 0x1d000000:
+	case 0x1e000000:
+	case 0x1f000000:
+		if (ramb1 != NULL) {
+#ifdef _RPCEMU_BIG_ENDIAN
+			addr ^= 3;
+#endif
+			return ramb1[addr & 0x7ffffff];
+		}
 	}
 	return 0xff;
 }
@@ -350,6 +390,19 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 	case 0x17000000:
 		ram01[(addr & mem_rammask) >> 2] = val;
 //		  dirtybuffer[(addr & mem_rammask) >> 10] = 1;
+		return;
+
+	case 0x18000000: /* SIMM 1 bank 0 */
+	case 0x19000000:
+	case 0x1a000000:
+	case 0x1b000000:
+	case 0x1c000000: /* SIMM 1 bank 1 */
+	case 0x1d000000:
+	case 0x1e000000:
+	case 0x1f000000:
+		if (ram1 != NULL) {
+			ram1[(addr & 0x7ffffff) >> 2] = val;
+		}
 		return;
 	}
 }
@@ -450,6 +503,22 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 		ramb01[addr & mem_rammask] = val;
 //		  dirtybuffer[(addr & mem_rammask) >> 10] = 1;
 		return;
+
+	case 0x18000000: /* SIMM 1 bank 0 */
+	case 0x19000000:
+	case 0x1a000000:
+	case 0x1b000000:
+	case 0x1c000000: /* SIMM 1 bank 1 */
+	case 0x1d000000:
+	case 0x1e000000:
+	case 0x1f000000:
+		if (ramb1 != NULL) {
+#ifdef _RPCEMU_BIG_ENDIAN
+			addr ^= 3;
+#endif
+			ramb1[addr & 0x7ffffff] = val;
+		}
+		return;
 	}
 }
 
@@ -496,6 +565,20 @@ readmemfl(uint32_t addr)
 			vradd(addr2, &ram01[((readmemcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
 			return *(const uint32_t *) (vraddrl[addr2 >> 12] + (addr2 & ~3));
 
+		case 0x18000000: /* SIMM 1 bank 0 */
+		case 0x19000000:
+		case 0x1a000000:
+		case 0x1b000000:
+		case 0x1c000000: /* SIMM 1 bank 1 */
+		case 0x1d000000:
+		case 0x1e000000:
+		case 0x1f000000:
+			if (ram1 != NULL) {
+				vradd(addr2, &ram1[((readmemcache2 & 0x7ffffff) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
+				return *(const uint32_t *) (vraddrl[addr2 >> 12] + (addr2 & ~3));
+			}
+			/* Fall-through */
+
 		default:
 			vraddrl[addr2 >> 12] = 0xffffffff;
 		}
@@ -519,6 +602,18 @@ readmemfl(uint32_t addr)
 		case 0x17000000:
 			vradd(addr, &ram01[((addr & mem_rammask & ~0xfff) - (long) (addr & ~0xfff)) >> 2], 0, addr);
 			break;
+		case 0x18000000: /* SIMM 1 bank 0 */
+		case 0x19000000:
+		case 0x1a000000:
+		case 0x1b000000:
+		case 0x1c000000: /* SIMM 1 bank 1 */
+		case 0x1d000000:
+		case 0x1e000000:
+		case 0x1f000000:
+			if (ram1 != NULL) {
+				vradd(addr, &ram1[((addr & 0x7ffffff & ~0xfff) - (long) (addr & ~0xfff)) >> 2], 0, addr);
+			}
+			/* Fall-through */
 		default:
 			vraddrl[addr >> 12] = 0xffffffff;
 		}
@@ -582,6 +677,22 @@ readmemfb(uint32_t addr)
 			addr2 ^= 3;
 #endif
 			return *(const uint8_t *) (vraddrl[addr2 >> 12] + addr2);
+
+		case 0x18000000: /* SIMM 1 bank 0 */
+		case 0x19000000:
+		case 0x1a000000:
+		case 0x1b000000:
+		case 0x1c000000: /* SIMM 1 bank 1 */
+		case 0x1d000000:
+		case 0x1e000000:
+		case 0x1f000000:
+			if (ram1 != NULL) {
+				vradd(addr2, &ram1[((readmemcache2 & 0x7ffffff) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
+#ifdef _RPCEMU_BIG_ENDIAN
+				addr2 ^= 3;
+#endif
+				return *(const uint8_t *) (vraddrl[addr2 >> 12] + addr2);
+			}
 		}
 	}
 	/* At this point 'addr' is a physical address */
@@ -628,6 +739,19 @@ writememfl(uint32_t addr, uint32_t val)
 		case 0x17000000:
 			vwadd(addr2, &ram01[((writememcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
 			break;
+
+		case 0x18000000: /* SIMM 1 bank 0 */
+		case 0x19000000:
+		case 0x1a000000:
+		case 0x1b000000:
+		case 0x1c000000: /* SIMM 1 bank 1 */
+		case 0x1d000000:
+		case 0x1e000000:
+		case 0x1f000000:
+			if (ram1 != NULL) {
+				vwadd(addr2, &ram1[((writememcache2 & 0x7ffffff) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
+			}
+			break;
 		}
 	}
 	/* At this point 'addr' is a physical address */
@@ -673,6 +797,19 @@ writememfb(uint32_t addr, uint8_t val)
 		case 0x16000000:
 		case 0x17000000:
 			vwadd(addr2, &ram01[((writemembcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
+			break;
+
+		case 0x18000000: /* SIMM 1 bank 0 */
+		case 0x19000000:
+		case 0x1a000000:
+		case 0x1b000000:
+		case 0x1c000000: /* SIMM 1 bank 1 */
+		case 0x1d000000:
+		case 0x1e000000:
+		case 0x1f000000:
+			if (ram1 != NULL) {
+				vwadd(addr2, &ram1[((writemembcache2 & 0x7ffffff) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
+			}
 			break;
 		}
 	}

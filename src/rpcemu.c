@@ -380,6 +380,8 @@ loadconfig(void)
 		config.mem_size = 64;
 	} else if (!strcmp(p, "128")) {
 		config.mem_size = 128;
+	} else if (!strcmp(p, "256")) {
+		config.mem_size = 256;
 	} else {
 		config.mem_size = 16;
 	}

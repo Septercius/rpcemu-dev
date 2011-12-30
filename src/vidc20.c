@@ -1239,7 +1239,12 @@ void vidcthread(void)
         }
         if (thr.cursorheight>1)
         {
-                if (cinit & 0x4000000) {
+                /* Calculate host address of cursor data from physical address.
+                   This assumes that cursor data is always in DRAM, not VRAM,
+                   which is currently true for RISC OS */
+                if (cinit & 0x8000000) {
+                        ramp = (const uint8_t *) ram1;
+                } else if (cinit & 0x4000000) {
                         ramp = (const uint8_t *) ram01;
                 } else {
                         ramp = (const uint8_t *) ram00;

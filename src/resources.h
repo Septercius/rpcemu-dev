@@ -28,7 +28,7 @@
 #define RadioButton_Mem_32	1009
 #define RadioButton_Mem_64	1010
 #define RadioButton_Mem_128	1011
-//#define RadioButton_Mem_256	1012
+#define RadioButton_Mem_256	1012
 
 #define RadioButton_VRAM_0	1013
 #define RadioButton_VRAM_2	1014

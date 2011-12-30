@@ -28,15 +28,16 @@ extern void ioctl_init(void);
 #define CONF_RAM_32		12
 #define CONF_RAM_64		13
 #define CONF_RAM_128		14
-#define CONF_LABEL_VRAM		15
-#define CONF_VRAM_0		16
-#define CONF_VRAM_2		17
-#define CONF_SOUND		18
-#define CONF_LABEL_REFRESH	19
-#define CONF_HZ_SLIDER		20
-#define CONF_HZ_TEXT		21
-#define CONF_OK			22
-#define CONF_CANCEL		23
+#define CONF_RAM_256		15
+#define CONF_LABEL_VRAM		16
+#define CONF_VRAM_0		17
+#define CONF_VRAM_2		18
+#define CONF_SOUND		19
+#define CONF_LABEL_REFRESH	20
+#define CONF_HZ_SLIDER		21
+#define CONF_HZ_TEXT		22
+#define CONF_OK			23
+#define CONF_CANCEL		24
 
 /* Indexes into the networkgui array */
 //#define NETWORK_BOX                 0
@@ -301,6 +302,7 @@ static int menusettings(void)
         configuregui[CONF_RAM_32].flags  = 0;
         configuregui[CONF_RAM_64].flags  = 0;
         configuregui[CONF_RAM_128].flags = 0;
+        configuregui[CONF_RAM_256].flags = 0;
 	switch (config.mem_size) {
 	case 4:   configuregui[CONF_RAM_4].flags   = D_SELECTED; break;
 	case 8:   configuregui[CONF_RAM_8].flags   = D_SELECTED; break;
@@ -308,6 +310,7 @@ static int menusettings(void)
 	case 32:  configuregui[CONF_RAM_32].flags  = D_SELECTED; break;
 	case 64:  configuregui[CONF_RAM_64].flags  = D_SELECTED; break;
 	case 128: configuregui[CONF_RAM_128].flags = D_SELECTED; break;
+	case 256: configuregui[CONF_RAM_256].flags = D_SELECTED; break;
 	}
 
         configuregui[CONF_VRAM_0].flags = config.vrammask     ? 0          : D_SELECTED;
@@ -357,6 +360,8 @@ static int menusettings(void)
                         selected_mem_size = 64;
                 } else if (configuregui[CONF_RAM_128].flags & D_SELECTED) {
                         selected_mem_size = 128;
+                } else if (configuregui[CONF_RAM_256].flags & D_SELECTED) {
+                        selected_mem_size = 256;
                 }
                 if (config.mem_size != selected_mem_size) {
                         config.mem_size = selected_mem_size;
@@ -505,7 +510,7 @@ static MENU mainmenu[]=
 #define CX 0
 /* This array must be kept in sync with the CONF_ defines above */
 static DIALOG configuregui[] = {
-	{ d_shadow_box_proc, 0, 0, 26*8, 31*8, 0,-1,0,0, 0,0,0,0,0 }, // 0
+	{ d_shadow_box_proc, 0, 0, 26*8, 33*8, 0,-1,0,0, 0,0,0,0,0 }, // 0
 
 	{ d_text_proc,   2*8,  2*8, 40, 16, 0,-1,0,0, 0, 0,"CPU:",0,0 }, // 1
 	{ d_radio_proc,  3*8,  3*8, 60, 16, 0,-1,0,0, 0, 0,"ARM610",0,0 }, // 2
@@ -522,19 +527,20 @@ static DIALOG configuregui[] = {
 	{ d_radio_proc, 17*8,  9*8, 44, 16, 0,-1,0,0, 1, 0,"32MB",0,0 }, // 12
 	{ d_radio_proc, 17*8, 11*8, 44, 16, 0,-1,0,0, 1, 0,"64MB",0,0 }, // 13
 	{ d_radio_proc, 17*8, 13*8, 52, 16, 0,-1,0,0, 1, 0,"128MB",0,0 }, // 14
+	{ d_radio_proc, 17*8, 15*8, 52, 16, 0,-1,0,0, 1, 0,"256MB",0,0 }, // 15
 
-	{ d_text_proc,   2*8, 16*8, 52, 16, 0,-1,0,0, 0, 0,"VRAM:",0,0 }, // 15
-	{ d_radio_proc,  3*8, 17*8, 44, 16, 0,-1,0,0, 2, 0,"None",0,0 }, // 16
-	{ d_radio_proc,  3*8, 19*8, 36, 16, 0,-1,0,0, 2, 0,"2MB",0,0 }, // 17
+	{ d_text_proc,   2*8, 18*8, 52, 16, 0,-1,0,0, 0, 0,"VRAM:",0,0 }, // 16
+	{ d_radio_proc,  3*8, 19*8, 44, 16, 0,-1,0,0, 2, 0,"None",0,0 }, // 17
+	{ d_radio_proc,  3*8, 21*8, 36, 16, 0,-1,0,0, 2, 0,"2MB",0,0 }, // 18
 
-	{ d_check_proc, 16*8, 17*8, 52, 16, 0,-1,0,D_DISABLED,1,0, "Sound",0,0 }, // 18
+	{ d_check_proc, 16*8, 19*8, 52, 16, 0,-1,0,D_DISABLED,1,0, "Sound",0,0 }, // 19
 
-	{ d_text_proc,    2*8, 22*8,   40,  8, 0,-1,0,0,0,0,"Video refresh rate:",0,0 }, // 19
-	{ d_slider_proc,  3*8, 23*8,  128, 16, 0,-1,0,0,80/5,0,NULL,hzcallback,0 }, // 20
-	{ d_text_proc,   20*8, 23*8+5, 40,  8, 0,-1,0,0,0,0,NULL,0,0 }, // 21
+	{ d_text_proc,    2*8, 24*8,   40,  8, 0,-1,0,0,0,0,"Video refresh rate:",0,0 }, // 20
+	{ d_slider_proc,  3*8, 25*8,  128, 16, 0,-1,0,0,80/5,0,NULL,hzcallback,0 }, // 21
+	{ d_text_proc,   20*8, 25*8+5, 40,  8, 0,-1,0,0,0,0,NULL,0,0 }, // 22
 
-	{ d_button_proc,  4*8, 27*8, 64, 16, 0,-1,0,D_EXIT,0,0,"OK",0,0 }, // 22
-	{ d_button_proc, 14*8, 27*8, 64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0 }, // 23
+	{ d_button_proc,  4*8, 29*8, 64, 16, 0,-1,0,D_EXIT,0,0,"OK",0,0 }, // 23
+	{ d_button_proc, 14*8, 29*8, 64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0 }, // 24
 
 	{ NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL }
 };
