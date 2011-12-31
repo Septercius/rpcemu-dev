@@ -397,12 +397,16 @@ iomd_write(uint32_t addr, uint32_t val)
 		}
 		return;
 
-        case IOMD_0x0A8_MSEDAT: /* Mouse data (PS/2 - ARM7500/FE) */
-                mouse_data_write(val);
-                return;
-        case IOMD_0x0AC_MSECR: /* Mouse control (PS/2 - ARM7500/FE) */
-                mouse_control_write(val);
-                return;
+	case IOMD_0x0A8_MSEDAT: /* Mouse data (PS/2 - ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			mouse_data_write(val);
+		}
+		return;
+	case IOMD_0x0AC_MSECR: /* Mouse control (PS/2 - ARM7500/FE) */
+		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
+			mouse_control_write(val);
+		}
+		return;
 
 	case IOMD_0x0C4_IOTCR: /* I/O timing control */
 		iomd.iotcr = val;
