@@ -57,20 +57,22 @@ extern void ioctl_init(void);
  #define MENU_SETTINGS_NETWORK_WINDOW  1
  #define MENU_SETTINGS_SEPARATOR_0     2
  #define MENU_SETTINGS_FULLSCREEN      3
+ #define MENU_SETTINGS_CPU_IDLE        4
+ #define MENU_SETTINGS_SEPARATOR_1     5
+ #define MENU_SETTINGS_MOUSEHACK       6
+ #define MENU_SETTINGS_MOUSETWOBUTTON  7
+ #define MENU_SETTINGS_SEPARATOR_2     8
+ #define MENU_SETTINGS_CDROM_SUBMENU   9
+#else
+ #define MENU_SETTINGS_SETTINGS_WINDOW 0
+ #define MENU_SETTINGS_SEPARATOR_0     1
+ #define MENU_SETTINGS_FULLSCREEN      2
+ #define MENU_SETTINGS_CPU_IDLE        3
  #define MENU_SETTINGS_SEPARATOR_1     4
  #define MENU_SETTINGS_MOUSEHACK       5
  #define MENU_SETTINGS_MOUSETWOBUTTON  6
  #define MENU_SETTINGS_SEPARATOR_2     7
  #define MENU_SETTINGS_CDROM_SUBMENU   8
-#else
- #define MENU_SETTINGS_SETTINGS_WINDOW 0
- #define MENU_SETTINGS_SEPARATOR_0     1
- #define MENU_SETTINGS_FULLSCREEN      2
- #define MENU_SETTINGS_SEPARATOR_1     3
- #define MENU_SETTINGS_MOUSEHACK       4
- #define MENU_SETTINGS_MOUSETWOBUTTON  5
- #define MENU_SETTINGS_SEPARATOR_2     6
- #define MENU_SETTINGS_CDROM_SUBMENU   7
 #endif
 
 /* maximum number of bytes a single (UTF-8 encoded) character can have */
@@ -238,6 +240,23 @@ static int menufullscreen(void)
         togglefullscreen(!fullscreen);
         settingsmenu[MENU_SETTINGS_FULLSCREEN].flags = fullscreen ? D_SELECTED : 0;
         return D_CLOSE;
+}
+
+/**
+ * Callback function for "Reduce CPU usage" menu item.
+ */
+static int
+menu_cpu_idle(void)
+{
+	int res;
+
+	res = alert("This will reset RPCEmu!", "Okay to continue?", NULL, "OK", "Cancel", 0, 0);
+	if (res == 1) {
+		config.cpu_idle ^= 1;
+		settingsmenu[MENU_SETTINGS_CPU_IDLE].flags = config.cpu_idle ? D_SELECTED : 0;
+		resetrpc();
+	}
+	return D_CLOSE;
 }
 
 static int menumouse(void)
@@ -490,6 +509,7 @@ static MENU settingsmenu[]=
 #endif /* RPCEMU_NETWORKING */
 	{ "",                       NULL,           NULL,   0, NULL },
 	{ "&Fullscreen mode",       menufullscreen, NULL,   0, NULL },
+	{ "&Reduce CPU usage",      menu_cpu_idle,  NULL,   0, NULL },
 	{ "",                       NULL,           NULL,   0, NULL },
 	{ "Follow host &mouse",     menumouse,      NULL,   0, NULL },
 	{ "&Two-button Mouse Mode", menutwobutton,  NULL,   0, NULL },
@@ -586,6 +606,7 @@ void entergui(void)
         }
         
         settingsmenu[MENU_SETTINGS_FULLSCREEN].flags    = fullscreen  ? D_SELECTED : 0;
+        settingsmenu[MENU_SETTINGS_CPU_IDLE].flags      = config.cpu_idle ? D_SELECTED : 0;
         settingsmenu[MENU_SETTINGS_MOUSEHACK].flags     = config.mousehackon ? D_SELECTED : 0;
         settingsmenu[MENU_SETTINGS_MOUSETWOBUTTON].flags =
             config.mousetwobutton ? D_SELECTED : 0;

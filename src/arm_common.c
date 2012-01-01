@@ -10,9 +10,13 @@
 #include "rpcemu.h"
 
 #include "arm.h"
+#include "fdc.h"
+#include "ide.h"
+#include "iomd.h"
 #include "mem.h"
 #include "keyboard.h"
 #include "hostfs.h"
+#include "vidc20.h"
 
 #ifdef RPCEMU_NETWORKING
 #include "network.h"
@@ -23,6 +27,84 @@
 #define SWI_OS_Mouse		0x1c
 #define SWI_OS_CallASWI		0x6f
 #define SWI_OS_CallASWIR12	0x71
+
+#define SWI_Portable_ReadFeatures	0x42fc5
+#define SWI_Portable_Idle		0x42fc6
+
+/**
+ * Attempt to reduce CPU usage by checking for pending interrupts, running
+ * any callbacks, and then sleeping for a short period of time.
+ *
+ * Called when RISC OS calls "Portable_Idle" SWI.
+ */
+static void
+arm_idle(void)
+{
+	int hostupdate = 0;
+
+	/* Loop while no interrupts pending */
+	while (!armirq) {
+		/* Run down any callback timers */
+		if (kcallback) {
+			kcallback--;
+			if (kcallback <= 0) {
+				kcallback = 0;
+				keyboard_callback_rpcemu();
+			}
+		}
+		if (mcallback) {
+			mcallback -= 10;
+			if (mcallback <= 0) {
+				mcallback = 0;
+				mouse_ps2_callback();
+			}
+		}
+		if (fdccallback) {
+			fdccallback -= 10;
+			if (fdccallback <= 0) {
+				fdccallback = 0;
+				fdc_callback();
+			}
+		}
+		if (idecallback) {
+			idecallback -= 10;
+			if (idecallback <= 0) {
+				idecallback = 0;
+				callbackide();
+			}
+		}
+		if (motoron) {
+			/* Not much point putting a counter here */
+			iomd.irqa.status |= IOMD_IRQA_FLOPPY_INDEX;
+			updateirqs();
+		}
+		/* Sleep if no interrupts pending */
+		if (!armirq) {
+#ifdef RPCEMU_WIN
+			Sleep(1);
+#else
+			struct timespec tm;
+
+			tm.tv_sec = 0;
+			tm.tv_nsec = 1000000;
+			nanosleep(&tm, NULL);
+#endif
+		}
+		/* Run other periodic actions */
+		if (!armirq && !(++hostupdate > 20)) {
+			hostupdate = 0;
+			drawscr(drawscre);
+			if (drawscre > 0) {
+				drawscre--;
+				if (drawscre > 5)
+					drawscre = 0;
+
+				mouse_poll();
+			}
+			keyboard_poll();
+		}
+	}
+}
 
 /**
  * Handler for SWI instructions; includes all the emulator specific SWIs as
@@ -44,6 +126,21 @@ opSWI(uint32_t opcode)
 		swinum = armregs[10] & 0xdffff;
 	} else if (swinum == SWI_OS_CallASWIR12) {
 		swinum = armregs[12] & 0xdffff;
+	}
+
+	/* Intercept RISC OS Portable SWIs to enable RPCEmu to sleep when
+	   RISC OS is idle */
+	if (config.cpu_idle) {
+		switch (swinum) {
+		case SWI_Portable_ReadFeatures:
+			armregs[1] = (1u << 4);	/* Idle supported flag */
+			armregs[cpsr] &= ~VFLAG;
+			return;
+		case SWI_Portable_Idle:
+			arm_idle();
+			armregs[cpsr] &= ~VFLAG;
+			return;
+		}
 	}
 
 	if (mousehack && swinum == SWI_OS_Word && armregs[0] == 21) {
