@@ -401,6 +401,8 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         CheckMenuItem(menu, IDM_MOUSE_TWOBUTTON,
                       config.mousetwobutton ? MF_CHECKED : MF_UNCHECKED);
+        CheckMenuItem(menu, IDM_CPUIDLE,
+                      config.cpu_idle ? MF_CHECKED : MF_UNCHECKED);
         
         if (config.mousehackon) {
                 CheckMenuItem(menu, IDM_MOUSE_FOL, MF_CHECKED);
@@ -971,6 +973,14 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
                         }
                         togglefullscreen(1);
                         return 0;
+
+		case IDM_CPUIDLE:
+			if (MessageBox(ghwnd, "This will reset RPCEmu!\nOkay to continue?", "RPCEmu", MB_OKCANCEL) == IDOK) {
+				config.cpu_idle ^= 1;
+				resetrpc();
+				CheckMenuItem(hmenu, IDM_CPUIDLE, config.cpu_idle ? MF_CHECKED : MF_UNCHECKED);
+			}
+			return 0;
 
                 case IDM_CDROM_DISABLED:
                         if (config.cdromenabled)

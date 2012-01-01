@@ -49,6 +49,8 @@ Config config = {
 	"",			/* isoname */
 	1,			/* mousehackon */
 	0,			/* mousetwobutton */
+	NetworkType_Off,	/* network_type */
+	0,			/* cpu_idle */
 };
 
 int infocus = 0;
@@ -458,6 +460,8 @@ loadconfig(void)
 	if (p) {
 		config.bridgename = strdup(p);
 	}
+
+	config.cpu_idle = get_config_int(NULL, "cpu_idle", 0);
 }
 
 /**
@@ -529,6 +533,8 @@ saveconfig(void)
 	} else {
 		set_config_string(NULL, "bridgename", "");
 	}
+
+	set_config_int(NULL, "cpu_idle", config.cpu_idle);
 }
 
 /**

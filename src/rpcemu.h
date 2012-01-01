@@ -131,6 +131,7 @@ typedef struct {
 	int mousetwobutton;	/**< Swap the behaviour of the right and middle
 	                             buttons, for mice with two buttons */
 	NetworkType network_type;
+	int cpu_idle;		/**< Attempt to reduce CPU usage */
 } Config;
 
 extern Config config;
