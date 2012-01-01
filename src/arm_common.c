@@ -70,17 +70,6 @@ opSWI(uint32_t opcode)
 		state.Reg = armregs;
 		hostfs(&state);
 
-	} else if (swinum == ARCEM_SWI_NANOSLEEP) {
-#ifdef RPCEMU_WIN
-		Sleep(armregs[0] / 1000000);
-#else
-		struct timespec tm;
-
-		tm.tv_sec = 0;
-		tm.tv_nsec = armregs[0];
-		nanosleep(&tm, NULL);
-#endif
-		armregs[cpsr] &= ~VFLAG;
 	}
 #ifdef RPCEMU_NETWORKING
 	else if (swinum == ARCEM_SWI_NETWORK) {
