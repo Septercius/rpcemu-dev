@@ -17,14 +17,22 @@
    Acorn Risc PC - Technical Reference Manual
 */
 
-uint32_t *ram00 = NULL, *ram01 = NULL, *ram1 = NULL, *rom = NULL, *vram = NULL;
-uint8_t *romb = NULL;
+uint32_t *ram00 = NULL; /**< Word pointer to SIMM 0 Bank 0 of physical RAM */
+uint32_t *ram01 = NULL; /**< Word pointer to SIMM 0 Bank 1 of physical RAM */
+uint32_t *ram1  = NULL; /**< Word pointer to SIMM 1 of physical RAM */
+uint32_t *rom   = NULL; /**< Word pointer to ROM */
+uint32_t *vram  = NULL; /**< Word pointer to Video RAM */
 
-int mmu = 0, memmode = 0;
+int mmu = 0;     /**< Bool of whether the MMU is enabled */
+int memmode = 0; /**< Bool of whether ARM is in a privileged mode */
 
-uint32_t mem_rammask;
+uint32_t mem_rammask; /**< Mask used for SIMM Bank 0/1 to handle the repeating address space */
 
-static uint8_t *ramb00 = NULL, *ramb01 = NULL, *ramb1 = NULL, *vramb = NULL;
+static uint8_t *ramb00 = NULL; /**< Byte pointer to SIMM 0 Bank 0 of physical RAM */
+static uint8_t *ramb01 = NULL; /**< Byte pointer to SIMM 0 Bank 1 of physical RAM */
+static uint8_t *ramb1  = NULL; /**< Byte pointer to SIMM 1 of physical RAM */
+uint8_t *romb = NULL;          /**< Byte pointer to ROM */
+static uint8_t *vramb  = NULL; /**< Byte pointer to Video RAM */
 
 static uint32_t readmemcache = 0,readmemcache2 = 0;
 static uint32_t writememcache = 0,writememcache2 = 0;
