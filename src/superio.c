@@ -179,7 +179,6 @@ superio_write(uint32_t addr, uint32_t val)
 
 	if ((addr >= 0x1f0 && addr <= 0x1f7) || addr == 0x3f6) {
 		/* IDE */
-		ideboard = 0;
 		writeide(addr, val);
 
 	} else if ((addr >= 0x278) && (addr <= 0x27f)) {
@@ -243,7 +242,6 @@ superio_read(uint32_t addr)
 
 	if ((addr >= 0x1f0 && addr <= 0x1f7) || addr == 0x3f6) {
 		/* IDE */
-		ideboard = 0;
 		return readide(addr);
 
 	} else if ((addr >= 0x278) && (addr <= 0x27f)) {
