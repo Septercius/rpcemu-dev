@@ -148,7 +148,6 @@ mem_phys_read32(uint32_t addr)
 				if (addr >= 0x3010000 && addr < 0x3012000) {
 					/* SuperIO */
 					if ((addr & 0xffc) == 0x7c0) {
-						ideboard = 0;
 						return readidew();
 					}
 					return superio_read(addr);
@@ -342,7 +341,6 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 				if (addr >= 0x3010000 && addr < 0x3012000) {
 					/* SuperIO */
 					if ((addr & 0xffc) == 0x7c0) {
-						ideboard = 0;
 						writeidew(val);
 						return;
 					}

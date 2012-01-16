@@ -17,7 +17,6 @@ uint8_t icsreadb(podule *p, int easi, uint32_t addr)
                 temp=((addr&0x1FFC)|(icspage<<13))>>2;
                 return icsrom[temp];
                 case 0x3000:
-                ideboard=2;
                 return readide(((addr>>2)&7)+0x1F0);
         }*/
 	return 0;
@@ -28,7 +27,6 @@ uint16_t icsreadw(podule *p, int easi, uint32_t addr)
 /*        if ((addr&0x3000)==0x3000)
         {
 //                rpclog("Read IDEW\n");
-                ideboard=2;
                 return readidew();
         }
         return icsreadb(p,easi,addr);*/
@@ -42,7 +40,6 @@ void icswriteb(podule *p, int easi, uint32_t addr, uint8_t val)
         {
                 case 0x2000: icspage=val; return;
                 case 0x3000:
-                ideboard=2;
                 writeide(((addr>>2)&7)+0x1F0,val);
                 return;
         }*/
@@ -53,7 +50,6 @@ void icswritew(podule *p, int easi, uint32_t addr, uint16_t val)
 /*        if ((addr&0x3000)==0x3000)
         {
 //                rpclog("WRITEIDEW\n");
-                ideboard=2;
                 return writeidew(val);
         }
         icswriteb(p,easi,addr,val);*/

@@ -30,5 +30,4 @@ extern int idecallback;
 
 void atapi_discchanged(void);
 
-extern int ideboard;
 #endif //__IDE__
