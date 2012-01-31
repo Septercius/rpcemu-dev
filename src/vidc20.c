@@ -75,85 +75,130 @@ static uint8_t dirtybuffer2[512*4];
 /* Dirty buffer currently in use by main thread */
 uint8_t *dirtybuffer = dirtybuffer1;
 
-static void blitterthread(int xs, int ys, int yl, int yh, int doublesize)
+static void
+blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 {
-        BITMAP *backbuf=screen;
+	BITMAP *backbuf = screen;
 	int lfullscreen = fullscreen; /* Take a local copy of the fullscreen var, as other threads can change it mid blit */
 
 #ifdef HARDWAREBLIT
-        if (lfullscreen)
-        {
-                switch (currentbuffer)
-                {
-                        case 0: backbuf=bs4; break;
-                        case 1: backbuf=bs2; break;
-                        case 2: backbuf=bs3; break;
-                }
-        }
+	if (lfullscreen) {
+		switch (currentbuffer) {
+		case 0:
+			backbuf = bs4;
+			break;
+		case 1:
+			backbuf = bs2;
+			break;
+		case 2:
+			backbuf = bs3;
+			break;
+		}
+	}
 #endif
-        switch (doublesize)
-        {
-        case VIDC_DOUBLE_NONE:
-                if (!(lfullscreen && config.stretchmode)) ys = yh - yl;
-                if (lfullscreen)
-                {
-                        if (config.stretchmode) {
-                                blit(b, backbuf, 0, 0,  (SCREEN_W - xs) >> 1, ((SCREEN_H - oldsy) >> 1),      xs, ys);
-                        } else {
-                                blit(b, backbuf, 0, yl, (SCREEN_W - xs) >> 1, yl + ((SCREEN_H - oldsy) >> 1), xs, ys);
-                        }
-                }
-                else
-                {
-                        blit(b, screen, 0, yl, 0, yl, xs, ys);
-                }
-                break;
 
-        case VIDC_DOUBLE_X:
-                ys=yh-yl;
-                if (lfullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,yl+((SCREEN_H-oldsy)>>1),xs<<1,ys);
-                else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl,                      xs<<1,ys);
-                break;
+	switch (doublesize) {
+	case VIDC_DOUBLE_NONE:
+		if (!(lfullscreen && config.stretchmode)) {
+			ys = yh - yl;
+		}
+		if (lfullscreen) {
+			if (config.stretchmode) {
+				blit(b, backbuf, 0,  0, (SCREEN_W - xs) >> 1, ((SCREEN_H - oldsy) >> 1),      xs, ys);
+			} else {
+				blit(b, backbuf, 0, yl, (SCREEN_W - xs) >> 1, yl + ((SCREEN_H - oldsy) >> 1), xs, ys);
+			}
+		} else {
+			blit(b, screen, 0, yl, 0, yl, xs, ys);
+		}
+		break;
 
-        case VIDC_DOUBLE_Y:
-                if (config.stretchmode)
-                {
-                        if (lfullscreen) stretch_blit(b,backbuf,0,0,xs,ys,0,0,xs,(ys<<1)-1);
-                        else            stretch_blit(b,screen, 0,0,xs,ys,0,0,xs,(ys<<1)-1);
-                }
-                else
-                {
-                        ys=yh-yl;
-                        if (lfullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-xs)>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs,(ys<<1)-1);
-                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,               yl<<1,                        xs,(ys<<1)-1);
-                }
-                break;
+	case VIDC_DOUBLE_X:
+		ys = yh - yl;
+		if (lfullscreen) {
+			stretch_blit(b, backbuf, 0, yl, xs, ys,
+				     (SCREEN_W - (xs << 1)) >> 1,
+				     yl + ((SCREEN_H - oldsy) >> 1),
+				     xs << 1, ys);
+		} else {
+			stretch_blit(b,  screen, 0, yl, xs, ys,
+				     0,
+				     yl,
+				     xs << 1, ys);
+		}
+		break;
 
-        case VIDC_DOUBLE_BOTH:
-                if (config.stretchmode)
-                {
-                        if (lfullscreen) stretch_blit(b,backbuf,0,0,xs,ys,(SCREEN_W-(xs<<1))>>1,((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
-                        else            stretch_blit(b,screen, 0,0,xs,ys,0,0,xs<<1,(ys<<1)-1);
-                }
-                else
-                {
-                        ys=yh-yl;
-                        if (lfullscreen) stretch_blit(b,backbuf,0,yl,xs,ys, (SCREEN_W-(xs<<1))>>1,(yl<<1)+((SCREEN_H-oldsy)>>1),xs<<1,(ys<<1)-1);
-                        else            stretch_blit(b,screen, 0,yl,xs,ys, 0,                    yl<<1,                        xs<<1,(ys<<1)-1);
-                }
-                break;
-        }
-        if (lfullscreen)
-        {
+	case VIDC_DOUBLE_Y:
+		if (config.stretchmode) {
+			if (lfullscreen) {
+				stretch_blit(b, backbuf, 0, 0, xs, ys, 0, 0, xs, (ys << 1) - 1);
+			} else {
+				stretch_blit(b,  screen, 0, 0, xs, ys, 0, 0, xs, (ys << 1) - 1);
+			}
+		} else {
+			ys = yh - yl;
+			if (lfullscreen) {
+				stretch_blit(b, backbuf, 0, yl, xs, ys,
+					     (SCREEN_W - xs) >> 1,
+					     (yl << 1) + ((SCREEN_H - oldsy) >> 1),
+					     xs, (ys << 1) - 1);
+			} else {
+				stretch_blit(b,  screen, 0, yl, xs, ys,
+					     0,
+					     yl<<1,
+					     xs, (ys << 1) - 1);
+			}
+		}
+		break;
+
+	case VIDC_DOUBLE_BOTH:
+		if (config.stretchmode) {
+			if (lfullscreen) {
+				stretch_blit(b, backbuf, 0, 0, xs, ys,
+					     (SCREEN_W - (xs << 1)) >> 1,
+					     ((SCREEN_H - oldsy) >> 1),
+					     xs << 1, (ys << 1) - 1);
+			} else {
+				stretch_blit(b,  screen, 0, 0, xs, ys,
+					     0,
+					     0,
+					     xs << 1, (ys << 1) - 1);
+			}
+		} else {
+			ys = yh - yl;
+			if (lfullscreen) {
+				stretch_blit(b, backbuf, 0, yl, xs, ys,
+					     (SCREEN_W - (xs << 1)) >> 1,
+					     (yl << 1) + ((SCREEN_H - oldsy) >> 1),
+					     xs << 1, (ys << 1) - 1);
+			} else {
+				stretch_blit(b,  screen, 0, yl, xs, ys,
+					     0,
+					     yl << 1,
+					     xs << 1, (ys << 1) - 1);
+			}
+		}
+		break;
+	}
+
 #ifdef HARDWAREBLIT
-                switch (currentbuffer)
-                {
-                        case 0: request_video_bitmap(bs4); currentbuffer=1; break;
-                        case 1: request_video_bitmap(bs2); currentbuffer=2; break;
-                        case 2: request_video_bitmap(bs3); currentbuffer=0; break;
-                }
+	if (lfullscreen) {
+		switch (currentbuffer) {
+		case 0:
+			request_video_bitmap(bs4);
+			currentbuffer = 1;
+			break;
+		case 1:
+			request_video_bitmap(bs2);
+			currentbuffer = 2;
+			break;
+		case 2:
+			request_video_bitmap(bs3);
+			currentbuffer = 0;
+			break;
+		}
+	}
 #endif
-        }
 }
 
 #define DEFAULT_W 640
