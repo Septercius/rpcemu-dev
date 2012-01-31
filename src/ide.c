@@ -86,7 +86,7 @@ void callbackide(void);
 
 /** Evaluate to non-zero if the currently selected drive is an ATAPI device */
 #define IDE_DRIVE_IS_CDROM(ide) \
-	(config.cdromenabled && (ide.drive | ide.board) == 1)
+	(config.cdromenabled && (ide.drive == 1))
 
 ATAPI *atapi;
 int idecallback = 0;
@@ -96,7 +96,7 @@ static void atapicommand(void);
 
 static struct
 {
-        unsigned char atastat[4];
+        uint8_t atastat;
         unsigned char error;
         int secount,sector,cylinder,head,drive,cylprecomp;
         unsigned char command;
@@ -108,7 +108,6 @@ static struct
         int cdpos,cdlen;
         unsigned char asc;
         int discchanged;
-        int board;
         int reset;
         FILE *hdfile[4];
         int skip512[4];
@@ -118,19 +117,15 @@ static struct
 static inline void
 ide_irq_raise(void)
 {
-	if (ide.board == 0) {
-		iomd.irqb.status |= IOMD_IRQB_IDE;
-		updateirqs();
-	}
+	iomd.irqb.status |= IOMD_IRQB_IDE;
+	updateirqs();
 }
 
 static inline void
 ide_irq_lower(void)
 {
-	if (ide.board == 0) {
-		iomd.irqb.status &= ~IOMD_IRQB_IDE;
-		updateirqs();
-	}
+	iomd.irqb.status &= ~IOMD_IRQB_IDE;
+	updateirqs();
 }
 
 /**
@@ -271,9 +266,9 @@ ide_atapi_mode_sense(uint32_t pos)
 static off64_t
 ide_get_sector(void)
 {
-	int heads = ide.hpc[ide.drive | ide.board];
-	int sectors = ide.spt[ide.drive | ide.board];
-	int skip = ide.skip512[ide.drive | ide.board];
+	int heads = ide.hpc[ide.drive];
+	int sectors = ide.spt[ide.drive];
+	int skip = ide.skip512[ide.drive];
 
 	return ((((off64_t) ide.cylinder * heads) + ide.head) *
 	          sectors) + (ide.sector - 1) + skip;
@@ -286,10 +281,10 @@ static void
 ide_next_sector(void)
 {
 	ide.sector++;
-	if (ide.sector == (ide.spt[ide.drive | ide.board] + 1)) {
+	if (ide.sector == (ide.spt[ide.drive] + 1)) {
 		ide.sector = 1;
 		ide.head++;
-		if (ide.head == ide.hpc[ide.drive | ide.board]) {
+		if (ide.head == ide.hpc[ide.drive]) {
 			ide.head = 0;
 			ide.cylinder++;
 		}
@@ -357,7 +352,7 @@ void resetide(void)
                 }
         }
 
-        ide.atastat[0] = ide.atastat[2] = READY_STAT;
+        ide.atastat = READY_STAT;
         idecallback = 0;
         loadhd(0,"hd4.hdf");
         if (config.cdromenabled)
@@ -401,7 +396,7 @@ void writeidew(uint16_t val)
         else if (ide.command == WIN_PACKETCMD && ide.pos>=0xC)
         {
                 ide.pos=0;
-                ide.atastat[ide.board] = BUSY_STAT;
+                ide.atastat = BUSY_STAT;
                 ide.packetstatus=1;
                 idecallback=60;
 //                rpclog("Packet now waiting!\n");
@@ -409,7 +404,7 @@ void writeidew(uint16_t val)
         else if (ide.pos>=512)
         {
                 ide.pos=0;
-                ide.atastat[ide.board] = BUSY_STAT;
+                ide.atastat = BUSY_STAT;
                 idecallback=0;
                 callbackide();
         }
@@ -428,7 +423,7 @@ void writeide(uint16_t addr, uint8_t val)
                 if (ide.pos>=512)
                 {
                         ide.pos=0;
-                        ide.atastat[ide.board] = BUSY_STAT;
+                        ide.atastat = BUSY_STAT;
                         idecallback=1000;
                 }
                 return;
@@ -458,7 +453,7 @@ void writeide(uint16_t addr, uint8_t val)
                 if (((val>>4)&1)!=ide.drive)
                 {
                         idecallback=0;
-                        ide.atastat[ide.board] = READY_STAT;
+                        ide.atastat = READY_STAT;
                         ide.error=0;
                         ide.secount=1;
                         ide.sector=1;
@@ -475,78 +470,65 @@ void writeide(uint16_t addr, uint8_t val)
                 }
                 ide.drive=(val>>4)&1;
                 ide.pos=0;
-                ide.atastat[ide.board] = READY_STAT;
+                ide.atastat = READY_STAT;
                 return;
 
         case 0x1F7: /* Command register */
                 ide.command=val;
-//                rpclog("New IDE command - %02X %i %i %08X\n",ide.command,ide.drive,ide.board,PC-8);
                 ide.error=0;
                 switch (val)
                 {
                 case WIN_SRST: /* ATAPI Device Reset */
-                        ide.atastat[ide.board] = READY_STAT;
+                        ide.atastat = READY_STAT;
                         idecallback=100;
                         return;
 
                 case WIN_RESTORE:
                 case WIN_SEEK:
-                        ide.atastat[ide.board] = READY_STAT;
+                        ide.atastat = READY_STAT;
                         idecallback=100;
                         return;
 
                 case WIN_READ:
-/*                        if (ide.secount>1)
-                        {
-                                fatal("Read %i sectors from sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
-                        }*/
-//                        rpclog("Read %i sectors from sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
-                        ide.atastat[ide.board] = BUSY_STAT;
+                        ide.atastat = BUSY_STAT;
                         idecallback=200;
                         return;
 
                 case WIN_WRITE:
-/*                        if (ide.secount>1)
-                        {
-                                fatal("Write %i sectors to sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
-                        }*/
-//                        rpclog("Write %i sectors to sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
-                        ide.atastat[ide.board] = DRQ_STAT;
+                        ide.atastat = DRQ_STAT;
                         ide.pos=0;
                         return;
 
                 case WIN_VERIFY:
-//                        rpclog("Read verify %i sectors from sector %i cylinder %i head %i\n",ide.secount,ide.sector,ide.cylinder,ide.head);
-                        ide.atastat[ide.board] = BUSY_STAT;
+                        ide.atastat = BUSY_STAT;
                         idecallback=200;
                         return;
 
                 case WIN_FORMAT:
-//                        rpclog("Format track %i head %i\n",ide.cylinder,ide.head);
-                        ide.atastat[ide.board] = DRQ_STAT;
+                        ide.atastat = DRQ_STAT;
 //                        idecallback=200;
                         ide.pos=0;
                         return;
 
                 case WIN_SPECIFY: /* Initialize Drive Parameters */
-                        ide.atastat[ide.board] = BUSY_STAT;
+                        ide.atastat = BUSY_STAT;
                         idecallback=200;
                         return;
 
                 case WIN_PIDENTIFY: /* Identify Packet Device */
                 case WIN_SETIDLE1: /* Idle */
-                        ide.atastat[ide.board] = BUSY_STAT;
+                        ide.atastat = BUSY_STAT;
                         idecallback=200;
                         return;
 
                 case WIN_IDENTIFY: /* Identify Device */
-                        ide.atastat[ide.board] = BUSY_STAT;
+                        ide.atastat = BUSY_STAT;
                         idecallback=200;
                         return;
 
                 case WIN_PACKETCMD: /* ATAPI Packet */
                         ide.packetstatus=0;
-                        ide.atastat[ide.board] = BUSY_STAT;
+                        ide.atastat = BUSY_STAT;
                         idecallback=30;
                         ide.pos=0;
                         return;
@@ -559,7 +541,7 @@ void writeide(uint16_t addr, uint8_t val)
                 {
                         idecallback=500;
                         ide.reset = 1;
-                        ide.atastat[ide.board] = BUSY_STAT;
+                        ide.atastat = BUSY_STAT;
 //                        rpclog("IDE Reset\n");
                 }
                 ide.fdisk=val;
@@ -582,7 +564,7 @@ uint8_t readide(uint16_t addr)
                 if (ide.pos>=512)
                 {
                         ide.pos=0;
-                        ide.atastat[ide.board] = READY_STAT;
+                        ide.atastat = READY_STAT;
 //                        rpclog("End of transfer\n");
                 }
                 return temp;
@@ -607,10 +589,10 @@ uint8_t readide(uint16_t addr)
 
         case 0x1F7: /* Status */
                 ide_irq_lower();
-                return ide.atastat[ide.board];
+                return ide.atastat;
 
         case 0x3F6: /* Alternate Status */
-                return ide.atastat[ide.board];
+                return ide.atastat;
         }
         fatal("Bad IDE read %04X\n", addr);
 }
@@ -634,7 +616,7 @@ uint16_t readidew(void)
                 }
                 else
                 {
-                        ide.atastat[ide.board] = READY_STAT;
+                        ide.atastat = READY_STAT;
                         ide.packetstatus=0;
                         if (ide.command == WIN_READ)
                         {
@@ -642,7 +624,7 @@ uint16_t readidew(void)
                                 if (ide.secount)
                                 {
                                         ide_next_sector();
-                                        ide.atastat[ide.board] = BUSY_STAT;
+                                        ide.atastat = BUSY_STAT;
                                         idecallback=0;
                                         callbackide();
                                 }
@@ -658,7 +640,7 @@ void callbackide(void)
         int c;
         if (ide.reset)
         {
-                ide.atastat[ide.board] = READY_STAT;
+                ide.atastat = READY_STAT;
                 ide.error=0;
                 ide.secount=1;
                 ide.sector=1;
@@ -671,7 +653,7 @@ void callbackide(void)
         switch (ide.command)
         {
         case WIN_SRST: /*ATAPI Device Reset */
-                ide.atastat[ide.board] = READY_STAT;
+                ide.atastat = READY_STAT;
                 ide.error=1; /*Device passed*/
                 ide.secount = ide.sector = 1;
                 if (IDE_DRIVE_IS_CDROM(ide)) {
@@ -687,8 +669,7 @@ void callbackide(void)
                 if (IDE_DRIVE_IS_CDROM(ide)) {
                         goto abort_cmd;
                 }
-//                rpclog("Restore callback\n");
-                ide.atastat[ide.board] = READY_STAT;
+                ide.atastat = READY_STAT;
                 ide_irq_raise();
                 return;
 
@@ -697,16 +678,10 @@ void callbackide(void)
                         goto abort_cmd;
                 }
                 addr = ide_get_sector() * 512;
-//                rpclog("Read %i %i %i %08X\n",ide.cylinder,ide.head,ide.sector,addr);
-                /*                if (ide.cylinder || ide.head)
-                {
-                        fatal("Read from other cylinder/head");
-                }*/
-                fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
-                fread(ide.buffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
+                fseeko64(ide.hdfile[ide.drive], addr, SEEK_SET);
+                fread(ide.buffer, 512, 1, ide.hdfile[ide.drive]);
                 ide.pos=0;
-                ide.atastat[ide.board] = DRQ_STAT;
-//                rpclog("Read sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
+                ide.atastat = DRQ_STAT;
                 ide_irq_raise();
                 return;
 
@@ -715,19 +690,17 @@ void callbackide(void)
                         goto abort_cmd;
                 }
                 addr = ide_get_sector() * 512;
-//                rpclog("Write sector callback %i %i %i offset %08X %i left %i\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount,ide.spt);
-                fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
-                fwrite(ide.buffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
+                fseeko64(ide.hdfile[ide.drive], addr, SEEK_SET);
+                fwrite(ide.buffer, 512, 1, ide.hdfile[ide.drive]);
                 ide_irq_raise();
                 ide.secount--;
-                if (ide.secount)
-                {
-                        ide.atastat[ide.board] = DRQ_STAT;
+                if (ide.secount != 0) {
+                        ide.atastat = DRQ_STAT;
                         ide.pos=0;
                         ide_next_sector();
+                } else {
+                        ide.atastat = READY_STAT;
                 }
-                else
-                   ide.atastat[ide.board] = READY_STAT;
                 return;
 
         case WIN_VERIFY:
@@ -735,8 +708,7 @@ void callbackide(void)
                         goto abort_cmd;
                 }
                 ide.pos=0;
-                ide.atastat[ide.board] = READY_STAT;
-//                rpclog("Read verify callback %i %i %i offset %08X %i left\n",ide.sector,ide.cylinder,ide.head,addr,ide.secount);
+                ide.atastat = READY_STAT;
                 ide_irq_raise();
                 return;
 
@@ -745,14 +717,13 @@ void callbackide(void)
                         goto abort_cmd;
                 }
                 addr = ide_get_sector() * 512;
-//                rpclog("Format cyl %i head %i offset %08X %08X %08X secount %i\n",ide.cylinder,ide.head,addr,addr>>32,addr,ide.secount);
-                fseeko64(ide.hdfile[ide.drive | ide.board], addr, SEEK_SET);
+                fseeko64(ide.hdfile[ide.drive], addr, SEEK_SET);
                 memset(ide.buffer, 0, 512);
                 for (c=0;c<ide.secount;c++)
                 {
-                        fwrite(ide.buffer, 512, 1, ide.hdfile[ide.drive | ide.board]);
+                        fwrite(ide.buffer, 512, 1, ide.hdfile[ide.drive]);
                 }
-                ide.atastat[ide.board] = READY_STAT;
+                ide.atastat = READY_STAT;
                 ide_irq_raise();
                 return;
 
@@ -760,10 +731,9 @@ void callbackide(void)
                 if (IDE_DRIVE_IS_CDROM(ide)) {
                         goto abort_cmd;
                 }
-                ide.spt[ide.drive|ide.board]=ide.secount;
-                ide.hpc[ide.drive|ide.board]=ide.head+1;
-                ide.atastat[ide.board] = READY_STAT;
-//                rpclog("%i sectors per track, %i heads per cylinder\n",ide.spt,ide.hpc);
+                ide.spt[ide.drive] = ide.secount;
+                ide.hpc[ide.drive] = ide.head + 1;
+                ide.atastat = READY_STAT;
                 ide_irq_raise();
                 return;
 
@@ -772,7 +742,7 @@ void callbackide(void)
                         ide_atapi_identify();
                         ide.pos=0;
                         ide.error=0;
-                        ide.atastat[ide.board] = DRQ_STAT;
+                        ide.atastat = DRQ_STAT;
                         ide_irq_raise();
                         return;
                 }
@@ -791,8 +761,7 @@ void callbackide(void)
                 }
                 ide_identify();
                 ide.pos=0;
-                ide.atastat[ide.board] = DRQ_STAT;
-//                rpclog("ID callback\n");
+                ide.atastat = DRQ_STAT;
                 ide_irq_raise();
                 return;
 
@@ -802,33 +771,31 @@ void callbackide(void)
                 {
                         ide.pos=0;
                         ide.error=(uint8_t)((ide.secount&0xF8)|1);
-                        ide.atastat[ide.board] = DRQ_STAT;
+                        ide.atastat = DRQ_STAT;
                         ide_irq_raise();
 //                        rpclog("Preparing to recieve packet max DRQ count %04X\n",ide.cylinder);
                 }
                 else if (ide.packetstatus==1)
                 {
-                        ide.atastat[ide.board] = BUSY_STAT;
-                        
+                        ide.atastat = BUSY_STAT;
                         atapicommand();
 //                        exit(-1);
                 }
                 else if (ide.packetstatus==2)
                 {
-//                        rpclog("packetstatus==2\n");
-                        ide.atastat[ide.board] = READY_STAT;
+                        ide.atastat = READY_STAT;
                         ide_irq_raise();
                 }
                 else if (ide.packetstatus==3)
                 {
-                        ide.atastat[ide.board] = DRQ_STAT;
+                        ide.atastat = DRQ_STAT;
 //                        rpclog("Recieve data packet!\n");
                         ide_irq_raise();
                         ide.packetstatus=0xFF;
                 }
                 else if (ide.packetstatus==4)
                 {
-                        ide.atastat[ide.board] = DRQ_STAT;
+                        ide.atastat = DRQ_STAT;
 //                        rpclog("Send data packet!\n");
                         ide_irq_raise();
 //                        ide.packetstatus=5;
@@ -841,21 +808,21 @@ void callbackide(void)
                 }
                 else if (ide.packetstatus==6) /*READ CD callback*/
                 {
-                        ide.atastat[ide.board] = DRQ_STAT;
+                        ide.atastat = DRQ_STAT;
 //                        rpclog("Recieve data packet 6!\n");
                         ide_irq_raise();
 //                        ide.packetstatus=0xFF;
                 }
                 else if (ide.packetstatus==0x80) /*Error callback*/
                 {
-                        ide.atastat[ide.board] = READY_STAT | ERR_STAT;
+                        ide.atastat = READY_STAT | ERR_STAT;
                         ide_irq_raise();
                 }
                 return;
         }
 
 abort_cmd:
-	ide.atastat[ide.board] = READY_STAT | ERR_STAT;
+	ide.atastat = READY_STAT | ERR_STAT;
 	ide.error = ABRT_ERR;
 	ide_irq_raise();
 }
@@ -874,7 +841,7 @@ static void atapi_notready(void)
         /*Medium not present is 02/3A/--*/
         /*cylprecomp is error number*/
         /*SENSE/ASC/ASCQ*/
-        ide.atastat[0] = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
+        ide.atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
         ide.error = (SENSE_NOT_READY << 4) | ABRT_ERR;
         if (ide.discchanged) {
                 ide.error |= MCR_ERR;
@@ -1053,7 +1020,7 @@ static void atapicommand(void)
                 if (!atapi->ready()) { atapi_notready(); return; }
                 if (ide.packetstatus==5)
                 {
-                        ide.atastat[0] = 0;
+                        ide.atastat = 0;
 //                        rpclog("Recieve data packet!\n");
                         ide_irq_raise();
                         ide.packetstatus=0xFF;
@@ -1169,7 +1136,7 @@ static void atapicommand(void)
 
         case GPCMD_SEND_DVD_STRUCTURE:
         default:
-                ide.atastat[0] = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
+                ide.atastat = READY_STAT | ERR_STAT;    /*CHECK CONDITION*/
                 ide.error = (SENSE_ILLEGAL_REQUEST << 4) | ABRT_ERR;
                 if (ide.discchanged) {
                         ide.error |= MCR_ERR;
@@ -1199,7 +1166,7 @@ static void callreadcd(void)
                 return;
         }
 //        rpclog("Continue readcd! %i blocks left\n",ide.cdlen);
-        ide.atastat[0] = BUSY_STAT;
+        ide.atastat = BUSY_STAT;
         
         atapi->readsector((uint8_t *) ide.buffer, ide.cdpos);
 
