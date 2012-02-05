@@ -103,14 +103,14 @@ static struct
         unsigned char fdisk;
         int pos;
         int packlen;
-        int spt[4],hpc[4];
+        int spt[2], hpc[2];
         int packetstatus;
         int cdpos,cdlen;
         unsigned char asc;
         int discchanged;
         int reset;
-        FILE *hdfile[4];
-        int skip512[4];
+        FILE *hdfile[2];
+        int skip512[2];
         uint16_t buffer[65536];
 } ide;
 
@@ -345,7 +345,7 @@ void resetide(void)
         int d;
 
         /* Close hard disk image files (if previously open) */
-        for (d = 0; d < 4; d++) {
+        for (d = 0; d < 2; d++) {
                 if (ide.hdfile[d] != NULL) {
                         fclose(ide.hdfile[d]);
                         ide.hdfile[d] = NULL;
@@ -354,22 +354,10 @@ void resetide(void)
 
         ide.atastat = READY_STAT;
         idecallback = 0;
-        loadhd(0,"hd4.hdf");
-        if (config.cdromenabled)
-        {
-                /* Hard disk images for ICS IDE disabled
-                loadhd(2,"hd5.hdf");
-                loadhd(3,"hd6.hdf");
-                */
-        }
-        else
-        {
-                loadhd(1,"hd5.hdf");
-                /* Hard disk images for ICS IDE disabled
-                loadhd(2,"hd6.hdf");
-                loadhd(3,"hd7.hdf");
-                */
-        }
+	loadhd(0, "hd4.hdf");
+	if (!config.cdromenabled) {
+		loadhd(1, "hd5.hdf");
+	}
 }
 
 void writeidew(uint16_t val)
