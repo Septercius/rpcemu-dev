@@ -213,6 +213,8 @@ resetrpc(void)
 void
 rpcemu_log_information(void)
 {
+	char cwd[1024];
+
 	/* Log version and build type */
 	rpclog("RPCEmu " VERSION " [");
 #if defined(DYNAREC)
@@ -241,6 +243,11 @@ rpcemu_log_information(void)
 	/* Log Allegro information */
 	rpclog("Allegro version ID: %s\n", allegro_id);
 	rpclog("Host Colour Depth: %u\n", desktop_color_depth());
+
+	/* Log working directory */
+	if (getcwd(cwd, sizeof(cwd)) != NULL) {
+		rpclog("Working Directory: %s\n", cwd);
+	}
 }
 
 /**
