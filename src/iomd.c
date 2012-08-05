@@ -38,8 +38,8 @@
 
 //#define IOMD_0x02C_STOPMODE 0x02C /* Enter STOP mode (ARM7500/FE) */
 
-//#define IOMD_0x030_FIQST    0x030 /* FIQ status */
-//#define IOMD_0x034_FIQRQ    0x034 /* FIQ request */
+#define IOMD_0x030_FIQST    0x030 /* FIQ status */
+#define IOMD_0x034_FIQRQ    0x034 /* FIQ request */
 #define IOMD_0x038_FIQMSK   0x038 /* FIQ mask */
 
 #define IOMD_0x03C_CLKCTL   0x03C /* Clock divider control (ARM7500/FE) */
@@ -565,6 +565,10 @@ iomd_read(uint32_t addr)
         case IOMD_0x028_IRQMSKB: /* IRQB mask */
                 return iomd.irqb.mask;
 
+        case IOMD_0x030_FIQST: /* FIQ status */
+                return iomd.fiq.status;
+        case IOMD_0x034_FIQRQ: /* FIQ request */
+                return iomd.fiq.status & iomd.fiq.mask;
         case IOMD_0x038_FIQMSK: /* FIQ mask */
                 return iomd.fiq.mask;
 
