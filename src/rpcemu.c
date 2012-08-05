@@ -175,7 +175,7 @@ resetrpc(void)
 
         mem_reset(config.mem_size);
         resetcp15();
-        resetarm();
+        resetarm(config.model);
         keyboard_reset();
 
 	if (config.model == CPUModel_ARM7500) {

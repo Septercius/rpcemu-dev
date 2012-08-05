@@ -216,7 +216,8 @@ static int stmlookup[256];
 
 int countbitstable[65536];
 
-void resetarm(void)
+void
+resetarm(CPUModel cpu_model)
 {
         int c,d,exec = 0,data;
 //        atexit(dumpregs);
@@ -283,10 +284,11 @@ void resetarm(void)
         armregs[16]=SUPERVISOR|0xD0;
         mode=SUPERVISOR;
         pccache=0xFFFFFFFF;
-        if (config.model == CPUModel_SA110 || config.model == CPUModel_ARM810)
-                r15diff = 0;
-        else
-                r15diff = 4;
+	if (cpu_model == CPUModel_SA110 || cpu_model == CPUModel_ARM810) {
+		r15diff = 0;
+	} else {
+		r15diff = 4;
+	}
 }
 
 int indumpregs=0;

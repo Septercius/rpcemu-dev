@@ -1,6 +1,8 @@
 #ifndef __ARM__
 #define __ARM__
 
+#include "rpcemu.h"
+
 typedef void (*OpFn)(uint32_t opcode);
 
 extern void updatemode(uint32_t m);
@@ -24,7 +26,7 @@ extern int cpsr;
 extern uint32_t r15mask;
 extern uint32_t mode;
 extern unsigned char flaglookup[16][16];
-extern void resetarm(void);
+extern void resetarm(CPUModel cpu_model);
 extern void execarm(int cycles);
 extern void dumpregs(void);
 extern void exception(int mmode, uint32_t address, int diff);
