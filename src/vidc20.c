@@ -604,8 +604,7 @@ void vidcthread(void)
         uint32_t *vidp=NULL;
         unsigned short *vidp16=NULL;
         int drawit=0;
-        int x = 0;
-        int y = 0;
+        int x, y;
         const unsigned char *ramp;
         const unsigned short *ramw;
         int addr;
@@ -636,8 +635,7 @@ void vidcthread(void)
                 {
                         case 0: /*1 bpp*/
                         thr.xsize>>=1;
-                        for (;y<thr.ysize;y++)
-                        {
+                        for (y = 0; y < thr.ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
@@ -650,8 +648,7 @@ void vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (;x<thr.xsize;x+=64)
-                                {
+                                for (x = 0; x < thr.xsize; x += 64) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -686,7 +683,6 @@ void vidcthread(void)
                                                    yl=y;
                                         }
                                 }
-                                x=0;
                         }
                         thr.xsize<<=1;
                         break;
@@ -802,8 +798,7 @@ void vidcthread(void)
                         case 3: /*8 bpp*/
                         thr.xsize>>=1;
 //                        rpclog("Start %08X End %08X Init %08X\n",thr.iomd_vidstart,thr.iomd_vidend,addr);
-                        for (;y<thr.ysize;y++)
-                        {
+                        for (y = 0; y < thr.ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1)))
                                 {
                                         drawit=1;
@@ -816,8 +811,7 @@ void vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (;x<thr.xsize;x+=8)
-                                {
+                                for (x = 0; x < thr.xsize; x += 8) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -850,7 +844,6 @@ void vidcthread(void)
                                                 if (drawit && !olddrawit) vidp=(uint32_t *)bmp_write_line(b,y);
                                         }
                                 }
-                                x=0;
                         }
                         thr.xsize<<=1;
   //                      rpclog("Yl %i Yh %i\n",yl,yh);
