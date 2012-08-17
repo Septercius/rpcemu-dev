@@ -29,8 +29,6 @@
 #include "network.h"
 #endif
 
-unsigned char flaglookup[16][16];
-
 char discname[2][260]={"boot.adf","notboot.adf"};
 
 Config config = {
