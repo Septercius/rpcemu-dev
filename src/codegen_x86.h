@@ -8,6 +8,8 @@ extern unsigned char rcodeblock[BLOCKS+4][1792+512+64];
 extern unsigned long codeblockpc[0x8000];
 extern int codeblocknum[0x8000];
 
+extern uint8_t flaglookup[16][16];
+
 #define BLOCKSTART 16
 //uint32_t blocks[1024];
 

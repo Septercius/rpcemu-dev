@@ -45,6 +45,8 @@ int armirq=0;
 int cpsr;
 uint32_t *pcpsr;
 
+uint8_t flaglookup[16][16];
+
 uint32_t *usrregs[16];
 static uint32_t userregs[17], superregs[17], fiqregs[17], irqregs[17];
 static uint32_t abortregs[17], undefregs[17];
