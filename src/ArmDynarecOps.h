@@ -18,7 +18,7 @@ static void opANDreg(uint32_t opcode)
 
 static void opANDregS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, dest;
 
 	if ((opcode & 0xf0) == 0x90) /* MULS */
 	{
@@ -35,9 +35,9 @@ static void opANDregS(uint32_t opcode)
 		}
 		else
 		{
-			templ=shift(opcode);
-			armregs[RD] = lhs & templ;
-			setzn(armregs[RD]);
+			dest = lhs & shift(opcode);
+			armregs[RD] = dest;
+			setzn(dest);
 		}
 	}
 }
@@ -60,7 +60,7 @@ static void opEORreg(uint32_t opcode)
 
 static void opEORregS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, dest;
 
         if ((opcode & 0xf0) == 0x90) /* MLAS */
         {
@@ -77,9 +77,9 @@ static void opEORregS(uint32_t opcode)
                 }
                 else
                 {
-                        templ=shift(opcode);
-                        armregs[RD] = lhs ^ templ;
-                        setzn(armregs[RD]);
+                        dest = lhs ^ shift(opcode);
+                        armregs[RD] = dest;
+                        setzn(dest);
                 }
         }
 }
@@ -474,7 +474,7 @@ static void opORRreg(uint32_t opcode)
 
 static void opORRregS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, dest;
 
         lhs = GETADDR(RN);
         if (RD==15)
@@ -483,9 +483,9 @@ static void opORRregS(uint32_t opcode)
         }
         else
         {
-                templ=shift(opcode);
-                armregs[RD] = lhs | templ;
-                setzn(armregs[RD]);
+                dest = lhs | shift(opcode);
+                armregs[RD] = dest;
+                setzn(dest);
         }
 }
 
@@ -520,7 +520,7 @@ static void opBICreg(uint32_t opcode)
 
 static void opBICregS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, dest;
 
         lhs = GETADDR(RN);
         if (RD==15)
@@ -529,9 +529,9 @@ static void opBICregS(uint32_t opcode)
         }
         else
         {
-                templ=shift(opcode);
-                armregs[RD] = lhs & ~templ;
-                setzn(armregs[RD]);
+                dest = lhs & ~shift(opcode);
+                armregs[RD] = dest;
+                setzn(dest);
         }
 }
 
@@ -567,7 +567,7 @@ static void opANDimm(uint32_t opcode)
 
 static void opANDimmS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, dest;
 
         lhs = GETADDR(RN);
         if (RD==15)
@@ -576,9 +576,9 @@ static void opANDimmS(uint32_t opcode)
         }
         else
         {
-                templ=rotate(opcode);
-                armregs[RD] = lhs & templ;
-                setzn(armregs[RD]);
+                dest = lhs & rotate(opcode);
+                armregs[RD] = dest;
+                setzn(dest);
         }
 }
 
@@ -592,7 +592,7 @@ static void opEORimm(uint32_t opcode)
 
 static void opEORimmS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, dest;
 
         lhs = GETADDR(RN);
         if (RD==15)
@@ -601,9 +601,9 @@ static void opEORimmS(uint32_t opcode)
         }
         else
         {
-                templ=rotate(opcode);
-                armregs[RD] = lhs ^ templ;
-                setzn(armregs[RD]);
+                dest = lhs ^ rotate(opcode);
+                armregs[RD] = dest;
+                setzn(dest);
         }
 }
 
@@ -845,7 +845,7 @@ static void opORRimm(uint32_t opcode)
 
 static void opORRimmS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, dest;
 
         lhs = GETADDR(RN);
         if (RD==15)
@@ -854,9 +854,9 @@ static void opORRimmS(uint32_t opcode)
         }
         else
         {
-                templ=rotate(opcode);
-                armregs[RD] = lhs | templ;
-                setzn(armregs[RD]);
+                dest = lhs | rotate(opcode);
+                armregs[RD] = dest;
+                setzn(dest);
         }
 }
 
@@ -891,7 +891,7 @@ static void opBICimm(uint32_t opcode)
 
 static void opBICimmS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, dest;
 
         lhs = GETADDR(RN);
         if (RD==15)
@@ -900,9 +900,9 @@ static void opBICimmS(uint32_t opcode)
         }
         else
         {
-                templ=rotate(opcode);
-                armregs[RD] = lhs & ~templ;
-                setzn(armregs[RD]);
+                dest = lhs & ~rotate(opcode);
+                armregs[RD] = dest;
+                setzn(dest);
         }
 }
  
