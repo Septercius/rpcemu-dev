@@ -580,7 +580,6 @@ void exception(int mmode, uint32_t address, int diff)
 void execarm(int cycs)
 {
         int linecyc;
-        int target;
 	uint32_t opcode;
 	uint32_t lhs, rhs, dest;
 	uint32_t templ, templ2, addr, addr2, writeback;
@@ -603,7 +602,6 @@ void execarm(int cycs)
                         else
                            opcode=pccache2[PC>>2];
 
-                        target=(opcode>>20)&0xFF;
                         if (flaglookup[opcode>>28][(*pcpsr)>>28] && !(armirq&0x80))//prefabort)
                         {
 #ifdef STRONGARM
@@ -624,8 +622,7 @@ void execarm(int cycs)
 //                                        domain:
 //                                        GETRD;
 #endif
-                                switch (target)//((opcode>>20)&0xFF)
-                                {
+                                switch ((opcode >> 20) & 0xff) {
 				case 0x00: /* AND reg */
 					if ((opcode & 0xf0) == 0x90) /* MUL */
 					{

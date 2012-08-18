@@ -647,7 +647,6 @@ int linecyc=0;
 
 void execarm(int cycs)
 {
-        //int target;
         int hash;
         void (*gen_func)(void);
 	uint32_t opcode;
