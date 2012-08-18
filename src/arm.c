@@ -655,9 +655,9 @@ void execarm(int cycs)
 					       }
 					       else
 					       {
-						       templ=shift(opcode);
-						       armregs[RD] = lhs & templ;
-						       setzn(armregs[RD]);
+						       dest = lhs & shift(opcode);
+						       armregs[RD] = dest;
+						       setzn(dest);
 					       }
 					}
 					break;
@@ -691,9 +691,9 @@ void execarm(int cycs)
                                                 }
                                                 else
                                                 {
-                                                        templ=shift(opcode);
-                                                        armregs[RD] = lhs ^ templ;
-                                                        setzn(armregs[RD]);
+                                                        dest = lhs ^ shift(opcode);
+                                                        armregs[RD] = dest;
+                                                        setzn(dest);
                                                 }
                                         }
                                         break;
@@ -1046,9 +1046,9 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=shift(opcode);
-                                                armregs[RD] = lhs | templ;
-                                                setzn(armregs[RD]);
+                                                dest = lhs | shift(opcode);
+                                                armregs[RD] = dest;
+                                                setzn(dest);
                                         }
                                         break;
 
@@ -1082,9 +1082,9 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=shift(opcode);
-                                                armregs[RD] = lhs & ~templ;
-                                                setzn(armregs[RD]);
+                                                dest = lhs & ~shift(opcode);
+                                                armregs[RD] = dest;
+                                                setzn(dest);
                                         }
                                         break;
 
@@ -1118,9 +1118,9 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=rotate(opcode);
-                                                armregs[RD] = lhs & templ;
-                                                setzn(armregs[RD]);
+                                                dest = lhs & rotate(opcode);
+                                                armregs[RD] = dest;
+                                                setzn(dest);
                                         }
                                         break;
 
@@ -1137,9 +1137,9 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=rotate(opcode);
-                                                armregs[RD] = lhs ^ templ;
-                                                setzn(armregs[RD]);
+                                                dest = lhs ^ rotate(opcode);
+                                                armregs[RD] = dest;
+                                                setzn(dest);
                                         }
                                         break;
 
@@ -1335,9 +1335,9 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=rotate(opcode);
-                                                armregs[RD] = lhs | templ;
-                                                setzn(armregs[RD]);
+                                                dest = lhs | rotate(opcode);
+                                                armregs[RD] = dest;
+                                                setzn(dest);
                                         }
                                         break;
 
@@ -1371,9 +1371,9 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                templ=rotate(opcode);
-                                                armregs[RD] = lhs & ~templ;
-                                                setzn(armregs[RD]);
+                                                dest = lhs & ~rotate(opcode);
+                                                armregs[RD] = dest;
+                                                setzn(dest);
                                         }
                                         break;
 
