@@ -858,8 +858,6 @@ static void generatesetzn(uint32_t opcode, uint32_t *pcpsr)
         addbyte(0x08); addbyte(0xE1); /*OR %ah,%cl*/
 
         if ((opcode>>28)==0xE) flagsdirty=1;
-//        addbyte(0x88); addbyte(0x4E); addbyte((uint32_t)(pcpsr+3)-armregs);
-//        rpclog("generatesetzn %08X %08X %i\n",(pcpsr+3),armregs,(uint32_t)(pcpsr+3)-(uint32_t)armregs);
         addbyte(0x88); addbyte(0x0D); addlong(pcpsr+3); /*MOV %cl,pcpsr*/
 }
 
@@ -1365,8 +1363,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x25: /* SUBS imm */
                 flagsdirty=0;
                 if (RD==15) return 0;
-                addbyte(0x80); addbyte(0x66); addbyte((uint32_t)(pcpsr)-(uint32_t)(&armregs[0])+3); addbyte(0xF); /*ANDB 0xF,pcpsr*/
-//                addbyte(0x80); addbyte(0x25); addlong(pcpsr+3); addbyte(0xF); /*ANDB 0xF,pcpsr*/
+                addbyte(0x80); addbyte(0x25); addlong(pcpsr+3); addbyte(0xf); /* ANDB $0xf,pcpsr */
                 templ=rotate2(opcode);//,pcpsr,0xF0);
                 generatedataprocS(opcode, X86_OP_SUB, templ);
                 //gen_x86_lahf();
@@ -1374,7 +1371,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
                 addbyte(0xC0); addbyte(0xE1); addbyte(4); /*SHL $4,%cl*/
                 addbyte(0x0A); addbyte(0x8A); addlong(lahftablesub); /*OR lahftable(%edx),%cl*/
-                addbyte(0x08); addbyte(0x4E); addbyte((uint32_t)(pcpsr)-(uint32_t)(&armregs[0])+3); /*OR %cl,pcpsr*/
+                addbyte(0x08); addbyte(0x0d); addlong(pcpsr+3); /* OR %cl,pcpsr */
 //                flagsdirty=1;
                 break;
 
@@ -1388,7 +1385,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x29: /* ADDS imm */
                 flagsdirty=0;
                 if (RD==15) return 0;
-                addbyte(0x80); addbyte(0x66); addbyte((uint32_t)(pcpsr)-(uint32_t)(&armregs[0])+3); addbyte(0xF); /*ANDB 0xF,pcpsr*/
+                addbyte(0x80); addbyte(0x25); addlong(pcpsr+3); addbyte(0xf); /* ANDB $0xf,pcpsr */
                 templ=rotate2(opcode);
                 generatedataprocS(opcode, X86_OP_ADD, templ);
                 
@@ -1396,7 +1393,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
                 addbyte(0xC0); addbyte(0xE1); addbyte(4); /*SHL $4,%cl*/
                 addbyte(0x0A); addbyte(0x8A); addlong(lahftable); /*OR lahftable(%edx),%cl*/
-                addbyte(0x08); addbyte(0x4E); addbyte((uint32_t)(pcpsr)-(uint32_t)(&armregs[0])+3); /*OR %cl,pcpsr*/
+                addbyte(0x08); addbyte(0x0d); addlong(pcpsr+3); /* OR %cl,pcpsr */
 //                flagsdirty=1;
                 break;
 
@@ -1502,7 +1499,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x35: /* CMP imm */
                 flagsdirty=0;
                 if (RD==15) return 0;
-                addbyte(0x80); addbyte(0x66); addbyte((uint32_t)(pcpsr)-(uint32_t)(&armregs[0])+3); addbyte(0xF); /*ANDB 0xF,pcpsr*/
+                addbyte(0x80); addbyte(0x25); addlong(pcpsr+3); addbyte(0xf); /* ANDB $0xf,pcpsr */
                 templ=rotate2(opcode);
                 generateload(RN);
                 addbyte(0x3D); addlong(templ); /*CMP $templ,%eax*/
@@ -1511,7 +1508,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
                 addbyte(0xC0); addbyte(0xE1); addbyte(4); /*SHL $4,%cl*/
                 addbyte(0x0A); addbyte(0x8A); addlong(lahftablesub); /*OR lahftable(%edx),%cl*/
-                addbyte(0x08); addbyte(0x4E); addbyte((uint32_t)(pcpsr)-(uint32_t)(&armregs[0])+3); /*OR %cl,pcpsr*/
+                addbyte(0x08); addbyte(0x0d); addlong(pcpsr+3); /* OR %cl,pcpsr */
                 break;
 
                 
