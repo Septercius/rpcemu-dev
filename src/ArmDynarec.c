@@ -275,14 +275,9 @@ resetarm(CPUModel cpu_model)
 	}
 }
 
-int indumpregs=0;
-
 void dumpregs(void)
 {
         char s[1024];
-
-        if (indumpregs) return;
-        indumpregs=1;
 
         sprintf(s, "R 0=%08X R 4=%08X R 8=%08X R12=%08X\n"
                    "R 1=%08X R 5=%08X R 9=%08X R13=%08X\n"
@@ -298,8 +293,6 @@ void dumpregs(void)
         printf("%s",s);
 
         memmode=1;
-
-        indumpregs=0;
 }
 
 #define dumpregs()

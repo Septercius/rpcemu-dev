@@ -33,7 +33,6 @@ extern void exception(int mmode, uint32_t address, int diff);
 
 extern int databort,prefabort;
 extern int prog32;
-extern int indumpregs;
 extern int blockend;
 
 extern int lastflagchange;

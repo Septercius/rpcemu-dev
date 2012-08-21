@@ -496,18 +496,15 @@ uint32_t *getpccache(uint32_t addr)
         if (mmu)
         {
                 armirq&=~0x40;
-//                if (indumpregs) rpclog("Translate prefetch %08X %02X ",addr,armirq);
                 addr2=translateaddress(addr,0,1);
                 if (armirq&0x40)
                 {
-//                        if (indumpregs) rpclog("Abort!\n");
                         armirq&=~0x40;
                         armirq|=0x80;
 //                        databort=0;
 //                        prefabort=1;
                         return NULL;
                 }
-//                if (indumpregs) rpclog("\n");
         }
         else     addr2=addr;
         /*Invalidate write pointer for this page - so we can handle code modification*/
