@@ -397,7 +397,6 @@ static uint32_t shift3(uint32_t opcode)
 #define shift(o)  ((o&0xFF0)?shift3(o):armregs[RM])
 #define shift2(o) ((o&0xFF0)?shift4(o):armregs[RM])
 #define shift_ldrstr(o) shift2(o)
-//#define shift_ldrstr(o) ((o&0xFF0)?shift_ldrstr2(o):armregs[RM])
 
 static unsigned
 shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
@@ -457,50 +456,7 @@ static inline unsigned shift4(unsigned opcode)
                 }
         }
 }
-#if 0
-unsigned shift_ldrstr3(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
-{
-                switch (shiftmode)
-                {
-                        case 0: /*LSL*/
-                        return rm;
-                        case 0x20: /*LSR*/
-                        return 0;
-                        case 0x40: /*ASR*/
-                        if (rm&0x80000000) return 0xFFFFFFFF;
-                        return 0;
-                        default: /*ROR*/
-                        return (((*pcpsr)/*armregs[cpsr]*/&CFLAG)<<2)|(rm>>1);
-//                        return (((CFSET)?1:0)<<31)|(rm>>1);
-                }
-}
 
-static inline unsigned shift_ldrstr2(unsigned opcode)
-{
-        unsigned shiftmode=opcode&0x60;
-        unsigned shiftamount=(opcode>>7)&31;
-        uint32_t rm=armregs[RM];
-        if (!shiftamount)
-        {
-                return 0;
-//                shift_ldrstr3(opcode,shiftmode,shiftamount,rm);
-        }
-        else
-        {
-                switch (shiftmode)
-                {
-                        case 0: /*LSL*/
-                        return rm<<shiftamount;
-                        case 0x20: /*LSR*/
-                        return rm>>shiftamount;
-                        case 0x40: /*ASR*/
-                        return (int)rm>>shiftamount;
-                        default: /*ROR*/
-                        return (rm>>shiftamount)|(rm<<(32-shiftamount));
-                }
-        }
-}
-#endif
 static inline unsigned rotate(unsigned data)
 {
         uint32_t rotval;
