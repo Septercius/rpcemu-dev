@@ -430,10 +430,10 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
                         if (mousehack) {
                                sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f",
-                                       mips, mipstotal / mipscount);
+                                       perf.mips, perf.mips_total / perf.mips_count);
                         } else {
                                sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f - %s",
-                                       mips, mipstotal / mipscount,
+                                       perf.mips, perf.mips_total / perf.mips_count,
                                        (mousecapture) ?
                                            "Press CTRL-END to release mouse" :
                                            "Click to capture mouse");

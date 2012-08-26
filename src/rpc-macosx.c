@@ -252,7 +252,7 @@ int main (int argc, char ** argv)
                                 char title[128];
 
                                 sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f",
-                                        mips, mipstotal / mipscount);
+                                        perf.mips, perf.mips_total / perf.mips_count);
                                 set_window_title(title);
                                 updatemips=0;
                         }

@@ -172,9 +172,15 @@ extern char discname[2][260];
 
 /* Performance measuring variables */
 extern int updatemips;
-extern float mips, mhz, tlbsec, flushsec;
-extern uint32_t mipscount;
-extern float mipstotal;
+typedef struct {
+	float mips;
+	float mhz;
+	float tlb_sec;
+	float flush_sec;
+	uint32_t mips_count;
+	float mips_total;
+} Perf;
+extern Perf perf;
 
 /* UNIMPLEMENTED requires variable argument macros
    GCC extension or C99 */
