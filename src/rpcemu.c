@@ -66,7 +66,6 @@ float mipstotal;
 static FILE *arclog; /* Log file handle */
 
 static void loadconfig(void);
-
 static void saveconfig(void);
 
 #ifdef _DEBUG
@@ -136,7 +135,8 @@ rpclog(const char *format, ...)
 /**
  * Called once a second to update the performance counters
  */
-void domips(void)
+static void
+domips(void)
 {
 	mips = (float) inscount / 1000000.0f;
 	inscount = 0;
