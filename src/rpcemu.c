@@ -51,17 +51,22 @@ Config config = {
 	0,			/* cpu_idle */
 };
 
+/* Performance measuring variables */
+int updatemips = 0; /**< bool of whether to update the mips speed in the program title bar */
+Perf perf = {
+	0.0f, /* mips */
+	0.0f, /* mhz */
+	0.0f, /* tlb_sec */
+	0.0f, /* flush_sec */
+	0,    /* mips_count */
+	0.0f  /* mips_total */
+};
+
 int infocus = 0;
 int cyccount = 0;
 int drawscre = 0;
 int mousecapture = 0;
 int quited = 0;
-
-/* Performance measuring variables */
-int updatemips = 0; /**< bool of whether to update the mips speed in the program title bar/other method */
-float mips = 0.0f, mhz = 0.0f, tlbsec = 0.0f, flushsec = 0.0f;
-uint32_t mipscount;
-float mipstotal;
 
 static FILE *arclog; /* Log file handle */
 
@@ -138,19 +143,19 @@ rpclog(const char *format, ...)
 static void
 domips(void)
 {
-	mips = (float) inscount / 1000000.0f;
+	perf.mips = (float) inscount / 1000000.0f;
 	inscount = 0;
 
-	mipscount += 1;
-	mipstotal += mips;
+	perf.mips_count += 1;
+	perf.mips_total += perf.mips;
 
-	mhz = (float) cyccount / 1000000.0f;
+	perf.mhz = (float) cyccount / 1000000.0f;
 	cyccount = 0;
 
-	tlbsec = (float) tlbs / 1000000.0f;
+	perf.tlb_sec = (float) tlbs / 1000000.0f;
 	tlbs = 0;
 
-	flushsec = (float) flushes;
+	perf.flush_sec = (float) flushes;
 	flushes = 0;
 
 	updatemips = 1;
