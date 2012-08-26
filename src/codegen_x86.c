@@ -1176,7 +1176,7 @@ static int recompile(uint32_t opcode, uint32_t *pcpsr)
                         generateloadgen(MULRD,ECX);
                         addbyte(0xF7); addbyte(0x2D); addlong(&armregs[MULRS]); /*IMULL armregs[MULRS],%eax*/
                         addbyte(0x01); addbyte(0xD8); /*ADDL %ebx,%eax*/
-                        addbyte(0x01); addbyte(0xCA); /*ADDL %ecx,%edx*/
+                        addbyte(0x11); addbyte(0xCA); /* ADC %ecx,%edx */
                         generatesave(MULRN);
                         generatesavegen(MULRD,EDX);
                         break;
