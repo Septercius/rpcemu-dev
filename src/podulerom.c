@@ -7,26 +7,26 @@
 #define MAXROMS 16
 static char romfns[MAXROMS+1][256];
 
-static char *podulerom = NULL;
-static int poduleromsize = 0;
-static int chunkbase;
-static int filebase;
-
-static void makechunk(char type, int filebase, int size)
-{
-        podulerom[chunkbase++]=type;
-        podulerom[chunkbase++]=size&0xFF;
-        podulerom[chunkbase++]=(size&0xFF00)>>8;
-        podulerom[chunkbase++]=(size&0xFF0000)>>16;
-
-        podulerom[chunkbase++]=(filebase&0x000000FF);
-        podulerom[chunkbase++]=(filebase&0x0000FF00)>>8;
-        podulerom[chunkbase++]=(filebase&0x00FF0000)>>16;
-        podulerom[chunkbase++]=(filebase&0xFF000000)>>24;
-}
+static uint8_t *podulerom = NULL;
+static uint32_t poduleromsize = 0;
+static uint32_t chunkbase;
+static uint32_t filebase;
 
 static const char description[] = "RPCEmu additional ROM";
 
+static void
+makechunk(uint8_t type, uint32_t filebase, uint32_t size)
+{
+	podulerom[chunkbase++] = type;
+	podulerom[chunkbase++] = (uint8_t) size;
+	podulerom[chunkbase++] = (uint8_t) (size >> 8);
+	podulerom[chunkbase++] = (uint8_t) (size >> 16);
+
+	podulerom[chunkbase++] = (uint8_t) filebase;
+	podulerom[chunkbase++] = (uint8_t) (filebase >> 8);
+	podulerom[chunkbase++] = (uint8_t) (filebase >> 16);
+	podulerom[chunkbase++] = (uint8_t) (filebase >> 24);
+}
 
 static uint8_t readpodulerom(podule *p, int easi, uint32_t addr)
 {
