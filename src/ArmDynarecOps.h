@@ -94,18 +94,19 @@ static void opSUBreg(uint32_t opcode)
 
 static void opSUBregS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
-        templ=shift2(opcode);
+        rhs = shift2(opcode);
+        dest = lhs - rhs;
         if (RD==15)
         {
-                arm_write_r15(opcode, lhs - templ);
+                arm_write_r15(opcode, dest);
         }
         else
         {
-                setsub(lhs, templ, lhs - templ);
-                armregs[RD] = lhs - templ;
+                setsub(lhs, rhs, dest);
+                armregs[RD] = dest;
         }
 }
 
@@ -119,18 +120,19 @@ static void opRSBreg(uint32_t opcode)
 
 static void opRSBregS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
-        templ=shift2(opcode);
+        rhs = shift2(opcode);
+        dest = rhs - lhs;
         if (RD==15)
         {
-                arm_write_r15(opcode, templ - lhs);
+                arm_write_r15(opcode, dest);
         }
         else
         {
-                setsub(templ, lhs, templ - lhs);
-                armregs[RD] = templ - lhs;
+                setsub(rhs, lhs, dest);
+                armregs[RD] = dest;
         }
 }
 
@@ -156,7 +158,7 @@ static void opADDreg(uint32_t opcode)
 
 static void opADDregS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, rhs, dest;
 
 #ifdef STRONGARM
 	if ((opcode & 0xf0) == 0x90) /* UMULLS */
@@ -172,12 +174,13 @@ static void opADDregS(uint32_t opcode)
 	}
 #endif
 	lhs = GETADDR(RN);
-	templ = shift2(opcode);
+	rhs = shift2(opcode);
+	dest = lhs + rhs;
 	if (RD == 15) {
-		arm_write_r15(opcode, lhs + templ);
+		arm_write_r15(opcode, dest);
 	} else {
-		setadd(lhs, templ, lhs + templ);
-		armregs[RD] = lhs + templ;
+		setadd(lhs, rhs, dest);
+		armregs[RD] = dest;
 	}
 }
 
@@ -617,18 +620,19 @@ static void opSUBimm(uint32_t opcode)
 
 static void opSUBimmS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
-        templ=rotate2(opcode);
+        rhs = rotate2(opcode);
+        dest = lhs - rhs;
         if (RD==15)
         {
-                arm_write_r15(opcode, lhs - templ);
+                arm_write_r15(opcode, dest);
         }
         else
         {
-                armregs[RD] = lhs - templ;
-                setsub(lhs, templ, lhs - templ);
+                armregs[RD] = dest;
+                setsub(lhs, rhs, dest);
         }
 }
 
@@ -642,18 +646,19 @@ static void opRSBimm(uint32_t opcode)
 
 static void opRSBimmS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
-        templ=rotate2(opcode);
+        rhs = rotate2(opcode);
+        dest = rhs - lhs;
         if (RD==15)
         {
-                arm_write_r15(opcode, templ - lhs);
+                arm_write_r15(opcode, dest);
         }
         else
         {
-                setsub(templ, lhs, templ - lhs);
-                armregs[RD] = templ - lhs;
+                setsub(rhs, lhs, dest);
+                armregs[RD] = dest;
         }
 }
 
@@ -667,18 +672,19 @@ static void opADDimm(uint32_t opcode)
 
 static void opADDimmS(uint32_t opcode)
 {
-	uint32_t lhs, templ;
+	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
-        templ=rotate2(opcode);
+        rhs = rotate2(opcode);
+        dest = lhs + rhs;
         if (RD==15)
         {
-                arm_write_r15(opcode, lhs + templ);
+                arm_write_r15(opcode, dest);
         }
         else
         {
-                setadd(lhs, templ, lhs + templ);
-                armregs[RD] = lhs + templ;
+                setadd(lhs, rhs, dest);
+                armregs[RD] = dest;
         }
 }
 
