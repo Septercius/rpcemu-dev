@@ -651,15 +651,16 @@ void execarm(int cycs)
 
                                 case 0x05: /* SUBS reg */
                                         lhs = GETADDR(RN);
-                                        templ=shift2(opcode);
+                                        rhs = shift2(opcode);
+                                        dest = lhs - rhs;
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs - templ);
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setsub(lhs, templ, lhs - templ);
-                                                armregs[RD] = lhs - templ;
+                                                setsub(lhs, rhs, dest);
+                                                armregs[RD] = dest;
                                         }
                                         break;
 
@@ -670,15 +671,16 @@ void execarm(int cycs)
 
                                 case 0x07: /* RSBS reg */
                                         lhs = GETADDR(RN);
-                                        templ=shift2(opcode);
+                                        rhs = shift2(opcode);
+                                        dest = rhs - lhs;
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, templ - lhs);
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setsub(templ, lhs, templ - lhs);
-                                                armregs[RD] = templ - lhs;
+                                                setsub(rhs, lhs, dest);
+                                                armregs[RD] = dest;
                                         }
                                         break;
 
@@ -714,15 +716,16 @@ void execarm(int cycs)
                                         }
 #endif
                                         lhs = GETADDR(RN);
-                                        templ=shift2(opcode);
+                                        rhs = shift2(opcode);
+                                        dest = lhs + rhs;
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs + templ);
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setadd(lhs, templ, lhs + templ);
-                                                armregs[RD] = lhs + templ;
+                                                setadd(lhs, rhs, dest);
+                                                armregs[RD] = dest;
                                         }
                                         break;
                                 
@@ -1096,15 +1099,16 @@ void execarm(int cycs)
 
                                 case 0x25: /* SUBS imm */
                                         lhs = GETADDR(RN);
-                                        templ=rotate2(opcode);
+                                        rhs = rotate2(opcode);
+                                        dest = lhs - rhs;
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs - templ);
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                armregs[RD] = lhs - templ;
-                                                setsub(lhs, templ, lhs - templ);
+                                                armregs[RD] = dest;
+                                                setsub(lhs, rhs, dest);
                                         }
                                         break;
 
@@ -1115,15 +1119,16 @@ void execarm(int cycs)
 
                                 case 0x27: /* RSBS imm */
                                         lhs = GETADDR(RN);
-                                        templ=rotate2(opcode);
+                                        rhs = rotate2(opcode);
+                                        dest = rhs - lhs;
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, templ - lhs);
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setsub(templ, lhs, templ - lhs);
-                                                armregs[RD] = templ - lhs;
+                                                setsub(rhs, lhs, dest);
+                                                armregs[RD] = dest;
                                         }
                                         break;
 
@@ -1134,15 +1139,16 @@ void execarm(int cycs)
 
                                 case 0x29: /* ADDS imm */
                                         lhs = GETADDR(RN);
-                                        templ=rotate2(opcode);
+                                        rhs = rotate2(opcode);
+                                        dest = lhs + rhs;
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs + templ);
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setadd(lhs, templ, lhs + templ);
-                                                armregs[RD] = lhs + templ;
+                                                setadd(lhs, rhs, dest);
+                                                armregs[RD] = dest;
                                         }
                                         break;
 
