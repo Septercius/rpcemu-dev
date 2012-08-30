@@ -63,7 +63,8 @@ static int block_enter;
 #define gen_x86_pop_reg(x86reg)		addbyte(0x58 | x86reg)
 #define gen_x86_push_reg(x86reg)	addbyte(0x50 | x86reg)
 
-void initcodeblocks(void)
+void
+initcodeblocks(void)
 {
 	int jump_next, jump_notinbuffer, jump_samepage;
 	int label_backup;
@@ -240,7 +241,8 @@ addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
 #endif
 }
 
-void resetcodeblocks(void)
+void
+resetcodeblocks(void)
 {
         int c;
         /*Clear all blocks _except_ those pointing between 0x3800000 and 0x3FFFFFF (ROM)*/
@@ -274,8 +276,8 @@ void resetcodeblocks(void)
         }
 }
 
-//#if 0
-void cacheclearpage(uint32_t a)
+void
+cacheclearpage(uint32_t a)
 {
         int c,d;
         if (!codeblockpresent[a&0xFFFF]) return;
@@ -290,17 +292,11 @@ d=HASH(a<<12);
         codeblockpc[hash][1]=0xFFFFFFFF;
         codeblockpc[hash][2]=0xFFFFFFFF;*/
 }
-//#endif
-
-/*int isblockvalid(unsigned long l)
-{
-        if ((l&0xFFC00000)==0x3800000) return 1;
-        return 0;
-}*/
 
 static uint32_t currentblockpc, currentblockpc2;
 
-void initcodeblock(uint32_t l)
+void
+initcodeblock(uint32_t l)
 {
         codeblockpresent[(l>>12)&0xFFFF]=1;
         tempinscount=0;
@@ -359,7 +355,8 @@ void initcodeblock(uint32_t l)
         flagsdirty=0;
 }
 
-void removeblock(void)
+void
+removeblock(void)
 {
         codeblockpc[blocknum]=0xFFFFFFFF;
         codeblocknum[blocknum]=0xFFFFFFFF;
@@ -367,13 +364,12 @@ void removeblock(void)
 
 int lastflagchange=0;
 
-static const int recompileinstructions[256]=
-{
+static const int recompileinstructions[256] = {
         1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,0, //00
         0,1,0,1,0,1,0,0,1,1,1,1,1,1,1,1, //10
         1&0,1,1,1,1,1,0,0,1,1,0,0,0,0,0,0, //20
         0,1,0,1,0,1,0,0,1,1,1,1,1,1,1,1, //30
-	#ifdef _MSC_VER
+#ifdef _MSC_VER
         1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0, //40
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //50
         1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0, //60
@@ -383,7 +379,7 @@ static const int recompileinstructions[256]=
         1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0, //90
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //A0
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //B0
-	#else
+#else
         1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0, //40
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //50
         1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0, //60
@@ -393,7 +389,7 @@ static const int recompileinstructions[256]=
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //90
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //A0
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //B0
-	#endif
+#endif
 //        1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,0, //80
 //        1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,0, //90
         
@@ -406,7 +402,8 @@ static const int recompileinstructions[256]=
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  //F0
 };
 
-static void generateloadgen(int reg, int x86reg)
+static void
+generateloadgen(int reg, int x86reg)
 {
 #ifdef _MSC_VER
 	addbyte(0x8B); addbyte(5 | (x86reg << 3)); addlong(&armregs[reg]);
@@ -419,7 +416,8 @@ static void generateloadgen(int reg, int x86reg)
 #endif
 }
 
-static inline void generateload(int reg)
+static inline void
+generateload(int reg)
 {
 #ifdef _MSC_VER
 	addbyte(0xa1); addlong(&armregs[reg]);
@@ -428,7 +426,8 @@ static inline void generateload(int reg)
 #endif
 }
 
-static void generatesavegen(int reg, int x86reg)
+static void
+generatesavegen(int reg, int x86reg)
 {
 #ifdef _MSC_VER
 	addbyte(0x89); addbyte(5 | (x86reg << 3)); addlong(&armregs[reg]);
@@ -441,7 +440,8 @@ static void generatesavegen(int reg, int x86reg)
 #endif
 }
 
-static inline void generatesave(int reg)
+static inline void
+generatesave(int reg)
 {
 #ifdef _MSC_VER
 	addbyte(0xa3); addlong(&armregs[reg]);
@@ -540,7 +540,8 @@ generatedataprocS(uint32_t opcode, unsigned char dataop, uint32_t templ)
   directly. Instead, I just call this. The register variables are to preserve the registers
   across the call, and stop GCC's optimiser breaking the code*/
 #ifdef _MSC_VER
-static int codewritememfb(void)
+static int
+codewritememfb(void)
 {
         uint32_t a;
         uint8_t v;
@@ -553,7 +554,8 @@ static int codewritememfb(void)
         return (armirq&0x40)?1:0;
 }
 
-static int codewritememfl(void)
+static int
+codewritememfl(void)
 {
         uint32_t a;
         uint32_t v;
@@ -566,7 +568,8 @@ static int codewritememfl(void)
         return (armirq&0x40)?1:0;
 }
 
-static int codereadmemb(void)
+static int
+codereadmemb(void)
 {
         uint32_t a;
         uint32_t v;
@@ -577,7 +580,8 @@ static int codereadmemb(void)
 		return (armirq&0x40)?1:0;
 }
 
-static int codereadmeml(void)
+static int
+codereadmeml(void)
 {
         uint32_t a;
         uint32_t v;
@@ -588,7 +592,8 @@ static int codereadmeml(void)
         return (armirq&0x40)?1:0;
 }
 
-static int mwritemem(void)
+static int
+mwritemem(void)
 {
         uint32_t a;
         uint32_t v;
@@ -598,7 +603,8 @@ static int mwritemem(void)
         return (armirq&0x40)?1:0;
 }
 
-static int mreadmem(void)
+static int
+mreadmem(void)
 {
         uint32_t a;
         uint32_t v;
@@ -609,7 +615,8 @@ static int mreadmem(void)
         return (armirq&0x40)?1:0;
 }
 #else
-static int codewritememfb(void)
+static int
+codewritememfb(void)
 {
         register uint32_t a asm("edx");
         register uint8_t v asm("bl");
@@ -617,7 +624,8 @@ static int codewritememfb(void)
         return (armirq&0x40)?1:0;
 }
 
-static int codewritememfl(void)
+static int
+codewritememfl(void)
 {
         register uint32_t a asm("edx");
         register uint32_t v asm("ebx");
@@ -625,14 +633,16 @@ static int codewritememfl(void)
         return (armirq&0x40)?1:0;
 }
 
-static void codewritememflnt(void)
+static void
+codewritememflnt(void)
 {
         register uint32_t a asm("edx");
         register uint32_t v asm("ebx");
         writememfl(a,v);
 }
 
-static int codereadmemb(void)
+static int
+codereadmemb(void)
 {
         register uint32_t a asm("edx");
         register uint32_t v asm("ecx");
@@ -645,7 +655,8 @@ static int codereadmemb(void)
         return (armirq&0x40)?1:0;
 }
 
-static int codereadmeml(void)
+static int
+codereadmeml(void)
 {
         register uint32_t a asm("edx");
         register uint32_t v asm("ecx");
@@ -658,7 +669,8 @@ static int codereadmeml(void)
         return (armirq&0x40)?1:0;
 }
 
-static void codereadmemlnt(void)
+static void
+codereadmemlnt(void)
 {
         register uint32_t a asm("edx");
 //        register uint32_t v asm("ecx");
@@ -694,12 +706,8 @@ int mreadmem(void)
 #endif
 #endif
 
-void test(int a, int v)
-{
-        writememb(a,v);
-}
-
-static int generateshiftnoflags(uint32_t opcode)
+static int
+generateshiftnoflags(uint32_t opcode)
 {
         unsigned int temp;
         if (opcode&0x10) return 0; /*Can't do shift by register ATM*/
@@ -741,7 +749,8 @@ static int generateshiftnoflags(uint32_t opcode)
         return 0;
 }
 
-static int generateshiftflags(uint32_t opcode, uint32_t *pcpsr)
+static int
+generateshiftflags(uint32_t opcode, uint32_t *pcpsr)
 {
         unsigned int temp;
         if (opcode&0x10) return 0; /*Can't do shift by register ATM*/
@@ -826,7 +835,8 @@ static int generateshiftflags(uint32_t opcode, uint32_t *pcpsr)
         return 0;
 }
 
-static uint32_t generaterotate(uint32_t opcode, uint32_t *pcpsr, uint8_t mask)
+static uint32_t
+generaterotate(uint32_t opcode, uint32_t *pcpsr, uint8_t mask)
 {
         uint32_t temp;
         if (!flagsdirty)
@@ -844,7 +854,8 @@ static uint32_t generaterotate(uint32_t opcode, uint32_t *pcpsr, uint8_t mask)
         return temp;
 }
 
-static void generatesetzn(uint32_t opcode, uint32_t *pcpsr)
+static void
+generatesetzn(uint32_t opcode, uint32_t *pcpsr)
 {
 //        addbyte(0x75); addbyte(3); /*JNZ testn*/
 //        addbyte(0x80); addbyte(0xC9); addbyte(0x40); /*OR $ZFLAG,%cl*/
@@ -861,7 +872,8 @@ static void generatesetzn(uint32_t opcode, uint32_t *pcpsr)
         addbyte(0x88); addbyte(0x0D); addlong(pcpsr+3); /*MOV %cl,pcpsr*/
 }
 
-static void generatesetzn2(uint32_t opcode, uint32_t *pcpsr)
+static void
+generatesetzn2(uint32_t opcode, uint32_t *pcpsr)
 {
         gen_x86_lahf();
         addbyte(0x80); addbyte(0xE4); addbyte(0xC0); /*AND $ZFLAG+NFLAG,%ah*/
@@ -875,7 +887,8 @@ static void generatesetzn2(uint32_t opcode, uint32_t *pcpsr)
 //        }
 }
 
-static void generatesetznS(uint32_t opcode, uint32_t *pcpsr)
+static void
+generatesetznS(uint32_t opcode, uint32_t *pcpsr)
 {
         //gen_x86_lahf();
         addbyte(0x80); addbyte(0xE4); addbyte(0xC0); /*AND $ZFLAG+NFLAG,%ah*/
@@ -887,7 +900,8 @@ static void generatesetznS(uint32_t opcode, uint32_t *pcpsr)
 
 static int lastrecompiled;
 
-static int recompile(uint32_t opcode, uint32_t *pcpsr)
+static int
+recompile(uint32_t opcode, uint32_t *pcpsr)
 {
         int temp=0;
         int old=codeblockpos;
@@ -2686,11 +2700,11 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
         return 1;
 }
 
-void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr)
+void
+generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr)
 {
         int old=codeblockpos;
 
-//        rpclog("%08X %02X %02X %02X %02X %08X %i %02X\n",&rcodeblock[8][0x5F],rcodeblock[8][0x5E],rcodeblock[8][0x5F],rcodeblock[8][0x60],rcodeblock[8][0x61],opcode,blockpoint2,codeblockpos);
         lastrecompiled=0;
         tempinscount++;
         if (recompileinstructions[(opcode>>20)&0xFF])
@@ -2722,10 +2736,11 @@ void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr)
 	if (lastflagchange != 0) {
 		gen_x86_jump_here_long(lastflagchange);
 	}
-//        rpclog("-%08X %02X %02X %08X %i %02X\n",&rcodeblock[8][0x5F],rcodeblock[8][0x5F],rcodeblock[8][0x60],opcode,blockpoint2,codeblockpos);
 //        #endif
 }
-void generateupdatepc(void)
+
+void
+generateupdatepc(void)
 {
         if (pcinc)
       {
@@ -2736,7 +2751,9 @@ void generateupdatepc(void)
                 pcinc=0;
         }
 }
-void generateupdateinscount(void)
+
+void
+generateupdateinscount(void)
 {
         if (tempinscount)
         {
@@ -2748,7 +2765,8 @@ void generateupdateinscount(void)
         }
 }
 
-void generatepcinc(void)
+void
+generatepcinc(void)
 {
         pcinc+=4;
 	if (pcinc == 124) {
@@ -2763,7 +2781,7 @@ endblock(uint32_t opcode, uint32_t *pcpsr)
         int temp;
 
         flagsdirty=0;
-//        asm("decl 0x12345678;");
+
         generateupdatepc();
         generateupdateinscount();
 
@@ -2823,50 +2841,15 @@ endblock(uint32_t opcode, uint32_t *pcpsr)
         addbyte(0xE0);
 }
 
-void dumplastblock(void)
-{
-/*        FILE *f=fopen("block.dmp","wb");
-        fwrite(codeblock[blockcount][blocknum],1600,1,f);
-        fclose(f);*/
-}
-
-/*int codecallblock(unsigned long l)
-{
-        int hash=HASH(l);
-        void (*gen_func)(void);
-        if (codeblockpc[0][hash]==l)
-        {
-                gen_func=(void *)(&codeblock[0][HASH(l)][1]);
-                gen_func();
-                return 1;
-        }
-        if (codeblockpc[1][hash]==l)
-        {
-                gen_func=(void *)(&codeblock[1][HASH(l)][1]);
-                gen_func();
-                return 1;
-        }
-        return 0;
-}*/
-
-void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
+void
+generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 {
 	int cond;
 
-        /*movl (pcpsr),%eax
-          movl (opcode>>28)<<4,%edx
-          shrl %eax,28
-          or   %edx,%eax
-          cmpb $0,(%eax,flaglookup)
-          je skipins*/
-/*        asm("movl 0x12345678,%eax;");
-        asm("movl $0x10,%edx;");
-        asm("shrl $28,%eax;");
-        asm("or   %edx,%eax;");
-        asm("cmpb $0x11,flaglookup(%eax);");
-        asm("je   5;");*/
-//        rpclog("%08X %02X %02X %02X %02X %08X %i %02X\n",&rcodeblock[8][0x5F],rcodeblock[8][0x5E],rcodeblock[8][0x5F],rcodeblock[8][0x60],rcodeblock[8][0x61],opcode,blockpoint2,codeblockpos);
-        if ((opcode>>28)==0xE) { return; } /*No need if 'always' condition code*/
+	if ((opcode >> 28) == 0xe) {
+		/* No need if 'always' condition code */
+		return;
+	}
         switch (opcode>>28)
         {
                 case 0: /*EQ*/
@@ -2955,16 +2938,14 @@ void generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 //        flagsdirty=0;
 	lastflagchange = gen_x86_jump_forward_long(cond);
 }
-void generateirqtest(void)
+
+void
+generateirqtest(void)
 {
-        if (lastrecompiled) return;
-//        asm("testl %eax,%eax");
-//        asm("testb $0xC0,0x12345678");
-//        addbyte(0xF6); /*TESTB $0x40,armirq*/
-//        addbyte(0x05);
-//        addlong(&armirq);
-//        addbyte(0x40);
-//                rpclog("genirq %02X %02X\n",rcodeblock[8][0x5F],rcodeblock[8][0x60]);
+	if (lastrecompiled) {
+		return;
+	}
+
         addbyte(0x85); /*TESTL %eax,%eax*/
         addbyte(0xC0);
 	gen_x86_jump(CC_NE, 0);
