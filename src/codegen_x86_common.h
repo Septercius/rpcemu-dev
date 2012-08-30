@@ -53,6 +53,7 @@ addrel32(const void *addr)
 }
 
 #define gen_x86_call(addr)	addbyte(0xe8); addrel32(addr)
+#define gen_x86_int3()		addbyte(0xcc)
 #define gen_x86_lahf()		addbyte(0x9f)
 #define gen_x86_leave()		addbyte(0xc9)
 #define gen_x86_ret()		addbyte(0xc3)
