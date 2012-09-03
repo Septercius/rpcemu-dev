@@ -707,7 +707,7 @@ int mreadmem(void)
 #endif
 
 static int
-generateshiftnoflags(uint32_t opcode)
+generate_shift(uint32_t opcode)
 {
         unsigned int temp;
         if (opcode&0x10) return 0; /*Can't do shift by register ATM*/
@@ -930,7 +930,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0x23); addbyte(0x05); /*ANDL armregs[RN],%eax*/
                 addlong(&armregs[RN]);
@@ -984,7 +984,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0x33); addbyte(0x05); /*XORL armregs[RN],%eax*/
                 addlong(&armregs[RN]);
@@ -1024,7 +1024,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x04: /* SUB reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
 //                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
                 generateloadgen(RN,EDX);
@@ -1036,7 +1036,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x05: /* SUBS reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); /*MOVB *pcpsr,%cl*/
                 addbyte(0x80); addbyte(0xE1); addbyte(~0xF0); /*AND $ZFLAG+NFLAG+VFLAG+CFLAG,%cl*/
@@ -1055,7 +1055,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x06: /* RSB reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0x2B); addbyte(0x05); /*SUBL armregs[RN],%eax*/
                 addlong(&armregs[RN]);
@@ -1073,7 +1073,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0x03); addbyte(0x05); /*ADDL armregs[RN],%eax*/
                 addlong(&armregs[RN]);
@@ -1100,7 +1100,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         break;
                 }
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 flagsdirty=0;
                 /*Shifted val now in %eax*/
                 addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); /*MOVB *pcpsr,%cl*/
@@ -1126,7 +1126,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=0;
                 if ((opcode & 0xf0) == 0x90) return 0; /* UMLAL */
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0xF6); addbyte(0x05); addlong(((unsigned long)pcpsr)+3); addbyte(0x20); /*TESTB (pcpsr>>24),$0x20*/
                 addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
@@ -1141,7 +1141,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=0;
                 if ((opcode & 0xf0) == 0x90) return 0; /* UMLALS */
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); /*MOVB *pcpsr,%cl*/
                 addbyte(0x88); addbyte(0xCD);                   /*MOVB %cl,%ch*/
@@ -1169,7 +1169,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         break;
                 }
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 flagsdirty=0;
                 /*Shifted val now in %eax*/
                 addbyte(0xF6); addbyte(0x05); addlong(((unsigned long)pcpsr)+3); addbyte(0x20); /*TESTB (pcpsr>>24),$0x20*/
@@ -1196,7 +1196,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         break;
                 }
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0x31); addbyte(0xC9); /*XOR %ecx,%ecx*/
                 addbyte(0xF6); addbyte(0x05); addlong(((unsigned long)pcpsr)+3); addbyte(0x20); /*TESTB (pcpsr>>24),$0x20*/
@@ -1211,7 +1211,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x18: /* ORR reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0x0B); addbyte(0x05); /*ORL armregs[RN],%eax*/
                 addlong(&armregs[RN]);
@@ -1231,7 +1231,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 
         case 0x1a: /* MOV reg */
                 flagsdirty=0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 if (RD == 15) {
                         generateloadgen(15, EDX);
@@ -1256,7 +1256,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x1c: /* BIC reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0xF7); addbyte(0xD0); /*NOT %eax*/
                 addbyte(0x23); addbyte(0x05); /*ANDL armregs[RN],%eax*/
@@ -1279,7 +1279,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x1e: /* MVN reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 addbyte(0xF7); addbyte(0xD0); /*NOT %eax*/
                 /*Shifted val now in %eax*/
                 generatesave(RD);
@@ -1319,7 +1319,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x15: /* CMP reg */
                 flagsdirty=0;
                 if (RD==15 || RN==15) return 0;
-                if (!generateshiftnoflags(opcode)) return 0;
+                if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); /*MOVB *pcpsr,%cl*/
                 addbyte(0x80); addbyte(0xE1); addbyte(~0xF0); /*AND $ZFLAG+NFLAG+VFLAG+CFLAG,%cl*/
@@ -1536,7 +1536,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x64: /* STRB Rd, [Rn], -reg... */
         case 0x6c: /* STRB Rd, [Rn], +reg... */
                 flagsdirty=0;
-                if (!generateshiftnoflags(opcode) && opcode&0x2000000) return 0;
+                if (!generate_shift(opcode) && opcode&0x2000000) return 0;
                 codeblockpos=old;
                 if (RD==15 || RN==15) return 0;
                 generateload(RN);
@@ -1578,7 +1578,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 gen_x86_jump_here(jump_nextbit);
                 if (opcode&0x2000000)
                 {
-                        generateshiftnoflags(opcode);
+                        generate_shift(opcode);
                         if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
                         else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
                 }
@@ -1601,14 +1601,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x60: /* STR Rd, [Rn], -reg... */
         case 0x68: /* STR Rd, [Rn], +reg... */
                 flagsdirty=0;
-                if (!generateshiftnoflags(opcode) && opcode&0x2000000) return 0;
+                if (!generate_shift(opcode) && opcode&0x2000000) return 0;
                 codeblockpos=old;
                 if (RD==15 || RN==15) return 0;
                 generateloadgen(RN,EDI);
                 generateloadgen(RD,EBX);
                 addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL ~3,%edi*/
                 gen_x86_call(mwritemem);
-                if (opcode&0x2000000) generateshiftnoflags(opcode);
+                if (opcode&0x2000000) generate_shift(opcode);
 addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
 //                addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
                 gen_x86_jump(CC_NZ, 0);
@@ -1616,7 +1616,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 /*.nextbit*/
                 if (opcode&0x2000000)
                 {
-//                        generateshiftnoflags(opcode);
+//                        generate_shift(opcode);
                         if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
                         else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
                 }
@@ -1643,7 +1643,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
         case 0x65: /* LDRB Rd, [Rn], -reg... */
         case 0x6d: /* LDRB Rd, [Rn], +reg... */
                 flagsdirty=0;
-                if (!generateshiftnoflags(opcode) && opcode&0x2000000) return 0;
+                if (!generate_shift(opcode) && opcode&0x2000000) return 0;
                 codeblockpos=old;
                 if (RD==15 || RN==15) return 0;
                 generateload(RN);
@@ -1698,7 +1698,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 }
                 if (opcode&0x2000000)
                 {
-                        generateshiftnoflags(opcode);
+                        generate_shift(opcode);
                         if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
                         else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
                 }
@@ -1726,7 +1726,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
         case 0x7a: /* STR Rd, [Rn, +reg...]! */
                 flagsdirty=0;
                 if (RD==15) return 0;
-                if (opcode&0x2000000) { if (!generateshiftnoflags(opcode)) return 0; }
+                if (opcode&0x2000000) { if (!generate_shift(opcode)) return 0; }
                 else                  { addbyte(0xB8); addlong(opcode&0xFFF); }
                 if (!(opcode&0x800000)) { addbyte(0xF7); addbyte(0xD8); } /*NEG %eax*/
                 generateloadgen(RD,EBX);
@@ -1775,7 +1775,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
         case 0x7e: /* STRB Rd, [Rn, +reg...]! */
                 flagsdirty=0;
                 if (RD==15) return 0;
-                if (opcode&0x2000000) { if (!generateshiftnoflags(opcode)) return 0; }
+                if (opcode&0x2000000) { if (!generate_shift(opcode)) return 0; }
                 else                  { addbyte(0xB8); addlong(opcode&0xFFF); }
                 if (!(opcode&0x800000)) { addbyte(0xF7); addbyte(0xD8); } /*NEG %eax*/
                 addbyte(0x8A); addbyte(0x1D); /*MOVB armregs[RD],%bl*/
@@ -1825,7 +1825,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
         case 0x7b: /* LDR Rd, [Rn, +reg...]! */
                 flagsdirty=0;
                 if (RD==15) return 0;
-                if (opcode&0x2000000) { if (!generateshiftnoflags(opcode)) return 0; }
+                if (opcode&0x2000000) { if (!generate_shift(opcode)) return 0; }
                 else                  { addbyte(0xB8); addlong(opcode&0xFFF); }
                 if (!(opcode&0x800000)) { addbyte(0xF7); addbyte(0xD8); } /*NEG %eax*/
                 /*Shifted value now in %eax*/
@@ -1877,7 +1877,7 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
         case 0x7f: /* LDRB Rd, [Rn, +reg...]! */
                 flagsdirty=0;
                 if (RD==15) return 0;
-                if (opcode&0x2000000) { if (!generateshiftnoflags(opcode)) return 0; }
+                if (opcode&0x2000000) { if (!generate_shift(opcode)) return 0; }
                 else                  { addbyte(0xB8); addlong(opcode&0xFFF); }
                 if (!(opcode&0x800000)) { addbyte(0xF7); addbyte(0xD8); } /*NEG %eax*/
                 /*Shifted value now in %eax*/
