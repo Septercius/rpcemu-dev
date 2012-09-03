@@ -747,8 +747,12 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x70: case 0x78: /* STR Rd, [Rn, reg...]  */
 	case 0x72: case 0x7a: /* STR Rd, [Rn, reg...]! */
 		if (RD==15) return 0;
-		if (opcode&0x2000000) { if (!generateshift(opcode,pcpsr)) return 0; }
-		else		      { addbyte(0xB8); addlong(opcode&0xFFF); /*MOVL $opcode&0xFFF,%eax*/ }
+		if (opcode & 0x2000000) {
+			if (!generateshift(opcode, pcpsr))
+				return 0;
+		} else {
+			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
+		}
 		genloadreggen(RN,EDI);
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
@@ -770,8 +774,12 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x74: case 0x7c: /* STRB Rd, [Rn, reg...]  */
 	case 0x76: case 0x7e: /* STRB Rd, [Rn, reg...]! */
 		if (RD==15) return 0;
-		if (opcode&0x2000000) { if (!generateshift(opcode,pcpsr)) return 0; }
-		else		      { addbyte(0xB8); addlong(opcode&0xFFF); /*MOVL $opcode&0xFFF,%eax*/ }
+		if (opcode & 0x2000000) {
+			if (!generateshift(opcode, pcpsr))
+				return 0;
+		} else {
+			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
+		}
 		genloadreggen(RN,EDI);
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
@@ -790,8 +798,12 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x71: case 0x79: /* LDR Rd, [Rn, reg...]  */
 	case 0x73: case 0x7b: /* LDR Rd, [Rn, reg...]! */
 		if (RD==15) return 0;
-		if (opcode&0x2000000) { if (!generateshift(opcode,pcpsr)) return 0; }
-		else		      { addbyte(0xB8); addlong(opcode&0xFFF); /*MOVL $opcode&0xFFF,%eax*/ }
+		if (opcode & 0x2000000) {
+			if (!generateshift(opcode, pcpsr))
+				return 0;
+		} else {
+			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
+		}
 		genloadreggen(RN,EDI);
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
@@ -810,8 +822,12 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x75: case 0x7d: /* LDRB Rd, [Rn, reg...]  */
 	case 0x77: case 0x7f: /* LDRB Rd, [Rn, reg...]! */
 		if (RD==15) return 0;
-		if (opcode&0x2000000) { if (!generateshift(opcode,pcpsr)) return 0; }
-		else		      { addbyte(0xB8); addlong(opcode&0xFFF); /*MOVL $opcode&0xFFF,%eax*/ }
+		if (opcode & 0x2000000) {
+			if (!generateshift(opcode, pcpsr))
+				return 0;
+		} else {
+			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
+		}
 		genloadreggen(RN,EDI);
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
