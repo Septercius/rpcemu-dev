@@ -392,7 +392,7 @@ generateregdataproc(uint32_t opcode, uint8_t op, int dirmatters)
 }
 
 static int
-generateshift(uint32_t opcode, uint32_t *pcpsr)
+generate_shift(uint32_t opcode)
 {
 	unsigned int temp;
 	if (opcode&0x10) return 0; /* Can't do register shifts or multiplies */
@@ -525,32 +525,32 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	{
 	case 0x00: /* AND reg */
 		if (RD==15) return 0;
-		if (!generateshift(opcode,pcpsr)) return 0;
+		if (!generate_shift(opcode)) return 0;
 		generateregdataproc(opcode, X86_OP_AND, 1);
 		break;
 
 	case 0x02: /* EOR reg */
 		if (RD==15) return 0;
-		if (!generateshift(opcode,pcpsr)) return 0;
+		if (!generate_shift(opcode)) return 0;
 		generateregdataproc(opcode, X86_OP_XOR, 0);
 		break;
 
 	case 0x04: /* SUB reg */
 		if (RD==15) return 0;
-		if (!generateshift(opcode,pcpsr)) return 0;
+		if (!generate_shift(opcode)) return 0;
 		generateregdataproc(opcode, X86_OP_SUB, 1);
 		break;
 
 	case 0x08: /* ADD reg */
 		if (RD==15) return 0;
-		if (!generateshift(opcode,pcpsr)) return 0;
+		if (!generate_shift(opcode)) return 0;
 		generateregdataproc(opcode, X86_OP_ADD, 0);
 		break;
 
 	case 0x0a: /* ADC reg */
 		/* Currently not used */
                 if (RD==15) return 0;
-		if (!generateshift(opcode,pcpsr)) return 0;
+		if (!generate_shift(opcode)) return 0;
 		genloadreggen(15,ECX);
 		addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx - puts ARM carry into x64 carry*/
                 generateregdataproc(opcode, X86_OP_ADC, 0);
@@ -558,13 +558,13 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 
 	case 0x18: /* ORR reg */
 		if (RD==15) return 0;
-		if (!generateshift(opcode,pcpsr)) return 0;
+		if (!generate_shift(opcode)) return 0;
 		generateregdataproc(opcode, X86_OP_OR, 0);
 		break;
 
 	case 0x1a: /* MOV reg */
 		if (RD==15) return 0;
-		if (!generateshift(opcode,pcpsr)) return 0;
+		if (!generate_shift(opcode)) return 0;
 		genstorereg(RD);
 		break;
 
@@ -617,7 +617,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x60: case 0x68: /* STR Rd, [Rn], reg... */
 		if (RD==15 || RN==15) return 0;
 		if (opcode & 0x2000000) {
-			if (!generateshift(opcode, pcpsr))
+			if (!generate_shift(opcode))
 				return 0;
 			gen_x86_push_reg(RAX);
 		}
@@ -650,7 +650,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x64: case 0x6c: /* STRB Rd, [Rn], reg... */
 		if (RD==15 || RN==15) return 0;
 		if (opcode & 0x2000000) {
-			if (!generateshift(opcode, pcpsr))
+			if (!generate_shift(opcode))
 				return 0;
 			gen_x86_push_reg(RAX);
 		}
@@ -682,7 +682,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x61: case 0x69: /* LDR Rd, [Rn], reg... */
 		if (RD==15 || RN==15) return 0;
 		if (opcode & 0x2000000) {
-			if (!generateshift(opcode, pcpsr))
+			if (!generate_shift(opcode))
 				return 0;
 			gen_x86_push_reg(RAX);
 		}
@@ -714,7 +714,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x65: case 0x6d: /* LDRB Rd, [Rn], reg... */
 		if (RD==15 || RN==15) return 0;
 		if (opcode & 0x2000000) {
-			if (!generateshift(opcode, pcpsr))
+			if (!generate_shift(opcode))
 				return 0;
 			gen_x86_push_reg(RAX);
 		}
@@ -748,7 +748,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x72: case 0x7a: /* STR Rd, [Rn, reg...]! */
 		if (RD==15) return 0;
 		if (opcode & 0x2000000) {
-			if (!generateshift(opcode, pcpsr))
+			if (!generate_shift(opcode))
 				return 0;
 		} else {
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
@@ -775,7 +775,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x76: case 0x7e: /* STRB Rd, [Rn, reg...]! */
 		if (RD==15) return 0;
 		if (opcode & 0x2000000) {
-			if (!generateshift(opcode, pcpsr))
+			if (!generate_shift(opcode))
 				return 0;
 		} else {
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
@@ -799,7 +799,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x73: case 0x7b: /* LDR Rd, [Rn, reg...]! */
 		if (RD==15) return 0;
 		if (opcode & 0x2000000) {
-			if (!generateshift(opcode, pcpsr))
+			if (!generate_shift(opcode))
 				return 0;
 		} else {
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
@@ -823,7 +823,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x77: case 0x7f: /* LDRB Rd, [Rn, reg...]! */
 		if (RD==15) return 0;
 		if (opcode & 0x2000000) {
-			if (!generateshift(opcode, pcpsr))
+			if (!generate_shift(opcode))
 				return 0;
 		} else {
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
