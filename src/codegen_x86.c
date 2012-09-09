@@ -1524,14 +1524,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x08); addbyte(0x0d); addlong(pcpsr+3); /* OR %cl,pcpsr */
                 break;
 
-        case 0x40: /* STR  Rd, [Rn], #-imm   */
-        case 0x48: /* STR  Rd, [Rn], #+imm   */
-        case 0x44: /* STRB Rd, [Rn], #-imm   */
-        case 0x4c: /* STRB Rd, [Rn], #+imm   */
-        case 0x60: /* STR  Rd, [Rn], -reg... */
-        case 0x68: /* STR  Rd, [Rn], +reg... */
-        case 0x64: /* STRB Rd, [Rn], -reg... */
-        case 0x6c: /* STRB Rd, [Rn], +reg... */
+	case 0x40: /* STR Rd, [Rn], #-imm   */
+	case 0x48: /* STR Rd, [Rn], #+imm   */
+	case 0x44: /* STRB Rd, [Rn], #-imm   */
+	case 0x4c: /* STRB Rd, [Rn], #+imm   */
+	case 0x60: /* STR Rd, [Rn], -reg... */
+	case 0x68: /* STR Rd, [Rn], +reg... */
+	case 0x64: /* STRB Rd, [Rn], -reg... */
+	case 0x6c: /* STRB Rd, [Rn], +reg... */
                 if (RD==15 || RN==15) return 0;
                 if (opcode & 0x2000000) {
                         if (!generate_shift(opcode))
@@ -1594,14 +1594,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 break;
 
-        case 0x41: /* LDR  Rd, [Rn], #-imm   */
-        case 0x49: /* LDR  Rd, [Rn], #+imm   */
-        case 0x45: /* LDRB Rd, [Rn], #-imm   */
-        case 0x4d: /* LDRB Rd, [Rn], #+imm   */
-        case 0x61: /* LDR  Rd, [Rn], -reg... */
-        case 0x69: /* LDR  Rd, [Rn], +reg... */
-        case 0x65: /* LDRB Rd, [Rn], -reg... */
-        case 0x6d: /* LDRB Rd, [Rn], +reg... */
+	case 0x41: /* LDR Rd, [Rn], #-imm   */
+	case 0x49: /* LDR Rd, [Rn], #+imm   */
+	case 0x45: /* LDRB Rd, [Rn], #-imm   */
+	case 0x4d: /* LDRB Rd, [Rn], #+imm   */
+	case 0x61: /* LDR Rd, [Rn], -reg... */
+	case 0x69: /* LDR Rd, [Rn], +reg... */
+	case 0x65: /* LDRB Rd, [Rn], -reg... */
+	case 0x6d: /* LDRB Rd, [Rn], +reg... */
                 if (RD==15 || RN==15) return 0;
                 if (opcode & 0x2000000) {
                         if (!generate_shift(opcode))
@@ -1677,14 +1677,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 break;
 
-        case 0x50: /* STR Rd, [Rn, #-imm]    */
-        case 0x52: /* STR Rd, [Rn, #-imm]!   */
-        case 0x58: /* STR Rd, [Rn, #+imm]    */
-        case 0x5a: /* STR Rd, [Rn, #+imm]!   */
-        case 0x70: /* STR Rd, [Rn, -reg...]  */
-        case 0x72: /* STR Rd, [Rn, -reg...]! */
-        case 0x78: /* STR Rd, [Rn, +reg...]  */
-        case 0x7a: /* STR Rd, [Rn, +reg...]! */
+	case 0x50: /* STR Rd, [Rn, #-imm]    */
+	case 0x52: /* STR Rd, [Rn, #-imm]!   */
+	case 0x58: /* STR Rd, [Rn, #+imm]    */
+	case 0x5a: /* STR Rd, [Rn, #+imm]!   */
+	case 0x70: /* STR Rd, [Rn, -reg...]  */
+	case 0x72: /* STR Rd, [Rn, -reg...]! */
+	case 0x78: /* STR Rd, [Rn, +reg...]  */
+	case 0x7a: /* STR Rd, [Rn, +reg...]! */
                 if (RD==15) return 0;
                 if (opcode & 0x2000000) {
                         if (!generate_shift(opcode))
@@ -1730,14 +1730,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
                 break;
 
-        case 0x54: /* STRB Rd, [Rn, #-imm]    */
-        case 0x56: /* STRB Rd, [Rn, #-imm]!   */
-        case 0x5c: /* STRB Rd, [Rn, #+imm]    */
-        case 0x5e: /* STRB Rd, [Rn, #+imm]!   */
-        case 0x74: /* STRB Rd, [Rn, -reg...]  */
-        case 0x76: /* STRB Rd, [Rn, -reg...]! */
-        case 0x7c: /* STRB Rd, [Rn, +reg...]  */
-        case 0x7e: /* STRB Rd, [Rn, +reg...]! */
+	case 0x54: /* STRB Rd, [Rn, #-imm]    */
+	case 0x56: /* STRB Rd, [Rn, #-imm]!   */
+	case 0x5c: /* STRB Rd, [Rn, #+imm]    */
+	case 0x5e: /* STRB Rd, [Rn, #+imm]!   */
+	case 0x74: /* STRB Rd, [Rn, -reg...]  */
+	case 0x76: /* STRB Rd, [Rn, -reg...]! */
+	case 0x7c: /* STRB Rd, [Rn, +reg...]  */
+	case 0x7e: /* STRB Rd, [Rn, +reg...]! */
                 if (RD==15) return 0;
                 if (opcode & 0x2000000) {
                         if (!generate_shift(opcode))
@@ -1783,14 +1783,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
                 break;
 
-        case 0x51: /* LDR Rd, [Rn, #-imm]    */
-        case 0x53: /* LDR Rd, [Rn, #-imm]!   */
-        case 0x59: /* LDR Rd, [Rn, #+imm]    */
-        case 0x5b: /* LDR Rd, [Rn, #+imm]!   */
-        case 0x71: /* LDR Rd, [Rn, -reg...]  */
-        case 0x73: /* LDR Rd, [Rn, -reg...]! */
-        case 0x79: /* LDR Rd, [Rn, +reg...]  */
-        case 0x7b: /* LDR Rd, [Rn, +reg...]! */
+	case 0x51: /* LDR Rd, [Rn, #-imm]    */
+	case 0x53: /* LDR Rd, [Rn, #-imm]!   */
+	case 0x59: /* LDR Rd, [Rn, #+imm]    */
+	case 0x5b: /* LDR Rd, [Rn, #+imm]!   */
+	case 0x71: /* LDR Rd, [Rn, -reg...]  */
+	case 0x73: /* LDR Rd, [Rn, -reg...]! */
+	case 0x79: /* LDR Rd, [Rn, +reg...]  */
+	case 0x7b: /* LDR Rd, [Rn, +reg...]! */
                 if (RD==15) return 0;
                 if (opcode & 0x2000000) {
                         if (!generate_shift(opcode))
@@ -1838,14 +1838,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 generatesavegen(RD,EDX);
                 break;
 
-        case 0x55: /* LDRB Rd, [Rn, #-imm]    */
-        case 0x57: /* LDRB Rd, [Rn, #-imm]!   */
-        case 0x5d: /* LDRB Rd, [Rn, #+imm]    */
-        case 0x5f: /* LDRB Rd, [Rn, #+imm]!   */
-        case 0x75: /* LDRB Rd, [Rn, -reg...]  */
-        case 0x77: /* LDRB Rd, [Rn, -reg...]! */
-        case 0x7d: /* LDRB Rd, [Rn, +reg...]  */
-        case 0x7f: /* LDRB Rd, [Rn, +reg...]! */
+	case 0x55: /* LDRB Rd, [Rn, #-imm]    */
+	case 0x57: /* LDRB Rd, [Rn, #-imm]!   */
+	case 0x5d: /* LDRB Rd, [Rn, #+imm]    */
+	case 0x5f: /* LDRB Rd, [Rn, #+imm]!   */
+	case 0x75: /* LDRB Rd, [Rn, -reg...]  */
+	case 0x77: /* LDRB Rd, [Rn, -reg...]! */
+	case 0x7d: /* LDRB Rd, [Rn, +reg...]  */
+	case 0x7f: /* LDRB Rd, [Rn, +reg...]! */
                 if (RD==15) return 0;
                 if (opcode & 0x2000000) {
                         if (!generate_shift(opcode))
