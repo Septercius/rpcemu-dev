@@ -900,6 +900,50 @@ generatesetznS(uint32_t opcode, uint32_t *pcpsr)
 
 static int lastrecompiled;
 
+static void
+genldr(void)
+{
+	int jump_nextbit, jump_notinbuffer;
+
+	addbyte(0x89); addbyte(0xc2); /* MOV %eax,%edx */
+	addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
+	addbyte(0xc1); addbyte(0xe8); addbyte(12); /* SHR $12,%eax */
+	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vraddrl); /* MOV vraddrl(,%eax,4),%ecx */
+	addbyte(0x83); addbyte(0xe2); addbyte(0xfc); /* AND $0xfffffffc,%edx */
+	addbyte(0xf6); addbyte(0xc1); addbyte(1); /* TEST $1,%cl */
+	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
+	addbyte(0x8b); addbyte(0x14); addbyte(0x11); /* MOV (%ecx,%edx),%edx */
+	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
+	/* .notinbuffer */
+	gen_x86_jump_here(jump_notinbuffer);
+	gen_x86_call(codereadmeml);
+	addbyte(0x85); addbyte(0xc0); /* TEST %eax,%eax */
+	gen_x86_jump(CC_NZ, 0);
+	/* .nextbit */
+	gen_x86_jump_here(jump_nextbit);
+	addbyte(0x89); addbyte(0xf9); /* MOV %edi,%ecx */
+}
+
+static void
+genldrb(void)
+{
+	int jump_nextbit, jump_notinbuffer;
+
+	addbyte(0xc1); addbyte(0xe8); addbyte(12); /* SHR $12,%eax */
+	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vraddrl); /* MOV vraddrl(,%eax,4),%ecx */
+	addbyte(0xf6); addbyte(0xc1); addbyte(1); /* TEST $1,%cl */
+	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
+	addbyte(0x0f); addbyte(0xb6); addbyte(0x0c); addbyte(0x11); /* MOVZB (%ecx,%edx),%ecx */
+	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
+	/* .notinbuffer */
+	gen_x86_jump_here(jump_notinbuffer);
+	gen_x86_call(codereadmemb);
+	addbyte(0x85); addbyte(0xc0); /* TEST %eax,%eax */
+	gen_x86_jump(CC_NZ, 0);
+	/* .nextbit */
+	gen_x86_jump_here(jump_nextbit);
+}
+
 static int
 recompile(uint32_t opcode, uint32_t *pcpsr)
 {
@@ -1811,25 +1855,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 {
                         addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 }
-                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                addbyte(0x89); addbyte(0xC7); /*MOVL %eax,%edi*/
-                /*if (opcode&0x200000)*/// gen_x86_push_reg(EDX);
-                addbyte(0xC1); addbyte(0xE8); addbyte(12); /*SHR $12,%eax*/
-                addbyte(0x8B); addbyte(0x0C); addbyte(0x85); /*MOV vraddrl(,%eax,4),%ecx*/
-                addlong(vraddrl);
-                addbyte(0x83); addbyte(0xE2); addbyte(0xFC); /*AND $FFFFFFFC,%edx*/
-                addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
-                jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-                addbyte(0x8B); addbyte(0x14); addbyte(0x11); /*MOVL (%ecx,%edx),%edx*/
-                jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
-                /* .notinbuffer */
-                gen_x86_jump_here(jump_notinbuffer);
-                gen_x86_call(codereadmeml);
-                addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
-                gen_x86_jump(CC_NZ, 0);
-                /* .nextbit */
-                gen_x86_jump_here(jump_nextbit);
-                addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
+                genldr();
                 if (opcode&0x200000) {
                         addbyte(0x89); addbyte(0x0D); addlong(&armregs[RN]); /*MOV %ecx,armregs[RN]*/ }
 //                addbyte(0x83); addbyte(0xE1); addbyte(3); /*AND $3,%ecx*/ /*x86-32 masks shifts to 32 bits, so this isn't necessary*/
@@ -1869,20 +1895,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 //                addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
                 if (opcode&0x200000) generatesavegen(17,EAX);
-                addbyte(0xC1); addbyte(0xE8); addbyte(12); /*SHR $12,%eax*/
-                addbyte(0x8B); addbyte(0x0C); addbyte(0x85); /*MOV vraddrl(,%eax,4),%ecx*/
-                addlong(vraddrl);
-                addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
-                jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-                addbyte(0x0F); addbyte(0xB6); addbyte(0x0C); addbyte(0x11); /*MOVZB (%ecx,%edx),%ecx*/
-                jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
-                /* .notinbuffer */
-                gen_x86_jump_here(jump_notinbuffer);
-                gen_x86_call(codereadmemb);
-                addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
-                gen_x86_jump(CC_NZ, 0);
-                /* .nextbit */
-                gen_x86_jump_here(jump_nextbit);
+                genldrb();
                 if (opcode&0x200000) { generateloadgen(17,EDX);
                         addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
                 generatesavegen(RD,ECX);
