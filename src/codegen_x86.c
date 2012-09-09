@@ -1524,8 +1524,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x08); addbyte(0x0d); addlong(pcpsr+3); /* OR %cl,pcpsr */
                 break;
 
-                
-//                #if 0
         case 0x40: /* STR  Rd, [Rn], #-imm   */
         case 0x48: /* STR  Rd, [Rn], #+imm   */
         case 0x44: /* STRB Rd, [Rn], #-imm   */
@@ -1595,47 +1593,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         }
                 }
                 break;
-
-                #if 0
-        case 0x40: /* STR Rd, [Rn], #-imm   */
-        case 0x48: /* STR Rd, [Rn], #+imm   */
-        case 0x60: /* STR Rd, [Rn], -reg... */
-        case 0x68: /* STR Rd, [Rn], +reg... */
-                if (RD==15 || RN==15) return 0;
-                if (opcode & 0x2000000) {
-                        if (!generate_shift(opcode))
-                                return 0;
-                }
-                flagsdirty=0;
-                generateloadgen(RN,EDI);
-                generateloadgen(RD,EBX);
-                addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL ~3,%edi*/
-                gen_x86_call(mwritemem);
-                if (opcode&0x2000000) generate_shift(opcode);
-addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-//                addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
-                gen_x86_jump(CC_NZ, 0);
-
-                /*.nextbit*/
-                if (opcode&0x2000000)
-                {
-//                        generate_shift(opcode);
-                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
-                        else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
-                }
-                else
-                {
-                        templ = opcode & 0xfff;
-                        if (templ != 0) {
-                                addbyte(0x81); /*ADDL $8,%eax*/
-                                if (opcode&0x800000) addbyte(0x05); /*ADD*/
-                                else                 addbyte(0x2D); /*SUB*/
-                                addlong(&armregs[RN]);
-                                addlong(templ);
-                        }
-                }
-                break;
-                #endif
 
         case 0x41: /* LDR  Rd, [Rn], #-imm   */
         case 0x49: /* LDR  Rd, [Rn], #+imm   */
@@ -1720,7 +1677,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 }
                 break;
 
-//#if 0
         case 0x50: /* STR Rd, [Rn, #-imm]    */
         case 0x52: /* STR Rd, [Rn, #-imm]!   */
         case 0x58: /* STR Rd, [Rn, #+imm]    */
@@ -1827,7 +1783,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                         addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
                 break;
 
-//#if 0
         case 0x51: /* LDR Rd, [Rn, #-imm]    */
         case 0x53: /* LDR Rd, [Rn, #-imm]!   */
         case 0x59: /* LDR Rd, [Rn, #+imm]    */
@@ -1882,7 +1837,6 @@ addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,arm
                 addbyte(0xD3); addbyte(0xCA); /*ROR %cl,%edx*/
                 generatesavegen(RD,EDX);
                 break;
-//#endif
 
         case 0x55: /* LDRB Rd, [Rn, #-imm]    */
         case 0x57: /* LDRB Rd, [Rn, #-imm]!   */
