@@ -1640,10 +1640,40 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 
 	case 0x41: /* LDR Rd, [Rn], #-imm   */
 	case 0x49: /* LDR Rd, [Rn], #+imm   */
-	case 0x45: /* LDRB Rd, [Rn], #-imm   */
-	case 0x4d: /* LDRB Rd, [Rn], #+imm   */
 	case 0x61: /* LDR Rd, [Rn], -reg... */
 	case 0x69: /* LDR Rd, [Rn], +reg... */
+                if (RD==15 || RN==15) return 0;
+                if (opcode & 0x2000000) {
+                        if (!generate_shift(opcode))
+                                return 0;
+                }
+                flagsdirty=0;
+                generateload(RN);
+                genldr();
+                addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx*/
+                addbyte(0xD3); addbyte(0xCA); /*ROR %cl,%edx*/
+                generatesavegen(RD,EDX);
+                if (opcode&0x2000000)
+                {
+                        generate_shift(opcode);
+                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
+                        else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
+                }
+                else
+                {
+                        templ = opcode & 0xfff;
+                        if (templ != 0) {
+                                addbyte(0x81); /*ADDL $8,%eax*/
+                                if (opcode&0x800000) addbyte(0x05); /*ADD*/
+                                else                 addbyte(0x2D); /*SUB*/
+                                addlong(&armregs[RN]);
+                                addlong(templ);
+                        }
+                }
+                break;
+
+	case 0x45: /* LDRB Rd, [Rn], #-imm   */
+	case 0x4d: /* LDRB Rd, [Rn], #+imm   */
 	case 0x65: /* LDRB Rd, [Rn], -reg... */
 	case 0x6d: /* LDRB Rd, [Rn], +reg... */
                 if (RD==15 || RN==15) return 0;
@@ -1654,54 +1684,8 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=0;
                 generateload(RN);
                 addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                if (!(opcode&0x400000))
-                {
-                        addbyte(0x89); addbyte(0xC7); /*MOVL %eax,%edi*/
-                }
-                addbyte(0xC1); addbyte(0xE8); addbyte(12); /*SHR $12,%eax*/
-                addbyte(0x8B); addbyte(0x0C); addbyte(0x85); /*MOV vraddrl(,%eax,4),%ecx*/
-                addlong(vraddrl);
-                if (!(opcode&0x400000))
-                {
-                        addbyte(0x83); addbyte(0xE2); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edx*/
-                }
-                addbyte(0xF6); addbyte(0xC1); addbyte(3); /*TST %cl,3*/
-                jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-                if (opcode&0x400000)
-                {
-                        addbyte(0x0F); addbyte(0xB6); addbyte(0x0C); addbyte(0x11); /*MOVZB (%ecx,%edx),%ecx*/
-                }
-                else
-                {
-                        addbyte(0x8B); addbyte(0x14); addbyte(0x11); /*MOVL (%ecx,%edx),%edx*/
-                }
-                jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
-                /*.notinbuffer*/
-                gen_x86_jump_here(jump_notinbuffer);
-                if (opcode&0x400000)
-                {
-                        gen_x86_call(codereadmemb);
-                }
-                else
-                {
-                        gen_x86_call(codereadmeml);
-                }
-                addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
-                gen_x86_jump(CC_NZ, 0);
-
-                /*.nextbit*/
-                gen_x86_jump_here(jump_nextbit);
-                if (opcode&0x400000)
-                {
-                        generatesavegen(RD,ECX);
-                }
-                else
-                {
-                        addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
-                        addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx*/
-                        addbyte(0xD3); addbyte(0xCA); /*ROR %cl,%edx*/
-                        generatesavegen(RD,EDX);
-                }
+                genldrb();
+                generatesavegen(RD,ECX);
                 if (opcode&0x2000000)
                 {
                         generate_shift(opcode);
