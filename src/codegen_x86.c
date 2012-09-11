@@ -944,6 +944,47 @@ genldrb(void)
 	gen_x86_jump_here(jump_nextbit);
 }
 
+static void
+genstr(void)
+{
+	int jump_nextbit, jump_notinbuffer;
+
+	addbyte(0xc1); addbyte(0xe8); addbyte(12); /* SHR $12,%eax */
+	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vwaddrl); /* MOV vwaddrl(,%eax,4),%ecx */
+	addbyte(0x83); addbyte(0xe2); addbyte(0xfc); /* AND $0xfffffffc,%edx */
+	addbyte(0xf6); addbyte(0xc1); addbyte(3); /* TEST $3,%cl */
+	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
+	addbyte(0x89); addbyte(0x1c); addbyte(0x11); /* MOV %ebx,(%ecx,%edx) */
+	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
+	/* .notinbuffer */
+	gen_x86_jump_here(jump_notinbuffer);
+	gen_x86_call(codewritememfl);
+	addbyte(0x85); addbyte(0xc0); /* TEST %eax,%eax */
+	gen_x86_jump(CC_NZ, 0);
+	/* .nextbit */
+	gen_x86_jump_here(jump_nextbit);
+}
+
+static void
+genstrb(void)
+{
+	int jump_nextbit, jump_notinbuffer;
+
+	addbyte(0xc1); addbyte(0xe8); addbyte(12); /* SHR $12,%eax */
+	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vwaddrl); /* MOV vwaddrl(,%eax,4),%ecx */
+	addbyte(0xf6); addbyte(0xc1); addbyte(3); /* TEST $3,%cl */
+	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
+	addbyte(0x88); addbyte(0x1c); addbyte(0x11); /* MOV %bl,(%ecx,%edx) */
+	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
+	/* .notinbuffer */
+	gen_x86_jump_here(jump_notinbuffer);
+	gen_x86_call(codewritememfb);
+	addbyte(0x85); addbyte(0xc0); /* TEST %eax,%eax */
+	gen_x86_jump(CC_NZ, 0);
+	/* .nextbit */
+	gen_x86_jump_here(jump_nextbit);
+}
+
 static int
 recompile(uint32_t opcode, uint32_t *pcpsr)
 {
@@ -1737,23 +1778,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 //                addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
                 addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
-                addbyte(0xC1); addbyte(0xE8); addbyte(12); /*SHR $12,%eax*/
-                addbyte(0x8B); addbyte(0x0C); addbyte(0x85); /*MOV vwaddrl(,%eax,4),%ecx*/
-                addlong(vwaddrl);
-                addbyte(0x83); addbyte(0xe2); addbyte(0xfc); /* AND $0xfffffffc,%edx */
-                addbyte(0xF6); addbyte(0xC1); addbyte(3); /*TST %cl,3*/
-                jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-                
-                addbyte(0x89); addbyte(0x1C); addbyte(0x11); /*MOV %ebx,(%ecx,%edx)*/
-                jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
-                /*.notinbuffer*/
-                gen_x86_jump_here(jump_notinbuffer);
-                gen_x86_call(codewritememfl);
-                addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
-                gen_x86_jump(CC_NZ, 0);
-
-                /*.nextbit*/
-                gen_x86_jump_here(jump_nextbit);
+                genstr();
                 if (opcode & 0x200000) {
                         generatesavegen(RN, EDI);
                 }
@@ -1792,22 +1817,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 //                addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
                 if (opcode&0x200000) generatesavegen(17,EAX);
-                addbyte(0xC1); addbyte(0xE8); addbyte(12); /*SHR $12,%eax*/
-                addbyte(0x8B); addbyte(0x0C); addbyte(0x85); /*MOV vwaddrl(,%eax,4),%ecx*/
-                addlong(vwaddrl);
-                addbyte(0xF6); addbyte(0xC1); addbyte(3); /*TST %cl,3*/
-                jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-                /*.inbuffer*/
-                addbyte(0x88); addbyte(0x1C); addbyte(0x11); /*MOVB %bl,(%ecx,%edx)*/
-                jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
-                /*.notinbuffer*/
-                gen_x86_jump_here(jump_notinbuffer);
-                gen_x86_call(codewritememfb);
-                addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
-                gen_x86_jump(CC_NZ, 0);
-
-                /*.nextbit*/
-                gen_x86_jump_here(jump_nextbit);
+                genstrb();
                 if (opcode&0x200000) { generateloadgen(17,EDX);
                         addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
                 break;
