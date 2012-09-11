@@ -1735,12 +1735,12 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 }
 //                addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
-                addbyte(0x83); addbyte(0xE0); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%eax*/
                 addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                if (opcode&0x200000) generatesavegen(17,EAX);
+                addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
                 addbyte(0xC1); addbyte(0xE8); addbyte(12); /*SHR $12,%eax*/
                 addbyte(0x8B); addbyte(0x0C); addbyte(0x85); /*MOV vwaddrl(,%eax,4),%ecx*/
                 addlong(vwaddrl);
+                addbyte(0x83); addbyte(0xe2); addbyte(0xfc); /* AND $0xfffffffc,%edx */
                 addbyte(0xF6); addbyte(0xC1); addbyte(3); /*TST %cl,3*/
                 jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
                 
@@ -1754,8 +1754,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 
                 /*.nextbit*/
                 gen_x86_jump_here(jump_nextbit);
-                if (opcode&0x200000) { generateloadgen(17,EDX);
-                        addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
+                if (opcode & 0x200000) {
+                        generatesavegen(RN, EDI);
+                }
                 break;
 
 	case 0x54: /* STRB Rd, [Rn, #-imm]    */
