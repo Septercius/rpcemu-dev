@@ -1813,10 +1813,11 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
 //                addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                if (opcode&0x200000) generatesavegen(17,EAX);
+                addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
                 genstrb();
-                if (opcode&0x200000) { generateloadgen(17,EDX);
-                        addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
+                if (opcode & 0x200000) {
+                        generatesavegen(RN, EDI);
+                }
                 break;
 
 	case 0x51: /* LDR Rd, [Rn, #-imm]    */
@@ -1848,11 +1849,12 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 }
                 genldr();
-                if (opcode&0x200000) {
-                        addbyte(0x89); addbyte(0x0D); addlong(&armregs[RN]); /*MOV %ecx,armregs[RN]*/ }
 //                addbyte(0x83); addbyte(0xE1); addbyte(3); /*AND $3,%ecx*/ /*x86-32 masks shifts to 32 bits, so this isn't necessary*/
                 addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx*/
                 addbyte(0xD3); addbyte(0xCA); /*ROR %cl,%edx*/
+                if (opcode & 0x200000) {
+                        generatesavegen(RN, EDI);
+                }
                 generatesavegen(RD,EDX);
                 break;
 
@@ -1886,10 +1888,11 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
 //                addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                if (opcode&0x200000) generatesavegen(17,EAX);
+                addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
                 genldrb();
-                if (opcode&0x200000) { generateloadgen(17,EDX);
-                        addbyte(0x89); addbyte(0x15); addlong(&armregs[RN]); /*MOV %edx,armregs[RN]*/ }
+                if (opcode & 0x200000) {
+                        generatesavegen(RN, EDI);
+                }
                 generatesavegen(RD,ECX);
                 break;
 
