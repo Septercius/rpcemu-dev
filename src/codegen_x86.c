@@ -992,7 +992,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         int c,d;
         int first=0;
         uint32_t templ;
-	int jump_nextbit, jump_notinbuffer;
 	int jump_end, jump_fast, jump_not_abort;
 
         switch ((opcode>>20)&0xFF)
@@ -1611,10 +1610,40 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 
 	case 0x40: /* STR Rd, [Rn], #-imm   */
 	case 0x48: /* STR Rd, [Rn], #+imm   */
-	case 0x44: /* STRB Rd, [Rn], #-imm   */
-	case 0x4c: /* STRB Rd, [Rn], #+imm   */
 	case 0x60: /* STR Rd, [Rn], -reg... */
 	case 0x68: /* STR Rd, [Rn], +reg... */
+                if (RD==15 || RN==15) return 0;
+                if (opcode & 0x2000000) {
+                        if (!generate_shift(opcode))
+                                return 0;
+                }
+                flagsdirty=0;
+                generateload(RN);
+                generateloadgen(RD,EBX);
+                addbyte(0x89); /*MOVL %eax,%edx*/
+                addbyte(0xC2);
+                genstr();
+                if (opcode&0x2000000)
+                {
+                        generate_shift(opcode);
+                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
+                        else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
+                }
+                else
+                {
+                        templ = opcode & 0xfff;
+                        if (templ != 0) {
+                                addbyte(0x81); /*ADDL $8,%eax*/
+                                if (opcode&0x800000) addbyte(0x05); /*ADD*/
+                                else                 addbyte(0x2D); /*SUB*/
+                                addlong(&armregs[RN]);
+                                addlong(templ);
+                        }
+                }
+                break;
+
+	case 0x44: /* STRB Rd, [Rn], #-imm   */
+	case 0x4c: /* STRB Rd, [Rn], #+imm   */
 	case 0x64: /* STRB Rd, [Rn], -reg... */
 	case 0x6c: /* STRB Rd, [Rn], +reg... */
                 if (RD==15 || RN==15) return 0;
@@ -1627,39 +1656,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 generateloadgen(RD,EBX);
                 addbyte(0x89); /*MOVL %eax,%edx*/
                 addbyte(0xC2);
-                addbyte(0xC1); addbyte(0xE8); addbyte(12); /*SHR $12,%eax*/
-                addbyte(0x8B); addbyte(0x0C); addbyte(0x85); /*MOV vwaddrl(,%eax,4),%ecx*/
-                addlong(vwaddrl);
-                if (!(opcode&0x400000))
-                {
-                        addbyte(0x83); addbyte(0xE2); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edx*/
-                }
-                addbyte(0xF6); addbyte(0xC1); addbyte(3); /*TST %cl,3*/
-                jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-                if (opcode&0x400000)
-                {
-                        addbyte(0x88); addbyte(0x1C); addbyte(0x11); /*MOVB %bl,(%ecx,%edx)*/
-                }
-                else
-                {
-                        addbyte(0x89); addbyte(0x1C); addbyte(0x11); /*MOVL %ebx,(%ecx,%edx)*/
-                }
-                jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
-                /*.notinbuffer*/
-                gen_x86_jump_here(jump_notinbuffer);
-                if (opcode&0x400000)
-                {
-                        gen_x86_call(codewritememfb);
-                }
-                else
-                {
-                        gen_x86_call(codewritememfl);
-                }
-                addbyte(0x85); addbyte(0xC0); /*TESTL %eax,%eax*/
-                gen_x86_jump(CC_NZ, 0);
-
-                /*.nextbit*/
-                gen_x86_jump_here(jump_nextbit);
+                genstrb();
                 if (opcode&0x2000000)
                 {
                         generate_shift(opcode);
