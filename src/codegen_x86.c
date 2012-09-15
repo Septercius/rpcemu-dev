@@ -921,7 +921,10 @@ genldr(void)
 	gen_x86_jump(CC_NZ, 0);
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
+	/* Rotate if load is unaligned */
 	addbyte(0x89); addbyte(0xf9); /* MOV %edi,%ecx */
+	addbyte(0xc1); addbyte(0xe1); addbyte(3); /* SHL $3,%ecx */
+	addbyte(0xd3); addbyte(0xca); /* ROR %cl,%edx */
 }
 
 static void
@@ -929,6 +932,8 @@ genldrb(void)
 {
 	int jump_nextbit, jump_notinbuffer;
 
+	addbyte(0x89); addbyte(0xc2); /* MOV %eax,%edx */
+	addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
 	addbyte(0xc1); addbyte(0xe8); addbyte(12); /* SHR $12,%eax */
 	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vraddrl); /* MOV vraddrl(,%eax,4),%ecx */
 	addbyte(0xf6); addbyte(0xc1); addbyte(1); /* TEST $1,%cl */
@@ -949,6 +954,8 @@ genstr(void)
 {
 	int jump_nextbit, jump_notinbuffer;
 
+	addbyte(0x89); addbyte(0xc2); /* MOV %eax,%edx */
+	addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
 	addbyte(0xc1); addbyte(0xe8); addbyte(12); /* SHR $12,%eax */
 	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vwaddrl); /* MOV vwaddrl(,%eax,4),%ecx */
 	addbyte(0x83); addbyte(0xe2); addbyte(0xfc); /* AND $0xfffffffc,%edx */
@@ -970,6 +977,8 @@ genstrb(void)
 {
 	int jump_nextbit, jump_notinbuffer;
 
+	addbyte(0x89); addbyte(0xc2); /* MOV %eax,%edx */
+	addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
 	addbyte(0xc1); addbyte(0xe8); addbyte(12); /* SHR $12,%eax */
 	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vwaddrl); /* MOV vwaddrl(,%eax,4),%ecx */
 	addbyte(0xf6); addbyte(0xc1); addbyte(3); /* TEST $3,%cl */
@@ -1620,8 +1629,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=0;
                 generateload(RN);
                 generateloadgen(RD,EBX);
-                addbyte(0x89); /*MOVL %eax,%edx*/
-                addbyte(0xC2);
                 genstr();
                 if (opcode&0x2000000)
                 {
@@ -1654,8 +1661,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=0;
                 generateload(RN);
                 generateloadgen(RD,EBX);
-                addbyte(0x89); /*MOVL %eax,%edx*/
-                addbyte(0xC2);
                 genstrb();
                 if (opcode&0x2000000)
                 {
@@ -1688,8 +1693,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=0;
                 generateload(RN);
                 genldr();
-                addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx*/
-                addbyte(0xD3); addbyte(0xCA); /*ROR %cl,%edx*/
                 generatesavegen(RD,EDX);
                 if (opcode&0x2000000)
                 {
@@ -1721,7 +1724,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 flagsdirty=0;
                 generateload(RN);
-                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
                 genldrb();
                 generatesavegen(RD,ECX);
                 if (opcode&0x2000000)
@@ -1772,9 +1774,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 {
                         addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 }
-//                addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
-                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
                 genstr();
                 if (opcode & 0x200000) {
                         generatesavegen(RN, EDI);
@@ -1811,9 +1810,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 {
                         addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 }
-//                addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
-                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
                 genstrb();
                 if (opcode & 0x200000) {
                         generatesavegen(RN, EDI);
@@ -1849,9 +1845,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 }
                 genldr();
-//                addbyte(0x83); addbyte(0xE1); addbyte(3); /*AND $3,%ecx*/ /*x86-32 masks shifts to 32 bits, so this isn't necessary*/
-                addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx*/
-                addbyte(0xD3); addbyte(0xCA); /*ROR %cl,%edx*/
                 if (opcode & 0x200000) {
                         generatesavegen(RN, EDI);
                 }
@@ -1886,9 +1879,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 {
                         addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 }
-//                addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
-                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
                 genldrb();
                 if (opcode & 0x200000) {
                         generatesavegen(RN, EDI);
