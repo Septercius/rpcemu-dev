@@ -700,7 +700,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			gen_x86_pop_reg(RAX);
 		}
 		gen_x86_jump(CC_NE, 0);
-		genstorereggen(RD,EDX);
 		if (opcode&0x2000000)
 		{
 			if (opcode&0x800000) { addbyte(0x41); addbyte(0x01); addbyte(0x47); addbyte(RN<<2); /*ADDL %eax,Rn*/ }
@@ -714,6 +713,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				else		     { addbyte(0x41); addbyte(0x81); addbyte(0x6F); addbyte(RN<<2); addlong(templ); /*SUBL $temp,Rn*/ }
 			}
 		}
+		genstorereggen(RD, EDX);
 		break;
 
 	case 0x45: /* LDRB Rd, [Rn], #-imm   */
@@ -734,7 +734,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			gen_x86_pop_reg(RAX);
 		}
 		gen_x86_jump(CC_NE, 0);
-		genstorereggen(RD,EDX);
 		if (opcode&0x2000000)
 		{
 			if (opcode&0x800000) { addbyte(0x41); addbyte(0x01); addbyte(0x47); addbyte(RN<<2); /*ADDL %eax,Rn*/ }
@@ -748,6 +747,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				else		     { addbyte(0x41); addbyte(0x81); addbyte(0x6F); addbyte(RN<<2); addlong(templ); /*SUBL $temp,Rn*/ }
 			}
 		}
+		genstorereggen(RD, EDX);
 		break;
 
 	case 0x50: /* STR Rd, [Rn, #-imm]    */
@@ -830,11 +830,11 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
 		genldr();
 		gentestabort();
-		genstorereggen(RD,EDX);
 		if (opcode&0x200000) /*Writeback*/
 		{
 			genstorereggen(RN,EDI);
 		}
+		genstorereggen(RD, EDX);
 		break;
 
 	case 0x55: /* LDRB Rd, [Rn, #-imm]    */
@@ -858,11 +858,11 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
 		genldrb();
 		gentestabort();
-		genstorereggen(RD,EDX);
 		if (opcode&0x200000) /*Writeback*/
 		{
 			genstorereggen(RN,EDI);
 		}
+		genstorereggen(RD, EDX);
 		break;
 
 	case 0x80: /* STMDA */

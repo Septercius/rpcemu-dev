@@ -1693,7 +1693,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=0;
                 generateload(RN);
                 genldr();
-                generatesavegen(RD,EDX);
                 if (opcode&0x2000000)
                 {
                         generate_shift(opcode);
@@ -1711,6 +1710,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                 addlong(templ);
                         }
                 }
+                generatesavegen(RD, EDX);
                 break;
 
 	case 0x45: /* LDRB Rd, [Rn], #-imm   */
@@ -1725,7 +1725,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=0;
                 generateload(RN);
                 genldrb();
-                generatesavegen(RD,ECX);
                 if (opcode&0x2000000)
                 {
                         generate_shift(opcode);
@@ -1743,6 +1742,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                 addlong(templ);
                         }
                 }
+                generatesavegen(RD, ECX);
                 break;
 
 	case 0x50: /* STR Rd, [Rn, #-imm]    */
