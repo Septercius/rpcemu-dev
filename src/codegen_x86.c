@@ -1625,6 +1625,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (opcode & 0x2000000) {
                         if (!generate_shift(opcode))
                                 return 0;
+                        addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
                 }
                 flagsdirty=0;
                 generateload(RN);
@@ -1632,7 +1633,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 genstr();
                 if (opcode&0x2000000)
                 {
-                        generate_shift(opcode);
+                        addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
                         if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
                         else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
                 }
@@ -1657,6 +1658,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (opcode & 0x2000000) {
                         if (!generate_shift(opcode))
                                 return 0;
+                        addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
                 }
                 flagsdirty=0;
                 generateload(RN);
@@ -1664,7 +1666,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 genstrb();
                 if (opcode&0x2000000)
                 {
-                        generate_shift(opcode);
+                        addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
                         if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
                         else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
                 }
@@ -1689,13 +1691,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (opcode & 0x2000000) {
                         if (!generate_shift(opcode))
                                 return 0;
+                        addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
                 }
                 flagsdirty=0;
                 generateload(RN);
                 genldr();
                 if (opcode&0x2000000)
                 {
-                        generate_shift(opcode);
+                        addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
                         if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
                         else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
                 }
@@ -1721,13 +1724,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (opcode & 0x2000000) {
                         if (!generate_shift(opcode))
                                 return 0;
+                        addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
                 }
                 flagsdirty=0;
                 generateload(RN);
                 genldrb();
                 if (opcode&0x2000000)
                 {
-                        generate_shift(opcode);
+                        addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
                         if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
                         else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
                 }
