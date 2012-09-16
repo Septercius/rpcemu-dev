@@ -437,44 +437,58 @@ generate_shift(uint32_t opcode)
 static void
 genldr(void) /*address in %edi, data in %eax*/
 {
+	int jump_nextbit, jump_notinbuffer;
+
 	gen_x86_push_reg(RDI);
 	addbyte(0x89); addbyte(0xFA); /*MOV %edi,%edx*/
 	addbyte(0xC1); addbyte(0xEA); addbyte(12); /*SHRL $12,%edx*/
 	addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
 	addbyte(0x49); addbyte(0x8B); addbyte(0x54); addbyte(0xD5); addbyte(0); /*MOVQ (%r13,%edx,8),%rdx*/
 	addbyte(0xF6); addbyte(0xC2); addbyte(1); /*TESTB %dl,1*/
-	addbyte(0x75); addbyte(7); /*JNZ slow*/
+	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
 	addbyte(0x8B); addbyte(0x14); addbyte(0x3A); /*MOVL (%rdx,%rdi),%edx*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
-	addbyte(0xEB); addbyte(5); /*JMP over*/
+	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
+	/* .notinbuffer */
+	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_call(recompreadmeml);
+	/* .nextbit */
+	gen_x86_jump_here(jump_nextbit);
 	gen_x86_pop_reg(RDI);
+	/* Rotate if load is unaligned */
 	addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
 	addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx*/
 	addbyte(0xD3); addbyte(0xCA); /*ROR %cl,%edx*/
-
 }
 
 static void
 genldrb(void) /*address in %edi, data in %al*/
 {
+	int jump_nextbit, jump_notinbuffer;
+
 	addbyte(0x89); addbyte(0xFA); /*MOV %edi,%edx*/
 	addbyte(0xC1); addbyte(0xEA); addbyte(12); /*SHRL $12,%edx*/
 	addbyte(0x89); addbyte(0xFF); /*MOVL %edi,%edi*/
 	addbyte(0x49); addbyte(0x8B); addbyte(0x54); addbyte(0xD5); addbyte(0); /*MOVQ (%r13,%edx,8),%rdx*/
 	addbyte(0xF6); addbyte(0xC2); addbyte(1); /*TESTB %dl,1*/
-	addbyte(0x75); addbyte(8); /*JNZ slow*/
+	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
 	addbyte(0x0F); addbyte(0xB6); addbyte(0x14); addbyte(0x3A); /*MOVZX (%rdx,%rdi),%edx*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
-	addbyte(0xEB); addbyte(7); /*JMP over*/
+	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
+	/* .notinbuffer */
+	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_push_reg(RDI);
 	gen_x86_call(recompreadmemb);
 	gen_x86_pop_reg(RDI);
+	/* .nextbit */
+	gen_x86_jump_here(jump_nextbit);
 }
 
 static void
 genstr(void) /*address in %edi, data in %eax*/
 {
+	int jump_nextbit, jump_notinbuffer;
+
 	gen_x86_push_reg(RDI);
 	addbyte(0x89); addbyte(0xFA); /*MOV %edi,%edx*/
 	addbyte(0xC1); addbyte(0xEA); addbyte(12); /*SHRL $12,%edx*/
@@ -482,29 +496,39 @@ genstr(void) /*address in %edi, data in %eax*/
 	//addbyte(0x89); addbyte(0xFF); /*MOVL %edi,%edi*/
 	addbyte(0x49); addbyte(0x8B); addbyte(0x14); addbyte(0xD6); /*MOVQ (%r14,%edx,8),%rdx*/
 	addbyte(0xF6); addbyte(0xC2); addbyte(3); /*TESTB %dl,3*/
-	addbyte(0x75); addbyte(7); /*JNZ slow*/
+	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
 	addbyte(0x89); addbyte(0x04); addbyte(0x3A); /*MOV %eax,(%rdx,%rdi)*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
-	addbyte(0xEB); addbyte(5); /*JMP over*/
+	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
+	/* .notinbuffer */
+	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_call(recompwritememl);
+	/* .nextbit */
+	gen_x86_jump_here(jump_nextbit);
 	gen_x86_pop_reg(RDI);
 }
 
 static void
 genstrb(void) /*address in %edi, data in %al*/
 {
+	int jump_nextbit, jump_notinbuffer;
+
 	addbyte(0x89); addbyte(0xFA); /*MOV %edi,%edx*/
 	addbyte(0xC1); addbyte(0xEA); addbyte(12); /*SHRL $12,%edx*/
 	addbyte(0x89); addbyte(0xFF); /*MOVL %edi,%edi*/
 	addbyte(0x49); addbyte(0x8B); addbyte(0x14); addbyte(0xD6); /*MOVQ (%r14,%edx,8),%rdx*/
 	addbyte(0xF6); addbyte(0xC2); addbyte(3); /*TESTB %dl,3*/
-	addbyte(0x75); addbyte(7); /*JNZ slow*/
+	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
 	addbyte(0x88); addbyte(0x04); addbyte(0x3A); /*MOVB %al,(%rdx,%rdi)*/
 	addbyte(0x30); addbyte(0xC0); /*XOR %al,%al*/
-	addbyte(0xEB); addbyte(7); /*JMP over*/
+	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
+	/* .notinbuffer */
+	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_push_reg(RDI);
 	gen_x86_call(recompwritememb);
 	gen_x86_pop_reg(RDI);
+	/* .nextbit */
+	gen_x86_jump_here(jump_nextbit);
 }
 
 static void
