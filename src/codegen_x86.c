@@ -1801,8 +1801,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 flagsdirty=0;
                 if (!(opcode&0x800000)) { addbyte(0xF7); addbyte(0xD8); } /*NEG %eax*/
-                addbyte(0x8A); addbyte(0x1D); /*MOVB armregs[RD],%bl*/
-                addlong(&armregs[RD]);
+                generateloadgen(RD, EBX);
                 /*Shifted value now in %eax*/
                 if (RN==15)
                 {
