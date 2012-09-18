@@ -648,7 +648,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
 		}
 		genloadreggen(RN,EDI);
-		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
 		genloadreg(RD);
 		genstr();
 	        addbyte(0x84); /*TESTL %al,%al*/
@@ -785,11 +784,8 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
 		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
-		gen_x86_push_reg(RDI);
-		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
 		genloadreg(RD);
 		genstr();
-		gen_x86_pop_reg(RDI);
 		gentestabort();
 		if (opcode&0x200000) /*Writeback*/
 		{
