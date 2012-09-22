@@ -713,7 +713,7 @@ generate_shift(uint32_t opcode)
         if (opcode&0x10) return 0; /*Can't do shift by register ATM*/
         if (!(opcode&0xFF0)) /*No shift*/
         {
-                generateload(opcode&0xF);
+                generateload(RM);
                 return 1;
         }
         temp=(opcode>>7)&31;
@@ -721,13 +721,13 @@ generate_shift(uint32_t opcode)
         switch (opcode&0x60)
         {
                 case 0x00: /*LSL*/
-                generateload(opcode&0xF);
+                generateload(RM);
                 if (temp) addbyte(0xC1); addbyte(0xE0); addbyte(temp); /*SHL $temp,%eax*/
                 return 1;
                 case 0x20: /*LSR*/
                 if (temp)
                 {
-                        generateload(opcode&0xF);
+                        generateload(RM);
                         addbyte(0xC1); addbyte(0xE8); addbyte(temp); /*SHR $temp,%eax*/
                 }
                 else
@@ -737,12 +737,12 @@ generate_shift(uint32_t opcode)
                 return 1;
                 case 0x40: /*ASR*/
                 if (!temp) temp=31;
-                generateload(opcode&0xF);
+                generateload(RM);
                 addbyte(0xC1); addbyte(0xF8); addbyte(temp); /*SAR $temp,%eax*/
                 return 1;
                 case 0x60: /*ROR*/
                 if (!temp) break;
-                generateload(opcode&0xF);
+                generateload(RM);
                 addbyte(0xC1); addbyte(0xC8); addbyte(temp); /*ROR $temp,%eax*/
                 return 1;
         }
@@ -757,7 +757,7 @@ generateshiftflags(uint32_t opcode, uint32_t *pcpsr)
         if (!(opcode&0xFF0)) /*No shift*/
         {
                 addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); /*MOVB *pcpsr,%cl*/
-                generateload(opcode&0xF);
+                generateload(RM);
                 addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $ZFLAG+NFLAG,%cl*/
                 return 1;
         }
@@ -766,7 +766,7 @@ generateshiftflags(uint32_t opcode, uint32_t *pcpsr)
         {
                 case 0x00: /*LSL*/
                 addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); /*MOVB *pcpsr,%cl*/
-                generateload(opcode&0xF);
+                generateload(RM);
                 if (temp)  
                 {
                         addbyte(0x80); addbyte(0xE1); addbyte(~0xE0); /*AND $ZFLAG+NFLAG+CFLAG,%cl*/
@@ -785,7 +785,7 @@ generateshiftflags(uint32_t opcode, uint32_t *pcpsr)
                 {
                         addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); /*MOVB *pcpsr,%cl*/
                         addbyte(0x80); addbyte(0xE1); addbyte(~0xE0); /*AND $ZFLAG+NFLAG+CFLAG,%cl*/
-                        generateload(opcode&0xF);
+                        generateload(RM);
                         addbyte(0xC1); addbyte(0xE8); addbyte(temp); /*SHR $temp,%eax*/
                         addbyte(0x73); addbyte(3); /*JNC nocarry*/
                         addbyte(0x80); addbyte(0xC9); addbyte(0x20); /*OR $CFLAG,%cl*/
@@ -807,7 +807,7 @@ generateshiftflags(uint32_t opcode, uint32_t *pcpsr)
                 addbyte(0x80); addbyte(0xE1); addbyte(~0xE0); /*AND $ZFLAG+NFLAG+CFLAG,%cl*/
                 if (!temp)
                 {
-                        generateload(opcode&0xF);
+                        generateload(RM);
                         addbyte(0xA9); addlong(0x80000000); /*TEST $0x80000000,%eax*/
                         addbyte(0x74); addbyte(3); /*JZ nocarry*/
                         addbyte(0x80); addbyte(0xC9); addbyte(0x20); /*OR $CFLAG,%cl*/
@@ -815,7 +815,7 @@ generateshiftflags(uint32_t opcode, uint32_t *pcpsr)
                 }
                 else
                 {
-                        generateload(opcode&0xF);
+                        generateload(RM);
                         addbyte(0xC1); addbyte(0xF8); addbyte(temp); /*SAR $temp,%eax*/
                         addbyte(0x73); addbyte(3); /*JNC nocarry*/
                         addbyte(0x80); addbyte(0xC9); addbyte(0x20); /*OR $CFLAG,%cl*/
@@ -825,7 +825,7 @@ generateshiftflags(uint32_t opcode, uint32_t *pcpsr)
                 return 0;
                 if (!temp) break;
                 addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); /*MOVB *pcpsr,%cl*/
-                generateload(opcode&0xF);
+                generateload(RM);
                 addbyte(0x80); addbyte(0xE1); addbyte(~0xE0); /*AND $ZFLAG+NFLAG+CFLAG,%cl*/
                 addbyte(0xC1); addbyte(0xC8); addbyte(temp); /*ROR $temp,%eax*/
                 addbyte(0x73); addbyte(3); /*JNC nocarry*/
