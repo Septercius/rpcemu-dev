@@ -1766,7 +1766,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 flagsdirty=0;
                 if (!(opcode&0x800000)) { addbyte(0xF7); addbyte(0xD8); } /*NEG %eax*/
-                generateloadgen(RD,EBX);
                 /*Shifted value now in %eax*/
                 if (RN==15)
                 {
@@ -1778,6 +1777,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 {
                         addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 }
+                generateloadgen(RD, EBX);
                 genstr();
                 if (opcode & 0x200000) {
                         generatesavegen(RN, EDI);
@@ -1801,7 +1801,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 flagsdirty=0;
                 if (!(opcode&0x800000)) { addbyte(0xF7); addbyte(0xD8); } /*NEG %eax*/
-                generateloadgen(RD, EBX);
                 /*Shifted value now in %eax*/
                 if (RN==15)
                 {
@@ -1813,6 +1812,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 {
                         addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
                 }
+                generateloadgen(RD, EBX);
                 genstrb();
                 if (opcode & 0x200000) {
                         generatesavegen(RN, EDI);
