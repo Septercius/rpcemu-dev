@@ -324,12 +324,6 @@ gen_load_reg(int reg, int x86reg)
 	}
 }
 
-static inline void
-genloadreg(int reg) /*Assumes %eax as targer*/
-{
-	gen_load_reg(reg, EAX);
-}
-
 static void
 gen_save_reg(int reg, int x86reg)
 {
@@ -338,12 +332,6 @@ gen_save_reg(int reg, int x86reg)
 	} else {
 		addbyte(0x41); addbyte(0x89); addbyte(0x47 | (x86reg << 3)); addbyte(reg<<2); /*MOVL %eax,RD*/
 	}
-}
-
-static inline void
-genstorereg(int reg) /*Assumes %eax as source*/
-{
-	gen_save_reg(reg, EAX);
 }
 
 static void
@@ -364,13 +352,13 @@ generatedataproc(uint32_t opcode, uint8_t op, uint32_t val)
 	}
 	else /*Load/modify/store*/
 	{
-		genloadreg(RN);
+		gen_load_reg(RN, EAX);
 		if (RN==15)
 		{
 			addbyte(0x25); addlong(r15mask); /*AND $r15mask,%eax*/
 		}
 		addbyte(0x05|op); addlong(val); /*OP $val,%eax*/
-		genstorereg(RD);
+		gen_save_reg(RD, EAX);
 	}
 }
 
@@ -387,7 +375,7 @@ generateregdataproc(uint32_t opcode, uint8_t op, int dirmatters)
 	else
 	{
 		addbyte(0x41); addbyte(0x03|op); addbyte(0x47); addbyte(RN<<2); /*OP RN,%eax*/
-		genstorereg(RD);
+		gen_save_reg(RD, EAX);
 	}
 }
 
@@ -398,20 +386,20 @@ generate_shift(uint32_t opcode)
 	if (opcode&0x10) return 0; /* Can't do register shifts or multiplies */
 	if (!(opcode&0xFF0))
 	{
-		genloadreg(RM);
+		gen_load_reg(RM, EAX);
 		return 1;
 	}
 	temp=(opcode>>7)&31;
         switch (opcode&0x60)
         {
                 case 0x00: /*LSL*/
-                genloadreg(RM);
+                gen_load_reg(RM, EAX);
                 if (temp) addbyte(0xC1); addbyte(0xE0); addbyte(temp); /*SHL $temp,%eax*/
                 return 1;
                 case 0x20: /*LSR*/
                 if (temp)
                 {
-                        genloadreg(RM);
+                        gen_load_reg(RM, EAX);
                         addbyte(0xC1); addbyte(0xE8); addbyte(temp); /*SHR $temp,%eax*/
                 }
                 else
@@ -421,12 +409,12 @@ generate_shift(uint32_t opcode)
                 return 1;
                 case 0x40: /*ASR*/
                 if (!temp) temp=31;
-                genloadreg(RM);
+                gen_load_reg(RM, EAX);
                 addbyte(0xC1); addbyte(0xF8); addbyte(temp); /*SAR $temp,%eax*/
                 return 1;
                 case 0x60: /*ROR*/
                 if (!temp) break;
-                genloadreg(RM);
+                gen_load_reg(RM, EAX);
                 addbyte(0xC1); addbyte(0xC8); addbyte(temp); /*ROR $temp,%eax*/
                 return 1;
         }
@@ -590,7 +578,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x1a: /* MOV reg */
 		if (RD==15) return 0;
 		if (!generate_shift(opcode)) return 0;
-		genstorereg(RD);
+		gen_save_reg(RD, EAX);
 		break;
 
 	case 0x20: /* AND imm */
@@ -649,7 +637,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
 		}
 		gen_load_reg(RN, EDI);
-		genloadreg(RD);
+		gen_load_reg(RD, EAX);
 		genstr();
 		if (opcode&0x2000000)
 		{
@@ -678,7 +666,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
 		}
 		gen_load_reg(RN, EDI);
-		genloadreg(RD);
+		gen_load_reg(RD, EAX);
 		genstrb();
 		if (opcode&0x2000000)
 		{
@@ -773,7 +761,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
 		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
-		genloadreg(RD);
+		gen_load_reg(RD, EAX);
 		genstr();
 		if (opcode&0x200000) /*Writeback*/
 		{
@@ -800,7 +788,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
 		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
-		genloadreg(RD);
+		gen_load_reg(RD, EAX);
 		genstrb();
 		if (opcode&0x200000) /*Writeback*/
 		{
@@ -875,7 +863,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		{
 			if (opcode&(1<<c))
 			{
-				genloadreg(c);
+				gen_load_reg(c, EAX);
 				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xEF); addbyte(4); /*ADDL $4,%edi*/ }
 				if (c==15) { addbyte(0x83); addbyte(0xC0); addbyte(4); /*ADD $4,%eax*/ }
 				gen_x86_call(recompwritememl);
@@ -901,7 +889,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		{
 			if (opcode&(1<<c))
 			{
-				genloadreg(c);
+				gen_load_reg(c, EAX);
 				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 				if (c==15) { addbyte(0x83); addbyte(0xC0); addbyte(4); /*ADD $4,%eax*/ }
 				gen_x86_call(recompwritememl);
@@ -1011,13 +999,13 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		}
 		else
 		{
-			genloadreg(15);
+			gen_load_reg(15, EAX);
 			addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
 			addbyte(0x81); addbyte(0xC0); addlong(templ); /*ADDL $templ,%eax*/
                         addbyte(0x81); addbyte(0xE2); addlong(0xFC000003); /*ANDL $templ,%edx*/
                         addbyte(0x81); addbyte(0xE0); addlong(0x03FFFFFC); /*ANDL $templ,%eax*/
                         addbyte(0x09); addbyte(0xD0); /*ORL %edx,%eax*/
-			genstorereg(15);
+			gen_save_reg(15, EAX);
 		}
 		blockend=1;
 		break;
@@ -1029,25 +1017,25 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		templ=(opcode&0xFFFFFF)<<2;
 		if (templ&0x2000000) templ|=0xFC000000;
 		templ+=4;
-		genloadreg(15);
+		gen_load_reg(15, EAX);
 		addbyte(0x83); addbyte(0xE8); addbyte(0x04); /*SUBL $4,%eax*/
 		if (!((PC+templ)&0xFC000000) || r15mask==0xFFFFFFFC)
 		{
 			/*ADD $templ,%r12d*/
 			addbyte(0x41); addbyte(0x81); addbyte(0xC4);
 			addlong(templ);
-			genstorereg(14);
+			gen_save_reg(14, EAX);
 		}
 		else
 		{
-			genstorereg(14);
+			gen_save_reg(14, EAX);
 			addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
 			addbyte(0x83); addbyte(0xC0); addbyte(0x04); /*ADDL $4,%eax*/
 			addbyte(0x81); addbyte(0xE2); addlong(0xFC000003); /*ANDL $templ,%edx*/
 			addbyte(0x81); addbyte(0xC0); addlong(templ); /*ADDL $templ,%eax*/
                         addbyte(0x81); addbyte(0xE0); addlong(0x03FFFFFC); /*ANDL $templ,%eax*/
                         addbyte(0x09); addbyte(0xD0); /*ORL %edx,%eax*/
-			genstorereg(15);
+			gen_save_reg(15, EAX);
 		}
 		blockend=1;
 		break;
@@ -1188,7 +1176,7 @@ endblock(uint32_t opcode, uint32_t *pcpsr)
 	addbyte(0xff);
 	gen_x86_jump(CC_NZ, 0);
 
-        genloadreg(15); /*MOVL armregs[15],%eax*/
+        gen_load_reg(15, EAX);
         addbyte(0x83); /*SUBL $8,%eax*/
         addbyte(0xE8);
         addbyte(0x08);
@@ -1312,7 +1300,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                 default:
 		if ((pcpsr)==&armregs[15])
 		{
-			genloadreg(15);
+			gen_load_reg(15, EAX);
 		}
 		else
 		{
