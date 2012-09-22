@@ -908,8 +908,8 @@ genldr(void)
 	addbyte(0x89); addbyte(0xc2); /* MOV %eax,%edx */
 	addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
 	addbyte(0xc1); addbyte(0xe8); addbyte(12); /* SHR $12,%eax */
-	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vraddrl); /* MOV vraddrl(,%eax,4),%ecx */
 	addbyte(0x83); addbyte(0xe2); addbyte(0xfc); /* AND $0xfffffffc,%edx */
+	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vraddrl); /* MOV vraddrl(,%eax,4),%ecx */
 	addbyte(0xf6); addbyte(0xc1); addbyte(1); /* TEST $1,%cl */
 	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
 	addbyte(0x8b); addbyte(0x14); addbyte(0x11); /* MOV (%ecx,%edx),%edx */
@@ -957,8 +957,8 @@ genstr(void)
 	addbyte(0x89); addbyte(0xc2); /* MOV %eax,%edx */
 	addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
 	addbyte(0xc1); addbyte(0xe8); addbyte(12); /* SHR $12,%eax */
-	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vwaddrl); /* MOV vwaddrl(,%eax,4),%ecx */
 	addbyte(0x83); addbyte(0xe2); addbyte(0xfc); /* AND $0xfffffffc,%edx */
+	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vwaddrl); /* MOV vwaddrl(,%eax,4),%ecx */
 	addbyte(0xf6); addbyte(0xc1); addbyte(3); /* TEST $3,%cl */
 	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
 	addbyte(0x89); addbyte(0x1c); addbyte(0x11); /* MOV %ebx,(%ecx,%edx) */
