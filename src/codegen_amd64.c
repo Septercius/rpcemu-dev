@@ -315,7 +315,7 @@ genstoreimm(int reg, uint32_t val)
 }
 
 static void
-genloadreggen(int reg, int x86reg)
+gen_load_reg(int reg, int x86reg)
 {
 	if (reg == 15) {
 		addbyte(0x44); addbyte(0x89); addbyte(0xE0 | x86reg); /*MOVL %r12d,%eax*/
@@ -327,11 +327,11 @@ genloadreggen(int reg, int x86reg)
 static inline void
 genloadreg(int reg) /*Assumes %eax as targer*/
 {
-	genloadreggen(reg, EAX);
+	gen_load_reg(reg, EAX);
 }
 
 static void
-genstorereggen(int reg, int x86reg)
+gen_save_reg(int reg, int x86reg)
 {
 	if (reg == 15) {
 		addbyte(0x41); addbyte(0x89); addbyte(0xC4 | (x86reg << 3));
@@ -343,7 +343,7 @@ genstorereggen(int reg, int x86reg)
 static inline void
 genstorereg(int reg) /*Assumes %eax as source*/
 {
-	genstorereggen(reg, EAX);
+	gen_save_reg(reg, EAX);
 }
 
 static void
@@ -379,10 +379,10 @@ generateregdataproc(uint32_t opcode, uint8_t op, int dirmatters)
 {
 	if (dirmatters || RN==15)
 	{
-		genloadreggen(RN,EDX);
+		gen_load_reg(RN, EDX);
 		if (RN==15) { addbyte(0x81); addbyte(0xE2); addlong(r15mask); }
 		addbyte(0x01|op); addbyte(0xC2); /*OP %eax,%edx*/
-		genstorereggen(RD,EDX);
+		gen_save_reg(RD, EDX);
 	}
 	else
 	{
@@ -576,7 +576,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		/* Currently not used */
                 if (RD==15) return 0;
 		if (!generate_shift(opcode)) return 0;
-		genloadreggen(15,ECX);
+		gen_load_reg(15, ECX);
 		addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx - puts ARM carry into x64 carry*/
                 generateregdataproc(opcode, X86_OP_ADC, 0);
                 break;
@@ -620,7 +620,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x2a: /* ADC imm */
 		/* Currently not used */
                 if (RD==15) return 0;
-		genloadreggen(15,ECX);
+		gen_load_reg(15, ECX);
 		addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx - puts ARM carry into x64 carry*/
                 templ=rotate2(opcode);
                 generatedataproc(opcode, X86_OP_ADC, templ);
@@ -648,7 +648,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				return 0;
 			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
 		}
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 		genloadreg(RD);
 		genstr();
 		if (opcode&0x2000000)
@@ -677,7 +677,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				return 0;
 			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
 		}
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 		genloadreg(RD);
 		genstrb();
 		if (opcode&0x2000000)
@@ -706,7 +706,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				return 0;
 			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
 		}
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 		genldr();
 		if (opcode&0x2000000)
 		{
@@ -722,7 +722,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				else		     { addbyte(0x41); addbyte(0x81); addbyte(0x6F); addbyte(RN<<2); addlong(templ); /*SUBL $temp,Rn*/ }
 			}
 		}
-		genstorereggen(RD, EDX);
+		gen_save_reg(RD, EDX);
 		break;
 
 	case 0x45: /* LDRB Rd, [Rn], #-imm   */
@@ -735,7 +735,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				return 0;
 			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
 		}
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 		genldrb();
 		if (opcode&0x2000000)
 		{
@@ -751,7 +751,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				else		     { addbyte(0x41); addbyte(0x81); addbyte(0x6F); addbyte(RN<<2); addlong(templ); /*SUBL $temp,Rn*/ }
 			}
 		}
-		genstorereggen(RD, EDX);
+		gen_save_reg(RD, EDX);
 		break;
 
 	case 0x50: /* STR Rd, [Rn, #-imm]    */
@@ -769,7 +769,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
 		}
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
 		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
@@ -777,7 +777,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		genstr();
 		if (opcode&0x200000) /*Writeback*/
 		{
-			genstorereggen(RN,EDI);
+			gen_save_reg(RN, EDI);
 		}
 		break;
 
@@ -796,7 +796,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
 		}
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
 		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
@@ -804,7 +804,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		genstrb();
 		if (opcode&0x200000) /*Writeback*/
 		{
-			genstorereggen(RN,EDI);
+			gen_save_reg(RN, EDI);
 		}
 		break;
 
@@ -823,16 +823,16 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
 		}
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
 		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
 		genldr();
 		if (opcode&0x200000) /*Writeback*/
 		{
-			genstorereggen(RN,EDI);
+			gen_save_reg(RN, EDI);
 		}
-		genstorereggen(RD, EDX);
+		gen_save_reg(RD, EDX);
 		break;
 
 	case 0x55: /* LDRB Rd, [Rn, #-imm]    */
@@ -850,16 +850,16 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
 		}
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
 		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
 		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
 		genldrb();
 		if (opcode&0x200000) /*Writeback*/
 		{
-			genstorereggen(RN,EDI);
+			gen_save_reg(RN, EDI);
 		}
-		genstorereggen(RD, EDX);
+		gen_save_reg(RD, EDX);
 		break;
 
 	case 0x80: /* STMDA */
@@ -869,7 +869,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (RN==15) return 0;
 		if (opcode & 0x200000) return 0;
 		if (lastjumppos) return 0;
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
 		for (c=15;c>=0;c--)
 		{
@@ -885,7 +885,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		gentestabort();
 		if (opcode&0x200000)
 		{
-			genstorereggen(RN,EDI);
+			gen_save_reg(RN, EDI);
 		}
 		break;
 
@@ -895,7 +895,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x9a: /* STMIB ! */
 		if (RN==15) return 0;
 		if (lastjumppos) return 0;
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
 		for (c=0;c<16;c++)
 		{
@@ -911,7 +911,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		gentestabort();
 		if (opcode&0x200000)
 		{
-			genstorereggen(RN,EDI);
+			gen_save_reg(RN, EDI);
 		}
 		break;
 
@@ -922,7 +922,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (RN==15) return 0;
 		if (opcode & 0x200000) return 0;
 		if (lastjumppos) return 0;
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 		//if (opcode&0x1000000) { addbyte(0x83); addbyte(0xEF); addbyte(4); /*SUBL $4,%edi*/ }
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
 		for (c=15;c>=0;c--)
@@ -940,18 +940,18 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				}
 				if (c==15 && r15mask!=0xFFFFFFFC)
 				{
-					genloadreggen(15,ECX);
+					gen_load_reg(15, ECX);
 					addbyte(0x81); addbyte(0xE2); addlong(r15mask); /*AND $r15mask,%edx*/
 					addbyte(0x81); addbyte(0xE1); addlong((~r15mask)); /*AND $~r15mask,%ecx*/
 					addbyte(0x09); addbyte(0xCA); /*OR %ecx,%edx*/
 				}
-				genstorereggen(c,EDX);
+				gen_save_reg(c, EDX);
 			}
 		}
 		gentestabort();
 		if (opcode&0x200000)
 		{
-			genstorereggen(RN,EDI);
+			gen_save_reg(RN, EDI);
 		}
 		break;
 
@@ -963,7 +963,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (lastjumppos) return 0;
 //		if (opcode&0x8000) return 0;
 		//if (opcode&0x8000) { printf("R15 set!\n"); blockend=1; }
-		genloadreggen(RN,EDI);
+		gen_load_reg(RN, EDI);
 //		if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
 		for (c=0;c<16;c++)
@@ -981,18 +981,18 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				}
 				if (c==15 && r15mask!=0xFFFFFFFC)
 				{
-					genloadreggen(15,ECX); /*MOVL R15,%ecx*/
+					gen_load_reg(15, ECX);
 					addbyte(0x81); addbyte(0xE2); addlong(r15mask); /*AND $r15mask,%edx*/
 					addbyte(0x81); addbyte(0xE1); addlong((~r15mask)); /*AND $~r15mask,%ecx*/
 					addbyte(0x09); addbyte(0xCA); /*OR %ecx,%edx*/
 				}
-				genstorereggen(c,EDX);
+				gen_save_reg(c, EDX);
 			}
 		}
 		if (!(opcode&0x8000)) gentestabort();
 		if (opcode&0x200000)
 		{
-			genstorereggen(RN,EDI);
+			gen_save_reg(RN, EDI);
 		}
 		break;
 
