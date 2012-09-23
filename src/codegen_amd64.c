@@ -758,9 +758,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
 		}
 		gen_load_reg(RN, EDI);
-		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
-		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
-		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
+		if (RN == 15) {
+			addbyte(0x81); addbyte(0xe7); addlong(r15mask); /* AND $r15mask,%edi */
+		}
+		if (opcode & 0x800000) {
+			addbyte(0x01); addbyte(0xc7); /* ADD %eax,%edi */
+		} else {
+			addbyte(0x29); addbyte(0xc7); /* SUB %eax,%edi */
+		}
 		gen_load_reg(RD, EAX);
 		genstr();
 		if (opcode&0x200000) /*Writeback*/
@@ -785,9 +790,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
 		}
 		gen_load_reg(RN, EDI);
-		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
-		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
-		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
+		if (RN == 15) {
+			addbyte(0x81); addbyte(0xe7); addlong(r15mask); /* AND $r15mask,%edi */
+		}
+		if (opcode & 0x800000) {
+			addbyte(0x01); addbyte(0xc7); /* ADD %eax,%edi */
+		} else {
+			addbyte(0x29); addbyte(0xc7); /* SUB %eax,%edi */
+		}
 		gen_load_reg(RD, EAX);
 		genstrb();
 		if (opcode&0x200000) /*Writeback*/
@@ -812,9 +822,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
 		}
 		gen_load_reg(RN, EDI);
-		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
-		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
-		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
+		if (RN == 15) {
+			addbyte(0x81); addbyte(0xe7); addlong(r15mask); /* AND $r15mask,%edi */
+		}
+		if (opcode & 0x800000) {
+			addbyte(0x01); addbyte(0xc7); /* ADD %eax,%edi */
+		} else {
+			addbyte(0x29); addbyte(0xc7); /* SUB %eax,%edi */
+		}
 		genldr();
 		if (opcode&0x200000) /*Writeback*/
 		{
@@ -839,9 +854,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
 		}
 		gen_load_reg(RN, EDI);
-		if (RN==15) { addbyte(0x81); addbyte(0xE7); addlong(r15mask); /*ANDL $r15mask,%edi*/ }
-		if (opcode&0x800000) { addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/ }
-		else		     { addbyte(0x29); addbyte(0xC7); /*SUBL %eax,%edi*/ }
+		if (RN == 15) {
+			addbyte(0x81); addbyte(0xe7); addlong(r15mask); /* AND $r15mask,%edi */
+		}
+		if (opcode & 0x800000) {
+			addbyte(0x01); addbyte(0xc7); /* ADD %eax,%edi */
+		} else {
+			addbyte(0x29); addbyte(0xc7); /* SUB %eax,%edi */
+		}
 		genldrb();
 		if (opcode&0x200000) /*Writeback*/
 		{
