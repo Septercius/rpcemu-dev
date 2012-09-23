@@ -474,12 +474,12 @@ genldrb(void) /*address in %edi, data in %al*/
 }
 
 static void
-genstr(void) /*address in %edi, data in %eax*/
+genstr(void) /*address in %ebx, data in %eax*/
 {
 	int jump_nextbit, jump_notinbuffer;
 
-	gen_x86_push_reg(RDI);
-	addbyte(0x89); addbyte(0xfa); /* MOV %edi,%edx */
+	addbyte(0x89); addbyte(0xda); /* MOV %ebx,%edx */
+	addbyte(0x89); addbyte(0xdf); /* MOV %ebx,%edi */
 	addbyte(0xc1); addbyte(0xea); addbyte(12); /* SHR $12,%edx */
 	addbyte(0x83); addbyte(0xe7); addbyte(0xfc); /* AND $0xfffffffc,%edi */
 	addbyte(0x49); addbyte(0x8b); addbyte(0x14); addbyte(0xd6); /* MOV (%r14,%rdx,8),%rdx */
@@ -494,15 +494,15 @@ genstr(void) /*address in %edi, data in %eax*/
 	gen_x86_jump(CC_NZ, 0);
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
-	gen_x86_pop_reg(RDI);
 }
 
 static void
-genstrb(void) /*address in %edi, data in %al*/
+genstrb(void) /*address in %ebx, data in %al*/
 {
 	int jump_nextbit, jump_notinbuffer;
 
-	addbyte(0x89); addbyte(0xfa); /* MOV %edi,%edx */
+	addbyte(0x89); addbyte(0xda); /* MOV %ebx,%edx */
+	addbyte(0x89); addbyte(0xdf); /* MOV %ebx,%edi */
 	addbyte(0xc1); addbyte(0xea); addbyte(12); /* SHR $12,%edx */
 	addbyte(0x49); addbyte(0x8b); addbyte(0x14); addbyte(0xd6); /* MOV (%r14,%rdx,8),%rdx */
 	addbyte(0xf6); addbyte(0xc2); addbyte(3); /* TEST $3,%dl */
@@ -511,9 +511,7 @@ genstrb(void) /*address in %edi, data in %al*/
 	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
-	gen_x86_push_reg(RDI);
 	gen_x86_call(recompwritememb);
-	gen_x86_pop_reg(RDI);
 	addbyte(0x85); addbyte(0xc0); /* TEST %eax,%eax */
 	gen_x86_jump(CC_NZ, 0);
 	/* .nextbit */
@@ -636,7 +634,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				return 0;
 			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
 		}
-		gen_load_reg(RN, EDI);
+		gen_load_reg(RN, EBX);
 		gen_load_reg(RD, EAX);
 		genstr();
 		if (opcode&0x2000000)
@@ -665,7 +663,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				return 0;
 			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
 		}
-		gen_load_reg(RN, EDI);
+		gen_load_reg(RN, EBX);
 		gen_load_reg(RD, EAX);
 		genstrb();
 		if (opcode&0x2000000)
@@ -757,20 +755,20 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
 		}
-		gen_load_reg(RN, EDI);
+		gen_load_reg(RN, EBX);
 		if (RN == 15) {
-			addbyte(0x81); addbyte(0xe7); addlong(r15mask); /* AND $r15mask,%edi */
+			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
 		}
 		if (opcode & 0x800000) {
-			addbyte(0x01); addbyte(0xc7); /* ADD %eax,%edi */
+			addbyte(0x01); addbyte(0xc3); /* ADD %eax,%ebx */
 		} else {
-			addbyte(0x29); addbyte(0xc7); /* SUB %eax,%edi */
+			addbyte(0x29); addbyte(0xc3); /* SUB %eax,%ebx */
 		}
 		gen_load_reg(RD, EAX);
 		genstr();
 		if (opcode&0x200000) /*Writeback*/
 		{
-			gen_save_reg(RN, EDI);
+			gen_save_reg(RN, EBX);
 		}
 		break;
 
@@ -789,20 +787,20 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
 		}
-		gen_load_reg(RN, EDI);
+		gen_load_reg(RN, EBX);
 		if (RN == 15) {
-			addbyte(0x81); addbyte(0xe7); addlong(r15mask); /* AND $r15mask,%edi */
+			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
 		}
 		if (opcode & 0x800000) {
-			addbyte(0x01); addbyte(0xc7); /* ADD %eax,%edi */
+			addbyte(0x01); addbyte(0xc3); /* ADD %eax,%ebx */
 		} else {
-			addbyte(0x29); addbyte(0xc7); /* SUB %eax,%edi */
+			addbyte(0x29); addbyte(0xc3); /* SUB %eax,%ebx */
 		}
 		gen_load_reg(RD, EAX);
 		genstrb();
 		if (opcode&0x200000) /*Writeback*/
 		{
-			gen_save_reg(RN, EDI);
+			gen_save_reg(RN, EBX);
 		}
 		break;
 
