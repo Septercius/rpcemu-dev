@@ -553,7 +553,7 @@ codereadmemb(void)
 {
         uint32_t a;
         uint32_t v;
-		_asm mov a,edx
+		_asm mov a,ebx
 		v=readmemfb(a);
         /*This is to make sure that GCC doesn't optimise out the load*/
 		_asm mov ecx,v
@@ -565,7 +565,7 @@ codereadmeml(void)
 {
         uint32_t a;
         uint32_t v;
-		_asm mov a,edx
+		_asm mov a,edi
         v=readmemfl(a);
         /*This is to make sure that GCC doesn't optimise out the load*/
 		_asm mov edx,v
@@ -624,7 +624,7 @@ codewritememflnt(void)
 static int
 codereadmemb(void)
 {
-        register uint32_t a asm("edx");
+        register uint32_t a asm("ebx");
         register uint32_t v asm("ecx");
         v=readmemfb(a);
         /*This is to make sure that GCC doesn't optimise out the load*/
@@ -638,7 +638,7 @@ codereadmemb(void)
 static int
 codereadmeml(void)
 {
-        register uint32_t a asm("edx");
+        register uint32_t a asm("edi");
         register uint32_t v asm("ecx");
         v=readmemfl(a);
         /*This is to make sure that GCC doesn't optimise out the load*/
@@ -885,14 +885,14 @@ genldr(void)
 {
 	int jump_nextbit, jump_notinbuffer;
 
-	addbyte(0x89); addbyte(0xc2); /* MOV %eax,%edx */
-	addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
-	addbyte(0xc1); addbyte(0xe8); addbyte(12); /* SHR $12,%eax */
-	addbyte(0x83); addbyte(0xe2); addbyte(0xfc); /* AND $0xfffffffc,%edx */
-	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vraddrl); /* MOV vraddrl(,%eax,4),%ecx */
-	addbyte(0xf6); addbyte(0xc1); addbyte(1); /* TEST $1,%cl */
+	addbyte(0x89); addbyte(0xda); /* MOV %ebx,%edx */
+	addbyte(0x89); addbyte(0xdf); /* MOV %ebx,%edi */
+	addbyte(0xc1); addbyte(0xea); addbyte(12); /* SHR $12,%edx */
+	addbyte(0x83); addbyte(0xe7); addbyte(0xfc); /* AND $0xfffffffc,%edi */
+	addbyte(0x8b); addbyte(0x14); addbyte(0x95); addlong(vraddrl); /* MOV vraddrl(,%edx,4),%edx */
+	addbyte(0xf6); addbyte(0xc2); addbyte(1); /* TEST $1,%dl */
 	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-	addbyte(0x8b); addbyte(0x14); addbyte(0x11); /* MOV (%ecx,%edx),%edx */
+	addbyte(0x8b); addbyte(0x14); addbyte(0x3a); /* MOV (%edx,%edi),%edx */
 	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
@@ -902,7 +902,7 @@ genldr(void)
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 	/* Rotate if load is unaligned */
-	addbyte(0x89); addbyte(0xf9); /* MOV %edi,%ecx */
+	addbyte(0x89); addbyte(0xd9); /* MOV %ebx,%ecx */
 	addbyte(0xc1); addbyte(0xe1); addbyte(3); /* SHL $3,%ecx */
 	addbyte(0xd3); addbyte(0xca); /* ROR %cl,%edx */
 }
@@ -912,13 +912,12 @@ genldrb(void)
 {
 	int jump_nextbit, jump_notinbuffer;
 
-	addbyte(0x89); addbyte(0xc2); /* MOV %eax,%edx */
-	addbyte(0x89); addbyte(0xc7); /* MOV %eax,%edi */
-	addbyte(0xc1); addbyte(0xe8); addbyte(12); /* SHR $12,%eax */
-	addbyte(0x8b); addbyte(0x0c); addbyte(0x85); addlong(vraddrl); /* MOV vraddrl(,%eax,4),%ecx */
-	addbyte(0xf6); addbyte(0xc1); addbyte(1); /* TEST $1,%cl */
+	addbyte(0x89); addbyte(0xda); /* MOV %ebx,%edx */
+	addbyte(0xc1); addbyte(0xea); addbyte(12); /* SHR $12,%edx */
+	addbyte(0x8b); addbyte(0x14); addbyte(0x95); addlong(vraddrl); /* MOV vraddrl(,%edx,4),%edx */
+	addbyte(0xf6); addbyte(0xc2); addbyte(1); /* TEST $1,%dl */
 	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-	addbyte(0x0f); addbyte(0xb6); addbyte(0x0c); addbyte(0x11); /* MOVZB (%ecx,%edx),%ecx */
+	addbyte(0x0f); addbyte(0xb6); addbyte(0x0c); addbyte(0x1a); /* MOVZB (%edx,%ebx),%ecx */
 	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
@@ -1673,7 +1672,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
                 }
                 flagsdirty=0;
-                gen_load_reg(RN, EAX);
+                gen_load_reg(RN, EBX);
                 genldr();
                 if (opcode&0x2000000)
                 {
@@ -1706,7 +1705,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
                 }
                 flagsdirty=0;
-                gen_load_reg(RN, EAX);
+                gen_load_reg(RN, EBX);
                 genldrb();
                 if (opcode&0x2000000)
                 {
@@ -1808,21 +1807,18 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
                 }
                 flagsdirty=0;
-                if (!(opcode&0x800000)) { addbyte(0xF7); addbyte(0xD8); } /*NEG %eax*/
-                /*Shifted value now in %eax*/
-                if (RN==15)
-                {
-                        gen_load_reg(RN, EDX);
-                        addbyte(0x81); addbyte(0xE2); addlong(r15mask);      /*ANDL $r15mask,%edx*/
-                        addbyte(0x01); addbyte(0xD0); /*ADDL %edx,%eax*/
-                }
-                else
-                {
-                        addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
-                }
+		gen_load_reg(RN, EBX);
+		if (RN == 15) {
+			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
+		}
+		if (opcode & 0x800000) {
+			addbyte(0x01); addbyte(0xc3); /* ADD %eax,%ebx */
+		} else {
+			addbyte(0x29); addbyte(0xc3); /* SUB %eax,%ebx */
+		}
                 genldr();
                 if (opcode & 0x200000) {
-                        gen_save_reg(RN, EDI);
+                        gen_save_reg(RN, EBX);
                 }
                 gen_save_reg(RD, EDX);
                 break;
@@ -1843,21 +1839,18 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
                 }
                 flagsdirty=0;
-                if (!(opcode&0x800000)) { addbyte(0xF7); addbyte(0xD8); } /*NEG %eax*/
-                /*Shifted value now in %eax*/
-                if (RN==15)
-                {
-                        gen_load_reg(RN, EDX);
-                        addbyte(0x81); addbyte(0xE2); addlong(r15mask);      /*ANDL $r15mask,%edx*/
-                        addbyte(0x01); addbyte(0xD0); /*ADDL %edx,%eax*/
-                }
-                else
-                {
-                        addbyte(0x03); addbyte(0x05); addlong(&armregs[RN]); /*ADDL armregs[RN],%eax*/
-                }
+		gen_load_reg(RN, EBX);
+		if (RN == 15) {
+			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
+		}
+		if (opcode & 0x800000) {
+			addbyte(0x01); addbyte(0xc3); /* ADD %eax,%ebx */
+		} else {
+			addbyte(0x29); addbyte(0xc3); /* SUB %eax,%ebx */
+		}
                 genldrb();
                 if (opcode & 0x200000) {
-                        gen_save_reg(RN, EDI);
+                        gen_save_reg(RN, EBX);
                 }
                 gen_save_reg(RD, ECX);
                 break;
