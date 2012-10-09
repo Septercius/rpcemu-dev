@@ -346,9 +346,7 @@ initcodeblock(uint32_t l)
 	addbyte(0x83); /* SUB $12,%esp */
 	addbyte(0xec);
 	addbyte(0x0c);
-#ifndef _MSC_VER
-        addbyte(0xBE); addlong(armregs); /*MOVL armregs,%esi*/
-#endif
+	addbyte(0xbe); addlong(armregs); /* MOV armregs,%esi */
 	block_enter = codeblockpos;
         currentblockpc=armregs[15]&r15mask;
         currentblockpc2=PC;
@@ -369,17 +367,7 @@ static const int recompileinstructions[256] = {
         0,1,0,1,0,1,0,0,1,1,1,1,1,1,1,1, //10
         1&0,1,1,1,1,1,0,0,1,1,0,0,0,0,0,0, //20
         0,1,0,1,0,1,0,0,1,1,1,1,1,1,1,1, //30
-#ifdef _MSC_VER
-        1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0, //40
-        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //50
-        1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0, //60
-        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //70
 
-        1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0, //80
-        1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0, //90
-        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //A0
-        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //B0
-#else
         1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0, //40
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //50
         1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0, //60
@@ -389,7 +377,7 @@ static const int recompileinstructions[256] = {
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //90
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //A0
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, //B0
-#endif
+
 //        1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,0, //80
 //        1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,0, //90
         
@@ -405,29 +393,21 @@ static const int recompileinstructions[256] = {
 static void
 gen_load_reg(int reg, int x86reg)
 {
-#ifdef _MSC_VER
-	addbyte(0x8B); addbyte(5 | (x86reg << 3)); addlong(&armregs[reg]);
-#else
 	if (reg != 0) {
 		addbyte(0x8B); addbyte(0x46 | (x86reg << 3)); addbyte(reg*4);
 	} else {
 		addbyte(0x8B); addbyte(0x06 | (x86reg << 3));
 	}
-#endif
 }
 
 static void
 gen_save_reg(int reg, int x86reg)
 {
-#ifdef _MSC_VER
-	addbyte(0x89); addbyte(5 | (x86reg << 3)); addlong(&armregs[reg]);
-#else
 	if (reg != 0) {
 		addbyte(0x89); addbyte(0x46 | (x86reg << 3)); addbyte(reg*4);
 	} else {
 		addbyte(0x89); addbyte(0x06 | (x86reg << 3));
 	}
-#endif
 }
 
 static void
@@ -567,29 +547,6 @@ codereadmeml(void)
         uint32_t v;
 		_asm mov a,edi
         v=readmemfl(a);
-        /*This is to make sure that GCC doesn't optimise out the load*/
-		_asm mov edx,v
-        return (armirq&0x40)?1:0;
-}
-
-static int
-mwritemem(void)
-{
-        uint32_t a;
-        uint32_t v;
-		_asm mov a,edi
-		_asm mov v,eax
-        writememl(a,v);
-        return (armirq&0x40)?1:0;
-}
-
-static int
-mreadmem(void)
-{
-        uint32_t a;
-        uint32_t v;
-		_asm mov a,edi
-        v=readmeml(a);
         /*This is to make sure that GCC doesn't optimise out the load*/
 		_asm mov edx,v
         return (armirq&0x40)?1:0;
