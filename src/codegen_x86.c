@@ -1569,18 +1569,17 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (opcode&0x2000000)
                 {
                         addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
-                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
-                        else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
+                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x46); addbyte(RN<<2); } /* ADD %eax,Rn */
+                        else                 { addbyte(0x29); addbyte(0x46); addbyte(RN<<2); } /* SUB %eax,Rn */
                 }
                 else
                 {
                         templ = opcode & 0xfff;
                         if (templ != 0) {
-                                addbyte(0x81); /*ADDL $8,%eax*/
-                                if (opcode&0x800000) addbyte(0x05); /*ADD*/
-                                else                 addbyte(0x2D); /*SUB*/
-                                addlong(&armregs[RN]);
-                                addlong(templ);
+                                addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+                                if (opcode&0x800000) addbyte(0x46); /* ADD */
+                                else                 addbyte(0x6e); /* SUB */
+                                addbyte(RN<<2); addlong(templ);
                         }
                 }
                 break;
@@ -1602,18 +1601,17 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (opcode&0x2000000)
                 {
                         addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
-                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
-                        else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
+                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x46); addbyte(RN<<2); } /* ADD %eax,Rn */
+                        else                 { addbyte(0x29); addbyte(0x46); addbyte(RN<<2); } /* SUB %eax,Rn */
                 }
                 else
                 {
                         templ = opcode & 0xfff;
                         if (templ != 0) {
-                                addbyte(0x81); /*ADDL $8,%eax*/
-                                if (opcode&0x800000) addbyte(0x05); /*ADD*/
-                                else                 addbyte(0x2D); /*SUB*/
-                                addlong(&armregs[RN]);
-                                addlong(templ);
+                                addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+                                if (opcode&0x800000) addbyte(0x46); /* ADD */
+                                else                 addbyte(0x6e); /* SUB */
+                                addbyte(RN<<2); addlong(templ);
                         }
                 }
                 break;
@@ -1634,18 +1632,17 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (opcode&0x2000000)
                 {
                         addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
-                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
-                        else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
+                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x46); addbyte(RN<<2); } /* ADD %eax,Rn */
+                        else                 { addbyte(0x29); addbyte(0x46); addbyte(RN<<2); } /* SUB %eax,Rn */
                 }
                 else
                 {
                         templ = opcode & 0xfff;
                         if (templ != 0) {
-                                addbyte(0x81); /*ADDL $8,%eax*/
-                                if (opcode&0x800000) addbyte(0x05); /*ADD*/
-                                else                 addbyte(0x2D); /*SUB*/
-                                addlong(&armregs[RN]);
-                                addlong(templ);
+                                addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+                                if (opcode&0x800000) addbyte(0x46); /* ADD */
+                                else                 addbyte(0x6e); /* SUB */
+                                addbyte(RN<<2); addlong(templ);
                         }
                 }
                 gen_save_reg(RD, EDX);
@@ -1667,18 +1664,17 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (opcode&0x2000000)
                 {
                         addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
-                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x05); addlong(&armregs[RN]); } /*ADD %eax,armregs[RN]*/
-                        else                 { addbyte(0x29); addbyte(0x05); addlong(&armregs[RN]); } /*SUB %eax,armregs[RN]*/
+                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x46); addbyte(RN<<2); } /* ADD %eax,Rn */
+                        else                 { addbyte(0x29); addbyte(0x46); addbyte(RN<<2); } /* SUB %eax,Rn */
                 }
                 else
                 {
                         templ = opcode & 0xfff;
                         if (templ != 0) {
-                                addbyte(0x81); /*ADDL $8,%eax*/
-                                if (opcode&0x800000) addbyte(0x05); /*ADD*/
-                                else                 addbyte(0x2D); /*SUB*/
-                                addlong(&armregs[RN]);
-                                addlong(templ);
+                                addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+                                if (opcode&0x800000) addbyte(0x46); /* ADD */
+                                else                 addbyte(0x6e); /* SUB */
+                                addbyte(RN<<2); addlong(templ);
                         }
                 }
                 gen_save_reg(RD, ECX);
