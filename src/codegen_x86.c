@@ -1556,129 +1556,141 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x48: /* STR Rd, [Rn], #+imm   */
 	case 0x60: /* STR Rd, [Rn], -reg... */
 	case 0x68: /* STR Rd, [Rn], +reg... */
-                if (RD==15 || RN==15) return 0;
-                if (opcode & 0x2000000) {
-                        if (!generate_shift(opcode))
-                                return 0;
-                        addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
-                }
-                flagsdirty=0;
-                gen_load_reg(RN, EBX);
-                gen_load_reg(RD, ECX);
-                genstr();
-                if (opcode&0x2000000)
-                {
-                        addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
-                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x46); addbyte(RN<<2); } /* ADD %eax,Rn */
-                        else                 { addbyte(0x29); addbyte(0x46); addbyte(RN<<2); } /* SUB %eax,Rn */
-                }
-                else
-                {
-                        templ = opcode & 0xfff;
-                        if (templ != 0) {
-                                addbyte(0x81); /* ADDL/SUBL $templ,Rn */
-                                if (opcode&0x800000) addbyte(0x46); /* ADD */
-                                else                 addbyte(0x6e); /* SUB */
-                                addbyte(RN<<2); addlong(templ);
-                        }
-                }
-                break;
+		if (RD==15 || RN==15) return 0;
+		if (opcode & 0x2000000) {
+			if (!generate_shift(opcode))
+				return 0;
+			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
+		}
+		flagsdirty = 0;
+		gen_load_reg(RN, EBX);
+		gen_load_reg(RD, ECX);
+		genstr();
+		if (opcode & 0x2000000) {
+			addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
+			if (opcode & 0x800000) {
+				addbyte(0x01); addbyte(0x46); addbyte(RN<<2); /* ADD %eax,Rn */
+			} else {
+				addbyte(0x29); addbyte(0x46); addbyte(RN<<2); /* SUB %eax,Rn */
+			}
+		} else {
+			templ = opcode & 0xfff;
+			if (templ != 0) {
+				addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+				if (opcode & 0x800000) {
+					addbyte(0x46); /* ADD */
+				} else {
+					addbyte(0x6e); /* SUB */
+				}
+				addbyte(RN<<2); addlong(templ);
+			}
+		}
+		break;
 
 	case 0x44: /* STRB Rd, [Rn], #-imm   */
 	case 0x4c: /* STRB Rd, [Rn], #+imm   */
 	case 0x64: /* STRB Rd, [Rn], -reg... */
 	case 0x6c: /* STRB Rd, [Rn], +reg... */
-                if (RD==15 || RN==15) return 0;
-                if (opcode & 0x2000000) {
-                        if (!generate_shift(opcode))
-                                return 0;
-                        addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
-                }
-                flagsdirty=0;
-                gen_load_reg(RN, EBX);
-                gen_load_reg(RD, ECX);
-                genstrb();
-                if (opcode&0x2000000)
-                {
-                        addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
-                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x46); addbyte(RN<<2); } /* ADD %eax,Rn */
-                        else                 { addbyte(0x29); addbyte(0x46); addbyte(RN<<2); } /* SUB %eax,Rn */
-                }
-                else
-                {
-                        templ = opcode & 0xfff;
-                        if (templ != 0) {
-                                addbyte(0x81); /* ADDL/SUBL $templ,Rn */
-                                if (opcode&0x800000) addbyte(0x46); /* ADD */
-                                else                 addbyte(0x6e); /* SUB */
-                                addbyte(RN<<2); addlong(templ);
-                        }
-                }
-                break;
+		if (RD==15 || RN==15) return 0;
+		if (opcode & 0x2000000) {
+			if (!generate_shift(opcode))
+				return 0;
+			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
+		}
+		flagsdirty = 0;
+		gen_load_reg(RN, EBX);
+		gen_load_reg(RD, ECX);
+		genstrb();
+		if (opcode & 0x2000000) {
+			addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
+			if (opcode & 0x800000) {
+				addbyte(0x01); addbyte(0x46); addbyte(RN<<2); /* ADD %eax,Rn */
+			} else {
+				addbyte(0x29); addbyte(0x46); addbyte(RN<<2); /* SUB %eax,Rn */
+			}
+		} else {
+			templ = opcode & 0xfff;
+			if (templ != 0) {
+				addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+				if (opcode & 0x800000) {
+					addbyte(0x46); /* ADD */
+				} else {
+					addbyte(0x6e); /* SUB */
+				}
+				addbyte(RN<<2); addlong(templ);
+			}
+		}
+		break;
 
 	case 0x41: /* LDR Rd, [Rn], #-imm   */
 	case 0x49: /* LDR Rd, [Rn], #+imm   */
 	case 0x61: /* LDR Rd, [Rn], -reg... */
 	case 0x69: /* LDR Rd, [Rn], +reg... */
-                if (RD==15 || RN==15) return 0;
-                if (opcode & 0x2000000) {
-                        if (!generate_shift(opcode))
-                                return 0;
-                        addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
-                }
-                flagsdirty=0;
-                gen_load_reg(RN, EBX);
-                genldr();
-                if (opcode&0x2000000)
-                {
-                        addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
-                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x46); addbyte(RN<<2); } /* ADD %eax,Rn */
-                        else                 { addbyte(0x29); addbyte(0x46); addbyte(RN<<2); } /* SUB %eax,Rn */
-                }
-                else
-                {
-                        templ = opcode & 0xfff;
-                        if (templ != 0) {
-                                addbyte(0x81); /* ADDL/SUBL $templ,Rn */
-                                if (opcode&0x800000) addbyte(0x46); /* ADD */
-                                else                 addbyte(0x6e); /* SUB */
-                                addbyte(RN<<2); addlong(templ);
-                        }
-                }
-                gen_save_reg(RD, EDX);
-                break;
+		if (RD==15 || RN==15) return 0;
+		if (opcode & 0x2000000) {
+			if (!generate_shift(opcode))
+				return 0;
+			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
+		}
+		flagsdirty = 0;
+		gen_load_reg(RN, EBX);
+		genldr();
+		if (opcode & 0x2000000) {
+			addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
+			if (opcode & 0x800000) {
+				addbyte(0x01); addbyte(0x46); addbyte(RN<<2); /* ADD %eax,Rn */
+			} else {
+				addbyte(0x29); addbyte(0x46); addbyte(RN<<2); /* SUB %eax,Rn */
+			}
+		} else {
+			templ = opcode & 0xfff;
+			if (templ != 0) {
+				addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+				if (opcode & 0x800000) {
+					addbyte(0x46); /* ADD */
+				} else {
+					addbyte(0x6e); /* SUB */
+				}
+				addbyte(RN<<2); addlong(templ);
+			}
+		}
+		gen_save_reg(RD, EDX);
+		break;
 
 	case 0x45: /* LDRB Rd, [Rn], #-imm   */
 	case 0x4d: /* LDRB Rd, [Rn], #+imm   */
 	case 0x65: /* LDRB Rd, [Rn], -reg... */
 	case 0x6d: /* LDRB Rd, [Rn], +reg... */
-                if (RD==15 || RN==15) return 0;
-                if (opcode & 0x2000000) {
-                        if (!generate_shift(opcode))
-                                return 0;
-                        addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
-                }
-                flagsdirty=0;
-                gen_load_reg(RN, EBX);
-                genldrb();
-                if (opcode&0x2000000)
-                {
-                        addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
-                        if (opcode&0x800000) { addbyte(0x01); addbyte(0x46); addbyte(RN<<2); } /* ADD %eax,Rn */
-                        else                 { addbyte(0x29); addbyte(0x46); addbyte(RN<<2); } /* SUB %eax,Rn */
-                }
-                else
-                {
-                        templ = opcode & 0xfff;
-                        if (templ != 0) {
-                                addbyte(0x81); /* ADDL/SUBL $templ,Rn */
-                                if (opcode&0x800000) addbyte(0x46); /* ADD */
-                                else                 addbyte(0x6e); /* SUB */
-                                addbyte(RN<<2); addlong(templ);
-                        }
-                }
-                gen_save_reg(RD, ECX);
-                break;
+		if (RD==15 || RN==15) return 0;
+		if (opcode & 0x2000000) {
+			if (!generate_shift(opcode))
+				return 0;
+			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%esp) */
+		}
+		flagsdirty = 0;
+		gen_load_reg(RN, EBX);
+		genldrb();
+		if (opcode & 0x2000000) {
+			addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%esp),%eax */
+			if (opcode & 0x800000) {
+				addbyte(0x01); addbyte(0x46); addbyte(RN<<2); /* ADD %eax,Rn */
+			} else {
+				addbyte(0x29); addbyte(0x46); addbyte(RN<<2); /* SUB %eax,Rn */
+			}
+		} else {
+			templ = opcode & 0xfff;
+			if (templ != 0) {
+				addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+				if (opcode & 0x800000) {
+					addbyte(0x46); /* ADD */
+				} else {
+					addbyte(0x6e); /* SUB */
+				}
+				addbyte(RN<<2); addlong(templ);
+			}
+		}
+		gen_save_reg(RD, ECX);
+		break;
 
 	case 0x50: /* STR Rd, [Rn, #-imm]    */
 	case 0x52: /* STR Rd, [Rn, #-imm]!   */
@@ -1688,14 +1700,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x72: /* STR Rd, [Rn, -reg...]! */
 	case 0x78: /* STR Rd, [Rn, +reg...]  */
 	case 0x7a: /* STR Rd, [Rn, +reg...]! */
-                if (RD==15) return 0;
-                if (opcode & 0x2000000) {
-                        if (!generate_shift(opcode))
-                                return 0;
-                } else {
-                        addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
-                }
-                flagsdirty=0;
+		if (RD==15) return 0;
+		if (opcode & 0x2000000) {
+			if (!generate_shift(opcode))
+				return 0;
+		} else {
+			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
+		}
+		flagsdirty = 0;
 		gen_load_reg(RN, EBX);
 		if (RN == 15) {
 			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
@@ -1705,12 +1717,13 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0x29); addbyte(0xc3); /* SUB %eax,%ebx */
 		}
-                gen_load_reg(RD, ECX);
-                genstr();
-                if (opcode & 0x200000) {
-                        gen_save_reg(RN, EBX);
-                }
-                break;
+		gen_load_reg(RD, ECX);
+		genstr();
+		if (opcode & 0x200000) {
+			/* Writeback */
+			gen_save_reg(RN, EBX);
+		}
+		break;
 
 	case 0x54: /* STRB Rd, [Rn, #-imm]    */
 	case 0x56: /* STRB Rd, [Rn, #-imm]!   */
@@ -1720,14 +1733,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x76: /* STRB Rd, [Rn, -reg...]! */
 	case 0x7c: /* STRB Rd, [Rn, +reg...]  */
 	case 0x7e: /* STRB Rd, [Rn, +reg...]! */
-                if (RD==15) return 0;
-                if (opcode & 0x2000000) {
-                        if (!generate_shift(opcode))
-                                return 0;
-                } else {
-                        addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
-                }
-                flagsdirty=0;
+		if (RD==15) return 0;
+		if (opcode & 0x2000000) {
+			if (!generate_shift(opcode))
+				return 0;
+		} else {
+			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
+		}
+		flagsdirty = 0;
 		gen_load_reg(RN, EBX);
 		if (RN == 15) {
 			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
@@ -1737,12 +1750,13 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0x29); addbyte(0xc3); /* SUB %eax,%ebx */
 		}
-                gen_load_reg(RD, ECX);
-                genstrb();
-                if (opcode & 0x200000) {
-                        gen_save_reg(RN, EBX);
-                }
-                break;
+		gen_load_reg(RD, ECX);
+		genstrb();
+		if (opcode & 0x200000) {
+			/* Writeback */
+			gen_save_reg(RN, EBX);
+		}
+		break;
 
 	case 0x51: /* LDR Rd, [Rn, #-imm]    */
 	case 0x53: /* LDR Rd, [Rn, #-imm]!   */
@@ -1752,14 +1766,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x73: /* LDR Rd, [Rn, -reg...]! */
 	case 0x79: /* LDR Rd, [Rn, +reg...]  */
 	case 0x7b: /* LDR Rd, [Rn, +reg...]! */
-                if (RD==15) return 0;
-                if (opcode & 0x2000000) {
-                        if (!generate_shift(opcode))
-                                return 0;
-                } else {
-                        addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
-                }
-                flagsdirty=0;
+		if (RD==15) return 0;
+		if (opcode & 0x2000000) {
+			if (!generate_shift(opcode))
+				return 0;
+		} else {
+			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
+		}
+		flagsdirty = 0;
 		gen_load_reg(RN, EBX);
 		if (RN == 15) {
 			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
@@ -1769,12 +1783,13 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0x29); addbyte(0xc3); /* SUB %eax,%ebx */
 		}
-                genldr();
-                if (opcode & 0x200000) {
-                        gen_save_reg(RN, EBX);
-                }
-                gen_save_reg(RD, EDX);
-                break;
+		genldr();
+		if (opcode & 0x200000) {
+			/* Writeback */
+			gen_save_reg(RN, EBX);
+		}
+		gen_save_reg(RD, EDX);
+		break;
 
 	case 0x55: /* LDRB Rd, [Rn, #-imm]    */
 	case 0x57: /* LDRB Rd, [Rn, #-imm]!   */
@@ -1784,14 +1799,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x77: /* LDRB Rd, [Rn, -reg...]! */
 	case 0x7d: /* LDRB Rd, [Rn, +reg...]  */
 	case 0x7f: /* LDRB Rd, [Rn, +reg...]! */
-                if (RD==15) return 0;
-                if (opcode & 0x2000000) {
-                        if (!generate_shift(opcode))
-                                return 0;
-                } else {
-                        addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
-                }
-                flagsdirty=0;
+		if (RD==15) return 0;
+		if (opcode & 0x2000000) {
+			if (!generate_shift(opcode))
+				return 0;
+		} else {
+			addbyte(0xb8); addlong(opcode & 0xfff); /* MOV $(opcode & 0xfff),%eax */
+		}
+		flagsdirty = 0;
 		gen_load_reg(RN, EBX);
 		if (RN == 15) {
 			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
@@ -1801,12 +1816,13 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0x29); addbyte(0xc3); /* SUB %eax,%ebx */
 		}
-                genldrb();
-                if (opcode & 0x200000) {
-                        gen_save_reg(RN, EBX);
-                }
-                gen_save_reg(RD, ECX);
-                break;
+		genldrb();
+		if (opcode & 0x200000) {
+			/* Writeback */
+			gen_save_reg(RN, EBX);
+		}
+		gen_save_reg(RD, ECX);
+		break;
 
 //#if 0
         case 0x80: /* STMDA */
