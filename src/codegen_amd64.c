@@ -82,6 +82,34 @@ gen_x86_pop_reg(int x86reg)
 	addbyte(0x58 | (x86reg & 0x7));
 }
 
+static inline void
+gen_x86_mov_reg32_stack(int x86reg, int offset)
+{
+	if (x86reg >= 8) {
+		addbyte(0x44);
+	}
+	addbyte(0x89);
+	if (offset != 0) {
+		addbyte(0x44 | ((x86reg & 0x7) << 3)); addbyte(0x24); addbyte(offset);
+	} else {
+		addbyte(0x04 | ((x86reg & 0x7) << 3)); addbyte(0x24);
+	}
+}
+
+static inline void
+gen_x86_mov_stack_reg32(int x86reg, int offset)
+{
+	if (x86reg >= 8) {
+		addbyte(0x44);
+	}
+	addbyte(0x8b);
+	if (offset != 0) {
+		addbyte(0x44 | ((x86reg & 0x7) << 3)); addbyte(0x24); addbyte(offset);
+	} else {
+		addbyte(0x04 | ((x86reg & 0x7) << 3)); addbyte(0x24);
+	}
+}
+
 void
 initcodeblocks(void)
 {
@@ -630,13 +658,13 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			if (!generate_shift(opcode))
 				return 0;
-			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
+			gen_x86_mov_reg32_stack(EAX, 0);
 		}
 		gen_load_reg(RN, EBX);
 		gen_load_reg(RD, EAX);
 		genstr();
 		if (opcode & 0x2000000) {
-			addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%rsp),%eax */
+			gen_x86_mov_stack_reg32(EAX, 0);
 			if (opcode & 0x800000) {
 				addbyte(0x41); addbyte(0x01); addbyte(0x47); addbyte(RN<<2); /* ADD %eax,Rn */
 			} else {
@@ -664,13 +692,13 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			if (!generate_shift(opcode))
 				return 0;
-			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
+			gen_x86_mov_reg32_stack(EAX, 0);
 		}
 		gen_load_reg(RN, EBX);
 		gen_load_reg(RD, EAX);
 		genstrb();
 		if (opcode & 0x2000000) {
-			addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%rsp),%eax */
+			gen_x86_mov_stack_reg32(EAX, 0);
 			if (opcode & 0x800000) {
 				addbyte(0x41); addbyte(0x01); addbyte(0x47); addbyte(RN<<2); /* ADD %eax,Rn */
 			} else {
@@ -698,12 +726,12 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			if (!generate_shift(opcode))
 				return 0;
-			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
+			gen_x86_mov_reg32_stack(EAX, 0);
 		}
 		gen_load_reg(RN, EBX);
 		genldr();
 		if (opcode & 0x2000000) {
-			addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%rsp),%eax */
+			gen_x86_mov_stack_reg32(EAX, 0);
 			if (opcode & 0x800000) {
 				addbyte(0x41); addbyte(0x01); addbyte(0x47); addbyte(RN<<2); /* ADD %eax,Rn */
 			} else {
@@ -732,12 +760,12 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			if (!generate_shift(opcode))
 				return 0;
-			addbyte(0x89); addbyte(0x04); addbyte(0x24); /* MOV %eax,(%rsp) */
+			gen_x86_mov_reg32_stack(EAX, 0);
 		}
 		gen_load_reg(RN, EBX);
 		genldrb();
 		if (opcode & 0x2000000) {
-			addbyte(0x8b); addbyte(0x04); addbyte(0x24); /* MOV (%rsp),%eax */
+			gen_x86_mov_stack_reg32(EAX, 0);
 			if (opcode & 0x800000) {
 				addbyte(0x41); addbyte(0x01); addbyte(0x47); addbyte(RN<<2); /* ADD %eax,Rn */
 			} else {
