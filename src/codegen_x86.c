@@ -507,65 +507,12 @@ generatedataprocS(uint32_t opcode, unsigned char dataop, uint32_t templ)
   What I _should_ be doing is pushing edx and bl on the stack, and calling writememfb
   directly. Instead, I just call this. The register variables are to preserve the registers
   across the call, and stop GCC's optimiser breaking the code*/
-#ifdef _MSC_VER
-static int
-codereadmemb(void)
-{
-        uint32_t a;
-        uint32_t v;
-		_asm mov a,ebx
-		v=readmemfb(a);
-        /*This is to make sure that GCC doesn't optimise out the load*/
-		_asm mov ecx,v
-		return (armirq&0x40)?1:0;
-}
-
-static int
-codereadmeml(void)
-{
-        uint32_t a;
-        uint32_t v;
-		_asm mov a,edi
-        v=readmemfl(a);
-        /*This is to make sure that GCC doesn't optimise out the load*/
-		_asm mov edx,v
-        return (armirq&0x40)?1:0;
-}
-#else
 static void
 codewritememflnt(void)
 {
         register uint32_t a asm("edx");
         register uint32_t v asm("ebx");
         writememfl(a,v);
-}
-
-static int
-codereadmemb(void)
-{
-        register uint32_t a asm("ebx");
-        register uint32_t v asm("ecx");
-        v=readmemfb(a);
-        /*This is to make sure that GCC doesn't optimise out the load*/
-        asm("movl %0,%%edx;"
-            :
-            : "r" (v)
-        );
-        return (armirq&0x40)?1:0;
-}
-
-static int
-codereadmeml(void)
-{
-        register uint32_t a asm("edi");
-        register uint32_t v asm("ecx");
-        v=readmemfl(a);
-        /*This is to make sure that GCC doesn't optimise out the load*/
-        asm("movl %0,%%edx;"
-            :
-            : "r" (v)
-        );
-        return (armirq&0x40)?1:0;
 }
 
 static void
@@ -602,7 +549,6 @@ int mreadmem(void)
         );
         return (armirq&0x40)?1:0;
 }
-#endif
 #endif
 
 static int
@@ -811,19 +757,20 @@ genldr(void)
 	addbyte(0x8b); addbyte(0x14); addbyte(0x95); addlong(vraddrl); /* MOV vraddrl(,%edx,4),%edx */
 	addbyte(0xf6); addbyte(0xc2); addbyte(1); /* TEST $1,%dl */
 	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-	addbyte(0x8b); addbyte(0x14); addbyte(0x3a); /* MOV (%edx,%edi),%edx */
+	addbyte(0x8b); addbyte(0x04); addbyte(0x3a); /* MOV (%edx,%edi),%eax */
 	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
-	gen_x86_call(codereadmeml);
-	addbyte(0x85); addbyte(0xc0); /* TEST %eax,%eax */
+	gen_x86_mov_reg32_stack(EDI, 0);
+	gen_x86_call(readmemfl);
+	addbyte(0xf6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
 	gen_x86_jump(CC_NZ, 0);
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 	/* Rotate if load is unaligned */
 	addbyte(0x89); addbyte(0xd9); /* MOV %ebx,%ecx */
 	addbyte(0xc1); addbyte(0xe1); addbyte(3); /* SHL $3,%ecx */
-	addbyte(0xd3); addbyte(0xca); /* ROR %cl,%edx */
+	addbyte(0xd3); addbyte(0xc8); /* ROR %cl,%eax */
 }
 
 static void
@@ -836,12 +783,13 @@ genldrb(void)
 	addbyte(0x8b); addbyte(0x14); addbyte(0x95); addlong(vraddrl); /* MOV vraddrl(,%edx,4),%edx */
 	addbyte(0xf6); addbyte(0xc2); addbyte(1); /* TEST $1,%dl */
 	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-	addbyte(0x0f); addbyte(0xb6); addbyte(0x0c); addbyte(0x1a); /* MOVZB (%edx,%ebx),%ecx */
+	addbyte(0x0f); addbyte(0xb6); addbyte(0x04); addbyte(0x1a); /* MOVZB (%edx,%ebx),%eax */
 	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
-	gen_x86_call(codereadmemb);
-	addbyte(0x85); addbyte(0xc0); /* TEST %eax,%eax */
+	gen_x86_mov_reg32_stack(EBX, 0);
+	gen_x86_call(readmemfb);
+	addbyte(0xf6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
 	gen_x86_jump(CC_NZ, 0);
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
@@ -1596,17 +1544,17 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			if (!generate_shift(opcode))
 				return 0;
-			gen_x86_mov_reg32_stack(EAX, 0);
+			gen_x86_mov_reg32_stack(EAX, 8);
 		}
 		flagsdirty = 0;
 		gen_load_reg(RN, EBX);
 		genldr();
 		if (opcode & 0x2000000) {
-			gen_x86_mov_stack_reg32(EAX, 0);
+			gen_x86_mov_stack_reg32(EDX, 8);
 			if (opcode & 0x800000) {
-				addbyte(0x01); addbyte(0x46); addbyte(RN<<2); /* ADD %eax,Rn */
+				addbyte(0x01); addbyte(0x56); addbyte(RN<<2); /* ADD %edx,Rn */
 			} else {
-				addbyte(0x29); addbyte(0x46); addbyte(RN<<2); /* SUB %eax,Rn */
+				addbyte(0x29); addbyte(0x56); addbyte(RN<<2); /* SUB %edx,Rn */
 			}
 		} else {
 			templ = opcode & 0xfff;
@@ -1620,7 +1568,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				addbyte(RN<<2); addlong(templ);
 			}
 		}
-		gen_save_reg(RD, EDX);
+		gen_save_reg(RD, EAX);
 		break;
 
 	case 0x45: /* LDRB Rd, [Rn], #-imm   */
@@ -1631,17 +1579,17 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			if (!generate_shift(opcode))
 				return 0;
-			gen_x86_mov_reg32_stack(EAX, 0);
+			gen_x86_mov_reg32_stack(EAX, 8);
 		}
 		flagsdirty = 0;
 		gen_load_reg(RN, EBX);
 		genldrb();
 		if (opcode & 0x2000000) {
-			gen_x86_mov_stack_reg32(EAX, 0);
+			gen_x86_mov_stack_reg32(EDX, 8);
 			if (opcode & 0x800000) {
-				addbyte(0x01); addbyte(0x46); addbyte(RN<<2); /* ADD %eax,Rn */
+				addbyte(0x01); addbyte(0x56); addbyte(RN<<2); /* ADD %edx,Rn */
 			} else {
-				addbyte(0x29); addbyte(0x46); addbyte(RN<<2); /* SUB %eax,Rn */
+				addbyte(0x29); addbyte(0x56); addbyte(RN<<2); /* SUB %edx,Rn */
 			}
 		} else {
 			templ = opcode & 0xfff;
@@ -1655,7 +1603,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				addbyte(RN<<2); addlong(templ);
 			}
 		}
-		gen_save_reg(RD, ECX);
+		gen_save_reg(RD, EAX);
 		break;
 
 	case 0x50: /* STR Rd, [Rn, #-imm]    */
@@ -1754,7 +1702,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			/* Writeback */
 			gen_save_reg(RN, EBX);
 		}
-		gen_save_reg(RD, EDX);
+		gen_save_reg(RD, EAX);
 		break;
 
 	case 0x55: /* LDRB Rd, [Rn, #-imm]    */
@@ -1787,7 +1735,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			/* Writeback */
 			gen_save_reg(RN, EBX);
 		}
-		gen_save_reg(RD, ECX);
+		gen_save_reg(RD, EAX);
 		break;
 
 //#if 0
