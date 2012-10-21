@@ -503,53 +503,11 @@ generatedataprocS(uint32_t opcode, unsigned char dataop, uint32_t templ)
         //gen_x86_lahf();
 }
 
-/*static int codewritememfb(void)
-{
-        uint32_t a;
-        uint8_t v;
-        asm("movl %%edx,%0;"
-            "movb %%bl,%1;"
-            : "=&q" (a),
-              "=&q" (v)
-        );
-//        rpclog("Writememfb %08X %02X %07X %08X %08X\n",a,v,PC,armregs[6],armregs[7]);
-        writememfb(a,v);
-        return armirq&0x40;
-}*/
-
 /*Nasty hack! I hope to get rid of this soon.
   What I _should_ be doing is pushing edx and bl on the stack, and calling writememfb
   directly. Instead, I just call this. The register variables are to preserve the registers
   across the call, and stop GCC's optimiser breaking the code*/
 #ifdef _MSC_VER
-static int
-codewritememfb(void)
-{
-        uint32_t a;
-        uint8_t v;
-		_asm
-		{
-			mov a,ebx
-			mov v,cl
-		}
-		writememfb(a,v);
-        return (armirq&0x40)?1:0;
-}
-
-static int
-codewritememfl(void)
-{
-        uint32_t a;
-        uint32_t v;
-		_asm
-		{
-			mov a,edi
-			mov v,ecx
-		}
-        writememfl(a,v);
-        return (armirq&0x40)?1:0;
-}
-
 static int
 codereadmemb(void)
 {
@@ -574,24 +532,6 @@ codereadmeml(void)
         return (armirq&0x40)?1:0;
 }
 #else
-static int
-codewritememfb(void)
-{
-        register uint32_t a asm("ebx");
-        register uint8_t v asm("cl");
-        writememfb(a,v);
-        return (armirq&0x40)?1:0;
-}
-
-static int
-codewritememfl(void)
-{
-        register uint32_t a asm("edi");
-        register uint32_t v asm("ecx");
-        writememfl(a,v);
-        return (armirq&0x40)?1:0;
-}
-
 static void
 codewritememflnt(void)
 {
@@ -923,8 +863,10 @@ genstr(void)
 	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
-	gen_x86_call(codewritememfl);
-	addbyte(0x85); addbyte(0xc0); /* TEST %eax,%eax */
+	gen_x86_mov_reg32_stack(EDI, 0);
+	gen_x86_mov_reg32_stack(ECX, 4);
+	gen_x86_call(writememfl);
+	addbyte(0xf6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
 	gen_x86_jump(CC_NZ, 0);
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
@@ -944,8 +886,10 @@ genstrb(void)
 	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
-	gen_x86_call(codewritememfb);
-	addbyte(0x85); addbyte(0xc0); /* TEST %eax,%eax */
+	gen_x86_mov_reg32_stack(EBX, 0);
+	gen_x86_mov_reg32_stack(ECX, 4);
+	gen_x86_call(writememfb);
+	addbyte(0xf6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
 	gen_x86_jump(CC_NZ, 0);
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
@@ -1582,14 +1526,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			if (!generate_shift(opcode))
 				return 0;
-			gen_x86_mov_reg32_stack(EAX, 0);
+			gen_x86_mov_reg32_stack(EAX, 8);
 		}
 		flagsdirty = 0;
 		gen_load_reg(RN, EBX);
 		gen_load_reg(RD, ECX);
 		genstr();
 		if (opcode & 0x2000000) {
-			gen_x86_mov_stack_reg32(EAX, 0);
+			gen_x86_mov_stack_reg32(EAX, 8);
 			if (opcode & 0x800000) {
 				addbyte(0x01); addbyte(0x46); addbyte(RN<<2); /* ADD %eax,Rn */
 			} else {
@@ -1617,14 +1561,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x2000000) {
 			if (!generate_shift(opcode))
 				return 0;
-			gen_x86_mov_reg32_stack(EAX, 0);
+			gen_x86_mov_reg32_stack(EAX, 8);
 		}
 		flagsdirty = 0;
 		gen_load_reg(RN, EBX);
 		gen_load_reg(RD, ECX);
 		genstrb();
 		if (opcode & 0x2000000) {
-			gen_x86_mov_stack_reg32(EAX, 0);
+			gen_x86_mov_stack_reg32(EAX, 8);
 			if (opcode & 0x800000) {
 				addbyte(0x01); addbyte(0x46); addbyte(RN<<2); /* ADD %eax,Rn */
 			} else {
