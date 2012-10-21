@@ -293,16 +293,6 @@ recompreadmeml(uint32_t addr)
 }
 
 static int
-recompwritememb(uint32_t addr)
-{
-	asm("push %r12;");
-	register uint8_t v asm("al");
-	writememb(addr,v);
-	asm("pop %r12;");
-	return (armirq&0x40)?1:0;
-}
-
-static int
 recompwritememl(uint32_t addr)
 {
 	asm("push %rdi; push %r12;");
@@ -500,7 +490,7 @@ genldrb(void) /*address in %ebx, data in %al*/
 }
 
 static void
-genstr(void) /*address in %ebx, data in %eax*/
+genstr(void) /*address in %ebx, data in %esi*/
 {
 	int jump_nextbit, jump_notinbuffer;
 
@@ -511,19 +501,19 @@ genstr(void) /*address in %ebx, data in %eax*/
 	addbyte(0x49); addbyte(0x8b); addbyte(0x14); addbyte(0xd6); /* MOV (%r14,%rdx,8),%rdx */
 	addbyte(0xf6); addbyte(0xc2); addbyte(3); /* TEST $3,%dl */
 	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-	addbyte(0x89); addbyte(0x04); addbyte(0x3a); /* MOV %eax,(%rdx,%rdi) */
+	addbyte(0x89); addbyte(0x34); addbyte(0x3a); /* MOV %esi,(%rdx,%rdi) */
 	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
-	gen_x86_call(recompwritememl);
-	addbyte(0x85); addbyte(0xc0); /* TEST %eax,%eax */
+	gen_x86_call(writememfl);
+	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
 	gen_x86_jump(CC_NZ, 0);
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 }
 
 static void
-genstrb(void) /*address in %ebx, data in %al*/
+genstrb(void) /*address in %ebx, data in %sil*/
 {
 	int jump_nextbit, jump_notinbuffer;
 
@@ -533,12 +523,12 @@ genstrb(void) /*address in %ebx, data in %al*/
 	addbyte(0x49); addbyte(0x8b); addbyte(0x14); addbyte(0xd6); /* MOV (%r14,%rdx,8),%rdx */
 	addbyte(0xf6); addbyte(0xc2); addbyte(3); /* TEST $3,%dl */
 	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-	addbyte(0x88); addbyte(0x04); addbyte(0x3a); /* MOV %al,(%rdx,%rdi) */
+	addbyte(0x40); addbyte(0x88); addbyte(0x34); addbyte(0x3a); /* MOV %sil,(%rdx,%rdi) */
 	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
-	gen_x86_call(recompwritememb);
-	addbyte(0x85); addbyte(0xc0); /* TEST %eax,%eax */
+	gen_x86_call(writememfb);
+	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
 	gen_x86_jump(CC_NZ, 0);
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
@@ -661,7 +651,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			gen_x86_mov_reg32_stack(EAX, 0);
 		}
 		gen_load_reg(RN, EBX);
-		gen_load_reg(RD, EAX);
+		gen_load_reg(RD, ESI);
 		genstr();
 		if (opcode & 0x2000000) {
 			gen_x86_mov_stack_reg32(EAX, 0);
@@ -695,7 +685,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			gen_x86_mov_reg32_stack(EAX, 0);
 		}
 		gen_load_reg(RN, EBX);
-		gen_load_reg(RD, EAX);
+		gen_load_reg(RD, ESI);
 		genstrb();
 		if (opcode & 0x2000000) {
 			gen_x86_mov_stack_reg32(EAX, 0);
@@ -810,7 +800,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0x29); addbyte(0xc3); /* SUB %eax,%ebx */
 		}
-		gen_load_reg(RD, EAX);
+		gen_load_reg(RD, ESI);
 		genstr();
 		if (opcode & 0x200000) {
 			/* Writeback */
@@ -842,7 +832,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		} else {
 			addbyte(0x29); addbyte(0xc3); /* SUB %eax,%ebx */
 		}
-		gen_load_reg(RD, EAX);
+		gen_load_reg(RD, ESI);
 		genstrb();
 		if (opcode & 0x200000) {
 			/* Writeback */
