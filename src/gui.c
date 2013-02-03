@@ -89,13 +89,25 @@ static char gui_ipaddress[(IPADDRLEN + 1) * MAX_BYTES_PER_CHAR] = "123.124.125.1
 static char gui_bridgename[(BRNAMELEN + 1) * MAX_BYTES_PER_CHAR] = "br0";
 #endif /* RPCEMU_NETWORKING */
 
-static int menuexit(void)
+/**
+ * Callback function for File->Exit menu item.
+ *
+ * @return D_CLOSE - Close the dialog
+ */
+static int
+menuexit(void)
 {
         quited=1;
         return D_CLOSE;
 }
 
-static int menureset(void)
+/**
+ * Callback function for File->Reset menu item.
+ *
+ * @return D_CLOSE - Close the dialog
+ */
+static int
+menureset(void)
 {
         resetrpc();
         return D_CLOSE;
@@ -109,11 +121,20 @@ static MENU filemenu[]=
 	{ NULL,     NULL,      NULL, 0, NULL }
 };
 
-static int menuld0(void)
+/**
+ * Callback function when someone clicks OK on the file selection box
+ * when loading disc 0
+ *
+ * @return D_EXIT - Close the dialog
+ */
+static int
+menuld0(void)
 {
         char fn[260];
         int ret;//,c;
         int xsize=SCREEN_W-32,ysize=SCREEN_H-64;
+
+        /* Create file selection dialog to pick disk image */
         memcpy(fn,discname[0],260);
         ret=file_select_ex("Please choose a disc image",fn,"ADF",260,xsize,ysize);
 	if (ret) {
@@ -122,11 +143,20 @@ static int menuld0(void)
         return D_EXIT;
 }
 
-static int menuld1(void)
+/**
+ * Callback function when someone clicks OK on the file selection box
+ * when loading disc 1
+ *
+ * @return D_EXIT - Close the dialog
+ */
+static int
+menuld1(void)
 {
         char fn[260];
         int ret;//,c;
         int xsize=SCREEN_W-32,ysize=SCREEN_H-64;
+
+        /* Create file selection dialog to pick disk image */
         memcpy(fn,discname[1],260);
         ret=file_select_ex("Please choose a disc image",fn,"ADF",260,xsize,ysize);
 	if (ret) {
@@ -142,7 +172,13 @@ static MENU discmenu[]=
         {NULL,NULL,NULL,0,NULL}
 };
 
-static int cddisabled(void)
+/**
+ * Callback function for CD-ROM "Disabled" menu item.
+ *
+ * @return D_CLOSE - Close the dialog
+ */
+static int
+cddisabled(void)
 {
 	int res;
 	if (config.cdromenabled)
@@ -157,7 +193,13 @@ static int cddisabled(void)
 	return D_CLOSE;
 }
 
-static int cdempty(void)
+/**
+ *
+ *
+ * @return
+ */
+static int
+cdempty(void)
 {
 	int res;
 	if (!config.cdromenabled)
@@ -176,7 +218,13 @@ static int cdempty(void)
 	return D_CLOSE;
 }
 
-static int cdisoimage(void)
+/**
+ * Callback function for CD-ROM "ISO Image ..." menu item.
+ *
+ * @return D_EXIT - Close the dialog
+ */
+static int
+cdisoimage(void)
 {
         char fn[260];
         int ret,res;
@@ -192,6 +240,7 @@ static int cdisoimage(void)
 		else
 	   	   return D_EXIT;
 	}
+	/* Create file selection dialog to pick iso image */
 	memcpy(fn, config.isoname, 260);
 	ret=file_select_ex("Please choose a disc image",fn,"ISO",260,xsize,ysize);
 	if (ret) {
@@ -203,7 +252,13 @@ static int cdisoimage(void)
 }
 
 #if defined linux || defined __linux
-static int cdioctl(void)
+/**
+ * Callback function for CD-ROM "Host CD/DVD drive" menu item.
+ *
+ * @return D_CLOSE - Close the dialog
+ */
+static int
+cdioctl(void)
 {
 	int res;
 	if (!config.cdromenabled)
@@ -235,7 +290,13 @@ static MENU cdmenu[]=
 
 static MENU settingsmenu[];
 
-static int menufullscreen(void)
+/**
+ * Callback function for "Fullscreen mode" menu item.
+ *
+ * @return D_CLOSE - Close the dialog
+ */
+static int
+menufullscreen(void)
 {
         togglefullscreen(!fullscreen);
         settingsmenu[MENU_SETTINGS_FULLSCREEN].flags = fullscreen ? D_SELECTED : 0;
@@ -244,6 +305,8 @@ static int menufullscreen(void)
 
 /**
  * Callback function for "Reduce CPU usage" menu item.
+ *
+ * @return D_CLOSE - Close the dialog
  */
 static int
 menu_cpu_idle(void)
@@ -259,13 +322,24 @@ menu_cpu_idle(void)
 	return D_CLOSE;
 }
 
-static int menumouse(void)
+/**
+ * Callback function for the "Follow host mouse" menu item.
+ *
+ * @return D_CLOSE - Close the dialog
+ */
+static int
+menumouse(void)
 {
         config.mousehackon ^= 1;
         settingsmenu[MENU_SETTINGS_MOUSEHACK].flags = config.mousehackon ? D_SELECTED : 0;
         return D_CLOSE;
 }
 
+/**
+ * Callback function for the "Two-button Mouse Mode" menu item.
+ *
+ * @return D_CLOSE - Close the dialog
+ */
 static int
 menutwobutton(void)
 {
@@ -280,8 +354,11 @@ static char hzstring[20];
 /**
  * Function to prepare, display and handle user changes on the 'settings'
  * window.
+ *
+ * @return D_CLOSE Close the dialog
  */
-static int menusettings(void)
+static int
+menusettings(void)
 {
         int c;
         int changed=0;
@@ -424,8 +501,11 @@ static int menusettings(void)
 /**
  * Function to prepare, display and handle user changes on the 'networking'
  * window.
+ *
+ * @return D_CLOSE Close the dialog
  */
-static int menunetworking(void)
+static int
+menunetworking(void)
 {
 	int c;
 
@@ -486,7 +566,15 @@ static int menunetworking(void)
 }
 #endif /* RPCEMU_NETWORKING */
 
-static int hzcallback(void *dp3, int d2)
+/**
+ * Callback function for the Refresh Rate slider
+ *
+ * @param dp3  not used
+ * @param d2   value between 0 and 80/5 (20), 20 increments of 5Hz
+ * @return D_CLOSE Close the dialog
+ */
+static int
+hzcallback(void *dp3, int d2)
 {
         sprintf(hzstring, "%iHz", (d2 * 5) + 20);
         configuregui[CONF_HZ_TEXT].dp = hzstring;
@@ -498,7 +586,7 @@ static int hzcallback(void *dp3, int d2)
                  0xFFFFFFFF);
         object_message(&configuregui[CONF_HZ_TEXT], MSG_DRAW, 0);
 
-        return 0;
+        return D_CLOSE;
 }
 
 static MENU settingsmenu[]=
@@ -593,10 +681,14 @@ static DIALOG rpcemugui[]=
       {0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL}
 };
 
-void entergui(void)
+/**
+ *
+ */
+void
+entergui(void)
 {
         DIALOG_PLAYER *dp;
-        int x = 1;
+        int x = TRUE;
         infocus=0;
         
         /* Prevent the contents of the sound buffer being repeatedly played
@@ -604,16 +696,18 @@ void entergui(void)
         if (config.soundenabled) {
                 sound_mute();
         }
-        
+
+        /* Update the dynamic menu items based on their current settings */
         settingsmenu[MENU_SETTINGS_FULLSCREEN].flags    = fullscreen  ? D_SELECTED : 0;
         settingsmenu[MENU_SETTINGS_CPU_IDLE].flags      = config.cpu_idle ? D_SELECTED : 0;
         settingsmenu[MENU_SETTINGS_MOUSEHACK].flags     = config.mousehackon ? D_SELECTED : 0;
         settingsmenu[MENU_SETTINGS_MOUSETWOBUTTON].flags =
             config.mousetwobutton ? D_SELECTED : 0;
 
+        /* Enable the Allegro popover gui */
         dp=init_dialog(rpcemugui,0);
         show_mouse(screen);
-        while (x && !(mouse_b&2) && !key[KEY_ESC])
+        while (x != FALSE && !(mouse_b & 2) && !key[KEY_ESC])
         {
                 x=update_dialog(dp);
         }
@@ -624,6 +718,7 @@ void entergui(void)
         clear_keybuf();
         resetbuffer();
         
+        /* Re-enable the sound system */
         if (config.soundenabled) {
                 sound_unmute();
         }
