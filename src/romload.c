@@ -8,7 +8,7 @@
 #include "mem.h"
 #include "romload.h"
 
-#define MAXROMS 16
+#define MAXROMS 16 /**< Allow up to this many files for a romimage to be broken up into */
 
 /* Website with help on finding romimages */
 #define ROM_WEB_SITE "http://www.marutan.net/rpcemu"
@@ -45,30 +45,23 @@ void loadroms(void)
         int c;
         int pos = 0;
         struct al_ffblk ff;
-        char olddir[512],fn[512];
-        char *ext;
         const char *wildcard = "*.*";
         const char *dirname = "roms";
         char *romfilenames[MAXROMS];
+	char romdirectory[512];
+	char searchwildcard[512];
 
-        /* Store current directory to return to later */
-        if (getcwd(olddir, sizeof(olddir)) == NULL) {
-                fatal("getcwd() failed: %s", strerror(errno));
-        }
+	/* Build rom directory path */
+	snprintf(romdirectory, sizeof(romdirectory), "%s%s/", rpcemu_get_datadir(), dirname);
 
-        /* Change into roms directory */
-        append_filename(fn, rpcemu_get_datadir(), dirname, sizeof(fn));
-        if (chdir(fn))
-        {
-                fatal("Cannot find roms directory '%s': %s", fn,
-                      strerror(errno));
-        }
+	/* Build a search string */
+	snprintf(searchwildcard, sizeof(searchwildcard), "%s%s", romdirectory, wildcard);
 
         /* Scan directory for ROM files */
-        finished=al_findfirst(wildcard,&ff,0xFFFF&~FA_DIREC);
+        finished = al_findfirst(searchwildcard, &ff, 0xffff & ~FA_DIREC);
         while (!finished && number_of_files < MAXROMS)
         {
-                ext=get_extension(ff.name);
+                const char *ext = get_extension(ff.name);
                 /* Skip files with a .txt extension or starting with '.' */
                 if (stricmp(ext,"txt") && ff.name[0] != '.')
                 {
@@ -96,10 +89,13 @@ void loadroms(void)
         for (c = 0; c < number_of_files; c++) {
                 FILE *f;
                 int len;
+                char filepath[512];
 
-                f = fopen(romfilenames[c], "rb");
+                snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, romfilenames[c]);
+
+                f = fopen(filepath, "rb");
                 if (f == NULL) {
-                        fatal("Can't open ROM file '%s': %s", romfilenames[c],
+                        fatal("Can't open ROM file '%s': %s", filepath,
                               strerror(errno));
                 }
 
@@ -126,12 +122,6 @@ void loadroms(void)
 
                 /* Free up filename allocated earlier */
                 free(romfilenames[c]);
-        }
-
-        /* Return to initial directory */
-        if (chdir(olddir)) {
-                fatal("Cannot return to previous directory '%s': %s", olddir,
-                      strerror(errno));
         }
 
         /* Reject ROMs that are not sensible sizes
@@ -169,6 +159,4 @@ void loadroms(void)
 	{
 		rom[0x14750 >> 2] = 0x03a06008; /* MOVEQ r6, #8 */
 	}
-
-//        initpodulerom();
 }

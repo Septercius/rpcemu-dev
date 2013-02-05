@@ -50,32 +50,30 @@ void initpodulerom(void)
         int finished=0;
         int file=0;
         struct al_ffblk ff;
-        char olddir[512];
-        char fn[512];
         int i;
+	char romdirectory[512];
+	char searchwildcard[512];
+
+	/* Build podulerom directory path */
+	snprintf(romdirectory, sizeof(romdirectory), "%spoduleroms/", rpcemu_get_datadir());
+
+	/* Build a search string */
+	snprintf(searchwildcard, sizeof(searchwildcard), "%s*.*", romdirectory);
 
         if (podulerom) free(podulerom);
         poduleromsize = 0;
 
-	if (getcwd(olddir, sizeof(olddir)) == NULL) {
-		fatal("initpodulerom: Failed to read working directory: %s",
-		      strerror(errno));
-	}
-        append_filename(fn, rpcemu_get_datadir(), "poduleroms", sizeof(fn));
-        if (chdir(fn) == 0)
+        finished = al_findfirst(searchwildcard, &ff, FA_ALL & ~FA_DIREC);
+        while (!finished && file < MAXROMS)
         {
-                finished=al_findfirst("*.*",&ff,FA_ALL&~FA_DIREC);
-                while (!finished && file<MAXROMS)
-                {
-                        const char *ext = get_extension(ff.name);
-                        /* Skip files with a .txt extension or starting with '.' */
-                        if (stricmp(ext, "txt") && ff.name[0] != '.') {
-                                strcpy(romfns[file++], ff.name);
-                        }
-                        finished = al_findnext(&ff);
+                const char *ext = get_extension(ff.name);
+                /* Skip files with a .txt extension or starting with '.' */
+                if (stricmp(ext, "txt") && ff.name[0] != '.') {
+                        strcpy(romfns[file++], ff.name);
                 }
-                al_findclose(&ff);
+                finished = al_findnext(&ff);
         }
+        al_findclose(&ff);
 
         chunkbase = 0x10;
         filebase = chunkbase + 8 * file + 8;
@@ -92,8 +90,13 @@ void initpodulerom(void)
 
         for (i=0;i<file;i++)
         {
-                FILE *f=fopen(romfns[i],"rb");
+                FILE *f;
+                char filepath[512];
                 int len;
+
+                snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, romfns[i]);
+
+                f = fopen(filepath, "rb");
                 if (f==NULL) fatal("Can't open podulerom file\n");
                 fseek(f,-1,SEEK_END);
                 len = ftell(f) + 1;
@@ -113,9 +116,6 @@ void initpodulerom(void)
                 makechunk(0x81, filebase, len);
                 filebase+=(len+3)&~3;
         }
-	if (chdir(olddir) == -1) {
-		fatal("initpodulerom: Failed to return to previous directory '%s': '%s'",
-		      olddir, strerror(errno));
-	}
+
         addpodule(NULL,NULL,NULL,NULL,NULL,readpodulerom,NULL,NULL,0);
 }
