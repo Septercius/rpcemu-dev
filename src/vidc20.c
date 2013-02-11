@@ -418,8 +418,6 @@ void togglefullscreen(int fs)
         memset(dirtybuffer,1,512*4);
 }
 
-static const int xdiff[8]={8192,4096,2048,1024,512,512,256,256};
-
 static void
 vidc_palette_update(void)
 {
@@ -547,12 +545,14 @@ void drawscr(int needredraw)
                 firstblock=lastblock=-1;
                 while (y<thr.ysize)
                 {
+			static const int xdiff[8] = { 8192, 4096, 2048, 1024, 512, 512, 256, 256 };
+
                         if (dirtybuffer[c++])
                         {
                                 lastblock=c;
                                 if (firstblock==-1) firstblock=c;
                         }
-                        x+=(xdiff[vidc.bit8]<<2);
+                        x += xdiff[thr.bpp] << 2;
                         while (x>thr.xsize)
                         {
                                 x-=thr.xsize;
