@@ -14,6 +14,13 @@ static uint32_t filebase;
 
 static const char description[] = "RPCEmu additional ROM";
 
+/**
+ *
+ *
+ * @param type
+ * @param filebase
+ * @param size
+ */
 static void
 makechunk(uint8_t type, uint32_t filebase, uint32_t size)
 {
@@ -28,7 +35,16 @@ makechunk(uint8_t type, uint32_t filebase, uint32_t size)
 	podulerom[chunkbase++] = (uint8_t) (filebase >> 24);
 }
 
-static uint8_t readpodulerom(podule *p, int easi, uint32_t addr)
+/**
+ * Podule byte read function for podulerom
+ *
+ * @param p    podule pointer (unused)
+ * @param easi Read from EASI space or from regular IO space
+ * @param addr Address of byte to read
+ * @return Contents of byte
+ */
+static uint8_t
+readpodulerom(podule *p, int easi, uint32_t addr)
 {
         if (easi && (poduleromsize>0))
         {
@@ -39,13 +55,25 @@ static uint8_t readpodulerom(podule *p, int easi, uint32_t addr)
         return 0xFF;
 }
 
+/**
+ * Add the ROM Podule to the list of active podules.
+ *
+ * Called on emulated machine reset
+ */
 void
 podulerom_reset(void)
 {
 	addpodule(NULL, NULL, NULL, NULL, NULL, readpodulerom, NULL, NULL, 0);
 }
 
-void initpodulerom(void)
+/**
+ * Initialise the ROM Podule by loading files and building a ROM image
+ * dynamically.
+ *
+ * Called on program startup
+ */
+void
+initpodulerom(void)
 {
         int finished=0;
         int file=0;
@@ -77,15 +105,22 @@ void initpodulerom(void)
 
         chunkbase = 0x10;
         filebase = chunkbase + 8 * file + 8;
-        poduleromsize = filebase + ((sizeof(description)+3) &~3);
+        poduleromsize = filebase + ((sizeof(description)+3) &~3); /* Word align description string */
         podulerom = malloc(poduleromsize);
         if (podulerom == NULL) fatal("Out of Memory");
 
         memset(podulerom, 0, poduleromsize);
-        podulerom[1] = 3; // Interrupt and chunk directories present, byte access
+        podulerom[0] = 0; /* Acorn comformant card, not requesting FIQ, not requesting interupt, EcID = 0 = EcID is extended (8 bytes) */
+        podulerom[1] = 3; /* Interrupt status has been relocated, chunk directories present, byte access */
+        podulerom[2] = 0; /* Mandatory */
+        podulerom[3] = 0; /* Product type, low,  ???? */
+        podulerom[4] = 0; /* Product type, high, ???? */
+        podulerom[5] = 0; /* Manufacturer, low,  Acorn UK */
+        podulerom[6] = 0; /* Manufacturer, high, Acorn UK */
+        podulerom[7] = 0; /* Reserved */
 
         memcpy(podulerom + filebase, description, sizeof(description));
-        makechunk(0xF5, filebase, sizeof(description));
+        makechunk(0xF5, filebase, sizeof(description)); /* F = Device Data, 5 = description */
         filebase+=(sizeof(description)+3)&~3;
 
         for (i=0;i<file;i++)
@@ -113,7 +148,7 @@ void initpodulerom(void)
                 fclose(f);
 		rpclog("initpodulerom: Successfully loaded '%s' into podulerom\n",
 		       romfns[i]);
-                makechunk(0x81, filebase, len);
+                makechunk(0x81, filebase, len); /* 8 = Mandatory, Acorn Operating System #0 (RISC OS), 1 = BBC ROM */
                 filebase+=(len+3)&~3;
         }
 

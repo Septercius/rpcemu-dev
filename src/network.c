@@ -7,6 +7,13 @@
 #include "rpcemu.h"
 #include "mem.h"
 
+/**
+ * Copy bytes from emulated memory map to host
+ *
+ * @param dest Pointer to storage in host memory
+ * @param src  Memory address in emulated memory map
+ * @param len  Amount in bytes to copy
+ */
 void
 memcpytohost(void *dest, uint32_t src, uint32_t len)
 {
@@ -18,6 +25,13 @@ memcpytohost(void *dest, uint32_t src, uint32_t len)
 	}
 }
 
+/**
+ * Copy bytes from host to emulated memory
+ *
+ * @param dest   Memory address in emulated memory map
+ * @param source Pointer to storage in host memory
+ * @param len    Amount in bytes to copy
+ */
 void
 memcpyfromhost(uint32_t dest, const void *source, uint32_t len)
 {
@@ -30,6 +44,12 @@ memcpyfromhost(uint32_t dest, const void *source, uint32_t len)
 	}
 }
 
+/**
+ * Copy null-terminated string from host to emulated memory
+ *
+ * @param dest   Memory address in emulated memory map
+ * @param source Pointer to null-terminated string
+ */
 void
 strcpyfromhost(uint32_t dest, const char *source)
 {

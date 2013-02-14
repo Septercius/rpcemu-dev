@@ -72,6 +72,10 @@ typedef struct {
 	int state;
 } PCF8583;
 
+/**
+ * Update CMOS contents to automatically handle various Host and emulation
+ * settings.
+ */
 static void
 cmos_update_settings(void)
 {
@@ -100,6 +104,9 @@ cmos_update_settings(void)
 	// eg default bootfs, number of IDE discs, floppy etc....
 }
 
+/**
+ * Recalculate CMOS checksum byte based on current contents.
+ */
 static void
 cmos_update_checksum(void)
 {
@@ -125,7 +132,12 @@ cmos_update_checksum(void)
 	cmosram[0x3f] = (checksum + 1) & 0xff;
 }
 
-void loadcmos(void)
+/**
+ * Load CMOS data from cmos.ram file on file system, and update it with
+ * dynamic settings.
+ */
+void
+loadcmos(void)
 {
         char fn[512];
         FILE *cmosf;
@@ -159,7 +171,11 @@ void loadcmos(void)
         memset(cmosram, 0, 16);
 }
 
-void savecmos(void)
+/**
+ * Save CMOS data to file system.
+ */
+void
+savecmos(void)
 {
         char fn[512];
         FILE *cmosf;
@@ -180,7 +196,11 @@ void savecmos(void)
         }
 }
 
-static void cmosgettime(void)
+/**
+ * Update PCF8583 time registers based on the current host system time
+ */
+static void
+cmosgettime(void)
 {
 	time_t now = time(NULL);
 	const struct tm *t = gmtime(&now);
@@ -593,7 +613,11 @@ cmosi2cchange(int scl, int sda)
 	serdes->oldpinstate = (scl << 1) | sda;
 }
 
-void reseti2c(void)
+/**
+ * Reset the I2C emulation and attached Philips PCF8583 RTC
+ */
+void
+reseti2c(void)
 {
 	i2cclock = 1;
 	i2cdata = 1;
