@@ -4,6 +4,11 @@
 #include "iomd.h"
 #include "podules.h"
 
+/* References
+  Acorn Enhanced Expansion Card Specification
+  Risc PC Technical Reference Manual
+*/
+
 /*Podules -
   0 is reserved for extension ROMs
   1 is for additional IDE interface
@@ -36,8 +41,25 @@ podules_reset(void)
 
 	freepodule = 0;
 }
-  
-podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
+
+/**
+ * Add a new podule to the chain, with the specified functions, including reads and
+ * writes to the podules memory areas, and calls for regular callbacks and reset.
+ *
+ * @param writel        Function pointer for the podule's 32-bit write function
+ * @param writew        Function pointer for the podule's 16-bit write function
+ * @param writeb        Function pointer for the podule's  8-bit write function
+ * @param readl         Function pointer for the podule's 32-bit read function
+ * @param readw         Function pointer for the podule's 16-bit read function
+ * @param readb         Function pointer for the podule's  8-bit read function
+ * @param timercallback
+ * @param reset         Function pointer for the podule's reset function, called
+ *                      at program startup and emulated machine reset
+ * @param broken
+ * @return Pointer to entry in the podules array, or NULL on failure
+ */
+podule *
+addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
               void (*writew)(podule *p, int easi, uint32_t addr, uint16_t val),
               void (*writeb)(podule *p, int easi, uint32_t addr, uint8_t val),
               uint32_t  (*readl)(podule *p, int easi, uint32_t addr),
@@ -62,7 +84,11 @@ podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t va
         return &podules[freepodule-1];
 }
 
-void rethinkpoduleints(void)
+/**
+ * Raise interrupts if any podules have requested them.
+ */
+void
+rethinkpoduleints(void)
 {
         int c;
         iomd.irqb.status &= ~(IOMD_IRQB_PODULE | IOMD_IRQB_PODULE_FIQ_AS_IRQ);
@@ -83,7 +109,16 @@ void rethinkpoduleints(void)
         updateirqs();
 }
 
-void writepodulel(int num, int easi, uint32_t addr, uint32_t val)
+/**
+ * Handle a 32-bit write to the podules memory map
+ *
+ * @param num   Podule number (0-7)
+ * @param easi  Write to EASI space (true) or regular IO space (false)
+ * @param addr  Address to write to
+ * @param val   Value to write
+ */
+void
+writepodulel(int num, int easi, uint32_t addr, uint32_t val)
 {
         int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
         if (podules[num].writel)
@@ -91,7 +126,16 @@ void writepodulel(int num, int easi, uint32_t addr, uint32_t val)
         if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
 }
 
-void writepodulew(int num, int easi, uint32_t addr, uint32_t val)
+/**
+ * Handle a 16-bit write to the podules memory map
+ *
+ * @param num   Podule number (0-7)
+ * @param easi  Write to EASI space (true) or regular IO space (false)
+ * @param addr  Address to write to
+ * @param val   Value to write
+ */
+void
+writepodulew(int num, int easi, uint32_t addr, uint32_t val)
 {
         int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
         if (podules[num].writew)
@@ -102,7 +146,16 @@ void writepodulew(int num, int easi, uint32_t addr, uint32_t val)
         if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
 }
 
-void writepoduleb(int num, int easi, uint32_t addr, uint8_t val)
+/**
+ * Handle an 8-bit write to the podules memory map
+ *
+ * @param num   Podule number (0-7)
+ * @param easi  Write to EASI space (true) or regular IO space (false)
+ * @param addr  Address to write to
+ * @param val   Value to write
+ */
+void
+writepoduleb(int num, int easi, uint32_t addr, uint8_t val)
 {
         int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
         if (podules[num].writeb)
@@ -110,7 +163,16 @@ void writepoduleb(int num, int easi, uint32_t addr, uint8_t val)
         if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
 }
 
-uint32_t readpodulel(int num, int easi, uint32_t addr)
+/**
+ * Handle a 32-bit read from the podules memory map
+ *
+ * @param num   Podule number (0-7)
+ * @param easi  Read from EASI space (true) or regular IO space (false)
+ * @param addr  Address to read from
+ * @return Value at memory address
+ */
+uint32_t
+readpodulel(int num, int easi, uint32_t addr)
 {
         int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
         uint32_t temp;
@@ -125,7 +187,16 @@ uint32_t readpodulel(int num, int easi, uint32_t addr)
         return 0xFFFFFFFF;
 }
 
-uint32_t readpodulew(int num, int easi, uint32_t addr)
+/**
+ * Handle a 16-bit read from the podules memory map
+ *
+ * @param num   Podule number (0-7)
+ * @param easi  Read from EASI space (true) or regular IO space (false)
+ * @param addr  Address to read from
+ * @return Value at memory address
+ */
+uint32_t
+readpodulew(int num, int easi, uint32_t addr)
 {
         int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
         uint32_t temp;
@@ -140,7 +211,16 @@ uint32_t readpodulew(int num, int easi, uint32_t addr)
         return 0xFFFF;
 }
 
-uint8_t readpoduleb(int num, int easi, uint32_t addr)
+/**
+ * Handle an 8-bit read from the podules memory map
+ *
+ * @param num   Podule number (0-7)
+ * @param easi  Read from EASI space (true) or regular IO space (false)
+ * @param addr  Address to read from
+ * @return Value at memory address
+ */
+uint8_t
+readpoduleb(int num, int easi, uint32_t addr)
 {
         int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
         uint8_t temp;
@@ -156,9 +236,19 @@ uint8_t readpoduleb(int num, int easi, uint32_t addr)
         return 0xFF;
 }
 
-void runpoduletimers(int t)
+/**
+ * AT MOMENT NO PODULE REGISTERS A timercallback() SO THIS FUNCTION IS SUPERFLUOUS
+ *
+ * @param t
+ */
+void
+runpoduletimers(int t)
 {
         int c,d;
+
+        /* Loop through podules, ignoring 0 (extn rom) */
+        /* This should really make use of the 'freepodule' variable to prevent
+           looping over podules that aren't registered */
         for (c=1;c<8;c++)
         {
                 if (podules[c].timercallback && podules[c].msectimer)
