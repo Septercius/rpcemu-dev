@@ -9,12 +9,16 @@
 #include <sys/utsname.h>
 
 #include <allegro.h>
+extern void *allegro_icon; /**< Additional prototype required for X11 icon support */
 
 #include "rpcemu.h"
 #include "mem.h"
 #include "sound.h"
 #include "vidc20.h"
 #include "gui.h"
+
+/* X11 icon */
+#include "rpcemu.xpm"
 
 static pthread_t sound_thread;
 static pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
@@ -227,6 +231,9 @@ int main (int argc, char ** argv)
 		fprintf(stderr, "No command line options supported.\n");
 		return 1;
 	}
+
+	/* Setup X11 icon */
+	allegro_icon = rpcemu_xpm;
 
         infocus=1;
         allegro_init();
