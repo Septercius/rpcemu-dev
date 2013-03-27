@@ -145,6 +145,46 @@ static void vblupdate(void)
 }
 
 /**
+ * Search a menu for an item containing the given data.
+ *
+ * @param menu Menu handle
+ * @param data Pointer to menu item data
+ * @return Item number within menu, or -1 if not found or error
+ */
+static int
+menu_search(HMENU menu, const char *data)
+{
+	int item, count;
+
+	count = GetMenuItemCount(menu);
+	if (count == -1) {
+		return -1;
+	}
+
+	for (item = 0; item < count; item++) {
+		MENUITEMINFO mii;
+		char buffer[1024];
+
+		/* Retrieve the string if this menu item contains string data */
+		buffer[0] = '\0';
+		mii.cbSize = sizeof(MENUITEMINFO);
+		mii.fMask = MIIM_STRING;
+		mii.dwTypeData = buffer;
+		mii.cch = sizeof(buffer);
+		if (GetMenuItemInfo(menu, item, TRUE, &mii) == 0) {
+			return -1;
+		}
+
+		/* Compare with given data */
+		if (strcmp(buffer, data) == 0) {
+			return item;
+		}
+	}
+
+	return -1;
+}
+
+/**
  * Fill in menu with CDROM links based on real windows drives
  */
 static void initmenu(void)
@@ -152,9 +192,23 @@ static void initmenu(void)
         int c;
         HMENU m;
         char s[32];
+	int item;
 
-	m = GetSubMenu(menu, 2); /* Settings */
-	m = GetSubMenu(m, 5); /* CD-ROM */
+	/* Locate the Settings menu */
+	item = menu_search(menu, "&Settings");
+	if (item == -1) {
+		fprintf(stderr, "Settings menu not found\n");
+		exit(EXIT_FAILURE);
+	}
+	m = GetSubMenu(menu, item);
+
+	/* Locate the CD-ROM menu */
+	item = menu_search(m, "&CD-ROM");
+	if (item == -1) {
+		fprintf(stderr, "CD-ROM menu not found\n");
+		exit(EXIT_FAILURE);
+	}
+	m = GetSubMenu(m, item);
 
         /* Loop through each Windows drive letter and test to see if
            it's a CDROM */
