@@ -2,19 +2,18 @@
 #define NETWORK_H
 
 #include "rpcemu.h"
+#include "podules.h"
 
 /* RPCemu networking */
-
-/* Functions provided by each host platform's network code */
 
 // r0: Reason code in r0
 // r1: Pointer to buffer for any error string
 // r2-r5: Reason code dependent
 // Returns 0 in r0 on success, non 0 otherwise and error buffer filled in
-void networkswi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3,
-                uint32_t r4, uint32_t r5, uint32_t *retr0, uint32_t *retr1);
+void network_swi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3,
+                 uint32_t r4, uint32_t r5, uint32_t *retr0, uint32_t *retr1);
 
-void initnetwork(void);
+void network_init(void);
 void network_reset(void);
 
 /* Functions shared between each platform, in network.c */
@@ -25,7 +24,16 @@ void strcpyfromhost(uint32_t dest, const char *source);
 int network_config_changed(NetworkType networktype, const char *bridgename,
                            const char *ipaddress);
 
+/* Functions provided by each host platform's network code */
+void network_plt_reset(void);
+int network_plt_init(void);
+uint32_t network_plt_tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uint32_t frametype);
+uint32_t network_plt_rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dataavail);
+void network_plt_setirqstatus(uint32_t address);
+
 /* Structures and variables shared between each host platform's network code */
+podule *network_poduleinfo;
+unsigned char network_hwaddr[6];
 
 /* Structures to represent the RISC OS view of things */
 struct pkthdr {

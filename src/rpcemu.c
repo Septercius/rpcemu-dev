@@ -203,7 +203,7 @@ resetrpc(void)
 	if (config.network_type == NetworkType_EthernetBridging ||
 	    config.network_type == NetworkType_IPTunnelling)
 	{
-		initnetwork();
+		network_init();
 	}
 #endif
 

@@ -32,11 +32,6 @@ static int tunfd = -1;
 /* Max packet is 1500 bytes plus headers */
 static unsigned char buffer[1522];
 
-/* Hardware address */
-static unsigned char hwaddr[6];
-
-static podule *poduleinfo = NULL;
-
 /**
  * Given a system username, lookup their uid and gid
  *
@@ -76,15 +71,15 @@ static int parsemacaddr(const char *text, unsigned char *hwaddr)
     for (byte = 0; byte < 6; byte++) {
         int nybble;
 
-        hwaddr[byte] = 0;
+        network_hwaddr[byte] = 0;
 
         for (nybble = 0; nybble < 2; nybble++) {
-            hwaddr[byte] <<= 4;
+            network_hwaddr[byte] <<= 4;
 
             if (isdigit(*textptr)) {
-                hwaddr[byte] |= *textptr - '0';
+                network_hwaddr[byte] |= *textptr - '0';
             } else if (isxdigit(*textptr)) {
-                hwaddr[byte] |= (toupper(*textptr) - 'A') + 10;
+                network_hwaddr[byte] |= (toupper(*textptr) - 'A') + 10;
             } else {
                 goto fail;
             }
@@ -191,7 +186,7 @@ static int tun_alloc(void)
         return -1;
     }
 
-    if (config.macaddress == NULL || parsemacaddr(config.macaddress, hwaddr) < 0) {
+    if (config.macaddress == NULL || parsemacaddr(config.macaddress, network_hwaddr) < 0) {
         /* Get the hardware address */
         if (ioctl(sd, SIOCGIFHWADDR, &ifr) == -1) {
             error("Error getting %s hardware address: %s",
@@ -200,12 +195,12 @@ static int tun_alloc(void)
         }
 
         /* Calculate the emulated hardware address */
-        hwaddr[0] = 0x02;
-        hwaddr[1] = 0x00;
-        hwaddr[2] = 0xA4;
-        hwaddr[3] = ifr.ifr_hwaddr.sa_data[3];
-        hwaddr[4] = ifr.ifr_hwaddr.sa_data[4];
-        hwaddr[5] = ifr.ifr_hwaddr.sa_data[5];
+        network_hwaddr[0] = 0x02;
+        network_hwaddr[1] = 0x00;
+        network_hwaddr[2] = 0xA4;
+        network_hwaddr[3] = ifr.ifr_hwaddr.sa_data[3];
+        network_hwaddr[4] = ifr.ifr_hwaddr.sa_data[4];
+        network_hwaddr[5] = ifr.ifr_hwaddr.sa_data[5];
     }
 
     close(sd);
@@ -229,7 +224,8 @@ static int tun_alloc(void)
 
    returns errbuf on error, else zero
 */
-static uint32_t tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uint32_t frametype)
+uint32_t
+network_plt_tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uint32_t frametype)
 {
     unsigned char *buf = buffer;
     struct mbuf txb;
@@ -259,7 +255,7 @@ static uint32_t tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src,
         memcpytohost(buf, src, 6);
     } else {
         for (i = 0; i < 6; i++) {
-            buf[i] = hwaddr[i];
+            buf[i] = network_hwaddr[i];
         }
     }
     buf += 6;
@@ -294,8 +290,8 @@ static uint32_t tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src,
     return 0;
 }
 
-
-static uint32_t rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dataavail)
+uint32_t
+network_plt_rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dataavail)
 {
     struct mbuf rxb;
     struct rx_hdr hdr;
@@ -354,13 +350,15 @@ static uint32_t irqstatus = 0;
 static void sig_io(int sig) 
 {
     writememb(irqstatus, 1);
-    if (poduleinfo != NULL) {
-        poduleinfo->irq = 1;
+    if (network_poduleinfo != NULL) {
+        network_poduleinfo->irq = 1;
     }
     rethinkpoduleints();
 }
 
-static void set_irqstatus(uint32_t address)
+
+void
+network_plt_setirqstatus(uint32_t address)
 {
     struct sigaction sa;
     int flags;
@@ -405,39 +403,8 @@ static void set_irqstatus(uint32_t address)
     }
 }
 
-// r0: Reason code in r0
-// r1: Pointer to buffer for any error string
-// r2-r5: Reason code dependent
-// Returns 0 in r0 on success, non 0 otherwise and error buffer filled in
-void networkswi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t *retr0, uint32_t *retr1)
-{
-    switch (r0) {
-    case 0:
-        *retr0 = tx(r1, r2, r3, r4, r5);
-        break;
-    case 1:
-        *retr0 = rx(r1, r2, r3, retr1);
-        break;
-    case 2:
-        set_irqstatus(r2);
-        *retr0 = 0;
-        break;
-    case 3:
-        if (poduleinfo) poduleinfo->irq = r2;
-        rethinkpoduleints();
-        *retr0 = 0;
-        break;
-    case 4:
-       memcpyfromhost(r2, hwaddr, sizeof(hwaddr));
-       *retr0 = 0;
-       break;
-    default:
-        strcpyfromhost(r1, "Unknown RPCEmu network SWI");
-        *retr0 = r1;
-    }
-}
-
-void initnetwork(void) 
+int
+network_plt_init(void)
 { 
     tunfd = tun_alloc();
 
@@ -476,13 +443,9 @@ void initnetwork(void)
     }
 
     if (tunfd != -1) {
-        poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0);
-        if (poduleinfo == NULL) {
-            error("No free podule for networking");
-        }
+        return 1;
     } else {
-        error("Networking unavailable");
-        return;
+        return 0;
     }
 }
 
@@ -493,7 +456,7 @@ void initnetwork(void)
  * configuration has changed.
  */
 void
-network_reset(void)
+network_plt_reset(void)
 {
 	if (tunfd != -1) {
 		close(tunfd);
