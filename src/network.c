@@ -6,6 +6,12 @@
 
 #include "rpcemu.h"
 #include "mem.h"
+#include "network.h"
+#include "podules.h"
+
+podule *network_poduleinfo = NULL;
+
+unsigned char network_hwaddr[6]; /**< MAC Hardware address */
 
 /**
  * Copy bytes from emulated memory map to host
@@ -132,3 +138,79 @@ network_config_changed(NetworkType network_type, const char *bridgename,
 
 	return restart_required;
 }
+
+void
+network_init(void)
+{
+	int success;
+
+	assert(config.network_type == NetworkType_EthernetBridging ||
+	       config.network_type == NetworkType_IPTunnelling);
+
+	/* Call platform's initialisation code */
+	success = network_plt_init();
+
+	if (success) {
+		/* register podule handle */
+		network_poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0);
+		if (network_poduleinfo == NULL) {
+			error("No free podule for networking");
+		}
+	} else {
+		error("Networking unavailable");
+	}
+}
+
+/**
+ * Shutdown any running network components.
+ *
+ * Called on program shutdown and program reset after
+ * configuration has changed.
+ */
+void
+network_reset(void)
+{
+	/* Call platform's reset code */
+	network_plt_reset();
+}
+
+
+// r0: Reason code in r0
+// r1: Pointer to buffer for any error string
+// r2-r5: Reason code dependent
+// Returns 0 in r0 on success, non 0 otherwise and error buffer filled in
+void
+network_swi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t *retr0, uint32_t *retr1)
+{
+#if defined RPCLOG
+	rpclog("Network SWI r0 = %d, r2 = %08x\n", r0, r2);
+#endif
+	switch (r0) {
+	case 0:
+		*retr0 = network_plt_tx(r1, r2, r3, r4, r5);
+		break;
+	case 1:
+		*retr0 = network_plt_rx(r1, r2, r3, retr1);
+		break;
+	case 2:
+		network_plt_setirqstatus(r2);
+		*retr0 = 0;
+		break;
+	case 3:
+		if (network_poduleinfo) {
+			network_poduleinfo->irq = r2;
+		}
+		rethinkpoduleints();
+		*retr0 = 0;
+		break;
+	case 4:
+		memcpyfromhost(r2, network_hwaddr, sizeof(network_hwaddr));
+		*retr0 = 0;
+		break;
+	default:
+		strcpyfromhost(r1, "Unknown RPCEmu network SWI");
+		*retr0 = r1;
+		break;
+	}
+}
+

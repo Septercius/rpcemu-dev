@@ -171,8 +171,8 @@ opSWI(uint32_t opcode)
 #ifdef RPCEMU_NETWORKING
 	else if (swinum == ARCEM_SWI_NETWORK) {
 		if (config.network_type != NetworkType_Off) {
-			networkswi(armregs[0], armregs[1], armregs[2], armregs[3],
-			           armregs[4], armregs[5], &armregs[0], &armregs[1]);
+			network_swi(armregs[0], armregs[1], armregs[2], armregs[3],
+			            armregs[4], armregs[5], &armregs[0], &armregs[1]);
 		}
 	}
 #endif

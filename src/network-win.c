@@ -16,12 +16,6 @@ static void *tap_handle = NULL;
 /* Max packet is 1500 bytes plus headers */
 static unsigned char buffer[1522];
 
-/* Hardware address */
-static unsigned char hwaddr[6];
-
-static podule *poduleinfo = NULL;
-
-
 #define HEADERLEN 14
 
 /* Transmit data
@@ -32,7 +26,8 @@ static podule *poduleinfo = NULL;
 
    returns errbuf on error, else zero
 */
-static uint32_t tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uint32_t frametype)
+uint32_t
+network_plt_tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uint32_t frametype)
 {
     unsigned char *buf = buffer;
     struct mbuf txb;
@@ -63,7 +58,7 @@ static uint32_t tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src,
            be unique, just different to the MAC on the other end
            of the tunnel. */
         for (i = 0; i < 6; i++) {
-            buf[i] = hwaddr[i];
+            buf[i] = network_hwaddr[i];
         }
     }
     buf += 6;
@@ -118,7 +113,8 @@ static uint32_t tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src,
 }
 
 
-static uint32_t rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dataavail)
+uint32_t
+network_plt_rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dataavail)
 {
     struct mbuf rxb;
     struct rx_hdr hdr;
@@ -194,88 +190,55 @@ static uint32_t rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dat
 // Pointer to a word in RMA, used as the IRQ status register
 static uint32_t irqstatus = 0;
 
+void
+network_plt_setirqstatus(uint32_t address)
+{
+    irqstatus = address;
+}
+
 void sig_io(int sig)
 {
     if (irqstatus) {
         writememb(irqstatus, 1);
-        if (poduleinfo) poduleinfo->irq = 1;
+        if (network_poduleinfo) {
+            network_poduleinfo->irq = 1;
+        }
         rethinkpoduleints();
     }
 }
 
-// r0: Reason code in r0
-// r1: Pointer to buffer for any error string
-// r2-r5: Reason code dependent
-// Returns 0 in r0 on success, non 0 otherwise and error buffer filled in
-void networkswi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t *retr0, uint32_t *retr1)
-{
-#if defined RPCLOG
-    rpclog("Network SWI r0 = %d, r2 = %08x\n", r0, r2);
-#endif
-    switch (r0) {
-    case 0:
-        *retr0 = tx(r1, r2, r3, r4, r5);
-        break;
-    case 1:
-        *retr0 = rx(r1, r2, r3, retr1);
-        break;
-    case 2:
-        irqstatus = r2;
-        *retr0 = 0;
-        break;
-    case 3:
-        if (poduleinfo) poduleinfo->irq = r2;
-        rethinkpoduleints();
-        *retr0 = 0;
-        break;
-    case 4:
-       memcpyfromhost(r2, hwaddr, sizeof(hwaddr));
-       *retr0 = 0;
-       break;
-    default:
-        strcpyfromhost(r1, "Unknown RPCEmu network SWI");
-        *retr0 = r1;
-    }
-}
-
-void initnetwork(void) 
+int
+network_plt_init(void)
 { 
-    assert(config.network_type == NetworkType_EthernetBridging ||
-           config.network_type == NetworkType_IPTunnelling);
-
     if (config.network_type == NetworkType_IPTunnelling) {
         error("IP Tunnelling networking is not supported on Windows");
-        return;
+        return 0;
     }
 
     if (config.bridgename == NULL) {
         error("Bridge name not configured");
-        return;
+        return 0;
     }
 
     if (config.macaddress) {
         /* Parse supplied MAC address */
         sscanf(config.macaddress, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-               &hwaddr[0], &hwaddr[1], &hwaddr[2],
-               &hwaddr[3], &hwaddr[4], &hwaddr[5]);
+               &network_hwaddr[0], &network_hwaddr[1], &network_hwaddr[2],
+               &network_hwaddr[3], &network_hwaddr[4], &network_hwaddr[5]);
     } else {
-        hwaddr[0] = 0x06;
-        hwaddr[1] = 0x02;
-        hwaddr[2] = 0x03;
-        hwaddr[3] = 0x04;
-        hwaddr[4] = 0x05;
-        hwaddr[5] = 0x06;
+        network_hwaddr[0] = 0x06;
+        network_hwaddr[1] = 0x02;
+        network_hwaddr[2] = 0x03;
+        network_hwaddr[3] = 0x04;
+        network_hwaddr[4] = 0x05;
+        network_hwaddr[5] = 0x06;
     }
 
     tap_handle = tap_init(config.bridgename);
     if (tap_handle == NULL) {
-        error("Networking unavailable");
+        return 0;
     } else {
-        rpclog("Networking available\n");
-        poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0);
-        if (poduleinfo == NULL) {
-            error("No free podule for networking");
-        }
+        return 1;
     }
 }
 
@@ -286,7 +249,7 @@ void initnetwork(void)
  * configuration has changed.
  */
 void
-network_reset(void)
+network_plt_reset(void)
 {
 	if (tap_handle) {
 		tap_cleanup(tap_handle);
