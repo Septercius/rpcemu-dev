@@ -32,8 +32,8 @@ uint32_t network_plt_rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t
 void network_plt_setirqstatus(uint32_t address);
 
 /* Structures and variables shared between each host platform's network code */
-podule *network_poduleinfo;
-unsigned char network_hwaddr[6];
+extern podule *network_poduleinfo;
+extern unsigned char network_hwaddr[6];
 
 /* Structures to represent the RISC OS view of things */
 struct pkthdr {
