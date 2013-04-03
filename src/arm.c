@@ -56,7 +56,6 @@ static int r15diff;
 static int fdci=0;
 static int mmask;
 uint32_t r15mask;
-int memmode;
 static int cycles;
 int prefabort;
 uint32_t rotatelookup[4096];
