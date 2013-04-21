@@ -764,16 +764,16 @@ void execarm(int cycs)
                                         }
 #endif
                                         lhs = GETADDR(RN);
-                                        templ2=CFSET;
-                                        templ=shift2(opcode);
+                                        rhs = shift2(opcode);
+                                        dest = lhs + rhs + CFSET;
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs + templ + templ2);
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setadc(lhs, templ, lhs + templ + templ2);
-                                                armregs[RD] = lhs + templ + templ2;
+                                                setadc(lhs, rhs, dest);
+                                                armregs[RD] = dest;
                                         }
                                         break;
 
@@ -1158,16 +1158,16 @@ void execarm(int cycs)
 
                                 case 0x2B: /* ADCS imm */
                                         lhs = GETADDR(RN);
-                                        templ2=CFSET;
-                                        templ=rotate2(opcode);
+                                        rhs = rotate2(opcode);
+                                        dest = lhs + rhs + CFSET;
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs + templ + templ2);
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setadc(lhs, templ, lhs + templ + templ2);
-                                                armregs[RD] = lhs + templ + templ2;
+                                                setadc(lhs, rhs, dest);
+                                                armregs[RD] = dest;
                                         }
                                         break;
 
