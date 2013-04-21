@@ -208,7 +208,7 @@ static void opADCreg(uint32_t opcode)
 
 static void opADCregS(uint32_t opcode)
 {
-	uint32_t lhs, templ, templ2;
+	uint32_t lhs, rhs, dest;
 
 #ifdef STRONGARM
 	if ((opcode & 0xf0) == 0x90) /* UMLALS */
@@ -226,13 +226,13 @@ static void opADCregS(uint32_t opcode)
 	}
 #endif
 	lhs = GETADDR(RN);
-	templ2 = CFSET;
-	templ = shift2(opcode);
+	rhs = shift2(opcode);
+	dest = lhs + rhs + CFSET;
 	if (RD == 15) {
-		arm_write_r15(opcode, lhs + templ + templ2);
+		arm_write_r15(opcode, dest);
 	} else {
-		setadc(lhs, templ, lhs + templ + templ2);
-		armregs[RD] = lhs + templ + templ2;
+		setadc(lhs, rhs, dest);
+		armregs[RD] = dest;
 	}
 }
 
@@ -698,20 +698,17 @@ static void opADCimm(uint32_t opcode)
 
 static void opADCimmS(uint32_t opcode)
 {
-	uint32_t lhs, templ, templ2;
+	uint32_t lhs, rhs, dest;
 
-        lhs = GETADDR(RN);
-        templ2=CFSET;
-        templ=rotate2(opcode);
-        if (RD==15)
-        {
-                arm_write_r15(opcode, lhs + templ + templ2);
-        }
-        else
-        {
-                setadc(lhs, templ, lhs + templ + templ2);
-                armregs[RD] = lhs + templ + templ2;
-        }
+	lhs = GETADDR(RN);
+	rhs = rotate2(opcode);
+	dest = lhs + rhs + CFSET;
+	if (RD == 15) {
+		arm_write_r15(opcode, dest);
+	} else {
+		setadc(lhs, rhs, dest);
+		armregs[RD] = dest;
+	}
 }
 
 static void opSBCimm(uint32_t opcode)
