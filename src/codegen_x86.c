@@ -1359,10 +1359,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 //                flagsdirty=0;
                 if (RD==15) return 0;
                 templ=rotate2(opcode);
-                addbyte(0xC7); /*MOVL $dat,(addr)*/
-                addbyte(0x05);
-                addlong(&armregs[RD]);
-                addlong(templ);
+                addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); /* MOVL $templ,Rd */
                 break;
 
         case 0x3b: /* MOVS imm */
@@ -1372,8 +1369,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 //                addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $~(ZFLAG|NFLAG),%cl*/
                 if (!templ)                { addbyte(0x80); addbyte(0xC9); addbyte(0x40); } /*OR $ZFLAG,%cl*/
                 else if (templ&0x80000000) { addbyte(0x80); addbyte(0xC9); addbyte(0x80); } /*OR $NFLAG,%cl*/
-                addbyte(0xC7); addbyte(0x05); /*MOVL $templ,(armregs[RD])*/
-                addlong(&armregs[RD]); addlong(templ);
+                addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); /* MOVL $templ,Rd */
                 addbyte(0x88); addbyte(0x0D); addlong(pcpsr+3); /*MOV %cl,pcpsr*/
                 if ((opcode>>28)==0xE) flagsdirty=1;
                 break;
@@ -1397,11 +1393,8 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x3e: /* MVN imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
-                addbyte(0xC7); /*MOVL $dat,(addr)*/
-                addbyte(0x05);
-                addlong(&armregs[RD]);
-                addlong(~templ);
+                templ = ~rotate2(opcode);
+                addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); /* MOVL $templ,Rd */
                 break;
 
         case 0x3f: /* MVNS imm */
@@ -1411,8 +1404,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 //                addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $~(ZFLAG|NFLAG),%cl*/
                 if (!templ)                { addbyte(0x80); addbyte(0xC9); addbyte(0x40); } /*OR $ZFLAG,%cl*/
                 else if (templ&0x80000000) { addbyte(0x80); addbyte(0xC9); addbyte(0x80); } /*OR $NFLAG,%cl*/
-                addbyte(0xC7); addbyte(0x05); /*MOVL $templ,(armregs[RD])*/
-                addlong(&armregs[RD]); addlong(templ);
+                addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); /* MOVL $templ,Rd */
                 addbyte(0x88); addbyte(0x0D); addlong(pcpsr+3); /*MOV %cl,pcpsr*/
                 if ((opcode>>28)==0xE) flagsdirty=1;
                 break;
@@ -2395,16 +2387,16 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 {
                         if (templ<0x80)
                         {
-                                addbyte(0x83); /*ADD templ,armregs[15]*/
-                                addbyte(0x05);
-                                addlong(&armregs[15]);
+                                addbyte(0x83); /* ADDL $templ,R15 */
+                                addbyte(0x46);
+                                addbyte(15<<2);
                                 addbyte(templ);
                         }
                         else
                         {
-                                addbyte(0x81); /*ADD templ,armregs[15]*/
-                                addbyte(0x05);
-                                addlong(&armregs[15]);
+                                addbyte(0x81); /* ADDL $templ,R15 */
+                                addbyte(0x46);
+                                addbyte(15<<2);
                                 addlong(templ);
                         }
                 }
@@ -2465,16 +2457,16 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 {
                         if (templ<0x80)
                         {
-                                addbyte(0x83); /*ADD templ,armregs[15]*/
-                                addbyte(0x05);
-                                addlong(&armregs[15]);
+                                addbyte(0x83); /* ADDL $templ,R15 */
+                                addbyte(0x46);
+                                addbyte(15<<2);
                                 addbyte(templ);
                         }
                         else
                         {
-                                addbyte(0x81); /*ADD templ,armregs[15]*/
-                                addbyte(0x05);
-                                addlong(&armregs[15]);
+                                addbyte(0x81); /* ADDL $templ,R15 */
+                                addbyte(0x46);
+                                addbyte(15<<2);
                                 addlong(templ);
                         }
                         gen_save_reg(14, EAX);
