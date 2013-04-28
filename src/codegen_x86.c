@@ -873,8 +873,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (RD==15 || RN==15) return 0;
                 if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
-                addbyte(0x23); addbyte(0x05); /*ANDL armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x23); addbyte(0x46); addbyte(RN<<2); /* AND Rn,%eax */
                 gen_save_reg(RD, EAX);
                 break;
 
@@ -901,8 +900,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
                 /*Shifted val now in %eax*/
-                addbyte(0x23); addbyte(0x05); /*ANDL armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x23); addbyte(0x46); addbyte(RN<<2); /* AND Rn,%eax */
                 gen_save_reg(RD, EAX);
                 generatesetzn(opcode, pcpsr);
                 break;
@@ -927,8 +925,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (RD==15 || RN==15) return 0;
                 if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
-                addbyte(0x33); addbyte(0x05); /*XORL armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x33); addbyte(0x46); addbyte(RN<<2); /* XOR Rn,%eax */
                 gen_save_reg(RD, EAX);
                 break;
 
@@ -956,8 +953,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
                 flagsdirty=0;
                 /*Shifted val now in %eax*/
-                addbyte(0x33); addbyte(0x05); /*XORL armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x33); addbyte(0x46); addbyte(RN<<2); /* XOR Rn,%eax */
                 gen_save_reg(RD, EAX);
                 generatesetzn(opcode, pcpsr);
                 break;
@@ -998,8 +994,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (RD==15 || RN==15) return 0;
                 if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
-                addbyte(0x2B); addbyte(0x05); /*SUBL armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x2b); addbyte(0x46); addbyte(RN<<2); /* SUB Rn,%eax */
                 gen_save_reg(RD, EAX);
                 break;
 
@@ -1016,8 +1011,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (RD==15 || RN==15) return 0;
                 if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
-                addbyte(0x03); addbyte(0x05); /*ADDL armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x03); addbyte(0x46); addbyte(RN<<2); /* ADD Rn,%eax */
                 gen_save_reg(RD, EAX);
                 break;
 
@@ -1154,8 +1148,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (RD==15 || RN==15) return 0;
                 if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
-                addbyte(0x0B); addbyte(0x05); /*ORL armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x0b); addbyte(0x46); addbyte(RN<<2); /* OR Rn,%eax */
                 gen_save_reg(RD, EAX);
                 break;
 
@@ -1164,8 +1157,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
                 /*Shifted val now in %eax*/
-                addbyte(0x0B); addbyte(0x05); /*ORL armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x0b); addbyte(0x46); addbyte(RN<<2); /* OR Rn,%eax */
                 gen_save_reg(RD, EAX);
                 generatesetzn(opcode, pcpsr);
                 break;
@@ -1200,8 +1192,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (!generate_shift(opcode)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0xF7); addbyte(0xD0); /*NOT %eax*/
-                addbyte(0x23); addbyte(0x05); /*ANDL armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x23); addbyte(0x46); addbyte(RN<<2); /* AND Rn,%eax */
                 gen_save_reg(RD, EAX);
                 break;
 
@@ -1211,8 +1202,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
                 /*Shifted val now in %eax*/
                 addbyte(0xF7); addbyte(0xD0); /*NOT %eax*/
-                addbyte(0x23); addbyte(0x05); /*ORL armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x23); addbyte(0x46); addbyte(RN<<2); /* AND Rn,%eax */
                 gen_save_reg(RD, EAX);
                 generatesetzn(opcode, pcpsr);
                 break;
@@ -1242,8 +1232,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
                 /*Shifted val now in %eax*/
-                addbyte(0x85); addbyte(0x05); /*TEST armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x85); addbyte(0x46); addbyte(RN<<2); /* TEST %eax,Rn */
                 generatesetzn(opcode, pcpsr);
                 break;
 
@@ -1252,8 +1241,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (RD==15 || RN==15) return 0;
                 if (!generateshiftflags(opcode,pcpsr)) return 0;
                 /*Shifted val now in %eax*/
-                addbyte(0x33); addbyte(0x05); /*XORL armregs[RN],%eax*/
-                addlong(&armregs[RN]);
+                addbyte(0x33); addbyte(0x46); addbyte(RN<<2); /* XOR Rn,%eax */
                 generatesetzn(opcode, pcpsr);
                 break;
 
