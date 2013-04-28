@@ -809,16 +809,16 @@ void execarm(int cycs)
                                         }
 #endif
                                         lhs = GETADDR(RN);
-                                        templ2=(CFSET)?0:1;
-                                        templ=shift2(opcode);
+                                        rhs = shift2(opcode);
+                                        dest = lhs - rhs - (CFSET ? 0 : 1);
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs - (templ + templ2));
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setsbc(lhs, templ, lhs - (templ + templ2));
-                                                armregs[RD] = lhs - (templ + templ2);
+                                                setsbc(lhs, rhs, dest);
+                                                armregs[RD] = dest;
                                         }
                                         break;
 
@@ -858,16 +858,16 @@ void execarm(int cycs)
                                         }
 #endif
                                         lhs = GETADDR(RN);
-                                        templ2=(CFSET)?0:1;
-                                        templ=shift2(opcode);
+                                        rhs = shift2(opcode);
+                                        dest = rhs - lhs - (CFSET ? 0 : 1);
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, templ - (lhs + templ2));
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setsbc(templ, lhs, templ - (lhs + templ2));
-                                                armregs[RD] = templ - (lhs + templ2);
+                                                setsbc(rhs, lhs, dest);
+                                                armregs[RD] = dest;
                                         }
                                         break;
 
@@ -1178,16 +1178,16 @@ void execarm(int cycs)
 
                                 case 0x2D: /* SBCS imm */
                                         lhs = GETADDR(RN);
-                                        templ2=(CFSET)?0:1;
-                                        templ=rotate2(opcode);
+                                        rhs = rotate2(opcode);
+                                        dest = lhs - rhs - (CFSET ? 0 : 1);
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs - (templ + templ2));
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setsbc(lhs, templ, lhs - (templ + templ2));
-                                                armregs[RD] = lhs - (templ + templ2);
+                                                setsbc(lhs, rhs, dest);
+                                                armregs[RD] = dest;
                                         }
                                         break;
 
@@ -1198,16 +1198,16 @@ void execarm(int cycs)
 
                                 case 0x2F: /* RSCS imm */
                                         lhs = GETADDR(RN);
-                                        templ2=(CFSET)?0:1;
-                                        templ=rotate2(opcode);
+                                        rhs = rotate2(opcode);
+                                        dest = rhs - lhs - (CFSET ? 0 : 1);
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, templ - (lhs + templ2));
+                                                arm_write_r15(opcode, dest);
                                         }
                                         else
                                         {
-                                                setsbc(templ, lhs, templ - (lhs + templ2));
-                                                armregs[RD] = templ - (lhs + templ2);
+                                                setsbc(rhs, lhs, dest);
+                                                armregs[RD] = dest;
                                         }
                                         break;
 
