@@ -258,7 +258,7 @@ static void opSBCreg(uint32_t opcode)
 
 static void opSBCregS(uint32_t opcode)
 {
-	uint32_t lhs, templ, templ2;
+	uint32_t lhs, rhs, dest;
 
 #ifdef STRONGARM
 	if ((opcode & 0xf0) == 0x90) /* SMULLS */
@@ -274,13 +274,13 @@ static void opSBCregS(uint32_t opcode)
 	}
 #endif
 	lhs = GETADDR(RN);
-	templ2 = (CFSET) ? 0 : 1;
-	templ = shift2(opcode);
+	rhs = shift2(opcode);
+	dest = lhs - rhs - (CFSET ? 0 : 1);
 	if (RD == 15) {
-		arm_write_r15(opcode, lhs - (templ + templ2));
+		arm_write_r15(opcode, dest);
 	} else {
-		setsbc(lhs, templ, lhs - (templ + templ2));
-		armregs[RD] = lhs - (templ + templ2);
+		setsbc(lhs, rhs, dest);
+		armregs[RD] = dest;
 	}
 }
 
@@ -308,7 +308,7 @@ static void opRSCreg(uint32_t opcode)
 
 static void opRSCregS(uint32_t opcode)
 {
-	uint32_t lhs, templ, templ2;
+	uint32_t lhs, rhs, dest;
 
 #ifdef STRONGARM
 	if ((opcode & 0xf0) == 0x90) /* SMLALS */
@@ -326,13 +326,13 @@ static void opRSCregS(uint32_t opcode)
 	}
 #endif
 	lhs = GETADDR(RN);
-	templ2 = (CFSET) ? 0 : 1;
-	templ = shift2(opcode);
+	rhs = shift2(opcode);
+	dest = rhs - lhs - (CFSET ? 0 : 1);
 	if (RD == 15) {
-		arm_write_r15(opcode, templ - (lhs + templ2));
+		arm_write_r15(opcode, dest);
 	} else {
-		setsbc(templ, lhs, templ - (lhs + templ2));
-		armregs[RD] = templ - (lhs + templ2);
+		setsbc(rhs, lhs, dest);
+		armregs[RD] = dest;
 	}
 }
 
@@ -721,20 +721,17 @@ static void opSBCimm(uint32_t opcode)
 
 static void opSBCimmS(uint32_t opcode)
 {
-	uint32_t lhs, templ, templ2;
+	uint32_t lhs, rhs, dest;
 
-        lhs = GETADDR(RN);
-        templ2=(CFSET)?0:1;
-        templ=rotate2(opcode);
-        if (RD==15)
-        {
-                arm_write_r15(opcode, lhs - (templ + templ2));
-        }
-        else
-        {
-                setsbc(lhs, templ, lhs - (templ + templ2));
-                armregs[RD] = lhs - (templ + templ2);
-        }
+	lhs = GETADDR(RN);
+	rhs = rotate2(opcode);
+	dest = lhs - rhs - (CFSET ? 0 : 1);
+	if (RD == 15) {
+		arm_write_r15(opcode, dest);
+	} else {
+		setsbc(lhs, rhs, dest);
+		armregs[RD] = dest;
+	}
 }
 
 static void opRSCimm(uint32_t opcode)
@@ -747,20 +744,17 @@ static void opRSCimm(uint32_t opcode)
 
 static void opRSCimmS(uint32_t opcode)
 {
-	uint32_t lhs, templ, templ2;
+	uint32_t lhs, rhs, dest;
 
-        lhs = GETADDR(RN);
-        templ2=(CFSET)?0:1;
-        templ=rotate2(opcode);
-        if (RD==15)
-        {
-                arm_write_r15(opcode, templ - (lhs + templ2));
-        }
-        else
-        {
-                setsbc(templ, lhs, templ - (lhs + templ2));
-                armregs[RD] = templ - (lhs + templ2);
-        }
+	lhs = GETADDR(RN);
+	rhs = rotate2(opcode);
+	dest = rhs - lhs - (CFSET ? 0 : 1);
+	if (RD == 15) {
+		arm_write_r15(opcode, dest);
+	} else {
+		setsbc(rhs, lhs, dest);
+		armregs[RD] = dest;
+	}
 }
 
 static void opTSTimm(uint32_t opcode)
