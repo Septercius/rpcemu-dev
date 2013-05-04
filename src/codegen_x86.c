@@ -864,7 +864,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         else
                         {
                                 gen_load_reg(MULRM, EAX);
-                                addbyte(0xF7); addbyte(0x25); addlong(&armregs[MULRS]); /*MULL armregs[MULRS],%eax*/
+                                addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
                                 gen_save_reg(MULRD, EAX);
                         }
                         break;
@@ -889,7 +889,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         else
                         {
                                 gen_load_reg(MULRM, EAX);
-                                addbyte(0xF7); addbyte(0x25); addlong(&armregs[MULRS]); /*MULL armregs[MULRS],%eax*/
+                                addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
                                 gen_save_reg(MULRD, EAX);
                         }
                         addbyte(0x85); addbyte(0xC0); /*TEST %eax,%eax*/
@@ -915,8 +915,8 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         else
                         {
                                 gen_load_reg(MULRM, EAX);
-                                addbyte(0xF7); addbyte(0x25); addlong(&armregs[MULRS]); /*MULL armregs[MULRS],%eax*/
-                                addbyte(0x03); addbyte(0x05); addlong(&armregs[MULRN]); /*ADDL armregs[MULRN],%eax*/
+                                addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
+                                addbyte(0x03); addbyte(0x46); addbyte(MULRN<<2); /* ADD Rn,%eax */
                                 gen_save_reg(MULRD, EAX);
                         }
                         break;
@@ -941,8 +941,8 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         else
                         {
                                 gen_load_reg(MULRM, EAX);
-                                addbyte(0xF7); addbyte(0x25); addlong(&armregs[MULRS]); /*MULL armregs[MULRS],%eax*/
-                                addbyte(0x03); addbyte(0x05); addlong(&armregs[MULRN]); /*ADDL armregs[MULRN],%eax*/
+                                addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
+                                addbyte(0x03); addbyte(0x46); addbyte(MULRN<<2); /* ADD Rn,%eax */
                                 gen_save_reg(MULRD, EAX);
                         }
                         addbyte(0x85); addbyte(0xC0); /*TEST %eax,%eax*/
@@ -1002,7 +1002,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if ((opcode & 0xf0) == 0x90) /* UMULL */
                 {
                         gen_load_reg(MULRM, EAX);
-                        addbyte(0xF7); addbyte(0x25); addlong(&armregs[MULRS]); /*MULL armregs[MULRS],%eax*/
+                        addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
                         gen_save_reg(MULRN, EAX);
                         gen_save_reg(MULRD, EDX);
                         break;
@@ -1021,7 +1021,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         if (!flagsdirty) { addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); } /*MOVB *pcpsr,%cl*/
                         addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $ZFLAG+NFLAG+CFLAG,%cl*/
                         gen_load_reg(MULRM, EAX);
-                        addbyte(0xF7); addbyte(0x25); addlong(&armregs[MULRS]); /*MULL armregs[MULRS],%eax*/
+                        addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
                         gen_save_reg(MULRN, EAX);
                         gen_save_reg(MULRD, EDX);
                         addbyte(0x85); addbyte(0xD2); /*TEST %edx,%edx*/
@@ -1098,7 +1098,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if ((opcode & 0xf0) == 0x90) /* SMULL */
                 {
                         gen_load_reg(MULRM, EAX);
-                        addbyte(0xF7); addbyte(0x2D); addlong(&armregs[MULRS]); /*IMULL armregs[MULRS],%eax*/
+                        addbyte(0xf7); addbyte(0x6e); addbyte(MULRS<<2); /* IMULL Rs */
                         gen_save_reg(MULRN, EAX);
                         gen_save_reg(MULRD, EDX);
                         break;
@@ -1123,7 +1123,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         gen_load_reg(MULRM, EAX);
                         gen_load_reg(MULRN, EBX);
                         gen_load_reg(MULRD, ECX);
-                        addbyte(0xF7); addbyte(0x2D); addlong(&armregs[MULRS]); /*IMULL armregs[MULRS],%eax*/
+                        addbyte(0xf7); addbyte(0x6e); addbyte(MULRS<<2); /* IMULL Rs */
                         addbyte(0x01); addbyte(0xD8); /*ADDL %ebx,%eax*/
                         addbyte(0x11); addbyte(0xCA); /* ADC %ecx,%edx */
                         gen_save_reg(MULRN, EAX);
