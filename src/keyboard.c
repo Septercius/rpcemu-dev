@@ -1042,12 +1042,12 @@ mouse_hack_osmouse(void)
         temp = (getys() << 1) - (mouse_y << 1); /* Allegro */
         if (temp<mt) temp=mt;
         if (temp>mb) temp=mb;
-        armregs[1] = temp;                      /* R1 = mouse y coordinate */
+        arm.reg[1] = temp;                      /* R1 = mouse y coordinate */
 
         temp = mouse_x << 1;                    /* Allegro */
         if (temp>mr) temp=mr;
         if (temp<ml) temp=ml;
-        armregs[0] = temp;                      /* R0 = mouse x coordinate */
+        arm.reg[0] = temp;                      /* R0 = mouse x coordinate */
 
         temp=0;
 	if (mouse_b & 1) temp |= 4;             /* Left button */
@@ -1062,9 +1062,9 @@ mouse_hack_osmouse(void)
 		if (mouse_b & 4) temp |= 2;             /* Middle button */
 		if (key[KEY_MENU] || key[KEY_ALTGR]) temp |= 2;
 	}
-        armregs[2] = temp;                      /* R2 = mouse buttons */
+        arm.reg[2] = temp;                      /* R2 = mouse buttons */
 
-        armregs[3] = 0;                         /* R3 = time of button change */
+        arm.reg[3] = 0;                         /* R3 = time of button change */
 }
 
 /**

@@ -23,15 +23,15 @@ void resetfpa(void)
 #define FD ((opcode>>12)&7)
 #define FN ((opcode>>16)&7)
 
-#define GETADDR(r) ((r==15)?(armregs[15]&r15mask):armregs[r])
+#define GETADDR(r) ((r == 15) ? (arm.reg[15] & r15mask) : arm.reg[r])
 
 static inline void setsubf(double op1, double op2)
 {
-        armregs[cpsr]&=0xFFFFFFF;
-        if (op1==op2) armregs[cpsr]|=ZFLAG;
-        if (op1< op2) armregs[cpsr]|=NFLAG;
-        if (op1>=op2) armregs[cpsr]|=CFLAG;
-//        if ((op1^op2)&(op1^res)&0x80000000) armregs[cpsr]|=VFLAG;
+	arm.reg[cpsr] &= 0xfffffff;
+	if (op1 == op2) arm.reg[cpsr] |= ZFLAG;
+	if (op1 < op2)  arm.reg[cpsr] |= NFLAG;
+	if (op1 >= op2) arm.reg[cpsr] |= CFLAG;
+	// if ((op1^op2)&(op1^res)&0x80000000) arm.reg[cpsr]|=VFLAG;
 }
 
 static const double fconstants[8]={0.0,1.0,2.0,3.0,4.0,5.0,0.5,10.0};
@@ -119,7 +119,7 @@ void fpaopcode(uint32_t opcode)
                                 len=3;
                                 break;
                                 default:
-/*                                armregs[15]+=8;
+/*                                arm.reg[15]+=8;
                                 undefined();
                                 return;*/
                                 fatal("Bad LDF/STF size %08X %08X\n", opcode & 0x408000, opcode);
@@ -171,7 +171,6 @@ void fpaopcode(uint32_t opcode)
                         }
                         else
                         {
-//                                rpclog("Write %f to %08X %08X %i %i\n",fparegs[FD],addr,armregs[RN]);
                                 switch (len)
                                 {
                                         case 1:
@@ -193,7 +192,7 @@ void fpaopcode(uint32_t opcode)
                                 if (opcode&0x800000) addr+=((opcode&0xFF)<<2);
                                 else                 addr-=((opcode&0xFF)<<2);
                         }
-                        if (opcode&0x200000) armregs[RN]=addr;
+                        if (opcode & 0x200000) arm.reg[RN] = addr;
                         return;
                 }
                 if (opcode&0x100000) /*LFM*/
@@ -267,7 +266,7 @@ void fpaopcode(uint32_t opcode)
                                 if (opcode&0x800000) addr+=((opcode&0xFF)<<2);
                                 else                 addr-=((opcode&0xFF)<<2);
                         }
-                        if (opcode&0x200000) armregs[RN]=addr;
+                        if (opcode & 0x200000) arm.reg[RN] = addr;
                         return;
                 }
                 else /*SFM*/
@@ -344,7 +343,7 @@ void fpaopcode(uint32_t opcode)
                                 if (opcode&0x800000) addr+=((opcode&0xFF)<<2);
                                 else                 addr-=((opcode&0xFF)<<2);
                         }
-                        if (opcode&0x200000) armregs[RN]=addr;
+                        if (opcode & 0x200000) arm.reg[RN] = addr;
                         return;
                 }
                 /*LFM/SFM*/
@@ -371,23 +370,22 @@ void fpaopcode(uint32_t opcode)
                         switch ((opcode>>20)&0xF)
                         {
                                 case 0: /*FLT*/
-                                fparegs[FN]=(double)armregs[RD];
+                                fparegs[FN] = (double) (int32_t) arm.reg[RD];
                                 return;
                                 case 1: /*FIX*/
-                                armregs[RD]=(int)fparegs[opcode&7];
-//                                rpclog("FIX F%i (%f) to R%i (%08X %i)\n",FN,fparegs[FN],RD,armregs[RD],armregs[RD]);
+                                arm.reg[RD] = (uint32_t) (int32_t) fparegs[opcode & 7];
                                 return;
                                 case 2: /*WFS*/
-                                fpsr=(armregs[RD]&0xFFFFFF)|(fpsr&0xFF000000);
+                                fpsr = (arm.reg[RD] & 0xffffff) | (fpsr & 0xff000000);
                                 return;
                                 case 3: /*RFS*/
-                                armregs[RD]=fpsr;
+                                arm.reg[RD] = fpsr;
                                 return;
                                 case 4: /*WFC*/
-                                fpcr=(fpcr&~0xD00)|(armregs[RD]&0xD00);
+                                fpcr = (fpcr & ~0xd00) | (arm.reg[RD] & 0xd00);
                                 return;
                                 case 5: /*RFC*/
-                                armregs[RD]=fpcr;
+                                arm.reg[RD] = fpcr;
                                 return;
                         }
                         fatal("Register opcode %08X at %07X\n", opcode, PC);
@@ -399,7 +397,7 @@ void fpaopcode(uint32_t opcode)
 //                rpclog("F%i F%i F%i\n",FD,FN,opcode&7);
                 if ((opcode&0x8000) && ((opcode&0xF08000)>=0x508000) && ((opcode&0xF08000)<0xE08000))
                 {
-                        armregs[15]+=4;
+                        arm.reg[15] += 4;
                         undefined();
                         return;
                 }

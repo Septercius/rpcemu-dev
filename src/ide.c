@@ -362,7 +362,6 @@ void resetide(void)
 
 void writeidew(uint16_t val)
 {
-//        rpclog("Write data %08X %04X %i %07X %08X\n",ide.pos,val,ide.packetstatus,PC,armregs[5]);
 #ifdef _RPCEMU_BIG_ENDIAN
 		val=(val>>8)|(val<<8);
 #endif
@@ -401,8 +400,6 @@ void writeidew(uint16_t val)
 void writeide(uint16_t addr, uint8_t val)
 {
         uint8_t *idebufferb = (uint8_t *) ide.buffer;
-//        int c;
-//        rpclog("Write IDE %08X %02X %08X %08X\n",addr,val,PC-8,armregs[12]);
 
         switch (addr)
         {

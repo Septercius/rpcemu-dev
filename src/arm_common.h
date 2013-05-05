@@ -63,46 +63,46 @@ setsub(uint32_t op1, uint32_t op2, uint32_t result)
 static inline void
 setsbc(uint32_t op1, uint32_t op2, uint32_t result)
 {
-	armregs[cpsr] &= ~0xf0000000;
+	arm.reg[cpsr] &= ~0xf0000000;
 
 	if (result == 0) {
-		armregs[cpsr] |= ZFLAG;
+		arm.reg[cpsr] |= ZFLAG;
 	} else if (checkneg(result)) {
-		armregs[cpsr] |= NFLAG;
+		arm.reg[cpsr] |= NFLAG;
 	}
 	if ((checkneg(op1) && checkpos(op2)) ||
 	    (checkneg(op1) && checkpos(result)) ||
 	    (checkpos(op2) && checkpos(result)))
 	{
-		armregs[cpsr] |= CFLAG;
+		arm.reg[cpsr] |= CFLAG;
 	}
 	if ((checkneg(op1) && checkpos(op2) && checkpos(result)) ||
 	    (checkpos(op1) && checkneg(op2) && checkneg(result)))
 	{
-		armregs[cpsr] |= VFLAG;
+		arm.reg[cpsr] |= VFLAG;
 	}
 }
 
 static inline void
 setadc(uint32_t op1, uint32_t op2, uint32_t result)
 {
-	armregs[cpsr] &= ~0xf0000000;
+	arm.reg[cpsr] &= ~0xf0000000;
 
 	if (result == 0) {
-		armregs[cpsr] |= ZFLAG;
+		arm.reg[cpsr] |= ZFLAG;
 	} else if (checkneg(result)) {
-		armregs[cpsr] |= NFLAG;
+		arm.reg[cpsr] |= NFLAG;
 	}
 	if ((checkneg(op1) && checkneg(op2)) ||
 	    (checkneg(op1) && checkpos(result)) ||
 	    (checkneg(op2) && checkpos(result)))
 	{
-		armregs[cpsr] |= CFLAG;
+		arm.reg[cpsr] |= CFLAG;
 	}
 	if ((checkneg(op1) && checkneg(op2) && checkpos(result)) ||
 	    (checkpos(op1) && checkpos(op2) && checkneg(result)))
 	{
-		armregs[cpsr] |= VFLAG;
+		arm.reg[cpsr] |= VFLAG;
 	}
 }
 
@@ -159,10 +159,10 @@ arm_write_dest(uint32_t opcode, uint32_t dest)
 	uint32_t rd = RD;
 
 	if (rd == 15) {
-		dest = ((dest + 4) & r15mask) | (armregs[15] & ~r15mask);
+		dest = ((dest + 4) & r15mask) | (arm.reg[15] & ~r15mask);
 		refillpipeline();
 	}
-	armregs[rd] = dest;
+	arm.reg[rd] = dest;
 }
 
 /**
@@ -188,17 +188,17 @@ arm_write_r15(uint32_t opcode, uint32_t dest)
 	}
 
 	/* Write to R15 (adding 4 for pipelining) */
-	armregs[15] = (armregs[15] & ~mask) | ((dest + 4) & mask);
+	arm.reg[15] = (arm.reg[15] & ~mask) | ((dest + 4) & mask);
 
 	if (ARM_MODE_PRIV(mode)) {
 		/* In privileged mode, can change mode */
 
 		if (ARM_MODE_32(mode)) {
 			/* Copy SPSR of current mode to CPSR */
-			armregs[16] = spsr[mode & 0xf];
+			arm.reg[16] = spsr[mode & 0xf];
 		}
-		if ((armregs[cpsr] & mmask) != mode) {
-			updatemode(armregs[cpsr] & mmask);
+		if ((arm.reg[cpsr] & mmask) != mode) {
+			updatemode(arm.reg[cpsr] & mmask);
 		}
 		refillpipeline();
 	}
@@ -221,7 +221,7 @@ arm_compare_rd15(uint32_t opcode, uint32_t dest)
 
 		if (ARM_MODE_PRIV(mode)) {
 			/* Copy SPSR of current mode to CPSR */
-			armregs[16] = spsr[mode & 0xf];
+			arm.reg[16] = spsr[mode & 0xf];
 		}
 
 	} else {
@@ -235,12 +235,12 @@ arm_compare_rd15(uint32_t opcode, uint32_t dest)
 		}
 
 		/* Write to PSR bits (within R15) */
-		armregs[15] = (armregs[15] & ~mask) | (dest & mask);
+		arm.reg[15] = (arm.reg[15] & ~mask) | (dest & mask);
 	}
 
 	/* Have we changed processor mode? */
-	if ((armregs[cpsr] & mmask) != mode) {
-		updatemode(armregs[cpsr] & mmask);
+	if ((arm.reg[cpsr] & mmask) != mode) {
+		updatemode(arm.reg[cpsr] & mmask);
 	}
 }
 
@@ -268,27 +268,27 @@ arm_write_cpsr(uint32_t opcode, uint32_t value)
 	field_mask = msrlookup[(opcode >> 16) & 0xf];
 
 	/* Write to CPSR */
-	armregs[16] = (armregs[16] & ~field_mask) | (value & field_mask);
+	arm.reg[16] = (arm.reg[16] & ~field_mask) | (value & field_mask);
 
 	if (!ARM_MODE_32(mode)) {
 		/* In 26-bit mode */
 		if (opcode & 0x80000) {
 			/* Also update flags within R15 */
-			armregs[15] = (armregs[15] & ~0xf0000000) |
+			arm.reg[15] = (arm.reg[15] & ~0xf0000000) |
 			              (value & 0xf0000000);
 		}
 
 		if (opcode & 0x10000) {
 			/* Also update mode and IRQ/FIQ bits within R15 */
-			armregs[15] = (armregs[15] & ~0x0c000003) |
+			arm.reg[15] = (arm.reg[15] & ~0x0c000003) |
 			              (value & 0x3) |
 			              ((value & 0xc0) << 20);
 		}
 	}
 
 	/* Have we changed processor mode? */
-	if ((armregs[16] & 0x1f) != mode) {
-		updatemode(armregs[16] & 0x1f);
+	if ((arm.reg[16] & 0x1f) != mode) {
+		updatemode(arm.reg[16] & 0x1f);
 	}
 }
 
@@ -345,7 +345,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	uint32_t orig_base, addr, mask, exception_flags;
 	int c;
 
-	orig_base = armregs[RN];
+	orig_base = arm.reg[RN];
 
 	addr = address & ~3;
 
@@ -354,7 +354,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	mask = 1;
 	for (c = 0; c < 15; c++) {
 		if (opcode & mask) {
-			writememl(addr, armregs[c]);
+			writememl(addr, arm.reg[c]);
 			exception_flags = armirq;
 			addr += 4;
 			break;
@@ -366,13 +366,13 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 
 	/* Perform Writeback (if requested) at end of 2nd cycle */
 	if ((opcode & (1 << 21)) && (RN != 15)) {
-		armregs[RN] = writeback;
+		arm.reg[RN] = writeback;
 	}
 
 	/* Store remaining registers up to R14 */
 	for ( ; c < 15; c++) {
 		if (opcode & mask) {
-			writememl(addr, armregs[c]);
+			writememl(addr, arm.reg[c]);
 			exception_flags |= armirq;
 			addr += 4;
 		}
@@ -381,7 +381,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 
 	/* Store R15 (if requested) */
 	if (opcode & (1 << 15)) {
-		writememl(addr, armregs[15] + r15diff);
+		writememl(addr, arm.reg[15] + r15diff);
 		exception_flags |= armirq;
 	}
 
@@ -389,7 +389,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	   the Base Register to the value it had before the instruction */
 	if (exception_flags & 0x40) {
 		armirq |= 0x40;
-		armregs[RN] = orig_base;
+		arm.reg[RN] = orig_base;
 	}
 }
 
@@ -410,7 +410,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	uint32_t orig_base, addr, mask, exception_flags;
 	int c;
 
-	orig_base = armregs[RN];
+	orig_base = arm.reg[RN];
 
 	addr = address & ~3;
 
@@ -431,7 +431,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 
 	/* Perform Writeback (if requested) at end of 2nd cycle */
 	if ((opcode & (1 << 21)) && (RN != 15)) {
-		armregs[RN] = writeback;
+		arm.reg[RN] = writeback;
 	}
 
 	/* Store remaining registers up to R14 */
@@ -446,7 +446,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 
 	/* Store R15 (if requested) */
 	if (opcode & (1 << 15)) {
-		writememl(addr, armregs[15] + r15diff);
+		writememl(addr, arm.reg[15] + r15diff);
 		exception_flags |= armirq;
 	}
 
@@ -454,7 +454,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	   the Base Register to the value it had before the instruction */
 	if (exception_flags & 0x40) {
 		armirq |= 0x40;
-		armregs[RN] = orig_base;
+		arm.reg[RN] = orig_base;
 	}
 }
 
@@ -472,13 +472,13 @@ arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	uint32_t orig_base, addr, mask, temp;
 	int c;
 
-	orig_base = armregs[RN];
+	orig_base = arm.reg[RN];
 
 	addr = address & ~3;
 
 	/* Perform Writeback (if requested) */
 	if ((opcode & (1 << 21)) && (RN != 15)) {
-		armregs[RN] = writeback;
+		arm.reg[RN] = writeback;
 	}
 
 	/* Load registers up to R14 */
@@ -489,7 +489,7 @@ arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 			if (armirq & 0x40) {
 				goto data_abort;
 			}
-			armregs[c] = temp;
+			arm.reg[c] = temp;
 			addr += 4;
 		}
 		mask <<= 1;
@@ -502,7 +502,7 @@ arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 			goto data_abort;
 		}
 		/* Only update R15 if no Data Abort occurred */
-		armregs[15] = (armregs[15] & ~r15mask) |
+		arm.reg[15] = (arm.reg[15] & ~r15mask) |
 		              ((temp + 4) & r15mask);
 		refillpipeline();
 	}
@@ -513,7 +513,7 @@ arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* A Data Abort occurred, restore the Base Register to the value it
 	   had before the instruction */
 data_abort:
-	armregs[RN] = orig_base;
+	arm.reg[RN] = orig_base;
 }
 
 /**
@@ -536,13 +536,13 @@ arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	uint32_t orig_base, addr, mask, temp;
 	int c;
 
-	orig_base = armregs[RN];
+	orig_base = arm.reg[RN];
 
 	addr = address & ~3;
 
 	/* Perform Writeback (if requested) */
 	if ((opcode & (1 << 21)) && (RN != 15)) {
-		armregs[RN] = writeback;
+		arm.reg[RN] = writeback;
 	}
 
 	mask = 1;
@@ -555,7 +555,7 @@ arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 				if (armirq & 0x40) {
 					goto data_abort;
 				}
-				armregs[c] = temp;
+				arm.reg[c] = temp;
 				addr += 4;
 			}
 			mask <<= 1;
@@ -589,7 +589,7 @@ arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* A Data Abort occurred, restore the Base Register to the value it
 	   had before the instruction */
 data_abort:
-	armregs[RN] = orig_base;
+	arm.reg[RN] = orig_base;
 }
 
 #endif

@@ -32,6 +32,8 @@ int blockend;
 
 extern void removeblock(void); /* in codegen_*.c */
 	
+ARMState arm;
+
 static int r15diff;
 static int fdci=0;
 static int mmask;
@@ -50,19 +52,18 @@ uint32_t *usrregs[16];
 static uint32_t userregs[17], superregs[17], fiqregs[17], irqregs[17];
 static uint32_t abortregs[17], undefregs[17];
 static uint32_t spsr[16];
-uint32_t armregs[18];
 uint32_t mode;
 int databort;
 int prog32;
 
-#define NFSET ((armregs[cpsr]&0x80000000)?1:0)
-#define ZFSET ((armregs[cpsr]&0x40000000)?1:0)
-#define CFSET ((armregs[cpsr]&0x20000000)?1:0)
-#define VFSET ((armregs[cpsr]&0x10000000)?1:0)
+#define NFSET ((arm.reg[cpsr] & NFLAG) ? 1 : 0)
+#define ZFSET ((arm.reg[cpsr] & ZFLAG) ? 1 : 0)
+#define CFSET ((arm.reg[cpsr] & CFLAG) ? 1 : 0)
+#define VFSET ((arm.reg[cpsr] & VFLAG) ? 1 : 0)
 
-#define GETADDR(r) ((r==15)?(armregs[15]&r15mask):armregs[r])
-#define LOADREG(r,v) if (r==15) { armregs[15]=(armregs[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else armregs[r]=(v);
-#define GETREG(r) ((r==15) ? armregs[15]+4 : armregs[r])
+#define GETADDR(r) ((r == 15) ? (arm.reg[15] & r15mask) : arm.reg[r])
+#define LOADREG(r,v) if (r==15) { arm.reg[15]=(arm.reg[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else arm.reg[r]=(v);
+#define GETREG(r) ((r == 15) ? (arm.reg[15] + 4) : arm.reg[r])
 
 #define refillpipeline() blockend=1;
 
@@ -74,40 +75,40 @@ void updatemode(uint32_t m)
 {
         uint32_t c,om=mode;
 
-        usrregs[15]=&armregs[15];
+        usrregs[15] = &arm.reg[15];
         switch (mode&15) /*Store back registers*/
         {
             case USER:
             case SYSTEM: /* System (ARMv4) shares same bank as User mode */
-                for (c=8;c<15;c++) userregs[c]=armregs[c];
+                for (c=8;c<15;c++) userregs[c] = arm.reg[c];
                 break;
 
             case IRQ:
-                for (c=8;c<13;c++) userregs[c]=armregs[c];
-                irqregs[0]=armregs[13];
-                irqregs[1]=armregs[14];
+                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                irqregs[0] = arm.reg[13];
+                irqregs[1] = arm.reg[14];
                 break;
 
             case FIQ:
-                for (c=8;c<15;c++) fiqregs[c]=armregs[c];
+                for (c=8;c<15;c++) fiqregs[c] = arm.reg[c];
                 break;
 
             case SUPERVISOR:
-                for (c=8;c<13;c++) userregs[c]=armregs[c];
-                superregs[0]=armregs[13];
-                superregs[1]=armregs[14];
+                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                superregs[0] = arm.reg[13];
+                superregs[1] = arm.reg[14];
                 break;
 
             case ABORT:
-                for (c=8;c<13;c++) userregs[c]=armregs[c];
-                abortregs[0]=armregs[13];
-                abortregs[1]=armregs[14];
+                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                abortregs[0] = arm.reg[13];
+                abortregs[1] = arm.reg[14];
                 break;
 
             case UNDEFINED:
-                for (c=8;c<13;c++) userregs[c]=armregs[c];
-                undefregs[0]=armregs[13];
-                undefregs[1]=armregs[14];
+                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                undefregs[0] = arm.reg[13];
+                undefregs[1] = arm.reg[14];
                 break;
         }
         mode=m;
@@ -116,45 +117,45 @@ void updatemode(uint32_t m)
         {
             case USER:
             case SYSTEM:
-                for (c=8;c<15;c++) armregs[c]=userregs[c];
-                for (c=0;c<15;c++) usrregs[c]=&armregs[c];
+                for (c=8;c<15;c++) arm.reg[c] = userregs[c];
+                for (c=0;c<15;c++) usrregs[c] = &arm.reg[c];
                 break;
 
             case IRQ:
-                for (c=8;c<13;c++) armregs[c]=userregs[c];
-                armregs[13]=irqregs[0];
-                armregs[14]=irqregs[1];
-                for (c=0;c<13;c++) usrregs[c]=&armregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                arm.reg[13] = irqregs[0];
+                arm.reg[14] = irqregs[1];
+                for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
             
             case FIQ:
-                for (c=8;c<15;c++) armregs[c]=fiqregs[c];
-                for (c=0;c<8;c++)  usrregs[c]=&armregs[c];
+                for (c=8;c<15;c++) arm.reg[c] = fiqregs[c];
+                for (c=0;c<8;c++)  usrregs[c] = &arm.reg[c];
                 for (c=8;c<15;c++) usrregs[c]=&userregs[c];
                 break;
 
             case SUPERVISOR:
-                for (c=8;c<13;c++) armregs[c]=userregs[c];
-                armregs[13]=superregs[0];
-                armregs[14]=superregs[1];
-                for (c=0;c<13;c++) usrregs[c]=&armregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                arm.reg[13] = superregs[0];
+                arm.reg[14] = superregs[1];
+                for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
             
             case ABORT:
-                for (c=8;c<13;c++) armregs[c]=userregs[c];
-                armregs[13]=abortregs[0];
-                armregs[14]=abortregs[1];
-                for (c=0;c<13;c++) usrregs[c]=&armregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                arm.reg[13] = abortregs[0];
+                arm.reg[14] = abortregs[1];
+                for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
 
             case UNDEFINED:
-                for (c=8;c<13;c++) armregs[c]=userregs[c];
-                armregs[13]=undefregs[0];
-                armregs[14]=undefregs[1];
-                for (c=0;c<13;c++) usrregs[c]=&armregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                arm.reg[13] = undefregs[0];
+                arm.reg[14] = undefregs[1];
+                for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
 
@@ -165,28 +166,27 @@ void updatemode(uint32_t m)
         if (ARM_MODE_32(mode)) {
                 mmask=31;
                 cpsr=16;
-                pcpsr=&armregs[16];
+                pcpsr = &arm.reg[16];
                 r15mask=0xFFFFFFFC;
                 if (!ARM_MODE_32(om)) {
 			/* Change from 26-bit to 32-bit mode */
-                        armregs[16]=(armregs[15]&0xF0000000)|mode;
-                        armregs[16]|=((armregs[15]&0xC000000)>>20);
-                        armregs[15]&=0x3FFFFFC;
+                        arm.reg[16] = (arm.reg[15] & 0xf0000000) | mode;
+                        arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
+                        arm.reg[15] &= 0x3fffffc;
                 }
         }
         else
         {
                 mmask=3;
                 cpsr=15;
-                pcpsr=&armregs[15];
+                pcpsr = &arm.reg[15];
                 r15mask=0x3FFFFFC;
-                armregs[16]=(armregs[16]&0xFFFFFFE0)|mode;
+                arm.reg[16] = (arm.reg[16] & 0xffffffe0) | mode;
                 if (ARM_MODE_32(om)) {
-                        armregs[15]&=r15mask;
-                        armregs[15]|=(mode&3);
-                        armregs[15]|=(armregs[16]&0xF0000000);
-                        armregs[15]|=((armregs[16]&0xC0)<<20);
-//                        printf("R15 now %08X\n",armregs[15]);
+                        arm.reg[15] &= r15mask;
+                        arm.reg[15] |= (mode & 3);
+                        arm.reg[15] |= (arm.reg[16] & 0xf0000000);
+                        arm.reg[15] |= ((arm.reg[16] & 0xc0) << 20);
                 }
         }
 
@@ -231,7 +231,7 @@ resetarm(CPUModel cpu_model)
         {
                 for (d=0;d<16;d++)
                 {
-                        armregs[15]=d<<28;
+                        arm.reg[15] = d << 28;
                         switch (c)
                         {
                                 case 0:  /*EQ*/ exec=ZFSET; break;
@@ -263,8 +263,8 @@ resetarm(CPUModel cpu_model)
                 rotatelookup[data]=rotval;
         }
 
-        armregs[15]=0x0C000008|3;
-        armregs[16]=SUPERVISOR|0xD0;
+        arm.reg[15] = 0x0c000008 | 3;
+        arm.reg[16] = SUPERVISOR | 0xd0;
         mode=SUPERVISOR;
         pccache=0xFFFFFFFF;
 	if (cpu_model == CPUModel_SA110 || cpu_model == CPUModel_ARM810) {
@@ -283,10 +283,10 @@ void dumpregs(void)
                    "R 2=%08X R 6=%08X R10=%08X R14=%08X\n"
                    "R 3=%08X R 7=%08X R11=%08X R15=%08X\n"
                    "%s\n",
-                   armregs[0], armregs[4], armregs[8], armregs[12],
-                   armregs[1], armregs[5], armregs[9], armregs[13],
-                   armregs[2], armregs[6], armregs[10], armregs[14],
-                   armregs[3], armregs[7], armregs[11], armregs[15],
+                   arm.reg[0], arm.reg[4], arm.reg[8], arm.reg[12],
+                   arm.reg[1], arm.reg[5], arm.reg[9], arm.reg[13],
+                   arm.reg[2], arm.reg[6], arm.reg[10], arm.reg[14],
+                   arm.reg[3], arm.reg[7], arm.reg[11], arm.reg[15],
                    mmu ? "MMU enabled" : "MMU disabled");
         rpclog("%s",s);
         printf("%s",s);
@@ -304,21 +304,21 @@ static uint32_t shift3(uint32_t opcode)
         int cflag=CFSET;
         if (opcode&0x10)
         {
-                shiftamount=armregs[(opcode>>8)&15]&0xFF;
+                shiftamount = arm.reg[(opcode >> 8) & 0xf] & 0xff;
         }
-        temp=armregs[RM];
-        if (shiftamount) armregs[cpsr]&=~CFLAG;
+        temp = arm.reg[RM];
+        if (shiftamount) arm.reg[cpsr] &= ~CFLAG;
         switch (shiftmode)
         {
                 case 0: /*LSL*/
                 if (!shiftamount) return temp;
                 if (shiftamount==32)
                 {
-                        if (temp&1) armregs[cpsr]|=CFLAG;
+                        if (temp&1) arm.reg[cpsr] |= CFLAG;
                         return 0;
                 }
                 if (shiftamount>32) return 0;
-                if ((temp<<(shiftamount-1))&0x80000000) armregs[cpsr]|=CFLAG;
+                if ((temp<<(shiftamount-1))&0x80000000) arm.reg[cpsr] |= CFLAG;
                 return temp<<shiftamount;
 
                 case 0x20: /*LSR*/
@@ -329,12 +329,12 @@ static uint32_t shift3(uint32_t opcode)
                 if (!shiftamount) return temp;
                 if (shiftamount==32)
                 {
-                        if (temp&0x80000000) armregs[cpsr]|=CFLAG;
-                        else                 armregs[cpsr]&=~CFLAG;
+                        if (temp&0x80000000) arm.reg[cpsr] |= CFLAG;
+                        else                 arm.reg[cpsr] &= ~CFLAG;
                         return 0;
                 }
                 if (shiftamount>32) return 0;
-                if ((temp>>(shiftamount-1))&1) armregs[cpsr]|=CFLAG;
+                if ((temp>>(shiftamount-1))&1) arm.reg[cpsr] |= CFLAG;
                 return temp>>shiftamount;
 
                 case 0x40: /*ASR*/
@@ -344,39 +344,39 @@ static uint32_t shift3(uint32_t opcode)
                 }
                 if (shiftamount>=32 || !shiftamount)
                 {
-                        if (temp&0x80000000) armregs[cpsr]|=CFLAG;
-                        else                 armregs[cpsr]&=~CFLAG;
+                        if (temp&0x80000000) arm.reg[cpsr] |= CFLAG;
+                        else                 arm.reg[cpsr] &= ~CFLAG;
                         if (temp&0x80000000) return 0xFFFFFFFF;
                         return 0;
                 }
-                if (((int)temp>>(shiftamount-1))&1) armregs[cpsr]|=CFLAG;
+                if (((int)temp>>(shiftamount-1))&1) arm.reg[cpsr] |= CFLAG;
                 return (int)temp>>shiftamount;
 
                 default: /*ROR*/
-                armregs[cpsr]&=~CFLAG;
+                arm.reg[cpsr] &= ~CFLAG;
                 if (!shiftamount && !(opcode&0x10))
                 {
-                        if (temp&1) armregs[cpsr]|=CFLAG;
+                        if (temp&1) arm.reg[cpsr] |= CFLAG;
                         return (((cflag)?1:0)<<31)|(temp>>1);
                 }
                 if (!shiftamount)
                 {
-                        armregs[cpsr] |= (cflag << 29);
+                        arm.reg[cpsr] |= (cflag << 29);
                         return temp;
                 }
                 if (!(shiftamount&0x1F))
                 {
-                        if (temp&0x80000000) armregs[cpsr]|=CFLAG;
+                        if (temp&0x80000000) arm.reg[cpsr] |= CFLAG;
                         return temp;
                 }
-                if (((temp>>shiftamount)|(temp<<(32-shiftamount)))&0x80000000) armregs[cpsr]|=CFLAG;
+                if (((temp>>shiftamount)|(temp<<(32-shiftamount)))&0x80000000) arm.reg[cpsr] |= CFLAG;
                 return (temp>>shiftamount)|(temp<<(32-shiftamount));
                 break;
         }
 }
 
-#define shift(o)  ((o&0xFF0)?shift3(o):armregs[RM])
-#define shift2(o) ((o&0xFF0)?shift4(o):armregs[RM])
+#define shift(o)  ((o & 0xff0) ? shift3(o) : arm.reg[RM])
+#define shift2(o) ((o & 0xff0) ? shift4(o) : arm.reg[RM])
 #define shift_ldrstr(o) shift2(o)
 
 static unsigned
@@ -416,9 +416,9 @@ shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
 static inline unsigned shift4(unsigned opcode)
 {
         unsigned shiftmode=opcode&0x60;
-        unsigned shiftamount=(opcode&0x10)?(armregs[(opcode>>8)&15]&0xFF):((opcode>>7)&31);
-        uint32_t rm=armregs[RM];
-//        if (((opcode>>8)&15)==15 && (opcode&0x10)) rpclog("Shift by R15!!\n");
+        unsigned shiftamount=(opcode&0x10)?(arm.reg[(opcode>>8)&15]&0xFF):((opcode>>7)&31);
+        uint32_t rm = arm.reg[RM];
+
         if ((shiftamount-1)>=31)
         {
                 return shift5(opcode,shiftmode,shiftamount,rm);
@@ -445,8 +445,8 @@ static inline unsigned rotate(unsigned data)
         rotval=rotatelookup[data&4095];
         if (/*data&0x100000 && */data&0xF00)
         {
-                if (rotval&0x80000000) armregs[cpsr]|=CFLAG;
-                else                   armregs[cpsr]&=~CFLAG;
+                if (rotval&0x80000000) arm.reg[cpsr] |= CFLAG;
+                else                   arm.reg[cpsr] &= ~CFLAG;
         }
         return rotval;
 }
@@ -473,36 +473,36 @@ void exception(int mmode, uint32_t address, int diff)
 	}
 
         if (ARM_MODE_32(mode)) {
-                templ=armregs[15]-diff;
-                spsr[mmode]=armregs[16];
+                templ = arm.reg[15] - diff;
+                spsr[mmode] = arm.reg[16];
                 updatemode(mmode|16);
-                armregs[14]=templ;
-                armregs[16]&=~0x1F;
-                armregs[16] |= 0x10 | mmode | irq_disable;
-                armregs[15]=address;
+                arm.reg[14] = templ;
+                arm.reg[16] &= ~0x1f;
+                arm.reg[16] |= 0x10 | mmode | irq_disable;
+                arm.reg[15] = address;
                 refillpipeline();
         }
         else if (prog32)
         {
-                templ=armregs[15]-diff;
+                templ = arm.reg[15] - diff;
                 updatemode(mmode|16);
-                armregs[14]=templ&0x3FFFFFC;
-                spsr[mmode]=(armregs[16]&~0x1F)|(templ&3);
+                arm.reg[14] = templ & 0x3fffffc;
+                spsr[mmode] = (arm.reg[16] & ~0x1f) | (templ & 3);
                 spsr[mmode]&=~0x10;
-                armregs[16] |= irq_disable;
-                armregs[15]=address;
+                arm.reg[16] |= irq_disable;
+                arm.reg[15] = address;
                 refillpipeline();
         }
         else
         {
-                templ=armregs[15]-diff;
-                armregs[15]|=3;
+                templ = arm.reg[15] - diff;
+                arm.reg[15] |= 3;
                 /* When in 26-bit config, Abort and Undefined exceptions enter
                    mode SVC_26 */
                 updatemode(mmode >= SUPERVISOR ? SUPERVISOR : mmode);
-                armregs[14]=templ;
-                armregs[15]&=0xFC000003;
-                armregs[15] |= ((irq_disable << 20) | address);
+                arm.reg[14] = templ;
+                arm.reg[15] &= 0xfc000003;
+                arm.reg[15] |= ((irq_disable << 20) | address);
                 refillpipeline();
         }
 }
@@ -634,7 +634,7 @@ void execarm(int cycs)
                                            opcodes[(opcode>>20)&0xFF](opcode);
 //                                                if ((opcode&0x0E000000)==0x0A000000) blockend=1; /*Always end block on branches*/
 //                                                if ((opcode&0x0C000000)==0x0C000000) blockend=1; /*And SWIs and copro stuff*/
-                                        armregs[15]+=4;
+                                        arm.reg[15] += 4;
                                         if (!((PC)&0xFFC)) blockend=1;
 //                                        if (armirq) blockend=1;
                                         inscount++;
@@ -657,8 +657,8 @@ void execarm(int cycs)
                                         gen_func=(void *)(&rcodeblock[templ][BLOCKSTART]);
 //                                        gen_func=(void *)(&codeblock[blocks[templ]>>24][blocks[templ]&0xFFF][4]);
                                         gen_func();
-                                        if (armirq&0x40) armregs[15]+=4;
-                                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+                                        if (armirq & 0x40) arm.reg[15] += 4;
+                                        if ((arm.reg[cpsr] & mmask) != mode) updatemode(arm.reg[cpsr] & mmask);
                                 }
                                 else
                                 {
@@ -718,7 +718,7 @@ void execarm(int cycs)
                                                         if (flaglookup[opcode>>28][(*pcpsr)>>28])// && !(armirq&0x80))
                                                            opcodes[(opcode>>20)&0xFF](opcode);
                                                 }
-                                                armregs[15]+=4;
+                                                arm.reg[15] += 4;
                                                 if (!((PC)&0xFFC))
                                                 {
                                                         blockend=1;
@@ -743,8 +743,8 @@ void execarm(int cycs)
                         if (/*databort|*/armirq&0xC3)//|prefabort)
                         {
                                 if (!ARM_MODE_32(mode)) {
-                                        armregs[16]&=~0xC0;
-                                        armregs[16]|=((armregs[15]&0xC000000)>>20);
+                                        arm.reg[16] &= ~0xc0;
+                                        arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
                                 }
 
                                 if (armirq&0xC0)
@@ -755,30 +755,30 @@ void execarm(int cycs)
 //                                        #if 0
                                         if (armirq&0x80)//prefabort)       /*Prefetch abort*/
                                         {
-                                                armregs[15]-=4;
+                                                arm.reg[15] -= 4;
                                                 exception(ABORT, 0x10, 4);
-                                                armregs[15]+=4;
+                                                arm.reg[15] += 4;
                                                 armirq&=~0xC0;
                                         }
                                         else if (armirq&0x40)//databort==1)     /*Data abort*/
                                         {
-                                                armregs[15]-=4;
+                                                arm.reg[15] -= 4;
                                                 exception(ABORT, 0x14, 0);
-                                                armregs[15]+=4;
+                                                arm.reg[15] += 4;
                                                 armirq&=~0xC0;
                                         }
                                 }
-                                else if ((armirq&2) && !(armregs[16]&0x40)) /*FIQ*/
+                                else if ((armirq & 2) && !(arm.reg[16] & 0x40)) /*FIQ*/
                                 {
-                                        armregs[15]-=4;
+                                        arm.reg[15] -= 4;
                                         exception(FIQ,0x20,0);
-                                        armregs[15]+=4;
+                                        arm.reg[15] += 4;
                                 }
-                                else if ((armirq&1) && !(armregs[16]&0x80)) /*IRQ*/
+                                else if ((armirq & 1) && !(arm.reg[16] & 0x80)) /*IRQ*/
                                 {
-                                        armregs[15]-=4;
+                                        arm.reg[15] -= 4;
                                         exception(IRQ, 0x1c, 0);
-                                        armregs[15]+=4;
+                                        arm.reg[15] += 4;
                                 }
                         }
 //                        armirq=(armirq&0xCC)|((armirq>>2)&3);

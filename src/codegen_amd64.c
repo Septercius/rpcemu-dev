@@ -1,4 +1,4 @@
-/*r15 is pointer to armregs
+/*r15 is pointer to ARMState
   r14 is vwaddrl
   r13 is vraddrl
   r12 contains R15*/
@@ -250,10 +250,10 @@ initcodeblock(uint32_t l)
 	addbyte(0xec);
 	addbyte(0x08);
 
-	addbyte(0x49); /*MOVQ armregs,%r15*/
+	addbyte(0x49); /* MOVQ $arm,%r15 */
 	addbyte(0xBF);
-	addlong(&armregs[0]);
-	addlong(((uint64_t)(&armregs[0]))>>32);
+	addlong(&arm);
+	addlong(((uintptr_t) &arm) >> 32);
 	addbyte(0x49); /*MOVQ vwaddrl,%r14*/
 	addbyte(0xBE);
 	addlong(&vwaddrl[0]);
@@ -1120,16 +1120,16 @@ generatecall(OpFn addr, uint32_t opcode,uint32_t *pcpsr)
 		addbyte(0xC4);
 		addbyte(pcinc);
 //addbyte(0x67);
-		//addbyte(0x41); /*ADD $4,armregs[15](%r15)*/
+		//addbyte(0x41); /*ADD $4,arm.reg[15](%r15)*/
 		//addbyte(0x83);
 		//addbyte(0x47);
-		//addbyte(15<<2); /*armregs[15]*/
+		//addbyte(15<<2); /*arm.reg[15]*/
 		//addbyte(pcinc);
 
-//                addbyte(0x83); /*ADD $4,armregs[15]*/
+//                addbyte(0x83); /*ADD $4,arm.reg[15]*/
                 //addbyte(0x04);
 		//addbyte(0x25);
-                //addlong(&armregs[15]);
+                //addlong(&arm.reg[15]);
                 //addbyte(pcinc);
 //                pcinc=0;
         }
@@ -1150,15 +1150,15 @@ generateupdatepc(void)
 		addbyte(0x83);
 		addbyte(0xC4);
 		addbyte(pcinc);
-//		addbyte(0x41); /*ADD $4,armregs[15](%r15)*/
+//		addbyte(0x41); /*ADD $4,arm.reg[15](%r15)*/
 		//addbyte(0x83);
 		//addbyte(0x47);
-		//addbyte(15<<2); /*armregs[15]*/
+		//addbyte(15<<2); /*arm.reg[15]*/
 		//addbyte(pcinc);
-//                addbyte(0x83); /*ADD $4,armregs[15]*/
+//                addbyte(0x83); /*ADD $4,arm.reg[15]*/
                 //addbyte(0x04);
 		//addbyte(0x25);
-                //addlong(&armregs[15]);
+                //addlong(&arm.reg[15]);
                 //addbyte(pcinc);
                 pcinc=0;
         }
@@ -1264,7 +1264,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
         {
                 case 0: /*EQ*/
                 case 1: /*NE*/
-		if ((pcpsr)==&armregs[15])
+		if (pcpsr == &arm.reg[15])
 		{
 			addbyte(0x41); /*TESTL $ZFLAG,%r12d*/
 			addbyte(0xF7);
@@ -1283,7 +1283,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                 break;
                 case 2: /*CS*/
                 case 3: /*CC*/
-		if ((pcpsr)==&armregs[15])
+		if (pcpsr == &arm.reg[15])
 		{
 			addbyte(0x41); /*TESTL $CFLAG,%r12d*/
 			addbyte(0xF7);
@@ -1302,7 +1302,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                 break;
                 case 4: /*MI*/
                 case 5: /*PL*/
-		if ((pcpsr)==&armregs[15])
+		if (pcpsr == &arm.reg[15])
 		{
 			addbyte(0x45); /*OR %r12d,%r12d*/
 			addbyte(0x09);
@@ -1321,7 +1321,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
                 break;
                 case 6: /*VS*/
                 case 7: /*VC*/
-		if ((pcpsr)==&armregs[15])
+		if (pcpsr == &arm.reg[15])
 		{
 			addbyte(0x41); /*TESTL $VFLAG,%r12d*/
 			addbyte(0xF7);
@@ -1339,7 +1339,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
                 break;
                 default:
-		if ((pcpsr)==&armregs[15])
+		if (pcpsr == &arm.reg[15])
 		{
 			gen_load_reg(15, EAX);
 		}
