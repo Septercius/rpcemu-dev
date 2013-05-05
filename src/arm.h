@@ -3,6 +3,10 @@
 
 #include "rpcemu.h"
 
+typedef struct {
+	uint32_t	reg[18];
+} ARMState;
+
 typedef void (*OpFn)(uint32_t opcode);
 
 extern void updatemode(uint32_t m);
@@ -16,12 +20,12 @@ extern void generatecall(OpFn addr, uint32_t opcode, uint32_t *pcpsr);
 extern void generateirqtest(void);
 extern void endblock(uint32_t opcode, uint32_t *pcpsr);
 extern void initcodeblock(uint32_t l);
+
 extern uint32_t *usrregs[16];
-extern uint32_t armregs[18];
 extern int armirq; //,armfiq;
 extern int cpsr;
 
-#define PC ((armregs[15]-8)&r15mask)
+#define PC ((arm.reg[15] - 8) & r15mask)
 
 extern uint32_t r15mask;
 extern uint32_t mode;
@@ -30,6 +34,8 @@ extern void resetarm(CPUModel cpu_model);
 extern void execarm(int cycles);
 extern void dumpregs(void);
 extern void exception(int mmode, uint32_t address, int diff);
+
+extern ARMState arm;
 
 extern int databort,prefabort;
 extern int prog32;

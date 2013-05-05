@@ -51,6 +51,8 @@
 #include "fdc.h"
 #include "ide.h"
 
+ARMState arm;
+
 int blockend;
 static int r15diff;
 static int fdci=0;
@@ -70,19 +72,18 @@ uint32_t *usrregs[16];
 static uint32_t userregs[17], superregs[17], fiqregs[17], irqregs[17];
 static uint32_t abortregs[17], undefregs[17];
 static uint32_t spsr[16];
-uint32_t armregs[18];
 uint32_t mode;
 int databort;
 int prog32;
 
-#define NFSET ((armregs[cpsr]&0x80000000)?1:0)
-#define ZFSET ((armregs[cpsr]&0x40000000)?1:0)
-#define CFSET ((armregs[cpsr]&0x20000000)?1:0)
-#define VFSET ((armregs[cpsr]&0x10000000)?1:0)
+#define NFSET ((arm.reg[cpsr] & NFLAG) ? 1 : 0)
+#define ZFSET ((arm.reg[cpsr] & ZFLAG) ? 1 : 0)
+#define CFSET ((arm.reg[cpsr] & CFLAG) ? 1 : 0)
+#define VFSET ((arm.reg[cpsr] & VFLAG) ? 1 : 0)
 
-#define GETADDR(r) ((r==15)?(armregs[15]&r15mask):armregs[r])
-#define LOADREG(r,v) if (r==15) { armregs[15]=(armregs[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else armregs[r]=(v);
-#define GETREG(r) ((r==15) ? armregs[15]+4 : armregs[r])
+#define GETADDR(r) ((r == 15) ? (arm.reg[15] & r15mask) : arm.reg[r])
+#define LOADREG(r,v) if (r==15) { arm.reg[15]=(arm.reg[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else arm.reg[r]=(v);
+#define GETREG(r) ((r == 15) ? (arm.reg[15] + 4) : arm.reg[r])
 
 #define refillpipeline()
 
@@ -94,40 +95,40 @@ void updatemode(uint32_t m)
 {
         uint32_t c,om=mode;
 
-        usrregs[15]=&armregs[15];
+        usrregs[15] = &arm.reg[15];
         switch (mode&15) /*Store back registers*/
         {
             case USER:
             case SYSTEM: /* System (ARMv4) shares same bank as User mode */
-                for (c=8;c<15;c++) userregs[c]=armregs[c];
+                for (c=8;c<15;c++) userregs[c] = arm.reg[c];
                 break;
 
             case IRQ:
-                for (c=8;c<13;c++) userregs[c]=armregs[c];
-                irqregs[0]=armregs[13];
-                irqregs[1]=armregs[14];
+                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                irqregs[0] = arm.reg[13];
+                irqregs[1] = arm.reg[14];
                 break;
 
             case FIQ:
-                for (c=8;c<15;c++) fiqregs[c]=armregs[c];
+                for (c=8;c<15;c++) fiqregs[c] = arm.reg[c];
                 break;
 
             case SUPERVISOR:
-                for (c=8;c<13;c++) userregs[c]=armregs[c];
-                superregs[0]=armregs[13];
-                superregs[1]=armregs[14];
+                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                superregs[0] = arm.reg[13];
+                superregs[1] = arm.reg[14];
                 break;
 
             case ABORT:
-                for (c=8;c<13;c++) userregs[c]=armregs[c];
-                abortregs[0]=armregs[13];
-                abortregs[1]=armregs[14];
+                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                abortregs[0] = arm.reg[13];
+                abortregs[1] = arm.reg[14];
                 break;
 
             case UNDEFINED:
-                for (c=8;c<13;c++) userregs[c]=armregs[c];
-                undefregs[0]=armregs[13];
-                undefregs[1]=armregs[14];
+                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                undefregs[0] = arm.reg[13];
+                undefregs[1] = arm.reg[14];
                 break;
         }
         mode=m;
@@ -136,45 +137,45 @@ void updatemode(uint32_t m)
         {
             case USER:
             case SYSTEM:
-                for (c=8;c<15;c++) armregs[c]=userregs[c];
-                for (c=0;c<15;c++) usrregs[c]=&armregs[c];
+                for (c=8;c<15;c++) arm.reg[c] = userregs[c];
+                for (c=0;c<15;c++) usrregs[c] = &arm.reg[c];
                 break;
 
             case IRQ:
-                for (c=8;c<13;c++) armregs[c]=userregs[c];
-                armregs[13]=irqregs[0];
-                armregs[14]=irqregs[1];
-                for (c=0;c<13;c++) usrregs[c]=&armregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                arm.reg[13] = irqregs[0];
+                arm.reg[14] = irqregs[1];
+                for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
             
             case FIQ:
-                for (c=8;c<15;c++) armregs[c]=fiqregs[c];
-                for (c=0;c<8;c++)  usrregs[c]=&armregs[c];
+                for (c=8;c<15;c++) arm.reg[c] = fiqregs[c];
+                for (c=0;c<8;c++)  usrregs[c] = &arm.reg[c];
                 for (c=8;c<15;c++) usrregs[c]=&userregs[c];
                 break;
 
             case SUPERVISOR:
-                for (c=8;c<13;c++) armregs[c]=userregs[c];
-                armregs[13]=superregs[0];
-                armregs[14]=superregs[1];
-                for (c=0;c<13;c++) usrregs[c]=&armregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                arm.reg[13] = superregs[0];
+                arm.reg[14] = superregs[1];
+                for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
             
             case ABORT:
-                for (c=8;c<13;c++) armregs[c]=userregs[c];
-                armregs[13]=abortregs[0];
-                armregs[14]=abortregs[1];
-                for (c=0;c<13;c++) usrregs[c]=&armregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                arm.reg[13] = abortregs[0];
+                arm.reg[14] = abortregs[1];
+                for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
 
             case UNDEFINED:
-                for (c=8;c<13;c++) armregs[c]=userregs[c];
-                armregs[13]=undefregs[0];
-                armregs[14]=undefregs[1];
-                for (c=0;c<13;c++) usrregs[c]=&armregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                arm.reg[13] = undefregs[0];
+                arm.reg[14] = undefregs[1];
+                for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
 
@@ -185,27 +186,27 @@ void updatemode(uint32_t m)
         if (ARM_MODE_32(mode)) {
                 mmask=31;
                 cpsr=16;
-                pcpsr=&armregs[16];
+                pcpsr = &arm.reg[16];
                 r15mask=0xFFFFFFFC;
                 if (!ARM_MODE_32(om)) {
 			/* Change from 26-bit to 32-bit mode */
-                        armregs[16]=(armregs[15]&0xF0000000)|mode;
-                        armregs[16]|=((armregs[15]&0xC000000)>>20);
-                        armregs[15]&=0x3FFFFFC;
+                        arm.reg[16] = (arm.reg[15] & 0xf0000000) | mode;
+                        arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
+                        arm.reg[15] &= 0x3fffffc;
                 }
         }
         else
         {
                 mmask=3;
                 cpsr=15;
-                pcpsr=&armregs[15];
+                pcpsr = &arm.reg[15];
                 r15mask=0x3FFFFFC;
-                armregs[16]=(armregs[16]&0xFFFFFFE0)|mode;
+                arm.reg[16] = (arm.reg[16] & 0xffffffe0) | mode;
                 if (ARM_MODE_32(om)) {
-                        armregs[15]&=r15mask;
-                        armregs[15]|=(mode&3);
-                        armregs[15]|=(armregs[16]&0xF0000000);
-                        armregs[15]|=((armregs[16]&0xC0)<<20);
+                        arm.reg[15] &= r15mask;
+                        arm.reg[15] |= (mode & 3);
+                        arm.reg[15] |= (arm.reg[16] & 0xf0000000);
+                        arm.reg[15] |= ((arm.reg[16] & 0xc0) << 20);
                 }
         }
 
@@ -249,7 +250,7 @@ resetarm(CPUModel cpu_model)
         {
                 for (d=0;d<16;d++)
                 {
-                        armregs[15]=d<<28;
+                        arm.reg[15] = d << 28;
                         switch (c)
                         {
                                 case 0:  /*EQ*/ exec=ZFSET; break;
@@ -281,8 +282,8 @@ resetarm(CPUModel cpu_model)
                 rotatelookup[data]=rotval;
         }
 
-        armregs[15]=0x0C000008|3;
-        armregs[16]=SUPERVISOR|0xD0;
+        arm.reg[15] = 0x0c000008 | 3;
+        arm.reg[16] = SUPERVISOR | 0xd0;
         mode=SUPERVISOR;
         pccache=0xFFFFFFFF;
 	if (cpu_model == CPUModel_SA110 || cpu_model == CPUModel_ARM810) {
@@ -301,10 +302,10 @@ void dumpregs(void)
                    "R 2=%08X R 6=%08X R10=%08X R14=%08X\n"
                    "R 3=%08X R 7=%08X R11=%08X R15=%08X\n"
                    "%s\n",
-                   armregs[0], armregs[4], armregs[8], armregs[12],
-                   armregs[1], armregs[5], armregs[9], armregs[13],
-                   armregs[2], armregs[6], armregs[10], armregs[14],
-                   armregs[3], armregs[7], armregs[11], armregs[15],
+                   arm.reg[0], arm.reg[4], arm.reg[8], arm.reg[12],
+                   arm.reg[1], arm.reg[5], arm.reg[9], arm.reg[13],
+                   arm.reg[2], arm.reg[6], arm.reg[10], arm.reg[14],
+                   arm.reg[3], arm.reg[7], arm.reg[11], arm.reg[15],
                    mmu ? "MMU enabled" : "MMU disabled");
         rpclog("%s",s);
         printf("%s",s);
@@ -322,21 +323,21 @@ static uint32_t shift3(uint32_t opcode)
         int cflag=CFSET;
         if (opcode&0x10)
         {
-                shiftamount=armregs[(opcode>>8)&15]&0xFF;
+                shiftamount = arm.reg[(opcode >> 8) & 0xf] & 0xff;
         }
-        temp=armregs[RM];
-        if (shiftamount) armregs[cpsr]&=~CFLAG;
+        temp = arm.reg[RM];
+        if (shiftamount) arm.reg[cpsr] &= ~CFLAG;
         switch (shiftmode)
         {
                 case 0: /*LSL*/
                 if (!shiftamount) return temp;
                 if (shiftamount==32)
                 {
-                        if (temp&1) armregs[cpsr]|=CFLAG;
+                        if (temp&1) arm.reg[cpsr] |= CFLAG;
                         return 0;
                 }
                 if (shiftamount>32) return 0;
-                if ((temp<<(shiftamount-1))&0x80000000) armregs[cpsr]|=CFLAG;
+                if ((temp<<(shiftamount-1))&0x80000000) arm.reg[cpsr] |= CFLAG;
                 return temp<<shiftamount;
 
                 case 0x20: /*LSR*/
@@ -347,12 +348,12 @@ static uint32_t shift3(uint32_t opcode)
                 if (!shiftamount) return temp;
                 if (shiftamount==32)
                 {
-                        if (temp&0x80000000) armregs[cpsr]|=CFLAG;
-                        else                 armregs[cpsr]&=~CFLAG;
+                        if (temp&0x80000000) arm.reg[cpsr] |= CFLAG;
+                        else                 arm.reg[cpsr] &= ~CFLAG;
                         return 0;
                 }
                 if (shiftamount>32) return 0;
-                if ((temp>>(shiftamount-1))&1) armregs[cpsr]|=CFLAG;
+                if ((temp>>(shiftamount-1))&1) arm.reg[cpsr] |= CFLAG;
                 return temp>>shiftamount;
 
                 case 0x40: /*ASR*/
@@ -362,39 +363,39 @@ static uint32_t shift3(uint32_t opcode)
                 }
                 if (shiftamount>=32 || !shiftamount)
                 {
-                        if (temp&0x80000000) armregs[cpsr]|=CFLAG;
-                        else                 armregs[cpsr]&=~CFLAG;
+                        if (temp&0x80000000) arm.reg[cpsr] |= CFLAG;
+                        else                 arm.reg[cpsr] &= ~CFLAG;
                         if (temp&0x80000000) return 0xFFFFFFFF;
                         return 0;
                 }
-                if (((int)temp>>(shiftamount-1))&1) armregs[cpsr]|=CFLAG;
+                if (((int)temp>>(shiftamount-1))&1) arm.reg[cpsr] |= CFLAG;
                 return (int)temp>>shiftamount;
 
                 default: /*ROR*/
-                armregs[cpsr]&=~CFLAG;
+                arm.reg[cpsr] &= ~CFLAG;
                 if (!shiftamount && !(opcode&0x10))
                 {
-                        if (temp&1) armregs[cpsr]|=CFLAG;
+                        if (temp&1) arm.reg[cpsr] |= CFLAG;
                         return (((cflag)?1:0)<<31)|(temp>>1);
                 }
                 if (!shiftamount)
                 {
-                        armregs[cpsr] |= (cflag << 29);
+                        arm.reg[cpsr] |= (cflag << 29);
                         return temp;
                 }
                 if (!(shiftamount&0x1F))
                 {
-                        if (temp&0x80000000) armregs[cpsr]|=CFLAG;
+                        if (temp&0x80000000) arm.reg[cpsr] |= CFLAG;
                         return temp;
                 }
-                if (((temp>>shiftamount)|(temp<<(32-shiftamount)))&0x80000000) armregs[cpsr]|=CFLAG;
+                if (((temp>>shiftamount)|(temp<<(32-shiftamount)))&0x80000000) arm.reg[cpsr] |= CFLAG;
                 return (temp>>shiftamount)|(temp<<(32-shiftamount));
                 break;
         }
 }
 
-#define shift(o)  ((o&0xFF0)?shift3(o):armregs[RM])
-#define shift2(o) ((o&0xFF0)?shift4(o):armregs[RM])
+#define shift(o)  ((o & 0xff0) ? shift3(o) : arm.reg[RM])
+#define shift2(o) ((o & 0xff0) ? shift4(o) : arm.reg[RM])
 #define shift_ldrstr(o) shift2(o)
 
 static unsigned
@@ -434,8 +435,9 @@ shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
 static inline unsigned shift4(unsigned opcode)
 {
         unsigned shiftmode=opcode&0x60;
-        unsigned shiftamount=(opcode&0x10)?(armregs[(opcode>>8)&15]&0xFF):((opcode>>7)&31);
-        uint32_t rm=armregs[RM];
+        unsigned shiftamount=(opcode&0x10)?(arm.reg[(opcode>>8)&15]&0xFF):((opcode>>7)&31);
+        uint32_t rm = arm.reg[RM];
+
         if ((shiftamount-1)>=31)
         {
                 return shift5(opcode,shiftmode,shiftamount,rm);
@@ -462,8 +464,8 @@ static inline unsigned rotate(unsigned data)
         rotval=rotatelookup[data&4095];
         if (/*data&0x100000 && */data&0xF00)
         {
-                if (rotval&0x80000000) armregs[cpsr]|=CFLAG;
-                else                   armregs[cpsr]&=~CFLAG;
+                if (rotval&0x80000000) arm.reg[cpsr] |= CFLAG;
+                else                   arm.reg[cpsr] &= ~CFLAG;
         }
         return rotval;
 }
@@ -491,36 +493,36 @@ void exception(int mmode, uint32_t address, int diff)
 	}
 
         if (ARM_MODE_32(mode)) {
-                templ=armregs[15]-diff;
-                spsr[mmode]=armregs[16];
+                templ = arm.reg[15] - diff;
+                spsr[mmode] = arm.reg[16];
                 updatemode(mmode|16);
-                armregs[14]=templ;
-                armregs[16]&=~0x1F;
-                armregs[16] |= 0x10 | mmode | irq_disable;
-                armregs[15]=address;
+                arm.reg[14] = templ;
+                arm.reg[16] &= ~0x1f;
+                arm.reg[16] |= 0x10 | mmode | irq_disable;
+                arm.reg[15] = address;
                 refillpipeline();
         }
         else if (prog32)
         {
-                templ=armregs[15]-diff;
+                templ = arm.reg[15] - diff;
                 updatemode(mmode|16);
-                armregs[14]=templ&0x3FFFFFC;
-                spsr[mmode]=(armregs[16]&~0x1F)|(templ&3);
+                arm.reg[14] = templ & 0x3fffffc;
+                spsr[mmode] = (arm.reg[16] & ~0x1f) | (templ & 3);
                 spsr[mmode]&=~0x10;
-                armregs[16] |= irq_disable;
-                armregs[15]=address;
+                arm.reg[16] |= irq_disable;
+                arm.reg[15] = address;
                 refillpipeline();
         }
         else
         {
-                templ=armregs[15]-diff;
-                armregs[15]|=3;
+                templ = arm.reg[15] - diff;
+                arm.reg[15] |= 3;
                 /* When in 26-bit config, Abort and Undefined exceptions enter
                    mode SVC_26 */
                 updatemode(mmode >= SUPERVISOR ? SUPERVISOR : mmode);
-                armregs[14]=templ;
-                armregs[15]&=0xFC000003;
-                armregs[15] |= ((irq_disable << 20) | address);
+                arm.reg[14] = templ;
+                arm.reg[15] &= 0xfc000003;
+                arm.reg[15] |= ((irq_disable << 20) | address);
                 refillpipeline();
         }
 }
@@ -574,8 +576,8 @@ void execarm(int cycs)
 				case 0x00: /* AND reg */
 					if ((opcode & 0xf0) == 0x90) /* MUL */
 					{
-						armregs[MULRD] = (MULRD == MULRM) ? 0 :
-						    (armregs[MULRM] * armregs[MULRS]);
+						arm.reg[MULRD] = (MULRD == MULRM) ? 0 :
+						    (arm.reg[MULRM] * arm.reg[MULRS]);
 					}
 					else
 					{
@@ -587,9 +589,9 @@ void execarm(int cycs)
 				case 0x01: /* ANDS reg */
 					if ((opcode & 0xf0) == 0x90) /* MULS */
 					{
-						armregs[MULRD] = (MULRD == MULRM) ? 0 :
-						    (armregs[MULRM] * armregs[MULRS]);
-						setzn(armregs[MULRD]);
+						arm.reg[MULRD] = (MULRD == MULRM) ? 0 :
+						    (arm.reg[MULRM] * arm.reg[MULRS]);
+						setzn(arm.reg[MULRD]);
 					}
 					else
 					{
@@ -601,7 +603,7 @@ void execarm(int cycs)
 					       else
 					       {
 						       dest = lhs & shift(opcode);
-						       armregs[RD] = dest;
+						       arm.reg[RD] = dest;
 						       setzn(dest);
 					       }
 					}
@@ -610,8 +612,8 @@ void execarm(int cycs)
 				case 0x02: /* EOR reg */
 					if ((opcode & 0xf0) == 0x90) /* MLA */
 					{
-						armregs[MULRD] = (MULRD == MULRM) ? 0 :
-						    (armregs[MULRM] * armregs[MULRS]) + armregs[MULRN];
+						arm.reg[MULRD] = (MULRD == MULRM) ? 0 :
+						    (arm.reg[MULRM] * arm.reg[MULRS]) + arm.reg[MULRN];
 					}
 					else
 					{
@@ -623,9 +625,9 @@ void execarm(int cycs)
                                 case 0x03: /* EORS reg */
                                         if ((opcode & 0xf0) == 0x90) /* MLAS */
                                         {
-						armregs[MULRD] = (MULRD == MULRM) ? 0 :
-						    (armregs[MULRM] * armregs[MULRS]) + armregs[MULRN];
-						setzn(armregs[MULRD]);
+						arm.reg[MULRD] = (MULRD == MULRM) ? 0 :
+						    (arm.reg[MULRM] * arm.reg[MULRS]) + arm.reg[MULRN];
+						setzn(arm.reg[MULRD]);
                                         }
                                         else
                                         {
@@ -637,7 +639,7 @@ void execarm(int cycs)
                                                 else
                                                 {
                                                         dest = lhs ^ shift(opcode);
-                                                        armregs[RD] = dest;
+                                                        arm.reg[RD] = dest;
                                                         setzn(dest);
                                                 }
                                         }
@@ -659,7 +661,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 setsub(lhs, rhs, dest);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                         }
                                         break;
 
@@ -679,7 +681,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 setsub(rhs, lhs, dest);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                         }
                                         break;
 
@@ -687,12 +689,12 @@ void execarm(int cycs)
 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMULL */
 					{
-                                                uint64_t mula = (uint64_t) armregs[MULRS];
-                                                uint64_t mulb = (uint64_t) armregs[MULRM];
+                                                uint64_t mula = (uint64_t) arm.reg[MULRS];
+                                                uint64_t mulb = (uint64_t) arm.reg[MULRM];
                                                 uint64_t mulres = mula * mulb;
 
-                                                armregs[MULRN] = (uint32_t) mulres;
-                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                arm.reg[MULRN] = (uint32_t) mulres;
+                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
                                                 break;
                                         }
 #endif
@@ -704,12 +706,12 @@ void execarm(int cycs)
 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMULLS */
 					{
-                                                uint64_t mula = (uint64_t) armregs[MULRS];
-                                                uint64_t mulb = (uint64_t) armregs[MULRM];
+                                                uint64_t mula = (uint64_t) arm.reg[MULRS];
+                                                uint64_t mulb = (uint64_t) arm.reg[MULRM];
                                                 uint64_t mulres = mula * mulb;
 
-                                                armregs[MULRN] = (uint32_t) mulres;
-                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                arm.reg[MULRN] = (uint32_t) mulres;
+                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
                                                 arm_flags_long_multiply(mulres);
                                                 break;
                                         }
@@ -724,7 +726,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 setadd(lhs, rhs, dest);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                         }
                                         break;
                                 
@@ -732,14 +734,14 @@ void execarm(int cycs)
 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMLAL */
 					{
-                                                uint64_t mula = (uint64_t) armregs[MULRS];
-                                                uint64_t mulb = (uint64_t) armregs[MULRM];
-                                                uint64_t current = ((uint64_t) armregs[MULRD] << 32) |
-                                                                   armregs[MULRN];
+                                                uint64_t mula = (uint64_t) arm.reg[MULRS];
+                                                uint64_t mulb = (uint64_t) arm.reg[MULRM];
+                                                uint64_t current = ((uint64_t) arm.reg[MULRD] << 32) |
+                                                                   arm.reg[MULRN];
                                                 uint64_t mulres = (mula * mulb) + current;
 
-                                                armregs[MULRN] = (uint32_t) mulres;
-                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                arm.reg[MULRN] = (uint32_t) mulres;
+                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
                                                 break;
                                         }
 #endif
@@ -751,14 +753,14 @@ void execarm(int cycs)
 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* UMLALS */
 					{
-                                                uint64_t mula = (uint64_t) armregs[MULRS];
-                                                uint64_t mulb = (uint64_t) armregs[MULRM];
-                                                uint64_t current = ((uint64_t) armregs[MULRD] << 32) |
-                                                                   armregs[MULRN];
+                                                uint64_t mula = (uint64_t) arm.reg[MULRS];
+                                                uint64_t mulb = (uint64_t) arm.reg[MULRM];
+                                                uint64_t current = ((uint64_t) arm.reg[MULRD] << 32) |
+                                                                   arm.reg[MULRN];
                                                 uint64_t mulres = (mula * mulb) + current;
 
-                                                armregs[MULRN] = (uint32_t) mulres;
-                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                arm.reg[MULRN] = (uint32_t) mulres;
+                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
                                                 arm_flags_long_multiply(mulres);
                                                 break;
                                         }
@@ -773,7 +775,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 setadc(lhs, rhs, dest);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                         }
                                         break;
 
@@ -781,12 +783,12 @@ void execarm(int cycs)
 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMULL */
 					{
-                                                int64_t mula = (int64_t) (int32_t) armregs[MULRS];
-                                                int64_t mulb = (int64_t) (int32_t) armregs[MULRM];
+                                                int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
+                                                int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
                                                 int64_t mulres = mula * mulb;
 
-                                                armregs[MULRN] = (uint32_t) mulres;
-                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                arm.reg[MULRN] = (uint32_t) mulres;
+                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
                                                 break;
                                         }
 #endif
@@ -798,12 +800,12 @@ void execarm(int cycs)
 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMULLS */
 					{
-                                                int64_t mula = (int64_t) (int32_t) armregs[MULRS];
-                                                int64_t mulb = (int64_t) (int32_t) armregs[MULRM];
+                                                int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
+                                                int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
                                                 int64_t mulres = mula * mulb;
 
-                                                armregs[MULRN] = (uint32_t) mulres;
-                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                arm.reg[MULRN] = (uint32_t) mulres;
+                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
                                                 arm_flags_long_multiply(mulres);
                                                 break;
                                         }
@@ -818,7 +820,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 setsbc(lhs, rhs, dest);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                         }
                                         break;
 
@@ -826,14 +828,14 @@ void execarm(int cycs)
 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMLAL */
 					{
-                                                int64_t mula = (int64_t) (int32_t) armregs[MULRS];
-                                                int64_t mulb = (int64_t) (int32_t) armregs[MULRM];
-                                                int64_t current = ((int64_t) armregs[MULRD] << 32) |
-                                                                   armregs[MULRN];
+                                                int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
+                                                int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
+                                                int64_t current = ((int64_t) arm.reg[MULRD] << 32) |
+                                                                   arm.reg[MULRN];
                                                 int64_t mulres = (mula * mulb) + current;
 
-                                                armregs[MULRN] = (uint32_t) mulres;
-                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                arm.reg[MULRN] = (uint32_t) mulres;
+                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
                                                 break;
                                         }
 #endif
@@ -845,14 +847,14 @@ void execarm(int cycs)
 #ifdef STRONGARM
 					if ((opcode & 0xf0) == 0x90) /* SMLALS */
 					{
-                                                int64_t mula = (int64_t) (int32_t) armregs[MULRS];
-                                                int64_t mulb = (int64_t) (int32_t) armregs[MULRM];
-                                                int64_t current = ((int64_t) armregs[MULRD] << 32) |
-                                                                   armregs[MULRN];
+                                                int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
+                                                int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
+                                                int64_t current = ((int64_t) arm.reg[MULRD] << 32) |
+                                                                   arm.reg[MULRN];
                                                 int64_t mulres = (mula * mulb) + current;
 
-                                                armregs[MULRN] = (uint32_t) mulres;
-                                                armregs[MULRD] = (uint32_t) (mulres >> 32);
+                                                arm.reg[MULRN] = (uint32_t) mulres;
+                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
                                                 arm_flags_long_multiply(mulres);
                                                 break;
                                         }
@@ -867,14 +869,14 @@ void execarm(int cycs)
                                         else
                                         {
                                                 setsbc(rhs, lhs, dest);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                         }
                                         break;
 
                                 case 0x10: /* MRS reg,CPSR and SWP word */
                                         if ((opcode&0xF0)==0x90)
                                         {
-                                                addr=armregs[RN];
+                                                addr = arm.reg[RN];
                                                 templ=GETREG(RM);
                                                 LOADREG(RD,readmeml(addr));
                                                 writememl(addr,templ);
@@ -882,10 +884,10 @@ void execarm(int cycs)
                                         else if (!(opcode&0xFFF)) /*MRS CPSR*/
                                         {
                                                 if (!ARM_MODE_32(mode)) {
-                                                        armregs[16]=(armregs[15]&0xF0000000)|(armregs[15]&3);
-                                                        armregs[16]|=((armregs[15]&0xC000000)>>20);
+                                                        arm.reg[16] = (arm.reg[15] & 0xf0000000) | (arm.reg[15] & 3);
+                                                        arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
                                                 }
-                                                armregs[RD]=armregs[16];
+                                                arm.reg[RD] = arm.reg[16];
                                         }
                                         else
                                         {
@@ -909,7 +911,7 @@ void execarm(int cycs)
 
 				case 0x12: /* MSR CPSR, reg */
 					if ((RD == 15) && ((opcode & 0xff0) == 0)) {
-						arm_write_cpsr(opcode, armregs[RM]);
+						arm_write_cpsr(opcode, arm.reg[RM]);
 					} else {
 						bad_opcode(opcode);
 					}
@@ -931,13 +933,13 @@ void execarm(int cycs)
                                 case 0x14: /* MRS reg,SPSR and SWPB */
                                         if ((opcode&0xF0)==0x90) /* SWPB */
                                         {
-                                                addr=armregs[RN];
+                                                addr = arm.reg[RN];
                                                 templ=GETREG(RM);
                                                 LOADREG(RD,readmemb(addr));
                                                 writememb(addr,templ);
                                         } else if (!(opcode&0xFFF)) /* MRS SPSR */
                                         {
-                                                armregs[RD]=spsr[mode&15];
+                                                arm.reg[RD] = spsr[mode & 0xf];
                                         }
                                         else
                                         {
@@ -962,7 +964,7 @@ void execarm(int cycs)
 
                                 case 0x16: /* MSR SPSR, reg */
 					if ((RD == 15) && ((opcode & 0xff0) == 0)) {
-						arm_write_spsr(opcode, armregs[RM]);
+						arm_write_spsr(opcode, arm.reg[RM]);
 					} else {
 						bad_opcode(opcode);
 					}
@@ -995,7 +997,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 dest = lhs | shift(opcode);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                                 setzn(dest);
                                         }
                                         break;
@@ -1012,8 +1014,8 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                armregs[RD]=shift(opcode);
-                                                setzn(armregs[RD]);
+                                                arm.reg[RD] = shift(opcode);
+                                                setzn(arm.reg[RD]);
                                         }
                                         break;
 
@@ -1031,7 +1033,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 dest = lhs & ~shift(opcode);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                                 setzn(dest);
                                         }
                                         break;
@@ -1048,8 +1050,8 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                armregs[RD]=~shift(opcode);
-                                                setzn(armregs[RD]);
+                                                arm.reg[RD] = ~shift(opcode);
+                                                setzn(arm.reg[RD]);
                                         }
                                         break;
 
@@ -1067,7 +1069,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 dest = lhs & rotate(opcode);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                                 setzn(dest);
                                         }
                                         break;
@@ -1086,7 +1088,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 dest = lhs ^ rotate(opcode);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                                 setzn(dest);
                                         }
                                         break;
@@ -1106,7 +1108,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                                 setsub(lhs, rhs, dest);
                                         }
                                         break;
@@ -1127,7 +1129,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 setsub(rhs, lhs, dest);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                         }
                                         break;
 
@@ -1147,7 +1149,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 setadd(lhs, rhs, dest);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                         }
                                         break;
 
@@ -1167,7 +1169,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 setadc(lhs, rhs, dest);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                         }
                                         break;
 
@@ -1187,7 +1189,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 setsbc(lhs, rhs, dest);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                         }
                                         break;
 
@@ -1207,7 +1209,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 setsbc(rhs, lhs, dest);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                         }
                                         break;
 
@@ -1287,7 +1289,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 dest = lhs | rotate(opcode);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                                 setzn(dest);
                                         }
                                         break;
@@ -1304,8 +1306,8 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                armregs[RD]=rotate(opcode);
-                                                setzn(armregs[RD]);
+                                                arm.reg[RD] = rotate(opcode);
+                                                setzn(arm.reg[RD]);
                                         }
                                         break;
 
@@ -1323,7 +1325,7 @@ void execarm(int cycs)
                                         else
                                         {
                                                 dest = lhs & ~rotate(opcode);
-                                                armregs[RD] = dest;
+                                                arm.reg[RD] = dest;
                                                 setzn(dest);
                                         }
                                         break;
@@ -1340,8 +1342,8 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                armregs[RD]=~rotate(opcode);
-                                                setzn(armregs[RD]);
+                                                arm.reg[RD] = ~rotate(opcode);
+                                                setzn(arm.reg[RD]);
                                         }
                                         break;
 //#endif
@@ -1355,7 +1357,7 @@ void execarm(int cycs)
 					/* Temp switch to user permissions */
 					templ = memmode;
 					memmode = 0;
-					writememl(addr & ~3, armregs[RD]);
+					writememl(addr & ~3, arm.reg[RD]);
 					memmode = templ;
 
 					/* Check for Abort */
@@ -1372,7 +1374,7 @@ void execarm(int cycs)
 						addr2 = -addr2;
 					}
 					addr += addr2;
-					armregs[RN] = addr;
+					arm.reg[RN] = addr;
 					break;
 
 				case 0x43: /* LDRT Rd, [Rn], #-imm   */
@@ -1404,7 +1406,7 @@ void execarm(int cycs)
 						addr2 = -addr2;
 					}
 					addr += addr2;
-					armregs[RN] = addr;
+					arm.reg[RN] = addr;
 
 					/* Write Rd */
 					LOADREG(RD, templ2);
@@ -1419,7 +1421,7 @@ void execarm(int cycs)
 					/* Temp switch to user permissions */
 					templ = memmode;
 					memmode = 0;
-					writememb(addr, armregs[RD]);
+					writememb(addr, arm.reg[RD]);
 					memmode = templ;
 
 					/* Check for Abort */
@@ -1436,7 +1438,7 @@ void execarm(int cycs)
 						addr2 = -addr2;
 					}
 					addr += addr2;
-					armregs[RN] = addr;
+					arm.reg[RN] = addr;
 					break;
 
 				case 0x47: /* LDRBT Rd, [Rn], #-imm   */
@@ -1465,7 +1467,7 @@ void execarm(int cycs)
 						addr2 = -addr2;
 					}
 					addr += addr2;
-					armregs[RN] = addr;
+					arm.reg[RN] = addr;
 
 					/* Write Rd */
 					LOADREG(RD, templ2);
@@ -1506,7 +1508,7 @@ void execarm(int cycs)
 					}
 
 					/* Store */
-					templ = armregs[RD];
+					templ = arm.reg[RD];
 					if (RD == 15) {
 						templ += r15diff;
 					}
@@ -1519,10 +1521,10 @@ void execarm(int cycs)
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
 						addr += addr2;
-						armregs[RN] = addr;
+						arm.reg[RN] = addr;
 					} else if (opcode & 0x200000) {
 						/* Pre-indexed with writeback */
-						armregs[RN] = addr;
+						arm.reg[RN] = addr;
 					}
 					break;
 
@@ -1573,10 +1575,10 @@ void execarm(int cycs)
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
 						addr += addr2;
-						armregs[RN] = addr;
+						arm.reg[RN] = addr;
 					} else if (opcode & 0x200000) {
 						/* Pre-indexed with writeback */
-						armregs[RN] = addr;
+						arm.reg[RN] = addr;
 					}
 
 					/* Write Rd */
@@ -1618,7 +1620,7 @@ void execarm(int cycs)
 					}
 
 					/* Store */
-					writememb(addr, armregs[RD]);
+					writememb(addr, arm.reg[RD]);
 
 					/* Check for Abort */
 					if (armirq & 0x40)
@@ -1627,10 +1629,10 @@ void execarm(int cycs)
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
 						addr += addr2;
-						armregs[RN] = addr;
+						arm.reg[RN] = addr;
 					} else if (opcode & 0x200000) {
 						/* Pre-indexed with writeback */
-						armregs[RN] = addr;
+						arm.reg[RN] = addr;
 					}
 					break;
 
@@ -1678,10 +1680,10 @@ void execarm(int cycs)
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
 						addr += addr2;
-						armregs[RN] = addr;
+						arm.reg[RN] = addr;
 					} else if (opcode & 0x200000) {
 						/* Pre-indexed with writeback */
-						armregs[RN] = addr;
+						arm.reg[RN] = addr;
 					}
 
 					/* Write Rd */
@@ -1693,7 +1695,7 @@ void execarm(int cycs)
 				case 0x90: /* STMDB */
 				case 0x92: /* STMDB ! */
 					templ = countbits(opcode & 0xffff);
-					addr = armregs[RN] - templ;
+					addr = arm.reg[RN] - templ;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
 						/* Decrement After */
@@ -1707,7 +1709,7 @@ void execarm(int cycs)
 				case 0x98: /* STMIB */
 				case 0x9a: /* STMIB ! */
 					templ = countbits(opcode & 0xffff);
-					addr = armregs[RN];
+					addr = arm.reg[RN];
 					writeback = addr + templ;
 					if (opcode & (1 << 24)) {
 						/* Increment Before */
@@ -1721,7 +1723,7 @@ void execarm(int cycs)
 				case 0x94: /* STMDB ^ */
 				case 0x96: /* STMDB ^! */
 					templ = countbits(opcode & 0xffff);
-					addr = armregs[RN] - templ;
+					addr = arm.reg[RN] - templ;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
 						/* Decrement After */
@@ -1735,7 +1737,7 @@ void execarm(int cycs)
 				case 0x9c: /* STMIB ^ */
 				case 0x9e: /* STMIB ^! */
 					templ = countbits(opcode & 0xffff);
-					addr = armregs[RN];
+					addr = arm.reg[RN];
 					writeback = addr + templ;
 					if (opcode & (1 << 24)) {
 						/* Increment Before */
@@ -1749,7 +1751,7 @@ void execarm(int cycs)
 				case 0x91: /* LDMDB */
 				case 0x93: /* LDMDB ! */
 					templ = countbits(opcode & 0xffff);
-					addr = armregs[RN] - templ;
+					addr = arm.reg[RN] - templ;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
 						/* Decrement After */
@@ -1763,7 +1765,7 @@ void execarm(int cycs)
 				case 0x99: /* LDMIB */
 				case 0x9b: /* LDMIB ! */
 					templ = countbits(opcode & 0xffff);
-					addr = armregs[RN];
+					addr = arm.reg[RN];
 					writeback = addr + templ;
 					if (opcode & (1 << 24)) {
 						/* Increment Before */
@@ -1777,7 +1779,7 @@ void execarm(int cycs)
 				case 0x95: /* LDMDB ^ */
 				case 0x97: /* LDMDB ^! */
 					templ = countbits(opcode & 0xffff);
-					addr = armregs[RN] - templ;
+					addr = arm.reg[RN] - templ;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
 						/* Decrement After */
@@ -1791,7 +1793,7 @@ void execarm(int cycs)
 				case 0x9d: /* LDMIB ^ */
 				case 0x9f: /* LDMIB ^! */
 					templ = countbits(opcode & 0xffff);
-					addr = armregs[RN];
+					addr = arm.reg[RN];
 					writeback = addr + templ;
 					if (opcode & (1 << 24)) {
 						/* Increment Before */
@@ -1807,7 +1809,8 @@ void execarm(int cycs)
                                         /* Extract offset bits, and sign-extend */
                                         templ = (opcode << 8);
                                         templ = (uint32_t) ((int32_t) templ >> 6);
-                                        armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
+                                        arm.reg[15] = ((arm.reg[15] + templ + 4) & r15mask) |
+                                                      (arm.reg[15]&~r15mask);
                                         break;
 
                                 case 0xB0: case 0xB1: case 0xB2: case 0xB3: /* BL */
@@ -1817,8 +1820,9 @@ void execarm(int cycs)
                                         /* Extract offset bits, and sign-extend */
                                         templ = (opcode << 8);
                                         templ = (uint32_t) ((int32_t) templ >> 6);
-                                        armregs[14]=armregs[15]-4;
-                                        armregs[15]=((armregs[15]+templ+4)&r15mask)|(armregs[15]&~r15mask);
+                                        arm.reg[14] = arm.reg[15] - 4;
+                                        arm.reg[15] = ((arm.reg[15] + templ + 4) & r15mask) |
+                                                      (arm.reg[15] & ~r15mask);
                                         refillpipeline();
                                         break;
 
@@ -1833,7 +1837,7 @@ void execarm(int cycs)
 #endif
                                         if (MULRS==15 && (opcode&0x10))
                                         {
-                                                writecp15(RN,armregs[RD],opcode);
+                                                writecp15(RN, arm.reg[RD], opcode);
                                         }
                                         else
                                         {
@@ -1852,8 +1856,8 @@ void execarm(int cycs)
 #endif
                                         if (MULRS==15 && (opcode&0x10))
                                         {
-                                                if (RD==15) armregs[RD]=(armregs[RD]&r15mask)|(readcp15(RN)&~r15mask);
-                                                else        armregs[RD]=readcp15(RN);
+                                                if (RD==15) arm.reg[RD] = (arm.reg[RD] & r15mask) | (readcp15(RN) & ~r15mask);
+                                                else        arm.reg[RD] = readcp15(RN);
                                         }
                                         else
                                         {
@@ -1901,8 +1905,8 @@ void execarm(int cycs)
                         if (/*databort|*/armirq)//|prefabort)
                         {
                                 if (!ARM_MODE_32(mode)) {
-                                        armregs[16]&=~0xC0;
-                                        armregs[16]|=((armregs[15]&0xC000000)>>20);
+                                        arm.reg[16] &= ~0xc0;
+                                        arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
                                 }
 
                                 if (armirq&0xC0)
@@ -1924,31 +1928,31 @@ void execarm(int cycs)
                                 {
                                         fatal("Exception %i %i %i\n", databort, armirq, prefabort);
 
-                                        templ=armregs[15];
-                                        armregs[15]|=3;
+                                        templ = arm.reg[15];
+                                        arm.reg[15] |= 3;
                                         updatemode(SUPERVISOR);
-                                        armregs[14]=templ;
-                                        armregs[15]&=0xFC000003;
-                                        armregs[15]|=0x08000018;
+                                        arm.reg[14] = templ;
+                                        arm.reg[15] &= 0xfc000003;
+                                        arm.reg[15] |= 0x08000018;
                                         refillpipeline();
                                         databort=0;
                                 }
 //                                #endif
                                 }
-                                else if ((armirq&2) && !(armregs[16]&0x40)) /*FIQ*/
+                                else if ((armirq & 2) && !(arm.reg[16] & 0x40)) /*FIQ*/
                                 {
                                         exception(FIQ,0x20,0);
                                 }
-                                else if ((armirq&1) && !(armregs[16]&0x80)) /*IRQ*/
+                                else if ((armirq & 1) && !(arm.reg[16] & 0x80)) /*IRQ*/
                                 {
                                         exception(IRQ, 0x1c, 0);
                                 }
-//                                if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+//                                if ((arm.reg[cpsr]&mmask)!=mode) updatemode(arm.reg[cpsr]&mmask);
                         }
 
-                        armregs[15]+=4;
+                        arm.reg[15] += 4;
 
-//                        if ((armregs[cpsr]&mmask)!=mode) updatemode(armregs[cpsr]&mmask);
+//                        if ((arm.reg[cpsr]&mmask)!=mode) updatemode(arm.reg[cpsr]&mmask);
 
 //                        linecyc--;
 //                        inscount++;
