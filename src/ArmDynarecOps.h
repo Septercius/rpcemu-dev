@@ -1,5 +1,3 @@
-#ifdef INARMC
-
 static void opANDreg(uint32_t opcode)
 {
 	uint32_t dest;
@@ -1457,5 +1455,3 @@ static void opcopro(uint32_t opcode)
         undefined();
 #endif
 }
-
-#endif

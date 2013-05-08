@@ -507,7 +507,6 @@ void exception(int mmode, uint32_t address, int diff)
         }
 }
 
-#define INARMC
 #include "ArmDynarecOps.h"
 
 /*void writememl(unsigned long a, unsigned long v)
