@@ -37,7 +37,6 @@ OBJS =	arm.o       \
 	cdrom-ioctl.o \
 	cdrom-iso.o \
 	cmos.o      \
-	codegen_amd64.o \
 	codegen_null.o \
 	codegen_x86.o \
 	cp15.o      \
