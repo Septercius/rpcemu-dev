@@ -4,8 +4,6 @@
   r12 contains R15*/
 
 #include "rpcemu.h"
-#ifdef DYNAREC
-#ifdef __amd64__
 
 #include <assert.h>
 #include <stdint.h>
@@ -1378,6 +1376,3 @@ generateirqtest(void)
 		gen_x86_jump_here_long(lastjumppos);
 	}
 }
-
-#endif
-#endif
