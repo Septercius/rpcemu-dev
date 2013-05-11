@@ -509,16 +509,6 @@ void exception(int mmode, uint32_t address, int diff)
 
 #include "ArmDynarecOps.h"
 
-/*void writememl(unsigned long a, unsigned long v)
-{
-        if (vraddrl[(a)>>12]&3)
-           writememfl(a,v);
-        else
-        {
-                *(unsigned long *)((a)+vraddrl[(a)>>12])=v;
-        }
-}*/
-
 static void badopcode(uint32_t opcode)
 {
         bad_opcode(opcode);
