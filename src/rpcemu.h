@@ -49,10 +49,6 @@
 #endif
 
 
-#ifdef DJGPP
-#define fseeko64(_a, _b, _c) fseek(_a, (long)_b, _c)
-#endif
-
 #ifdef __MACH__
 #define fseeko64(_a, _b, _c) fseeko(_a, _b, _c)
 #define ftello64(stream) ftello(stream)
@@ -68,10 +64,8 @@
   If this is disabled then modes lower than 640x480 can look odd, and the system
   is slower. However, this must be commented out on some ports (Linux)*/
 #ifndef __unix
-#ifndef DJGPP
 #ifndef __MACH__
 #define HARDWAREBLIT
-#endif
 #endif
 #endif
 
