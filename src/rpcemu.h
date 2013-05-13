@@ -20,32 +20,13 @@
 # define __attribute__(x) /*NOTHING*/
 #endif
 
-#if defined WIN32 || defined _WIN32 || defined _WIN32
+#if defined WIN32 || defined _WIN32
         #define RPCEMU_WIN
 	#ifdef _MSC_VER // Microsoft Visual Studio
-                #ifdef _DEBUG
-                    #define INLINING _inline
-                #else
-                    #define INLINING __forceinline
-                #endif
                 #define fseeko64(_a, _b, _c) fseek(_a, (long)_b, _c)
                 __declspec(dllimport) void __stdcall Sleep(unsigned long dwMilliseconds);
-                #define sleep(x) Sleep(x)
-	#else
-        	#ifdef __GNUC__
-        		#define INLINING static inline
-        	#else
-        		#define INLINING inline
-        	#endif
-                #define sleep(x) Sleep(x)
 	#endif
-
-#else
-	#ifdef _GCC
-		#define INLINING static inline
-	#else
-		#define INLINING inline
-	#endif
+	#define sleep(x) Sleep(x)
 #endif
 
 
