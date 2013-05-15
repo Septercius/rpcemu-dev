@@ -112,7 +112,6 @@ cp15_tlb_flush_all(void)
 {
 	clearmemcache();
 	pccache = 0xffffffff;
-	blockend = 1;
 	cp15_tlb_flush();
 	cp15_vaddr_reset();
 	flushes++;
@@ -154,7 +153,6 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 {
                         updatemode(mode&15);
                 }
-                // rpclog("CP15 control write %08X %08X %i\n",val,PC,blockend);
                 return; /*We can probably ignore all other bits*/
 
         case 2: /* TLB base */
@@ -263,7 +261,6 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 if ((CRm&1) && !(OPC2)) resetcodeblocks();
                 // rpclog("Cache invalidate %08X\n",PC);
                 pccache = 0xFFFFFFFF;
-                // blockend=1;
                 return;
 
 	case 15:
