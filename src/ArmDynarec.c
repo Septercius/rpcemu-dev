@@ -615,7 +615,7 @@ void execarm(int cycs)
                                 {
                                         opcode=pccache2[PC>>2];
                                         if ((opcode & 0x0E000000) == 0x0A000000) { blockend = 1; } /* Always end block on branches */
-                                        if ((opcode & 0x0F000000) == 0x0F000000) { blockend = 1; } /* And SWIs and copro stuff */
+                                        if ((opcode & 0x0c000000) == 0x0c000000) { blockend = 1; } /* And SWIs and copro stuff */
                                         if (!(opcode & 0xC000000) && (RD == 15)) { blockend = 1; } /* End if R15 can be modified */
                                         if ((opcode & 0x0E108000) == 0x08108000) { blockend = 1; } /* End if R15 reloaded from LDM */
                                         if ((opcode & 0x0C100000) == 0x04100000 && (RD==15)) { blockend = 1; } /* End if R15 reloaded from LDR */
