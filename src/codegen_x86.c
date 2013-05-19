@@ -2560,14 +2560,14 @@ generateupdatepc(void)
 void
 generateupdateinscount(void)
 {
-        if (tempinscount)
-        {
-                addbyte(0x83); /*ADD tempinscount,inscount*/
-                addbyte(0x05);
-                addlong(&inscount);
-                addbyte(tempinscount);
-                tempinscount=0;
-        }
+	if (tempinscount != 0) {
+		if (tempinscount > 127) {
+			addbyte(0x81); addbyte(0x05); addlong(&inscount); addlong(tempinscount); /* ADDL $tempinscount,inscount */
+		} else {
+			addbyte(0x83); addbyte(0x05); addlong(&inscount); addbyte(tempinscount); /* ADDL $tempinscount,inscount */
+		}
+		tempinscount = 0;
+	}
 }
 
 void
