@@ -42,7 +42,6 @@ OBJS =	arm.o       \
 	cp15.o      \
 	fdc.o       \
 	fpa.o       \
-	gui.o	      \
 	hostfs.o    \
 	ide.o	      \
 	iomd.o      \
