@@ -1142,24 +1142,10 @@ generatecall(OpFn addr, uint32_t opcode,uint32_t *pcpsr)
 void
 generateupdatepc(void)
 {
-        if (pcinc)
-      {
-		addbyte(0x41); /*ADD $pcinc,%r12d*/
-		addbyte(0x83);
-		addbyte(0xC4);
-		addbyte(pcinc);
-//		addbyte(0x41); /*ADD $4,arm.reg[15](%r15)*/
-		//addbyte(0x83);
-		//addbyte(0x47);
-		//addbyte(15<<2); /*arm.reg[15]*/
-		//addbyte(pcinc);
-//                addbyte(0x83); /*ADD $4,arm.reg[15]*/
-                //addbyte(0x04);
-		//addbyte(0x25);
-                //addlong(&arm.reg[15]);
-                //addbyte(pcinc);
-                pcinc=0;
-        }
+	if (pcinc != 0) {
+		addbyte(0x41); addbyte(0x83); addbyte(0xc4); addbyte(pcinc); /* ADD $pcinc,%r12d */
+		pcinc = 0;
+	}
 }
 
 void
