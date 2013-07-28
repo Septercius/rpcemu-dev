@@ -16,12 +16,7 @@
 #define IDM_MOUSE_TWOBUTTON 40067   /* Last ID */
 
 /* Indexes into the items of the CONFIGUREDLG Dialog */
-#define RadioButton_ARM610	1000
-#define RadioButton_ARM710	1001
-#define RadioButton_SA110	1002
-#define RadioButton_ARM7500	1003
-#define RadioButton_ARM7500FE	1004
-#define RadioButton_ARM810	1005
+#define ListBox_Hardware	1000
 
 #define RadioButton_Mem_4	1006
 #define RadioButton_Mem_8	1007

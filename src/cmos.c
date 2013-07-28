@@ -92,8 +92,8 @@ cmos_update_settings(void)
 	/* Automatically configure the mousetype depending on which machine
 	   model is selected. CMOS location has been verified on 3.50-Select 4
 	   and 5.17 (*configure mousetype <number>) */
-	if (config.model == CPUModel_ARM7500 ||
-	    config.model == CPUModel_ARM7500FE)
+	if (machine.model == Model_A7000 ||
+	    machine.model == Model_A7000plus)
 	{
 		cmosram[0x5d] = 3; /* PS/2 mouse */
 	} else {

@@ -31,8 +31,20 @@
 
 char discname[2][260]={"boot.adf","notboot.adf"};
 
+Machine machine; /**< The details of the current machine being emulated */
+
+/** Array of details of models the emulator can emulate, must be kept in sync with
+    Model enum in rpcemu.h */
+const Model_Details models[] = {
+	{ "Risc PC - ARM610",    "RPC610", CPUModel_ARM610,    IOMDType_IOMD },
+	{ "Risc PC - ARM710",    "RPC710", CPUModel_ARM710,    IOMDType_IOMD },
+	{ "Risc PC - StrongARM", "RPCSA",  CPUModel_SA110,     IOMDType_IOMD },
+	{ "A7000",               "A7000",  CPUModel_ARM7500,   IOMDType_ARM7500 },
+	{ "A7000+",              "A7000+", CPUModel_ARM7500FE, IOMDType_ARM7500FE },
+	{ "Risc PC - ARM810",    "RPC810", CPUModel_ARM810,    IOMDType_IOMD }
+};
+
 Config config = {
-	CPUModel_ARM7500,	/* model */
 	0,			/* mem_size */
 	0,			/* vrammask */
 	0,			/* stretchmode */
@@ -172,23 +184,13 @@ domips(void)
 void
 resetrpc(void)
 {
-	IOMDType iomd_type;
-
 	rpclog("RPCEmu: Machine reset\n");
 
         mem_reset(config.mem_size);
         resetcp15();
-        resetarm(config.model);
+        resetarm(machine.cpu_model);
         keyboard_reset();
-
-	if (config.model == CPUModel_ARM7500) {
-		iomd_type = IOMDType_ARM7500;
-	} else if (config.model == CPUModel_ARM7500FE) {
-		iomd_type = IOMDType_ARM7500FE;
-	} else {
-		iomd_type = IOMDType_IOMD;
-	}
-	iomd_reset(iomd_type);
+	iomd_reset(machine.iomd_type);
 
         reseti2c();
         resetide();
@@ -352,6 +354,22 @@ endrpcemu(void)
 }
 
 /**
+ * Called whenever the user's chosen model is changed
+ *
+ * Caches details of the model in the machine struct
+ *
+ * @param model New model being selected
+ */
+void
+rpcemu_model_changed(Model model)
+{
+	/* Cache details from the models[] array into the machine struct for speed of lookup */
+	machine.model     = model;
+	machine.cpu_model = models[model].cpu_model;
+	machine.iomd_type = models[model].iomd_type;
+}
+
+/**
  * Load the user's previous chosen configuration. Will fill in sensible
  * defaults if any configuration values are absent.
  *
@@ -362,6 +380,8 @@ loadconfig(void)
 {
         char fn[512];
         const char *p;
+	Model model;
+	int i;
 
 	append_filename(fn, rpcemu_get_datadir(), "rpc.cfg", 511);
         set_config_file(fn);
@@ -403,27 +423,22 @@ loadconfig(void)
         else if (!strcmp(p,"0"))   config.vrammask = 0;
         else                       config.vrammask = 0x7FFFFF;
 
-        p = get_config_string(NULL,"cpu_type",NULL);
-        if (!p) {
-                config.model = CPUModel_ARM710;
-        } else if (!strcmp(p, "ARM610")) {
-                config.model = CPUModel_ARM610;
-        } else if (!strcmp(p, "ARM7500")) {
-                config.model = CPUModel_ARM7500;
-        } else if (!strcmp(p, "ARM7500FE")) {
-                config.model = CPUModel_ARM7500FE;
-        } else if (!strcmp(p, "ARM810")) {
-                config.model = CPUModel_ARM810;
-        } else if (!strcmp(p, "SA110")) {
-                config.model = CPUModel_SA110;
-        } else {
-                config.model = CPUModel_ARM710;
-        }
+	p = get_config_string(NULL, "model", NULL);
+	model = Model_RPCARM710;
+	if (p != NULL) {
+		for (i = 0; i < Model_MAX; i++) {
+			if (strcmp(p, models[i].name_config) == 0) {
+				model = i;
+				break;
+			}
+		}
+	}
+	rpcemu_model_changed(model);
 
-        /* ARM7500 (A7000) and ARM7500FE (A7000+) have no VRAM */
-        if (config.model == CPUModel_ARM7500 || config.model == CPUModel_ARM7500) {
-                config.vrammask = 0;
-        }
+	/* A7000 and A7000+ have no VRAM */
+	if (model == Model_A7000 || model == Model_A7000plus) {
+		config.vrammask = 0;
+	}
 
         config.soundenabled = get_config_int(NULL, "sound_enabled", 1);
         config.stretchmode  = get_config_int(NULL, "stretch_mode",  0);
@@ -487,20 +502,8 @@ saveconfig(void)
 
 	sprintf(s, "%u", config.mem_size);
 	set_config_string(NULL, "mem_size", s);
-        switch (config.model)
-        {
-                case CPUModel_ARM610:    sprintf(s, "ARM610"); break;
-                case CPUModel_ARM710:    sprintf(s, "ARM710"); break;
-                case CPUModel_ARM810:    sprintf(s, "ARM810"); break;
-                case CPUModel_SA110:     sprintf(s, "SA110"); break;
-                case CPUModel_ARM7500:   sprintf(s, "ARM7500"); break;
-                case CPUModel_ARM7500FE: sprintf(s, "ARM7500FE"); break;
-                default:
-                        /* Forgotten to add a new CPU model to the switch()? */
-                        fatal("saveconfig(): unknown cpu model %d\n",
-                              config.model);
-        }
-        set_config_string(NULL,"cpu_type",s);
+	sprintf(s, "%s", models[machine.model].name_config);
+	set_config_string(NULL, "model", s);
         if (config.vrammask) set_config_string(NULL, "vram_size", "2");
         else                 set_config_string(NULL, "vram_size", "0");
         set_config_int(NULL, "sound_enabled",     config.soundenabled);

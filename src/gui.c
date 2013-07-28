@@ -15,29 +15,24 @@ extern void ioctl_init(void);
 /* Indexes into the configuregui array */
 #define CONF_BOX		 0
 #define CONF_LABEL_CPU		 1
-#define CONF_ARM610		 2
-#define CONF_ARM710		 3
-#define CONF_SA110		 4
-#define CONF_ARM7500		 5
-#define CONF_ARM7500FE		 6
-#define CONF_ARM810		 7
-#define CONF_LABEL_RAM		 8
-#define CONF_RAM_4		 9
-#define CONF_RAM_8		10
-#define CONF_RAM_16		11
-#define CONF_RAM_32		12
-#define CONF_RAM_64		13
-#define CONF_RAM_128		14
-#define CONF_RAM_256		15
-#define CONF_LABEL_VRAM		16
-#define CONF_VRAM_0		17
-#define CONF_VRAM_2		18
-#define CONF_SOUND		19
-#define CONF_LABEL_REFRESH	20
-#define CONF_HZ_SLIDER		21
-#define CONF_HZ_TEXT		22
-#define CONF_OK			23
-#define CONF_CANCEL		24
+#define CONF_MODEL_LIST		 2
+#define CONF_LABEL_RAM		 3
+#define CONF_RAM_4		 4
+#define CONF_RAM_8		 5
+#define CONF_RAM_16		 6
+#define CONF_RAM_32		 7
+#define CONF_RAM_64		 8
+#define CONF_RAM_128		 9
+#define CONF_RAM_256		10
+#define CONF_LABEL_VRAM		11
+#define CONF_VRAM_0		12
+#define CONF_VRAM_2		13
+#define CONF_SOUND		14
+#define CONF_LABEL_REFRESH	15
+#define CONF_HZ_SLIDER		16
+#define CONF_HZ_TEXT		17
+#define CONF_OK			18
+#define CONF_CANCEL		19
 
 /* Indexes into the networkgui array */
 //#define NETWORK_BOX                 0
@@ -363,34 +358,8 @@ menusettings(void)
         int c;
         int changed=0;
 
-        configuregui[CONF_ARM7500].flags = 0;
-        configuregui[CONF_ARM610].flags  = 0;
-        configuregui[CONF_ARM710].flags  = 0;
-        configuregui[CONF_SA110].flags   = 0;
-
-        switch (config.model) {
-        case CPUModel_ARM7500:
-                configuregui[CONF_ARM7500].flags = D_SELECTED;
-                break;
-        case CPUModel_ARM7500FE:
-                configuregui[CONF_ARM7500FE].flags = D_SELECTED;
-                break;
-        case CPUModel_ARM610:
-                configuregui[CONF_ARM610].flags = D_SELECTED;
-                break;
-        case CPUModel_ARM710:
-                configuregui[CONF_ARM710].flags = D_SELECTED;
-                break;
-        case CPUModel_ARM810:
-                configuregui[CONF_ARM810].flags = D_SELECTED;
-                break;
-        case CPUModel_SA110:
-                configuregui[CONF_SA110].flags = D_SELECTED;
-                break;
-        default:
-                fprintf(stderr, "Unknown CPU model %d\n", config.model);
-                exit(EXIT_FAILURE);
-        }
+	/* Select the currently chosen model */
+	configuregui[CONF_MODEL_LIST].d1 = machine.model;
 
         configuregui[CONF_RAM_4].flags   = 0;
         configuregui[CONF_RAM_8].flags   = 0;
@@ -421,28 +390,15 @@ menusettings(void)
         c=popup_dialog(configuregui,1);
 
         if (c == CONF_OK) {
-                CPUModel selected_model = CPUModel_ARM7500;
+		Model selected_model;
                 unsigned selected_mem_size = 0;
                 int selected_vrammask = 0;
 
-                if (configuregui[CONF_ARM7500].flags & D_SELECTED) {
-                        selected_model = CPUModel_ARM7500;
-                } else if (configuregui[CONF_ARM7500FE].flags & D_SELECTED) {
-                        selected_model = CPUModel_ARM7500FE;
-                } else if (configuregui[CONF_ARM610].flags & D_SELECTED) {
-                        selected_model = CPUModel_ARM610;
-                } else if (configuregui[CONF_ARM710].flags & D_SELECTED) {
-                        selected_model = CPUModel_ARM710;
-                } else if (configuregui[CONF_ARM810].flags & D_SELECTED) {
-                        selected_model = CPUModel_ARM810;
-                } else if (configuregui[CONF_SA110].flags & D_SELECTED) {
-                        selected_model = CPUModel_SA110;
-                }
-
-                if (config.model != selected_model) {
-                        config.model = selected_model;
-                        changed = 1;
-                }
+		selected_model = configuregui[CONF_MODEL_LIST].d1;
+		if (selected_model != machine.model) {
+			rpcemu_model_changed(selected_model);
+			changed = 1;
+		}
 
                 if (configuregui[CONF_RAM_4].flags & D_SELECTED) {
                         selected_mem_size = 4;
@@ -470,8 +426,8 @@ menusettings(void)
                         selected_vrammask = 0x7FFFFF;
                 }
 
-                /* If an A7000 (ARM7500) or an A7000+ (ARM7500FE) it does not have vram */
-                if (config.model == CPUModel_ARM7500 || config.model == CPUModel_ARM7500FE) {
+                /* If an A7000 or an A7000+ it does not have vram */
+                if (machine.model == Model_A7000 || machine.model == Model_A7000plus) {
                         selected_vrammask = 0;
                 }
 
@@ -614,41 +570,55 @@ static MENU mainmenu[]=
         {NULL,NULL,NULL,0,NULL}
 };
 
+/**
+ * Allegro callback to get the text of an entry in the models listbox, or to
+ * get the number of entries on the list.
+ *
+ * @param index Index of entry to get (0 to sizeof(list -1) or -1 to get the size
+ * @param list_size Pointer to an int to be filled in with list size, if index == -1
+ * @return string of entry, or NULL if -1 (list size) was queried
+ */
+static const char *
+model_listbox(int index, int *list_size)
+{
+	if (index < 0) {
+		*list_size = Model_MAX;
+		return NULL;
+	} else {
+		return models[index].name_gui;
+	}
+}
+
 #define CY 0
 #define CX 0
 /* This array must be kept in sync with the CONF_ defines above */
 static DIALOG configuregui[] = {
-	{ d_shadow_box_proc, 0, 0, 26*8, 33*8, 0,-1,0,0, 0,0,0,0,0 }, // 0
+	{ d_shadow_box_proc, 0, 0, 37*8, 35*8, 0,-1,0,0, 0,0,0,0,0 }, // 0
 
-	{ d_text_proc,   2*8,  2*8, 40, 16, 0,-1,0,0, 0, 0,"CPU:",0,0 }, // 1
-	{ d_radio_proc,  3*8,  3*8, 60, 16, 0,-1,0,0, 0, 0,"ARM610",0,0 }, // 2
-	{ d_radio_proc,  3*8,  5*8, 60, 16, 0,-1,0,0, 0, 0,"ARM710",0,0 }, // 3
-	{ d_radio_proc,  3*8,  7*8, 52, 16, 0,-1,0,0, 0, 0,"SA110",0,0 }, // 4
-	{ d_radio_proc,  3*8,  9*8, 68, 16, 0,-1,0,0, 0, 0,"ARM7500",0,0 }, // 5
-	{ d_radio_proc,  3*8, 11*8, 84, 16, 0,-1,0,0, 0, 0,"ARM7500FE",0,0 }, // 6
-	{ d_radio_proc,  3*8, 13*8, 60, 16, 0,-1,0,0, 0, 0,"ARM810",0,0 }, // 7
+	{ d_text_proc,   2*8, 2*8, 84, 16, 0,-1,0,0, 0, 0,"Hardware:",0,0 }, // 1
+	{ d_list_proc,   3*8, 4*8, 22*8, 12*8, 0,0xffffff,0,0, 0, 0, model_listbox, NULL, NULL },  // 2
 
-	{ d_text_proc,  16*8,  2*8, 40, 16, 0,-1,0,0, 0, 0,"RAM:",0,0 }, // 8
-	{ d_radio_proc, 17*8,  3*8, 36, 16, 0,-1,0,0, 1, 0,"4MB",0,0 }, // 9
-	{ d_radio_proc, 17*8,  5*8, 36, 16, 0,-1,0,0, 1, 0,"8MB",0,0 }, // 10
-	{ d_radio_proc, 17*8,  7*8, 44, 16, 0,-1,0,0, 1, 0,"16MB",0,0 }, // 11
-	{ d_radio_proc, 17*8,  9*8, 44, 16, 0,-1,0,0, 1, 0,"32MB",0,0 }, // 12
-	{ d_radio_proc, 17*8, 11*8, 44, 16, 0,-1,0,0, 1, 0,"64MB",0,0 }, // 13
-	{ d_radio_proc, 17*8, 13*8, 52, 16, 0,-1,0,0, 1, 0,"128MB",0,0 }, // 14
-	{ d_radio_proc, 17*8, 15*8, 52, 16, 0,-1,0,0, 1, 0,"256MB",0,0 }, // 15
+	{ d_text_proc,  27*8,  2*8, 40, 16, 0,-1,0,0, 0, 0,"RAM:",0,0 }, // 3
+	{ d_radio_proc, 28*8,  3*8, 36, 16, 0,-1,0,0, 1, 0,"4MB",0,0 }, // 4
+	{ d_radio_proc, 28*8,  5*8, 36, 16, 0,-1,0,0, 1, 0,"8MB",0,0 }, // 5
+	{ d_radio_proc, 28*8,  7*8, 44, 16, 0,-1,0,0, 1, 0,"16MB",0,0 }, // 6
+	{ d_radio_proc, 28*8,  9*8, 44, 16, 0,-1,0,0, 1, 0,"32MB",0,0 }, // 7
+	{ d_radio_proc, 28*8, 11*8, 44, 16, 0,-1,0,0, 1, 0,"64MB",0,0 }, // 8
+	{ d_radio_proc, 28*8, 13*8, 52, 16, 0,-1,0,0, 1, 0,"128MB",0,0 }, // 9
+	{ d_radio_proc, 28*8, 15*8, 52, 16, 0,-1,0,0, 1, 0,"256MB",0,0 }, // 10
 
-	{ d_text_proc,   2*8, 18*8, 52, 16, 0,-1,0,0, 0, 0,"VRAM:",0,0 }, // 16
-	{ d_radio_proc,  3*8, 19*8, 44, 16, 0,-1,0,0, 2, 0,"None",0,0 }, // 17
-	{ d_radio_proc,  3*8, 21*8, 36, 16, 0,-1,0,0, 2, 0,"2MB",0,0 }, // 18
+	{ d_text_proc,   2*8, 18*8, 52, 16, 0,-1,0,0, 0, 0,"VRAM:",0,0 }, // 11
+	{ d_radio_proc,  3*8, 19*8, 44, 16, 0,-1,0,0, 2, 0,"None",0,0 }, // 12
+	{ d_radio_proc,  3*8, 21*8, 36, 16, 0,-1,0,0, 2, 0,"2MB",0,0 }, // 13
 
-	{ d_check_proc, 16*8, 19*8, 52, 16, 0,-1,0,D_DISABLED,1,0, "Sound",0,0 }, // 19
+	{ d_check_proc, 26*8, 19*8, 52, 16, 0,-1,0,D_DISABLED,1,0, "Sound",0,0 }, // 14
 
-	{ d_text_proc,    2*8, 24*8,   40,  8, 0,-1,0,0,0,0,"Video refresh rate:",0,0 }, // 20
-	{ d_slider_proc,  3*8, 25*8,  128, 16, 0,-1,0,0,80/5,0,NULL,hzcallback,0 }, // 21
-	{ d_text_proc,   20*8, 25*8+5, 40,  8, 0,-1,0,0,0,0,NULL,0,0 }, // 22
+	{ d_text_proc,    2*8, 25*8,   40,  8, 0,-1,0,0,0,0,"Video refresh rate:",0,0 }, // 15
+	{ d_slider_proc,  3*8, 27*8,  192, 16, 0,-1,0,0,80/5,0,NULL,hzcallback,0 }, // 16
+	{ d_text_proc,   28*8, 27*8+5, 40,  8, 0,-1,0,0,0,0,NULL,0,0 }, // 17
 
-	{ d_button_proc,  4*8, 29*8, 64, 16, 0,-1,0,D_EXIT,0,0,"OK",0,0 }, // 23
-	{ d_button_proc, 14*8, 29*8, 64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0 }, // 24
+	{ d_button_proc, 10*8, 31*8, 64, 16, 0,-1,0,D_EXIT,0,0,"OK",0,0 }, // 18
+	{ d_button_proc, 20*8, 31*8, 64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0 }, // 19
 
 	{ NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL }
 };

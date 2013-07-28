@@ -49,6 +49,7 @@ static CRITICAL_SECTION vidcmutex;
 static int chngram = 0;
 
 static Config chosen_config; /**< Temp store of config the user chose in the configuration dialog */
+static Model chosen_model;   /**< Temp store of the user choice of hardware model in the configuration dialog */
 
 static HINSTANCE hinstance; /**< Handle to current program instance */
 
@@ -635,7 +636,6 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
 {
         HWND h;
         int c;
-        int cpu;
         char s[10];
         switch (message)
         {
@@ -651,27 +651,14 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 h = GetDlgItem(hdlg, CheckBox_Sound);
                 SendMessage(h, BM_SETCHECK, config.soundenabled, 0);
 
-                /* Set CPU model */
-                /* The CPUModel list and Dialog items are in a different order */
-                switch (config.model) {
-                case CPUModel_ARM610:
-                        cpu = 0; break;
-                case CPUModel_ARM710:
-                        cpu = 1; break;
-                case CPUModel_SA110:
-                        cpu = 2; break;
-                case CPUModel_ARM7500:
-                        cpu = 3; break;
-                case CPUModel_ARM7500FE:
-                        cpu = 4; break;
-                case CPUModel_ARM810:
-                        cpu = 5; break;
-                default:
-                        fprintf(stderr, "configdlgproc(): unknown CPU model %d\n", config.model);
-                        exit(EXIT_FAILURE);
-                }
-                h = GetDlgItem(hdlg, RadioButton_ARM610 + cpu);
-                SendMessage(h,BM_SETCHECK,1,0);
+		/* Fill in the hardware list with the machines we support */
+		h = GetDlgItem(hdlg, ListBox_Hardware);
+		for (c = 0; c < Model_MAX; c++) {
+			SendMessage(h, LB_ADDSTRING, 0, (LPARAM) models[c].name_gui);
+		}
+
+		/* Select the currently emulated model */
+		SendMessage(h, LB_SETCURSEL, machine.model, 0);
 
                 /* Set VRAM */
                 h = GetDlgItem(hdlg, config.vrammask ? RadioButton_VRAM_2 : RadioButton_VRAM_0);
@@ -689,7 +676,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
 		}
 		SendMessage(h, BM_SETCHECK, 1, 0);
 
-                chosen_config.model        = config.model;
+		chosen_model               = machine.model;
                 chosen_config.vrammask     = config.vrammask;
                 chosen_config.soundenabled = config.soundenabled;
                 chosen_config.refresh      = config.refresh;
@@ -718,15 +705,19 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                                 sound_restart();
                         }
 
-                        /* If an A7000 (ARM7500) or an A7000+ (ARM7500FE) it does not have vram */
-                        if (config.model != chosen_config.model &&
-                            (chosen_config.model == CPUModel_ARM7500 || chosen_config.model == CPUModel_ARM7500FE))
+			/* Changed machine we're emulating? */
+			if (chosen_model != machine.model) {
+				rpcemu_model_changed(chosen_model);
+				needs_reset = 1;
+			}
+
+                        /* If an A7000 or an A7000+ it does not have vram */
+                        if (machine.model == Model_A7000 || machine.model == Model_A7000plus)
                         {
                                 chosen_config.vrammask = 0;
                         }
                         
-                        if (config.model != chosen_config.model ||
-                            config.vrammask != chosen_config.vrammask ||
+                        if (config.vrammask != chosen_config.vrammask ||
                             chngram)
                         {
                                 needs_reset = 1;
@@ -736,7 +727,6 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         {
                                 config.mem_size = chosen_config.mem_size;
                         }
-                        config.model = chosen_config.model;
                         config.vrammask = chosen_config.vrammask;
                         config.refresh = chosen_config.refresh;
 
@@ -771,61 +761,15 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         SendMessage(h,BM_SETCHECK,1,0);
                         chosen_config.vrammask = 0x7FFFFF;
                         return TRUE;
-                        
-                /* CPU Type radio buttons */
-                case RadioButton_ARM610:
-                case RadioButton_ARM710:
-                case RadioButton_SA110:
-                case RadioButton_ARM7500:
-                case RadioButton_ARM7500FE:
-                case RadioButton_ARM810:
-                        /* The model enum and the dialog IDs are in different orders */
 
-                        /* Clear previous CPU model choice */
-                        switch (chosen_config.model) {
-                        case CPUModel_ARM610:
-                                cpu = 0; break;
-                        case CPUModel_ARM710:
-                                cpu = 1; break;
-                        case CPUModel_SA110:
-                                cpu = 2; break;
-                        case CPUModel_ARM7500:
-                                cpu = 3; break;
-                        case CPUModel_ARM7500FE:
-                                cpu = 4; break;
-                        case CPUModel_ARM810:
-                                cpu = 5; break;
-                        default:
-                                fprintf(stderr, "configdlgproc(): unknown CPU model %d\n", config.model);
-                                exit(EXIT_FAILURE);
-                        }
+		/* Hardware Type list */
+		case ListBox_Hardware:
+			h = GetDlgItem(hdlg, ListBox_Hardware);
 
-                        h = GetDlgItem(hdlg, RadioButton_ARM610 + cpu);
-                        SendMessage(h, BM_SETCHECK, 0, 0);
+			/* Select the currently emulated model */
+			chosen_model = SendMessage(h, LB_GETCURSEL, 0, 0);
+			break;
 
-                        /* Set new CPU model */
-                        switch (LOWORD(wParam) - RadioButton_ARM610) {
-                        case 0:
-                                chosen_config.model = CPUModel_ARM610; break;
-                        case 1:
-                                chosen_config.model = CPUModel_ARM710; break;
-                        case 2:
-                                chosen_config.model = CPUModel_SA110; break;
-                        case 3:
-                                chosen_config.model = CPUModel_ARM7500; break;
-                        case 4:
-                                chosen_config.model = CPUModel_ARM7500FE; break;
-                        case 5:
-                                chosen_config.model = CPUModel_ARM810; break;
-                        default:
-                                fatal("configdlgproc(): unknown dialog item for CPUModel %d\n",
-                                      LOWORD(wParam) - RadioButton_ARM610);
-                        }
-
-                        h = GetDlgItem(hdlg, LOWORD(wParam));
-                        SendMessage(h, BM_SETCHECK, 1, 0);
-                        return TRUE;
-                        
                 /* Memory selection radio buttons */
                 case RadioButton_Mem_4:
                 case RadioButton_Mem_8:
