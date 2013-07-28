@@ -202,7 +202,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
         case 5:
         case 6:
         case 8:
-                switch (config.model) {
+                switch (machine.cpu_model) {
                 /* ARMv3 Architecture */
                 case CPUModel_ARM610:
                 case CPUModel_ARM710:
@@ -243,7 +243,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 
                 default:
                         fprintf(stderr, "writecp15(): unknown CPU model %d\n",
-                                config.model);
+                                machine.cpu_model);
                         exit(EXIT_FAILURE);
                 }
                 break;
@@ -264,7 +264,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 return;
 
 	case 15:
-		switch (config.model) {
+		switch (machine.cpu_model) {
 		case CPUModel_SA110: /* Test, Clock and Idle control */
 			if (OPC2 == 2 && CRm == 1) {
 				/* Enable clock switching - no need to implement */
@@ -278,7 +278,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 		default:
 			UNIMPLEMENTED("CP15 Write",
 			  "Unknown processor '%d' writing to reg 15",
-			  config.model);
+			  machine.cpu_model);
 		}
 		break;
 
@@ -294,7 +294,7 @@ uint32_t readcp15(uint32_t addr)
         switch (addr&15)
         {
                 case 0: /*ARM ID*/
-                switch (config.model)
+                switch (machine.cpu_model)
                 {
                         case CPUModel_ARM7500:   return 0x41027100;
                         case CPUModel_ARM7500FE: return 0x41077100;

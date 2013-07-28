@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "config.h"
+#include "iomd.h"
 
 #if !defined(_DEBUG) && !defined(NDEBUG)
 #define NDEBUG
@@ -77,6 +78,19 @@ typedef enum {
 	NetworkType_MAX
 } NetworkType;
 
+/** Selection of models that the emulator can emulate,
+  must be kept in sync with models[] array in rpcemu.c
+  the size of model_selection gui.c must be Model_MAX */
+typedef enum {
+	Model_RPCARM610,
+	Model_RPCARM710,
+	Model_RPCSA110,
+	Model_A7000,
+	Model_A7000plus,
+	Model_RPCARM810,
+	Model_MAX         /**< Always last entry */
+} Model;
+
 /** The type of processor configured */
 typedef enum {
 	CPUModel_ARM610,
@@ -89,7 +103,6 @@ typedef enum {
 
 /** The user's configuration of the emulator */
 typedef struct {
-	CPUModel model;
 	unsigned mem_size;	/**< Amount of RAM in megabytes */
 	int vrammask;
 	int stretchmode;
@@ -110,6 +123,26 @@ typedef struct {
 } Config;
 
 extern Config config;
+
+/** Structure to hold details about a model that the emulator can emulate */
+typedef struct {
+	const char	*name_gui;	/**< String used in the GUI */
+	const char	*name_config;	/**< String used in the Config file to select model */
+	CPUModel	cpu_model;	/**< CPU used in this model */
+	IOMDType	iomd_type;	/**< IOMD used in this model */
+} Model_Details;
+
+extern const Model_Details models[]; /**< array of details of models the emulator can emulate */
+
+/** Structure to hold hardware details of the current model being emulated
+ (cached values of Model_Details for speed of lookup) */
+typedef struct {
+	Model		model;		/**< enum value of model */
+	CPUModel	cpu_model;	/**< CPU used in this model */
+	IOMDType	iomd_type;	/**< IOMD used in this model */
+} Machine;
+
+extern Machine machine; /**< The details of the current model being emulated */
 
 extern uint32_t inscount;
 extern int cyccount;
@@ -139,6 +172,7 @@ extern void endrpcemu(void);
 extern void resetrpc(void);
 extern void rpcemu_floppy_load(int drive, const char *filename);
 extern void rpclog(const char *format, ...);
+extern void rpcemu_model_changed(Model model);
 
 extern int mousecapture;
 extern int drawscre;

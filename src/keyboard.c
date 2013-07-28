@@ -635,7 +635,7 @@ mouse_poll(void)
         if (mousecapture) position_mouse(getxs()>>1,getys()>>1);
 
         /* Return if not PS/2 mouse */
-        if (config.model != CPUModel_ARM7500 && config.model != CPUModel_ARM7500FE) {
+        if (machine.model != Model_A7000 && machine.model != Model_A7000plus) {
                 return;
         }
 
