@@ -25,6 +25,7 @@ int i2cdata  = 1; /**< The current value of the I2C data pin */
 #define BIN2BCD(val)	((((val) / 10) << 4) | ((val) % 10))
 
 static unsigned char cmosram[256];
+static uint32_t i2c_devices; /**< Bitfield of devices on the I2C bus */
 
 /****************************************************************************/
 
@@ -426,7 +427,7 @@ cmosi2cchange(int scl, int sda)
 				serdes->address = serdes->inbuf >> 1;
 
 				/* Detect which device is being talked to */
-				if (serdes->address == pcf8583->address) {
+				if ((serdes->address == pcf8583->address) && (i2c_devices & I2C_PCF8583)) {
 					slave = pcf8583;
 				} else {
 					fprintf(stderr, "Request for unhandled I2C device %02X\n",
@@ -615,12 +616,15 @@ cmosi2cchange(int scl, int sda)
 
 /**
  * Reset the I2C emulation and attached Philips PCF8583 RTC
+ *
+ * @param chosen_i2c_devices Bitfield of devices to attach to I2C bus
  */
 void
-reseti2c(void)
+reseti2c(uint32_t chosen_i2c_devices)
 {
 	i2cclock = 1;
 	i2cdata = 1;
+	i2c_devices = chosen_i2c_devices;
 
 	/* Prepare the Philips Real Time Clock chip slave device */
 	pcf8583->devops = &pcf8583_ops;
