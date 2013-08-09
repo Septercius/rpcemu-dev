@@ -36,12 +36,12 @@ Machine machine; /**< The details of the current machine being emulated */
 /** Array of details of models the emulator can emulate, must be kept in sync with
     Model enum in rpcemu.h */
 const Model_Details models[] = {
-	{ "Risc PC - ARM610",    "RPC610", CPUModel_ARM610,    IOMDType_IOMD },
-	{ "Risc PC - ARM710",    "RPC710", CPUModel_ARM710,    IOMDType_IOMD },
-	{ "Risc PC - StrongARM", "RPCSA",  CPUModel_SA110,     IOMDType_IOMD },
-	{ "A7000",               "A7000",  CPUModel_ARM7500,   IOMDType_ARM7500 },
-	{ "A7000+",              "A7000+", CPUModel_ARM7500FE, IOMDType_ARM7500FE },
-	{ "Risc PC - ARM810",    "RPC810", CPUModel_ARM810,    IOMDType_IOMD }
+	{ "Risc PC - ARM610",    "RPC610", CPUModel_ARM610,    IOMDType_IOMD,      I2C_PCF8583 },
+	{ "Risc PC - ARM710",    "RPC710", CPUModel_ARM710,    IOMDType_IOMD,      I2C_PCF8583 },
+	{ "Risc PC - StrongARM", "RPCSA",  CPUModel_SA110,     IOMDType_IOMD,      I2C_PCF8583 },
+	{ "A7000",               "A7000",  CPUModel_ARM7500,   IOMDType_ARM7500,   I2C_PCF8583 },
+	{ "A7000+",              "A7000+", CPUModel_ARM7500FE, IOMDType_ARM7500FE, I2C_PCF8583 },
+	{ "Risc PC - ARM810",    "RPC810", CPUModel_ARM810,    IOMDType_IOMD,      I2C_PCF8583 },
 };
 
 Config config = {
@@ -192,7 +192,7 @@ resetrpc(void)
         keyboard_reset();
 	iomd_reset(machine.iomd_type);
 
-        reseti2c();
+        reseti2c(machine.i2c_devices);
         resetide();
         superio_reset();
         podules_reset();
@@ -364,9 +364,10 @@ void
 rpcemu_model_changed(Model model)
 {
 	/* Cache details from the models[] array into the machine struct for speed of lookup */
-	machine.model     = model;
-	machine.cpu_model = models[model].cpu_model;
-	machine.iomd_type = models[model].iomd_type;
+	machine.model       = model;
+	machine.cpu_model   = models[model].cpu_model;
+	machine.iomd_type   = models[model].iomd_type;
+	machine.i2c_devices = models[model].i2c_devices;
 }
 
 /**
