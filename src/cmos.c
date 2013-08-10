@@ -316,6 +316,103 @@ static I2C_Slave *pcf8583 = &pcf8583_s; /**< Handle of the PCF8583 chip I2C slav
 
 /****************************************************************************/
 
+/** The state of the SPD chip */
+typedef struct {
+	I2C_Slave i2c_slave;
+	uint8_t reg_address;
+} SPD;
+
+static uint8_t spd_data[128] = {
+	128, 8, 4, 12, 10, 1, 64, 0, 
+	0, 1, 1, 0, 0, 8, 0, 0,
+	0xf, 2, 0x7f, 0x7f, 0x7f, 0x00, 0x3f, 0x10,
+	0x10, 0x10, 0x10, 1, 1, 1, 1, 0x20
+};
+
+/**
+ * Write to the SPD. Handles write state-machine logic.
+ *
+ * @param dev  Pointer to the SPD data block
+ * @param data Byte being written (address or data)
+ * @return I2C state-machine return code
+ */
+static int
+spd_write(void *dev, uint8_t data)
+{
+	SPD *spd = dev;
+
+	rpclog("spd_write : data = %02X\n", data);
+	
+	spd->reg_address = data & 0x7f;
+
+	return I2C_ACK;
+}
+
+/**
+ * Read from the SPD. Will use address previously written to the chip.
+ *
+ * @param dev  Pointer to the SPD data block
+ * @param data Filled in with the value at previously specified address
+ * @return I2C state-machine return code
+ */
+static int
+spd_read(void *dev, uint8_t *data)
+{
+	SPD *spd = dev;
+
+	*data = spd_data[spd->reg_address];
+
+	rpclog("SPD read 0x%02x from %04x\n", *data, spd->reg_address);
+	spd->reg_address = (spd->reg_address + 1) & 0x7f;
+	return I2C_DONE;
+}
+
+/**
+ * Initialise the state of the SPD chip.
+ * Called when I2C first calls the chip
+ *
+ * @param dev       Pointer to the SPD data block
+ * @param i2c_addr  UNUSED
+ * @param operation UNUSED
+ * @return I2C state machine return code
+ */
+static int
+spd_start(void *dev, int i2c_addr, int operation)
+{
+	rpclog("spd start\n");
+
+	return I2C_ACK;
+}
+
+/**
+ * Finalise the state of the SPD chip.
+ * Called when I2C thinks there's no more to this transaction.
+ *
+ * @param dev Pointer to the SPD data block
+ */
+static void
+spd_stop(void *dev)
+{
+	rpclog("spd stop\n");
+}
+
+/** Function pointers for the SPD interaction */
+static const I2C_SlaveOps spd_ops = {
+	spd_start,
+	spd_stop,
+	spd_write,
+	spd_read,
+	NULL
+};
+
+static SPD spd_s;
+static SPD *spd = &spd_s; /**< Handle of a SPD state machine */
+
+static I2C_Slave spd_i2c_s;
+static I2C_Slave *spd_i2c = &spd_i2c_s; /**< Handle of the SPD chip I2C slave device */
+
+/****************************************************************************/
+
 #define I2C_SDA	1
 #define I2C_SCL	2
 
@@ -429,6 +526,8 @@ cmosi2cchange(int scl, int sda)
 				/* Detect which device is being talked to */
 				if ((serdes->address == pcf8583->address) && (i2c_devices & I2C_PCF8583)) {
 					slave = pcf8583;
+				} else if ((serdes->address == spd_i2c->address) && (i2c_devices & I2C_SPD_DIMM0)) {
+					slave = spd_i2c;
 				} else {
 					fprintf(stderr, "Request for unhandled I2C device %02X\n",
 					        serdes->address);
@@ -630,6 +729,12 @@ reseti2c(uint32_t chosen_i2c_devices)
 	pcf8583->devops = &pcf8583_ops;
 	pcf8583->address = 0x50;
 	pcf8583->dev = pcf;
+
+	/* Prepare the SPD slave device */
+	spd_i2c->devops = &spd_ops;
+	spd_i2c->address = 0x54;
+	spd_i2c->dev = spd;
+	spd->reg_address = 0;
 
 	/* Initialise the I2C state machine */
 	reset_serdes(serdes);

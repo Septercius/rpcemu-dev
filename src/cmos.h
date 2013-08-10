@@ -11,5 +11,6 @@ extern int i2cdata;
 
 /** Values used in bitfield of I2C devices */
 #define I2C_PCF8583	(1 << 0)
+#define I2C_SPD_DIMM0	(1 << 1)
 
 #endif //__CMOS__
