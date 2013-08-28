@@ -40,8 +40,9 @@ static uint32_t writemembcache = 0,writemembcache2 = 0;
 
 void clearmemcache(void)
 {
-        writememcache=0xFFFFFFFF;
-        readmemcache=0xFFFFFFFF;
+	readmemcache = 0xffffffff;
+	writememcache = 0xffffffff;
+	writemembcache = 0xffffffff;
 }
 
 static int vraddrlpos, vwaddrlpos;
