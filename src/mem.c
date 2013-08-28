@@ -38,6 +38,8 @@ static uint32_t readmemcache = 0,readmemcache2 = 0;
 static uint32_t writememcache = 0,writememcache2 = 0;
 static uint32_t writemembcache = 0,writemembcache2 = 0;
 
+static uint32_t phys_space_mask; /**< Mask used to convert to physical memory address space */
+
 void clearmemcache(void)
 {
 	readmemcache = 0xffffffff;
@@ -96,6 +98,10 @@ void mem_reset(uint32_t ramsize)
 	memset(ram01, 0, ramsize / 2);
 
 	vraddrlpos = vwaddrlpos = 0;
+
+	/* 29 address bits are connected to IOMD. This results in a
+	   physical memory map of 512M that repeats in the 4G address space */
+	phys_space_mask = 0x1fffffff;
 }
 
 #define vradd(a,v,f,p) if (vraddrls[vraddrlpos]!=0xFFFFFFFF) vraddrl[vraddrls[vraddrlpos]]=0xFFFFFFFF; \
@@ -120,11 +126,9 @@ void mem_reset(uint32_t ramsize)
 static uint32_t
 mem_phys_read32(uint32_t addr)
 {
-	/* Only 29 address bits are connected to IOMD. This results in a
-	   physical memory map of 512M that repeats in the 4G address space */
-	addr &= 0x1fffffff;
+	addr &= phys_space_mask;
 
-	switch (addr & 0x1f000000) {
+	switch (addr & (phys_space_mask & 0xff000000)) { /* Select in 16MB chunks */
 	case 0x00000000: /* ROM */
 		return rom[(addr & 0x7fffff) >> 2];
 
@@ -210,11 +214,9 @@ mem_phys_read32(uint32_t addr)
 static uint32_t
 mem_phys_read8(uint32_t addr)
 {
-	/* Only 29 address bits are connected to IOMD. This results in a
-	   physical memory map of 512M that repeats in the 4G address space */
-	addr &= 0x1fffffff;
+	addr &= phys_space_mask;
 
-	switch (addr & 0x1f000000) {
+	switch (addr & (phys_space_mask & 0xff000000)) { /* Select in 16MB chunks */
 	case 0x00000000: /* ROM */
 #ifdef _RPCEMU_BIG_ENDIAN
 		addr ^= 3;
@@ -318,11 +320,9 @@ mem_phys_read8(uint32_t addr)
 static void
 mem_phys_write32(uint32_t addr, uint32_t val)
 {
-	/* Only 29 address bits are connected to IOMD. This results in a
-	   physical memory map of 512M that repeats in the 4G address space */
-	addr &= 0x1fffffff;
+	addr &= phys_space_mask;
 
-	switch (addr & 0x1f000000) {
+	switch (addr & (phys_space_mask & 0xff000000)) { /* Select in 16MB chunks */
 	case 0x02000000: /* VRAM */
 		if (config.vrammask == 0)
 			return;
@@ -423,11 +423,9 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 static void
 mem_phys_write8(uint32_t addr, uint8_t val)
 {
-	/* Only 29 address bits are connected to IOMD. This results in a
-	   physical memory map of 512M that repeats in the 4G address space */
-	addr &= 0x1fffffff;
+	addr &= phys_space_mask;
 
-	switch (addr & 0x1f000000) {
+	switch (addr & (phys_space_mask & 0xff000000)) { /* Select in 16MB chunks */
 	case 0x02000000: /* VRAM */
 		if (config.vrammask == 0)
 			return;
@@ -548,7 +546,7 @@ readmemfl(uint32_t addr)
 			}
 			readmemcache2 = addr & 0xfffff000;
 		}
-		switch (readmemcache2 & 0x1f000000) {
+		switch (readmemcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x00000000: /* ROM */
 			vradd(addr2, &rom[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 2, readmemcache2);
 			return *(const uint32_t *) ((vraddrl[addr2 >> 12] & ~3) + (addr2 & ~3));
@@ -590,7 +588,7 @@ readmemfl(uint32_t addr)
 			vraddrl[addr2 >> 12] = 0xffffffff;
 		}
 	} else {
-		switch (addr & 0x1f000000) {
+		switch (addr & (phys_space_mask & 0xff000000)) {
 		case 0x00000000: /* ROM */
 			//vradd(addr, &rom[((addr & 0x7ff000) - (long) (addr & ~0xfff)) >> 2], 2, addr);
 			break;
@@ -649,7 +647,7 @@ readmemfb(uint32_t addr)
 			}
 			readmemcache2 = addr & 0xfffff000;
 		}
-		switch (readmemcache2 & 0x1f000000) {
+		switch (readmemcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x00000000: /* ROM */
 			vradd(addr2, &rom[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 2, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
@@ -724,14 +722,14 @@ writememfl(uint32_t addr, uint32_t val)
 			}
 			writememcache2 = addr & 0xfffff000;
 		}
-		switch (writememcache2 & 0x1f000000) {
+		switch (writememcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
 			dirtybuffer[(addr & config.vrammask) >> 12] = 2;
 			vwadd(addr2, &vram[((writememcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
 			break;
 
 		case 0x10000000: /* SIMM 0 bank 0 */
-			if ((config.vrammask == 0) && (addr & 0x1ff00000) == 0x10000000) {
+			if ((config.vrammask == 0) && (addr & (phys_space_mask & 0xfff00000)) == 0x10000000) {
 				dirtybuffer[(addr & mem_rammask) >> 12] = 2;
 			}
 		case 0x11000000:
@@ -783,14 +781,14 @@ writememfb(uint32_t addr, uint8_t val)
 			}
 			writemembcache2 = addr & 0xfffff000;
 		}
-		switch (writemembcache2 & 0x1f000000) {
+		switch (writemembcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
 			dirtybuffer[(addr & config.vrammask) >> 12] = 2;
 			vwadd(addr2, &vram[((writemembcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
 			break;
 
 		case 0x10000000: /* SIMM 0 bank 0 */
-			if ((config.vrammask == 0) && (addr & 0x1ff00000) == 0x10000000) {
+			if ((config.vrammask == 0) && (addr & (phys_space_mask & 0xfff00000)) == 0x10000000) {
 				dirtybuffer[(addr & mem_rammask) >> 12] = 2;
 			}
 		case 0x11000000:
