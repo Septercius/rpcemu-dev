@@ -91,6 +91,27 @@ static int cursor_unlinked_x;   /**< If cursor and mouse pointer are unlinked th
 static int cursor_unlinked_y;   /**< If cursor and mouse pointer are unlinked the Y position of the cursor */
 
 static inline void
+keyboard_irq_rx_raise(void)
+{
+	iomd.irqb.status |= IOMD_IRQB_KEYBOARD_RX;
+	updateirqs();
+}
+
+static inline void
+keyboard_irq_rx_lower(void)
+{
+	iomd.irqb.status &= ~IOMD_IRQB_KEYBOARD_RX;
+	updateirqs();
+}
+
+static inline void
+keyboard_irq_tx_raise(void)
+{
+	iomd.irqb.status |= IOMD_IRQB_KEYBOARD_TX;
+	updateirqs();
+}
+
+static inline void
 mouse_irq_tx_raise(void)
 {
 	iomd.irqd.status |= IOMD_IRQD_MOUSE_TX;
@@ -246,13 +267,12 @@ static void keyboardsend(unsigned char v)
 {
 //        rpclog("Keyboard send %02X\n",v);
         kbddata = v;
-        iomd.irqb.status |= IOMD_IRQB_KEYBOARD_RX;
-        updateirqs();
 	kbdstat |= PS2_CONTROL_RX_FULL;
 	if (calculateparity(v))
 		kbdstat |= PS2_CONTROL_RXPARITY;
 	else
 		kbdstat &= ~PS2_CONTROL_RXPARITY;
+	keyboard_irq_rx_raise();
 }
 
 /* Cannot be called keyboard_callback() due to allegro name clash */
@@ -263,10 +283,9 @@ keyboard_callback_rpcemu(void)
 
         if (kbdreset==1)
         {
-                iomd.irqb.status |= IOMD_IRQB_KEYBOARD_TX;
-                updateirqs();
                 kbdreset=0;
                 kbdstat |= PS2_CONTROL_TX_EMPTY;
+                keyboard_irq_tx_raise();
         }
         else if (kbdreset==2)
         {
@@ -328,9 +347,8 @@ keyboard_status_read(void)
 uint8_t
 keyboard_data_read(void)
 {
+        keyboard_irq_rx_lower();
         kbdstat &= ~PS2_CONTROL_RX_FULL;
-        iomd.irqb.status &= ~IOMD_IRQB_KEYBOARD_RX;
-        updateirqs();
         if (kbdcommand==0xFE) kcallback=5*4;
 //        rpclog("Read keyboard data %02X %07X\n",iomd.keydat,PC);
         return kbddata;
