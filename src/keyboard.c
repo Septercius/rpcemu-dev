@@ -60,8 +60,8 @@
 #define PS2_QUEUE_SIZE 256
 
 typedef struct {
-        uint8_t	data[PS2_QUEUE_SIZE];
-        int	rptr, wptr, count;
+	uint8_t	data[PS2_QUEUE_SIZE];
+	int	rptr, wptr, count;
 } PS2Queue;
 
 static struct {
@@ -148,27 +148,32 @@ mouse_irq_rx_lower(void)
 }
 
 static void
-ps2_queue(PS2Queue *q, unsigned char b)
+ps2_queue(PS2Queue *q, uint8_t b)
 {
-        if (q->count >= PS2_QUEUE_SIZE) {
-                return;
-        }
-        q->data[q->wptr] = b;
-        if (++q->wptr == PS2_QUEUE_SIZE) {
-                q->wptr = 0;
-        }
-        q->count++;
+	if (q->count >= PS2_QUEUE_SIZE) {
+		return;
+	}
+	q->data[q->wptr] = b;
+	if (++q->wptr == PS2_QUEUE_SIZE) {
+		q->wptr = 0;
+	}
+	q->count++;
 }
 
-static int calculateparity(unsigned char v)
+static int
+calculateparity(uint8_t v)
 {
-        int c,d=0;
-        for (c=0;c<8;c++)
-        {
-                if (v&(1<<c)) d++;
-        }
-        if (d&1) return 0;
-        return 1;
+	int c, d = 0;
+
+	for (c = 0; c < 8; c++) {
+		if (v & (1 << c)) {
+			d++;
+		}
+	}
+	if (d & 1) {
+		return 0;
+	}
+	return 1;
 }
 
 void
@@ -177,13 +182,13 @@ keyboard_reset(void)
 	kcallback = 0;
 	memset(&kbd, 0, sizeof(kbd));
 
-        msqueue.rptr = 0;
-        msqueue.wptr = 0;
-        msqueue.count = 0;
-        msenable=0;
-        mcallback=0;
-        msreset=0;
-        msstat=0;
+	msqueue.rptr = 0;
+	msqueue.wptr = 0;
+	msqueue.count = 0;
+	msenable = 0;
+	mcallback = 0;
+	msreset = 0;
+	msstat = 0;
 	msincommand = 0;
 	mousepoll = 0;
 	justsent = 0;
@@ -198,20 +203,22 @@ keyboard_reset(void)
 static uint8_t
 ps2_read_data(PS2Queue *q)
 {
-        uint8_t val;
+	uint8_t val;
 
-        if (q->count == 0) {
-                int index = q->rptr - 1;
-                if (index < 0)
-                        index = PS2_QUEUE_SIZE - 1;
-                val = q->data[index];
-        } else {
-                val = q->data[q->rptr];
-                if (++q->rptr == PS2_QUEUE_SIZE)
-                        q->rptr = 0;
-                q->count--;
-        }
-        return val;
+	if (q->count == 0) {
+		int index = q->rptr - 1;
+		if (index < 0) {
+			index = PS2_QUEUE_SIZE - 1;
+		}
+		val = q->data[index];
+	} else {
+		val = q->data[q->rptr];
+		if (++q->rptr == PS2_QUEUE_SIZE) {
+			q->rptr = 0;
+		}
+		q->count--;
+	}
+	return val;
 }
 
 /**
@@ -222,25 +229,24 @@ ps2_read_data(PS2Queue *q)
 void
 keyboard_data_write(uint8_t v)
 {
-//        rpclog("Write keyboard %02X %08X\n",v,PC);
-        switch (v)
-        {
-        case KBD_CMD_RESET:
-                kbd.reset = 2;
-                kcallback=4*4;
-                break;
+	switch (v) {
+	case KBD_CMD_RESET:
+		kbd.reset = 2;
+		kcallback = 4 * 4;
+		break;
 
-        case KBD_CMD_ENABLE:
-                kcallback=1*4;
-                kbd.reset = 0;
-                kbd.command = KBD_CMD_ENABLE;
-                break;
+	case KBD_CMD_ENABLE:
+		kbd.reset = 0;
+		kbd.command = KBD_CMD_ENABLE;
+		kcallback = 1 * 4;
+		break;
 
-        default:
-                kbd.command = 1;
-                kcallback=1*4;
-                kbd.reset = 0;
-        }
+	default:
+		kbd.command = 1;
+		kbd.reset = 0;
+		kcallback = 1 * 4;
+		break;
+	}
 }
 
 /**
@@ -251,7 +257,6 @@ keyboard_data_write(uint8_t v)
 void
 keyboard_control_write(uint8_t v)
 {
-//        printf("Write keyboard enable %02X\n",v);
 	if (v && !kbd.enable) {
 		kbd.reset = 1;
 		kcallback = 5 * 4;
@@ -263,9 +268,9 @@ keyboard_control_write(uint8_t v)
 	}
 }
 
-static void keyboardsend(unsigned char v)
+static void
+keyboardsend(uint8_t v)
 {
-//        rpclog("Keyboard send %02X\n",v);
 	kbd.data = v;
 	kbd.stat |= PS2_CONTROL_RX_FULL;
 	if (calculateparity(v)) {
@@ -280,48 +285,39 @@ static void keyboardsend(unsigned char v)
 void
 keyboard_callback_rpcemu(void)
 {
-        PS2Queue *q = &kbd.queue;
+	PS2Queue *q = &kbd.queue;
 
-        if (kbd.reset == 1) {
-                kbd.reset = 0;
-                kbd.stat |= PS2_CONTROL_TX_EMPTY;
-                keyboard_irq_tx_raise();
+	if (kbd.reset == 1) {
+		kbd.reset = 0;
+		kbd.stat |= PS2_CONTROL_TX_EMPTY;
+		keyboard_irq_tx_raise();
 
-        } else if (kbd.reset == 2) {
-                kbd.reset = 3;
-                // keyboardsend(KBD_REPLY_ACK);
-                kcallback=500*4;
+	} else if (kbd.reset == 2) {
+		kbd.reset = 3;
+		// keyboardsend(KBD_REPLY_ACK);
+		kcallback = 500 * 4;
 
-        } else if (kbd.reset == 3) {
-                kcallback=0;
-                kbd.reset = 0;
-                keyboardsend(KBD_REPLY_POR);
+	} else if (kbd.reset == 3) {
+		kcallback = 0;
+		kbd.reset = 0;
+		keyboardsend(KBD_REPLY_POR);
 
-        } else switch (kbd.command) {
-        case 1:
-        case KBD_CMD_ENABLE:
-                // rpclog("Send key dataF4\n");
-                keyboardsend(KBD_REPLY_ACK);
-                kcallback=0;
-                kbd.command = 0;
-                break;
+	} else switch (kbd.command) {
+	case 1:
+	case KBD_CMD_ENABLE:
+		keyboardsend(KBD_REPLY_ACK);
+		kcallback = 0;
+		kbd.command = 0;
+		break;
 
-        case 0xFE:
-                // rpclog("Send key dataFE %i %02X\n",kbdpacketpos,kbdpacket[kbdpacketpos]);
-                keyboardsend(ps2_read_data(q));
-                kcallback=0;
-                if (q->count == 0)
-                   kbd.command = 0;
-/*                {
-                        kcallback=0;
-                }
-                else
-                {
-                        kcallback=5;
-                }*/
-//                rpclog("kcallback now %i\n", kcallback);
-                break;
-        }
+	case 0xfe:
+		keyboardsend(ps2_read_data(q));
+		kcallback = 0;
+		if (q->count == 0) {
+			kbd.command = 0;
+		}
+		break;
+	}
 }
 
 /**
@@ -332,7 +328,6 @@ keyboard_callback_rpcemu(void)
 uint8_t
 keyboard_status_read(void)
 {
-	// printf("Read keyboard stat %02X %07X\n", kbd.stat, PC);
 	return kbd.stat;
 }
 
@@ -349,7 +344,6 @@ keyboard_data_read(void)
 	if (kbd.command == 0xfe) {
 		kcallback = 5 * 4;
 	}
-	// rpclog("Read keyboard data %02X %07X\n", kbd.data, PC);
 	return kbd.data;
 }
 
@@ -774,17 +768,18 @@ static const int standardkeys[][2]=
         {-1,-1}
 };
 
-static int findkey(int c)
+static int
+findkey(int c)
 {
-        int d = 0;
+	int d = 0;
 
-        while (standardkeys[d][0] != -1) {
-                if (standardkeys[d][0] == c) {
-                        return d;
-                }
-                d++;
-        }
-        return -1;
+	while (standardkeys[d][0] != -1) {
+		if (standardkeys[d][0] == c) {
+			return d;
+		}
+		d++;
+	}
+	return -1;
 }
 
 static const int extendedkeys[][3]=
@@ -797,17 +792,18 @@ static const int extendedkeys[][3]=
         {-1,-1,-1}
 };
 
-static int findextkey(int c)
+static int
+findextkey(int c)
 {
-        int d = 0;
+	int d = 0;
 
-        while (extendedkeys[d][0] != -1) {
-                if (extendedkeys[d][0] == c) {
-                        return d;
-                }
-                d++;
-        }
-        return -1;
+	while (extendedkeys[d][0] != -1) {
+		if (extendedkeys[d][0] == c) {
+			return d;
+		}
+		d++;
+	}
+	return -1;
 }
 
 static void
@@ -827,67 +823,67 @@ ps2_queue_break(void)
 void
 keyboard_poll(void)
 {
-        int c;
+	int c;
 
-        for (c = 0; c < 128; c++) {
-                int idx;
+	for (c = 0; c < 128; c++) {
+		int idx;
 
-                if (key[c] == kbd.keys2[c]) {
-                        /* no change in state */
-                        continue;
-                }
+		if (key[c] == kbd.keys2[c]) {
+			/* no change in state */
+			continue;
+		}
 
-                kbd.keys2[c] = key[c];
+		kbd.keys2[c] = key[c];
 #ifdef RPCEMU_MACOSX
-                /* map Cmd-F12 to Break on OS X because Apple laptops don't have a Break key
-                   (F15 is equivalent to Break on Apple desktop keyboards) */
-                if (c == KEY_F12 && kbd.keys2[KEY_F12] && (key_shifts & KB_COMMAND_FLAG)) {
-                        /* Cmd-F12 - Translate to break */
-                        kbd.f12transtobreak = 1;
-                        ps2_queue_break();
-                } else if (c == KEY_F12 && !kbd.keys2[KEY_F12] && kbd.f12transtobreak) {
-                        /* F12 key down corresponding to this key up was
-                           translated to break - eat the key up event
-                           (otherwise the emulated Risc PC would receive a
-                           key up without a key down) */
-                        continue;
-                } else
+		/* map Cmd-F12 to Break on OS X because Apple laptops don't have a Break key
+		   (F15 is equivalent to Break on Apple desktop keyboards) */
+		if (c == KEY_F12 && kbd.keys2[KEY_F12] && (key_shifts & KB_COMMAND_FLAG)) {
+			/* Cmd-F12 - Translate to break */
+			kbd.f12transtobreak = 1;
+			ps2_queue_break();
+		} else if (c == KEY_F12 && !kbd.keys2[KEY_F12] && kbd.f12transtobreak) {
+			/* F12 key down corresponding to this key up was
+			   translated to break - eat the key up event
+			   (otherwise the emulated Risc PC would receive a
+			   key up without a key down) */
+			continue;
+		} else
 #endif
-                if ((idx = findkey(c)) != -1) {
+		if ((idx = findkey(c)) != -1) {
 #ifdef RPCEMU_MACOSX
-                        if (c == KEY_F12 && kbd.keys2[KEY_F12]) {
-                                /* F12 key down was NOT translated to break */
-                                kbd.f12transtobreak = 0;
-                        }
+			if (c == KEY_F12 && kbd.keys2[KEY_F12]) {
+				/* F12 key down was NOT translated to break */
+				kbd.f12transtobreak = 0;
+			}
 #endif
-                        if (!kbd.keys2[c]) {
-                                /* key-up modifier */
-                                ps2_queue(&kbd.queue, 0xf0);
-                        }
-                        /* 1-byte scan code */
-                        ps2_queue(&kbd.queue, standardkeys[idx][1]);
+			if (!kbd.keys2[c]) {
+				/* key-up modifier */
+				ps2_queue(&kbd.queue, 0xf0);
+			}
+			/* 1-byte scan code */
+			ps2_queue(&kbd.queue, standardkeys[idx][1]);
 
-                } else if ((idx = findextkey(c)) != -1) {
-                        /* first of 2-byte scan code  */
-                        ps2_queue(&kbd.queue, extendedkeys[idx][1]);
-                        if (!kbd.keys2[c]) {
-                                /* key-up modifier */
-                                ps2_queue(&kbd.queue, 0xf0);
-                        }
-                        /* second of 2-byte scan code  */
-                        ps2_queue(&kbd.queue, extendedkeys[idx][2]);
+		} else if ((idx = findextkey(c)) != -1) {
+			/* first of 2-byte scan code  */
+			ps2_queue(&kbd.queue, extendedkeys[idx][1]);
+			if (!kbd.keys2[c]) {
+				/* key-up modifier */
+				ps2_queue(&kbd.queue, 0xf0);
+			}
+			/* second of 2-byte scan code  */
+			ps2_queue(&kbd.queue, extendedkeys[idx][2]);
 
-                } else if (c == KEY_PAUSE) {
-                        ps2_queue_break();
-                } else {
-                        /* unhandled key */
-                        continue;
-                }
+		} else if (c == KEY_PAUSE) {
+			ps2_queue_break();
+		} else {
+			/* unhandled key */
+			continue;
+		}
 
-                kcallback = 20;
-                kbd.command = 0xfe;
-                return;
-        }
+		kcallback = 20;
+		kbd.command = 0xfe;
+		return;
+	}
 }
 
 /* Mousehack functions */
