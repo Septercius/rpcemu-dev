@@ -841,13 +841,15 @@ networkdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 		/* Network Type */
 		if (config.network_type == NetworkType_EthernetBridging) {
+			SendMessage(GetDlgItem(hdlg, RadioButton_Off),              BM_SETCHECK, 0, 0);
 			SendMessage(GetDlgItem(hdlg, RadioButton_EthernetBridging), BM_SETCHECK, 1, 0);
 
 			/* Make sure Bridgename is visible */
 			EnableWindow(GetDlgItem(hdlg, Edit_BridgeName), 1);
 			EnableWindow(GetDlgItem(hdlg, Text_BridgeName), 1);
 		} else {
-			SendMessage(GetDlgItem(hdlg, RadioButton_Off), BM_SETCHECK, 1, 0);
+			SendMessage(GetDlgItem(hdlg, RadioButton_EthernetBridging), BM_SETCHECK, 0, 0);
+			SendMessage(GetDlgItem(hdlg, RadioButton_Off),              BM_SETCHECK, 1, 0);
 
 			/* Disable bridgename */
 			EnableWindow(GetDlgItem(hdlg, Edit_BridgeName), 0);
