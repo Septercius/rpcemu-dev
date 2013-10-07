@@ -365,7 +365,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	c++;
 
 	/* Perform Writeback (if requested) at end of 2nd cycle */
-	if ((opcode & (1 << 21)) && (RN != 15)) {
+	if (!arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15)) {
 		arm.reg[RN] = writeback;
 	}
 
@@ -383,6 +383,11 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	if (opcode & (1 << 15)) {
 		writememl(addr, arm.reg[15] + r15diff);
 		exception_flags |= armirq;
+	}
+
+	/* Perform Writeback (if requested) at end of instruction (SA110) */
+	if (arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15)) {
+		arm.reg[RN] = writeback;
 	}
 
 	/* If a Data Abort occurred, update the Data Abort flag and restore
@@ -430,7 +435,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	c++;
 
 	/* Perform Writeback (if requested) at end of 2nd cycle */
-	if ((opcode & (1 << 21)) && (RN != 15)) {
+	if (!arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15)) {
 		arm.reg[RN] = writeback;
 	}
 
@@ -448,6 +453,11 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	if (opcode & (1 << 15)) {
 		writememl(addr, arm.reg[15] + r15diff);
 		exception_flags |= armirq;
+	}
+
+	/* Perform Writeback (if requested) at end of instruction (SA110) */
+	if (arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15)) {
+		arm.reg[RN] = writeback;
 	}
 
 	/* If a Data Abort occurred, update the Data Abort flag and restore
