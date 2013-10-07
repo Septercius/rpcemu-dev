@@ -5,6 +5,7 @@
 
 typedef struct {
 	uint32_t	reg[18];
+	uint8_t		stm_writeback_at_end;
 } ARMState;
 
 typedef void (*OpFn)(uint32_t opcode);
