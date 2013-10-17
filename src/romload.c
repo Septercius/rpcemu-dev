@@ -159,4 +159,17 @@ void loadroms(void)
 	{
 		rom[0x14750 >> 2] = 0x03a06008; /* MOVEQ r6, #8 */
 	}
+
+	/* Patch Netstation versions of NCOS to bypass the results of the POST that we currently fail */
+	/* NCOS 0.10 */
+	if (rom[0x2714 >> 2] == 0xe1d70000) {
+		rom[0x2714 >> 2] = 0xe3b00000; /* MOVS r0, #0 */
+		rom[0x2794 >> 2] = 0xe3b00000; /* MOVS r0, #0 */
+	}
+
+	/* NCOS 1.06/1.11 */
+	if (rom[0x26f0 >> 2] == 0xe1d70000) {
+		rom[0x26f0 >> 2] = 0xe3b00000; /* MOVS r0, #0 */
+		rom[0x2750 >> 2] = 0xe3b00000; /* MOVS r0, #0 */
+	}
 }
