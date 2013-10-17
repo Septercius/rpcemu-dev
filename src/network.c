@@ -9,9 +9,60 @@
 #include "network.h"
 #include "podules.h"
 
+/* Variables for supporting a podule header data */
+static uint8_t *romdata = NULL; /**< Podule header data and the like */
+static uint32_t poduleromsize = 0;
+static const char description[] = "RPCEmu Ethernet";
+static uint32_t chunkbase;
+static uint32_t filebase;
+
+
 podule *network_poduleinfo = NULL;
 
 unsigned char network_hwaddr[6]; /**< MAC Hardware address */
+
+
+/**
+ *
+ *
+ * @param type
+ * @param filebase
+ * @param size
+ */
+static void
+makechunk(uint8_t type, uint32_t filebase, uint32_t size)
+{
+	romdata[chunkbase++] = type;
+	romdata[chunkbase++] = (uint8_t) size;
+	romdata[chunkbase++] = (uint8_t) (size >> 8);
+	romdata[chunkbase++] = (uint8_t) (size >> 16);
+
+	romdata[chunkbase++] = (uint8_t) filebase;
+	romdata[chunkbase++] = (uint8_t) (filebase >> 8);
+	romdata[chunkbase++] = (uint8_t) (filebase >> 16);
+	romdata[chunkbase++] = (uint8_t) (filebase >> 24);
+}
+
+/**
+ * Podule byte read function for Ethernet podule
+ *
+ * @param p    podule pointer (unused)
+ * @param easi Read from EASI space or from regular IO space
+ * @param addr Address of byte to read
+ * @return Contents of byte
+ */
+static uint8_t
+readpoduleetherrpcem(podule *p, int easi, uint32_t addr)
+{
+	if (easi && (poduleromsize > 0)) {
+		addr = (addr & 0xffffff) >> 2;
+		if (addr < poduleromsize) {
+			return romdata[addr];
+		}
+		return 0x00;
+	}
+	return 0xff;
+}
 
 /**
  * Copy bytes from emulated memory map to host
@@ -147,12 +198,34 @@ network_init(void)
 	assert(config.network_type == NetworkType_EthernetBridging ||
 	       config.network_type == NetworkType_IPTunnelling);
 
+	/* Build podule header */
+	chunkbase = 0x10;
+	filebase = chunkbase + 8 ; /* 8 = makechunk() required size for one entry */
+	poduleromsize = filebase + ((sizeof(description) + 3) & ~3u); /* Word align description string */
+	romdata = malloc(poduleromsize);
+	if (romdata == NULL) {
+		fatal("Out of Memory");
+	}
+
+	memset(romdata, 0, poduleromsize);
+	romdata[0] = 0; /* Acorn comformant card, not requesting FIQ, not requesting interupt, EcID = 0 = EcID is extended (8 bytes) */
+	romdata[1] = 3; /* Interrupt status has been relocated, chunk directories present, byte access */
+	romdata[2] = 0; /* Mandatory */
+	romdata[3] = 3; /* Product type, low,  Ethernet */
+	romdata[4] = 0; /* Product type, high, Ethernet */
+	romdata[5] = 0; /* Manufacturer, low,  Acorn UK */
+	romdata[6] = 0; /* Manufacturer, high, Acorn UK */
+	romdata[7] = 0; /* Reserved */
+
+	memcpy(romdata + filebase, description, sizeof(description));
+	makechunk(0xf5, filebase, sizeof(description)); /* F = Device Data, 5 = description */
+
 	/* Call platform's initialisation code */
 	success = network_plt_init();
 
 	if (success) {
 		/* register podule handle */
-		network_poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0);
+		network_poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, readpoduleetherrpcem, NULL, NULL, 0);
 		if (network_poduleinfo == NULL) {
 			error("No free podule for networking");
 		}
