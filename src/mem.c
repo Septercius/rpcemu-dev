@@ -99,9 +99,15 @@ void mem_reset(uint32_t ramsize)
 
 	vraddrlpos = vwaddrlpos = 0;
 
-	/* 29 address bits are connected to IOMD. This results in a
-	   physical memory map of 512M that repeats in the 4G address space */
-	phys_space_mask = 0x1fffffff;
+	if (machine.model == Model_Phoebe) {
+		/* 30 address bits are connected to IOMD2. This results in a
+		   physical memory map of 1G that repeats in the 4G address space */
+		phys_space_mask = 0x3fffffff;
+	} else {
+		/* 29 address bits are connected to IOMD. This results in a
+		   physical memory map of 512M that repeats in the 4G address space */
+		phys_space_mask = 0x1fffffff;
+	}
 }
 
 #define vradd(a,v,f,p) if (vraddrls[vraddrlpos]!=0xFFFFFFFF) vraddrl[vraddrls[vraddrlpos]]=0xFFFFFFFF; \
@@ -148,7 +154,7 @@ mem_phys_read32(uint32_t addr)
 				return iomd_read(addr);
 			case 1:
 			case 2:
-				if (addr == 0x3310000)
+				if ((addr == 0x3310000) && (machine.iomd_type == IOMDType_IOMD))
 					return iomd_mouse_buttons_read();
 				if (addr >= 0x3010000 && addr < 0x3012000) {
 					/* SuperIO */
@@ -165,6 +171,9 @@ mem_phys_read32(uint32_t addr)
 				/* Podule space 4, 5, 6, 7 */
 				return readpodulew(((addr >> 14) & 3) + 4, 0, addr & 0x3fff);
 			}
+		}
+		if ((machine.model == Model_Phoebe) && (addr & 0xcffffc) == 0x8007c0) {
+			return readidew();
 		}
 		break;
 
@@ -242,7 +251,7 @@ mem_phys_read8(uint32_t addr)
 				return iomd_read(addr);
 			case 1:
 			case 2:
-				if (addr == 0x3310000)
+				if ((addr == 0x3310000) && (machine.iomd_type == IOMDType_IOMD))
 					return iomd_mouse_buttons_read();
 				if (addr >= 0x3012000 && addr <= 0x302a000)
 					return fdc_dma_read(addr);
@@ -262,6 +271,9 @@ mem_phys_read8(uint32_t addr)
 				/* Podule space 4, 5, 6, 7 */
 				return readpoduleb(((addr >> 14) & 3) + 4, 0, addr & 0x3fff);
 			}
+		}
+		if ((machine.model == Model_Phoebe) && (addr & 0xcff000) == 0x800000) {
+			return readide((addr >> 2) & 0x3ff);
 		}
 		break;
 
@@ -368,6 +380,10 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 			writevidc20(val);
 			return;
 		}
+		if ((machine.model == Model_Phoebe) && (addr & 0xcffffc) == 0x8007c0) {
+			writeidew(val);
+			return;
+		}
 		break;
 
 	case 0x08000000: /* EASI space */
@@ -472,6 +488,10 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 				writepoduleb(((addr >> 14) & 3) + 4, 0, addr & 0x3fff, val);
 				break;
 			}
+		}
+		if ((machine.model == Model_Phoebe) && (addr & 0xcff000) == 0x800000) {
+			writeide((addr >> 2) & 0x3ff, val);
+			return;
 		}
 		break;
 

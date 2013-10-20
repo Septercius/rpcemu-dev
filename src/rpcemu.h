@@ -11,6 +11,7 @@
 
 #include "config.h"
 #include "iomd.h"
+#include "superio.h"
 
 #if !defined(_DEBUG) && !defined(NDEBUG)
 #define NDEBUG
@@ -88,6 +89,7 @@ typedef enum {
 	Model_A7000,
 	Model_A7000plus,
 	Model_RPCARM810,
+	Model_Phoebe,
 	Model_MAX         /**< Always last entry */
 } Model;
 
@@ -130,6 +132,7 @@ typedef struct {
 	const char	*name_config;	/**< String used in the Config file to select model */
 	CPUModel	cpu_model;	/**< CPU used in this model */
 	IOMDType	iomd_type;	/**< IOMD used in this model */
+	SuperIOType	super_type;     /**< SuperIO chip used in this model */
 	uint32_t        i2c_devices;    /**< Bitfield of devices on the I2C bus */
 } Model_Details;
 
@@ -141,6 +144,7 @@ typedef struct {
 	Model		model;		/**< enum value of model */
 	CPUModel	cpu_model;	/**< CPU used in this model */
 	IOMDType	iomd_type;	/**< IOMD used in this model */
+	SuperIOType	super_type;     /**< SuperIO chip used in this model */
 	uint32_t        i2c_devices;    /**< Bitfield of devices on the I2C bus */
 } Machine;
 

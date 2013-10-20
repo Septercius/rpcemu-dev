@@ -46,8 +46,6 @@ static int blitrunning=0,soundrunning=0;
 static HANDLE waitobject,soundobject;
 static CRITICAL_SECTION vidcmutex;
 
-static int chngram = 0;
-
 static Config chosen_config; /**< Temp store of config the user chose in the configuration dialog */
 static Model chosen_model;   /**< Temp store of the user choice of hardware model in the configuration dialog */
 
@@ -730,18 +728,23 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         {
                                 chosen_config.vrammask = 0;
                         }
-                        
-                        if (config.vrammask != chosen_config.vrammask ||
-                            chngram)
-                        {
-                                needs_reset = 1;
-                        }
 
-                        if (chngram)
-                        {
-                                config.mem_size = chosen_config.mem_size;
-                        }
-                        config.vrammask = chosen_config.vrammask;
+			/* If Phoebe, override some settings */
+			if (machine.model == Model_Phoebe) {
+				chosen_config.mem_size = 256;
+				chosen_config.vrammask = 0x3fffff;
+			}
+
+			if (chosen_config.mem_size != config.mem_size) {
+				config.mem_size = chosen_config.mem_size;
+				needs_reset = 1;
+			}
+
+			if (chosen_config.vrammask != config.vrammask) {
+				config.vrammask = chosen_config.vrammask;
+				needs_reset = 1;
+			}
+
                         config.refresh = chosen_config.refresh;
 
 			/* Reset the machine after the config variables have been set to their
@@ -808,11 +811,6 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                         }
                         h=GetDlgItem(hdlg,LOWORD(wParam));
                         SendMessage(h,BM_SETCHECK,1,0);
-                        if (chosen_config.mem_size != config.mem_size) {
-                                chngram = 1;
-                        } else {
-                                chngram = 0;
-                        }
                         return TRUE;
                         
                 /* Sound */

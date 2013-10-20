@@ -13,7 +13,7 @@
 
 #define IOMD_IRQB_PODULE_FIQ_AS_IRQ	0x01 /* Podule FIQ downgraded to IRQ */
 #define IOMD_IRQB_IDE			0x02
-// Unused				0x04
+#define IOMD2_IRQB_SUPERIO_SMI		0x04 /* Used by IOMD2 */
 // Unused				0x08
 #define IOMD_IRQB_FLOPPY		0x10
 #define IOMD_IRQB_PODULE		0x20
@@ -62,7 +62,8 @@
 typedef enum {
 	IOMDType_IOMD,
 	IOMDType_ARM7500,
-	IOMDType_ARM7500FE
+	IOMDType_ARM7500FE,
+	IOMDType_IOMD2
 } IOMDType;
 
 typedef struct {
