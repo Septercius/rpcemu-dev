@@ -441,6 +441,20 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 
         allegro_init();     /* allegro */
 
+	/* Allegro does not appear to read the window position until it
+	   receives a window move message. This results in the mousehack
+	   pointer being offset incorrectly until the window is moved.
+
+	   To workaround this issue, we generate a window move message to the
+	   window's current position.
+	 */
+	{
+		WINDOWINFO wi;
+
+		GetWindowInfo(ghwnd, &wi);
+		PostMessage(ghwnd, WM_MOVE, 0, MAKELPARAM(wi.rcClient.left, wi.rcClient.top));
+	}
+
         /* Initialise the emulation and read the config file */
         if (startrpcemu())
            return -1;
