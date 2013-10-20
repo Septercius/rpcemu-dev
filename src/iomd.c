@@ -156,6 +156,8 @@
 #define IOMD_0x1F4_DMARQ    0x1F4 /* DMA interupt request */
 #define IOMD_0x1F8_DMAMSK   0x1F8 /* DMA interupt mask */
 
+#define IDE_BIT (1 << 0x03)
+
 struct iomd iomd;
 
 int kcallback = 0, mcallback = 0;
@@ -177,7 +179,8 @@ typedef struct {
 static const IOMDVariant iomds[] = {
 	{ 0xe7, 0xd4 }, /* IOMD */
 	{ 0x98, 0x5b }, /* ARM7500 */
-	{ 0x7c, 0xaa }  /* ARM7500FE */
+	{ 0x7c, 0xaa }, /* ARM7500FE */
+	{ 0xe8, 0xd4 }, /* IOMD2 */
 };
 
 static IOMDType iomd_type; /**< The current type of IOMD we're emulating */
@@ -254,7 +257,15 @@ iomd_write(uint32_t addr, uint32_t val)
 {
         static int readinc = 0;
 
-        switch (addr&0x1FC)
+	uint32_t reg;
+
+	if (iomd_type == IOMDType_IOMD2) {
+		reg = addr & 0x3fc; /* IOMD2 has 256 registers*/
+	} else {
+		reg = addr & 0x1fc; /* IOMD1 variants have 128 registers */
+	}
+
+        switch (reg)
         {
         case IOMD_0x000_IOCR: /* I/O control */
                 cmosi2cchange((val >> 1) & 1, val & 1);
@@ -262,10 +273,14 @@ iomd_write(uint32_t addr, uint32_t val)
                 return;
 
         case IOMD_0x004_KBDDAT: /* Keyboard data */
-                keyboard_data_write(val);
+		if (iomd_type != IOMDType_IOMD2) {
+			keyboard_data_write(val);
+		}
                 return;
         case IOMD_0x008_KBDCR: /* Keyboard control */
-                keyboard_control_write(val & 8);
+		if (iomd_type != IOMDType_IOMD2) {
+			keyboard_control_write(val & 8);
+		}
                 return;
 
 	case IOMD_0x00C_IOLINES: /* General Purpose I/O lines (ARM7500/FE) */
@@ -511,9 +526,42 @@ iomd_write(uint32_t addr, uint32_t val)
                 iomd.irqdma.mask = val;
                 return;
 
+	case 0x314:
+		if (val & (1 << 0x06))
+			iomd.irqa.status &= ~IOMD_IRQA_FLYBACK;
+		if (val & (1 << 0x10))
+			iomd.irqa.status &= ~IOMD_IRQA_TIMER_0;
+		if (val & (1 << 0x0a))
+			iomd.irqb.status &= ~IOMD2_IRQB_SUPERIO_SMI;
+		if (val & IDE_BIT)
+			iomd.irqb.status &= ~IOMD_IRQB_IDE;
+
+		iomd.irqa.status |= IOMD_IRQA_FORCE_BIT; /* Bit 7 always active on IRQA */
+		updateirqs();
+		return;
+	case 0x318:
+		if (val & (1 << 0x06))
+			iomd.irqa.mask |= IOMD_IRQA_FLYBACK;
+		else
+			iomd.irqa.mask &= ~IOMD_IRQA_FLYBACK;
+		if (val & (1 << 0x10))
+			iomd.irqa.mask |= IOMD_IRQA_TIMER_0;
+		else
+			iomd.irqa.mask &= ~IOMD_IRQA_TIMER_0;
+		if (val & (1 << 0x0a))
+			iomd.irqb.mask |= IOMD2_IRQB_SUPERIO_SMI;
+		else
+			iomd.irqb.mask &= ~IOMD2_IRQB_SUPERIO_SMI;
+		if (val & IDE_BIT)
+			iomd.irqb.mask |= IOMD_IRQB_IDE;
+		else
+			iomd.irqb.mask &= ~IOMD_IRQB_IDE;
+		updateirqs();
+		break;
+
         default:
                 UNIMPLEMENTED("IOMD Register write",
-                              "Unknown register 0x%x val 0x%x", addr & 0x1fc, val);
+                              "Unknown register 0x%x val 0x%x", reg, val);
                 return;
         }
 }
@@ -527,15 +575,30 @@ iomd_write(uint32_t addr, uint32_t val)
 uint32_t
 iomd_read(uint32_t addr)
 {
-        switch (addr&0x1FC)
+	uint32_t reg;
+
+	if (iomd_type == IOMDType_IOMD2) {
+		reg = addr & 0x3fc; /* IOMD2 has 256 registers*/
+	} else {
+		reg = addr & 0x1fc; /* IOMD1 variants have 128 registers */
+	}
+
+        switch (reg)
         {
         case IOMD_0x000_IOCR: /* I/O control */
                 return ((i2cclock)?2:0)|((i2cdata)?1:0)|(iomd.ctrl&0x7C)|4|((flyback)?0x80:0);
-
         case IOMD_0x004_KBDDAT: /* Keyboard data */
-                return keyboard_data_read();
+		if (iomd_type != IOMDType_IOMD2) {
+			return keyboard_data_read();
+		} else {
+			return 0;
+		}
         case IOMD_0x008_KBDCR: /* Keyboard control */
-                return keyboard_status_read();
+		if (iomd_type != IOMDType_IOMD2) {
+			return keyboard_status_read();
+		} else {
+			return 0;
+		}
 
 	case IOMD_0x00C_IOLINES: /* General Purpose I/O lines (ARM7500/FE) */
 		if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE) {
@@ -692,9 +755,37 @@ iomd_read(uint32_t addr)
         case IOMD_0x1F8_DMAMSK: /* DMA interupt mask */
                 return iomd.irqdma.mask;
 
+	case 0x314:
+		{
+			uint32_t ret = 0;
+			if ((iomd.irqa.status & iomd.irqa.mask) & IOMD_IRQA_FLYBACK)
+				ret |= (1 << 0x06);
+			if ((iomd.irqa.status & iomd.irqa.mask) & IOMD_IRQA_TIMER_0)
+				ret |= (1 << 0x10);
+			if ((iomd.irqb.status & iomd.irqb.mask) & IOMD2_IRQB_SUPERIO_SMI)
+				ret |= (1 << 0x0a);
+			if ((iomd.irqb.status & iomd.irqb.mask) & IOMD_IRQB_IDE)
+				ret |= IDE_BIT;
+			return ret;
+		}
+
+	case 0x318:
+		{
+			uint32_t ret = 0;
+			if (iomd.irqa.mask & IOMD_IRQA_FLYBACK)
+				ret |= (1 << 0x06);
+			if (iomd.irqa.mask & IOMD_IRQA_TIMER_0)
+				ret |= (1 << 0x10);
+			if (iomd.irqb.mask & IOMD2_IRQB_SUPERIO_SMI)
+				ret |= (1 << 0x0a);
+			if (iomd.irqb.mask & IOMD_IRQB_IDE)
+				ret |= IDE_BIT;
+			return ret;
+		}
+
         default:
                 UNIMPLEMENTED("IOMD Register read",
-                              "Unknown register 0x%x", addr & 0x1fc);
+                              "Unknown register 0x%x", reg);
 
         }
         return 0;
@@ -752,7 +843,7 @@ iomd_mouse_buttons_read(void)
 void
 iomd_reset(IOMDType type)
 {
-	assert(type == IOMDType_IOMD || type == IOMDType_ARM7500 || type == IOMDType_ARM7500FE);
+	assert(type == IOMDType_IOMD || type == IOMDType_ARM7500 || type == IOMDType_ARM7500FE || type == IOMDType_IOMD2);
 	iomd_type = type;
 
         remove_int(gentimerirq);

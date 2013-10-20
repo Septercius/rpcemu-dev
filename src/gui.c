@@ -415,11 +415,6 @@ menusettings(void)
                 } else if (configuregui[CONF_RAM_256].flags & D_SELECTED) {
                         selected_mem_size = 256;
                 }
-                if (config.mem_size != selected_mem_size) {
-                        config.mem_size = selected_mem_size;
-                        changed = 1;
-                }
-
                 if (configuregui[CONF_VRAM_0].flags & D_SELECTED) {
                         selected_vrammask = 0;
                 } else if (configuregui[CONF_VRAM_2].flags & D_SELECTED) {
@@ -430,6 +425,17 @@ menusettings(void)
                 if (machine.model == Model_A7000 || machine.model == Model_A7000plus) {
                         selected_vrammask = 0;
                 }
+
+		/* If Phoebe, override some settings */
+		if (machine.model == Model_Phoebe) {
+			selected_mem_size = 256;
+			selected_vrammask = 0x3fffff;
+		}
+
+		if (selected_mem_size != config.mem_size) {
+			config.mem_size = selected_mem_size;
+			changed = 1;
+		}
 
                 if (config.vrammask != selected_vrammask) {
                         config.vrammask = selected_vrammask;

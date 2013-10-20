@@ -17,6 +17,7 @@
 #include "arm.h"
 #include "cmos.h"
 #include "superio.h"
+#include "i8042.h"
 #include "romload.h"
 #include "cp15.h"
 #include "cdrom-iso.h"
@@ -36,12 +37,13 @@ Machine machine; /**< The details of the current machine being emulated */
 /** Array of details of models the emulator can emulate, must be kept in sync with
     Model enum in rpcemu.h */
 const Model_Details models[] = {
-	{ "Risc PC - ARM610",    "RPC610", CPUModel_ARM610,    IOMDType_IOMD,      I2C_PCF8583 },
-	{ "Risc PC - ARM710",    "RPC710", CPUModel_ARM710,    IOMDType_IOMD,      I2C_PCF8583 },
-	{ "Risc PC - StrongARM", "RPCSA",  CPUModel_SA110,     IOMDType_IOMD,      I2C_PCF8583 },
-	{ "A7000",               "A7000",  CPUModel_ARM7500,   IOMDType_ARM7500,   I2C_PCF8583 },
-	{ "A7000+",              "A7000+", CPUModel_ARM7500FE, IOMDType_ARM7500FE, I2C_PCF8583 },
-	{ "Risc PC - ARM810",    "RPC810", CPUModel_ARM810,    IOMDType_IOMD,      I2C_PCF8583 },
+	{ "Risc PC - ARM610",    "RPC610", CPUModel_ARM610,    IOMDType_IOMD,      SuperIOType_FDC37C665GT, I2C_PCF8583 },
+	{ "Risc PC - ARM710",    "RPC710", CPUModel_ARM710,    IOMDType_IOMD,      SuperIOType_FDC37C665GT, I2C_PCF8583 },
+	{ "Risc PC - StrongARM", "RPCSA",  CPUModel_SA110,     IOMDType_IOMD,      SuperIOType_FDC37C665GT, I2C_PCF8583 },
+	{ "A7000",               "A7000",  CPUModel_ARM7500,   IOMDType_ARM7500,   SuperIOType_FDC37C665GT, I2C_PCF8583 },
+	{ "A7000+",              "A7000+", CPUModel_ARM7500FE, IOMDType_ARM7500FE, SuperIOType_FDC37C665GT, I2C_PCF8583 },
+	{ "Risc PC - ARM810",    "RPC810", CPUModel_ARM810,    IOMDType_IOMD,      SuperIOType_FDC37C665GT, I2C_PCF8583 },
+	{ "Phoebe (RPC2)",       "Phoebe", CPUModel_SA110,     IOMDType_IOMD2,     SuperIOType_FDC37C672,   I2C_PCF8583 | I2C_SPD_DIMM0 }
 };
 
 Config config = {
@@ -194,7 +196,8 @@ resetrpc(void)
 
         reseti2c(machine.i2c_devices);
         resetide();
-        superio_reset();
+        superio_reset(machine.super_type);
+	i8042_reset();
         podules_reset();
         podulerom_reset(); // must be called after podules_reset()
         hostfs_reset();
@@ -367,6 +370,7 @@ rpcemu_model_changed(Model model)
 	machine.model       = model;
 	machine.cpu_model   = models[model].cpu_model;
 	machine.iomd_type   = models[model].iomd_type;
+	machine.super_type  = models[model].super_type;
 	machine.i2c_devices = models[model].i2c_devices;
 }
 
@@ -439,6 +443,12 @@ loadconfig(void)
 	/* A7000 and A7000+ have no VRAM */
 	if (model == Model_A7000 || model == Model_A7000plus) {
 		config.vrammask = 0;
+	}
+
+	/* If Phoebe, override some settings */
+	if (model == Model_Phoebe) {
+		config.mem_size = 256;
+		config.vrammask = 0x3fffff;
 	}
 
         config.soundenabled = get_config_int(NULL, "sound_enabled", 1);

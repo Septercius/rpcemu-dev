@@ -73,11 +73,11 @@ am__rpcemu_SOURCES_DIST = superio.c superio.h cdrom-iso.c cmos.c \
 	ide.h iomd.c iomd.h keyboard.c keyboard.h mem.c mem.h \
 	romload.c rpcemu.c sound.c sound.h vidc20.c vidc20.h podules.c \
 	podulerom.c icside.c rpc-machdep.c arm_common.h arm_common.c \
-	ArmDynarec.c ArmDynarecOps.h codegen_amd64.c codegen_amd64.h \
-	codegen_x86_common.h codegen_x86.c codegen_x86.h arm.c arm.h \
-	codegen_null.c cdrom-ioctl.c rpc-win.c resources.h rpc-linux.c \
-	gui.c cdrom-linuxioctl.c network-linux.c network.c network.h \
-	rpc-macosx.c
+	i8042.c ArmDynarec.c ArmDynarecOps.h codegen_amd64.c \
+	codegen_amd64.h codegen_x86_common.h codegen_x86.c \
+	codegen_x86.h arm.c arm.h codegen_null.c cdrom-ioctl.c \
+	rpc-win.c resources.h rpc-linux.c gui.c cdrom-linuxioctl.c \
+	network-linux.c network.c network.h rpc-macosx.c
 @DYNAREC_TRUE@am__objects_1 = rpcemu-ArmDynarec.$(OBJEXT)
 @CPU_X86_64_TRUE@@DYNAREC_TRUE@am__objects_2 =  \
 @CPU_X86_64_TRUE@@DYNAREC_TRUE@	rpcemu-codegen_amd64.$(OBJEXT)
@@ -106,9 +106,10 @@ am_rpcemu_OBJECTS = rpcemu-superio.$(OBJEXT) \
 	rpcemu-sound.$(OBJEXT) rpcemu-vidc20.$(OBJEXT) \
 	rpcemu-podules.$(OBJEXT) rpcemu-podulerom.$(OBJEXT) \
 	rpcemu-icside.$(OBJEXT) rpcemu-rpc-machdep.$(OBJEXT) \
-	rpcemu-arm_common.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
-	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
-	$(am__objects_6) $(am__objects_7) $(am__objects_8)
+	rpcemu-arm_common.$(OBJEXT) rpcemu-i8042.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
+	$(am__objects_7) $(am__objects_8)
 rpcemu_OBJECTS = $(am_rpcemu_OBJECTS)
 am__DEPENDENCIES_1 =
 @OS_WIN_FALSE@rpcemu_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -247,7 +248,7 @@ rpcemu_SOURCES = superio.c superio.h cdrom-iso.c cmos.c cmos.h cp15.c \
 	cp15.h fdc.c fdc.h fpa.c hostfs.c hostfs.h ide.c ide.h iomd.c \
 	iomd.h keyboard.c keyboard.h mem.c mem.h romload.c rpcemu.c \
 	sound.c sound.h vidc20.c vidc20.h podules.c podulerom.c \
-	icside.c rpc-machdep.c arm_common.h arm_common.c \
+	icside.c rpc-machdep.c arm_common.h arm_common.c i8042.c \
 	$(am__append_1) $(am__append_3) $(am__append_4) \
 	$(am__append_5) $(am__append_6) $(am__append_7) \
 	$(am__append_8) $(am__append_9)
@@ -371,6 +372,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-fpa.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-gui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-hostfs.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-i8042.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-icside.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-ide.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpcemu-iomd.Po@am__quote@
@@ -683,6 +685,20 @@ rpcemu-arm_common.obj: arm_common.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='arm_common.c' object='rpcemu-arm_common.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-arm_common.obj `if test -f 'arm_common.c'; then $(CYGPATH_W) 'arm_common.c'; else $(CYGPATH_W) '$(srcdir)/arm_common.c'; fi`
+
+rpcemu-i8042.o: i8042.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-i8042.o -MD -MP -MF $(DEPDIR)/rpcemu-i8042.Tpo -c -o rpcemu-i8042.o `test -f 'i8042.c' || echo '$(srcdir)/'`i8042.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/rpcemu-i8042.Tpo $(DEPDIR)/rpcemu-i8042.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='i8042.c' object='rpcemu-i8042.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-i8042.o `test -f 'i8042.c' || echo '$(srcdir)/'`i8042.c
+
+rpcemu-i8042.obj: i8042.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-i8042.obj -MD -MP -MF $(DEPDIR)/rpcemu-i8042.Tpo -c -o rpcemu-i8042.obj `if test -f 'i8042.c'; then $(CYGPATH_W) 'i8042.c'; else $(CYGPATH_W) '$(srcdir)/i8042.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/rpcemu-i8042.Tpo $(DEPDIR)/rpcemu-i8042.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='i8042.c' object='rpcemu-i8042.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -c -o rpcemu-i8042.obj `if test -f 'i8042.c'; then $(CYGPATH_W) 'i8042.c'; else $(CYGPATH_W) '$(srcdir)/i8042.c'; fi`
 
 rpcemu-ArmDynarec.o: ArmDynarec.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(rpcemu_CPPFLAGS) $(CPPFLAGS) $(rpcemu_CFLAGS) $(CFLAGS) -MT rpcemu-ArmDynarec.o -MD -MP -MF $(DEPDIR)/rpcemu-ArmDynarec.Tpo -c -o rpcemu-ArmDynarec.o `test -f 'ArmDynarec.c' || echo '$(srcdir)/'`ArmDynarec.c

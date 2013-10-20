@@ -24,6 +24,7 @@
 #include "mem.h"
 #include "iomd.h"
 #include "arm.h"
+#include "i8042.h"
 
 /* Keyboard Commands */
 #define KBD_CMD_ENABLE		0xf4
@@ -101,15 +102,23 @@ static int cursor_unlinked_y;   /**< If cursor and mouse pointer are unlinked th
 static inline void
 keyboard_irq_rx_raise(void)
 {
-	iomd.irqb.status |= IOMD_IRQB_KEYBOARD_RX;
-	updateirqs();
+	if (machine.model == Model_Phoebe) {
+		i8042_keyboard_irq_raise();
+	} else {
+		iomd.irqb.status |= IOMD_IRQB_KEYBOARD_RX;
+		updateirqs();
+	}
 }
 
 static inline void
 keyboard_irq_rx_lower(void)
 {
-	iomd.irqb.status &= ~IOMD_IRQB_KEYBOARD_RX;
-	updateirqs();
+	if (machine.model == Model_Phoebe) {
+		i8042_keyboard_irq_lower();
+	} else {
+		iomd.irqb.status &= ~IOMD_IRQB_KEYBOARD_RX;
+		updateirqs();
+	}
 }
 
 static inline void
@@ -136,15 +145,23 @@ mouse_irq_tx_lower(void)
 static inline void
 mouse_irq_rx_raise(void)
 {
-	iomd.irqd.status |= IOMD_IRQD_MOUSE_RX;
-	updateirqs();
+	if (machine.model == Model_Phoebe) {
+		i8042_mouse_irq_raise();
+	} else {
+		iomd.irqd.status |= IOMD_IRQD_MOUSE_RX;
+		updateirqs();
+	}
 }
 
 static inline void
 mouse_irq_rx_lower(void)
 {
-	iomd.irqd.status &= ~IOMD_IRQD_MOUSE_RX;
-	updateirqs();
+	if (machine.model == Model_Phoebe) {
+		i8042_mouse_irq_lower();
+	} else {
+		iomd.irqd.status &= ~IOMD_IRQD_MOUSE_RX;
+		updateirqs();
+	}
 }
 
 static void
@@ -646,7 +663,7 @@ mouse_poll(void)
         if (mousecapture) position_mouse(getxs()>>1,getys()>>1);
 
         /* Return if not PS/2 mouse */
-        if (machine.model != Model_A7000 && machine.model != Model_A7000plus) {
+        if (machine.model != Model_A7000 && machine.model != Model_A7000plus && machine.model != Model_Phoebe) {
                 return;
         }
 

@@ -532,7 +532,7 @@ void writeide(uint16_t addr, uint8_t val)
                 ide.fdisk=val;
                 return;
         }
-        fatal("Bad IDE write %04X %02X\n", addr, val);
+        //fatal("Bad IDE write %04X %02X\n", addr, val);
 }
 
 uint8_t readide(uint16_t addr)
@@ -579,7 +579,8 @@ uint8_t readide(uint16_t addr)
         case 0x3F6: /* Alternate Status */
                 return ide.atastat;
         }
-        fatal("Bad IDE read %04X\n", addr);
+	//fatal("Bad IDE read %04X\n", addr);
+	return 0;
 }
 
 uint16_t readidew(void)

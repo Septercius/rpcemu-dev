@@ -46,6 +46,7 @@ OBJS =	arm.o       \
 	ide.o	      \
 	iomd.o      \
 	keyboard.o  \
+	i8042.o \
 	mem.o       \
 	network.o   \
 	network-win.o \

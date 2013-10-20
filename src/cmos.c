@@ -94,7 +94,8 @@ cmos_update_settings(void)
 	   model is selected. CMOS location has been verified on 3.50-Select 4
 	   and 5.17 (*configure mousetype <number>) */
 	if (machine.model == Model_A7000 ||
-	    machine.model == Model_A7000plus)
+	    machine.model == Model_A7000plus ||
+	    machine.model == Model_Phoebe)
 	{
 		cmosram[0x5d] = 3; /* PS/2 mouse */
 	} else {
@@ -529,9 +530,9 @@ cmosi2cchange(int scl, int sda)
 				} else if ((serdes->address == spd_i2c->address) && (i2c_devices & I2C_SPD_DIMM0)) {
 					slave = spd_i2c;
 				} else {
-					fprintf(stderr, "Request for unhandled I2C device %02X\n",
-					        serdes->address);
-					rpclog("Request for unhandled I2C device %02X\n", serdes->address);
+					//fprintf(stderr, "Request for unhandled I2C device %02X\n",
+					//        serdes->address);
+					//rpclog("Request for unhandled I2C device %02X\n", serdes->address);
 				}
 
 				dbgprintf("I2C-Address %02x slave %p\n",
