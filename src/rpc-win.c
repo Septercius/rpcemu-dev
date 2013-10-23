@@ -692,6 +692,7 @@ static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARA
                 chosen_config.vrammask     = config.vrammask;
                 chosen_config.soundenabled = config.soundenabled;
                 chosen_config.refresh      = config.refresh;
+		chosen_config.mem_size     = config.mem_size;
                 return TRUE;
 
         case WM_COMMAND:
