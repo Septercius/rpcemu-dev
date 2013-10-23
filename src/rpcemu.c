@@ -432,7 +432,7 @@ loadconfig(void)
 	model = Model_RPCARM710;
 	if (p != NULL) {
 		for (i = 0; i < Model_MAX; i++) {
-			if (strcmp(p, models[i].name_config) == 0) {
+			if (stricmp(p, models[i].name_config) == 0) {
 				model = i;
 				break;
 			}
