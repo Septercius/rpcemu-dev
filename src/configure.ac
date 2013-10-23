@@ -2,7 +2,7 @@
 #
 
 AC_PREREQ([2.65])
-AC_INIT(RPCEmu, 0.8.10, , rpcemu)
+AC_INIT(RPCEmu, 0.8.11, , rpcemu)
 
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
