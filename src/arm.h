@@ -31,6 +31,7 @@ extern int cpsr;
 extern uint32_t r15mask;
 extern uint32_t mode;
 
+extern void arm_init(void);
 extern void resetarm(CPUModel cpu_model);
 extern void execarm(int cycles);
 extern void dumpregs(void);

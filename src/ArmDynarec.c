@@ -199,69 +199,71 @@ static int stmlookup[256];
 int countbitstable[65536];
 
 void
+arm_init(void)
+{
+	unsigned c, d, exec, data;
+
+	for (c = 0; c < 256; c++) {
+		stmlookup[c] = 0;
+		for (d = 0; d < 8; d++) {
+			if (c & (1u << d)) {
+				stmlookup[c] += 4;
+			}
+		}
+	}
+	for (c = 0; c < 65536; c++) {
+		countbitstable[c] = 0;
+		for (d = 0; d < 16; d++) {
+			if (c & (1u << d)) {
+				countbitstable[c] += 4;
+			}
+		}
+	}
+
+	cpsr = 15;
+	for (c = 0; c < 16; c++) {
+		for (d = 0; d < 16; d++) {
+			arm.reg[15] = d << 28;
+			switch (c) {
+			case 0:  /* EQ */ exec = ZFSET; break;
+			case 1:  /* NE */ exec = !ZFSET; break;
+			case 2:  /* CS */ exec = CFSET; break;
+			case 3:  /* CC */ exec = !CFSET; break;
+			case 4:  /* MI */ exec = NFSET; break;
+			case 5:  /* PL */ exec = !NFSET; break;
+			case 6:  /* VS */ exec = VFSET; break;
+			case 7:  /* VC */ exec = !VFSET; break;
+			case 8:  /* HI */ exec = (CFSET && !ZFSET); break;
+			case 9:  /* LS */ exec = (!CFSET || ZFSET); break;
+			case 10: /* GE */ exec = (NFSET == VFSET); break;
+			case 11: /* LT */ exec = (NFSET != VFSET); break;
+			case 12: /* GT */ exec = (!ZFSET && (NFSET == VFSET)); break;
+			case 13: /* LE */ exec = (ZFSET || (NFSET != VFSET)); break;
+			case 14: /* AL */ exec = 1; break;
+			case 15: /* NV */ exec = 0; break;
+			}
+			flaglookup[c][d] = (uint8_t) exec;
+		}
+	}
+
+	for (data = 0; data < 4096; data++) {
+		uint32_t val = data & 0xff;
+		uint32_t amount = ((data >> 8) & 0xf) << 1;
+
+		rotatelookup[data] = (val >> amount) | (val << (32 - amount));
+	}
+}
+
+void
 resetarm(CPUModel cpu_model)
 {
-        int c,d,exec = 0,data;
 //        atexit(dumpregs);
-        uint32_t rotval,rotamount;
-        resetcodeblocks();
 
-        for (c=0;c<256;c++)
-        {
-                stmlookup[c]=0;
-                for (d=0;d<8;d++)
-                {
-                        if (c&(1<<d)) stmlookup[c]+=4;
-                }
-        }
-        for (c=0;c<65536;c++)
-        {
-                countbitstable[c]=0;
-                for (d=0;d<16;d++)
-                {
-                        if (c&(1<<d)) countbitstable[c]+=4;
-                }
-        }
         r15mask=0x3FFFFFC;
         pccache=0xFFFFFFFF;
         updatemode(SUPERVISOR);
         cpsr=15;
 //        prog32=1;
-        for (c=0;c<16;c++)
-        {
-                for (d=0;d<16;d++)
-                {
-                        arm.reg[15] = d << 28;
-                        switch (c)
-                        {
-                                case 0:  /*EQ*/ exec=ZFSET; break;
-                                case 1:  /*NE*/ exec=!ZFSET; break;
-                                case 2:  /*CS*/ exec=CFSET; break;
-                                case 3:  /*CC*/ exec=!CFSET; break;
-                                case 4:  /*MI*/ exec=NFSET; break;
-                                case 5:  /*PL*/ exec=!NFSET; break;
-                                case 6:  /*VS*/ exec=VFSET; break;
-                                case 7:  /*VC*/ exec=!VFSET; break;
-                                case 8:  /*HI*/ exec=(CFSET && !ZFSET); break;
-                                case 9:  /*LS*/ exec=(!CFSET || ZFSET); break;
-                                case 10: /*GE*/ exec=(NFSET == VFSET); break;
-                                case 11: /*LT*/ exec=(NFSET != VFSET); break;
-                                case 12: /*GT*/ exec=(!ZFSET && (NFSET==VFSET)); break;
-                                case 13: /*LE*/ exec=(ZFSET || (NFSET!=VFSET)); break;
-                                case 14: /*AL*/ exec=1; break;
-                                case 15: /*NV*/ exec=0; break;
-                        }
-                        flaglookup[c][d]=(unsigned char)exec;
-                }
-        }
-
-        for (data=0;data<4096;data++)
-        {
-                rotval=data&0xFF;
-                rotamount=((data>>8)&0xF)<<1;
-                rotval=(rotval>>rotamount)|(rotval<<(32-rotamount));
-                rotatelookup[data]=rotval;
-        }
 
         arm.reg[15] = 0x0c000008 | 3;
         arm.reg[16] = SUPERVISOR | 0xd0;

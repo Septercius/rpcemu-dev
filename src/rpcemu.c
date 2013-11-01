@@ -281,6 +281,7 @@ startrpcemu(void)
 	hostfs_init();
 	mem_init();
 	cp15_init();
+	arm_init();
 	loadroms();
         loadcmos();
         fdc_adf_load("boot.adf",0);
