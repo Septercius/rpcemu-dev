@@ -63,7 +63,7 @@ int prog32;
 
 #define GETADDR(r) ((r == 15) ? (arm.reg[15] & r15mask) : arm.reg[r])
 #define LOADREG(r,v) if (r==15) { arm.reg[15]=(arm.reg[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else arm.reg[r]=(v);
-#define GETREG(r) ((r == 15) ? (arm.reg[15] + 4) : arm.reg[r])
+#define GETREG(r) ((r == 15) ? (arm.reg[15] + r15diff) : arm.reg[r])
 
 #define refillpipeline() blockend=1;
 

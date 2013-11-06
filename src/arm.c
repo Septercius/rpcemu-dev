@@ -83,7 +83,7 @@ int prog32;
 
 #define GETADDR(r) ((r == 15) ? (arm.reg[15] & r15mask) : arm.reg[r])
 #define LOADREG(r,v) if (r==15) { arm.reg[15]=(arm.reg[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else arm.reg[r]=(v);
-#define GETREG(r) ((r == 15) ? (arm.reg[15] + 4) : arm.reg[r])
+#define GETREG(r) ((r == 15) ? (arm.reg[15] + r15diff) : arm.reg[r])
 
 #define refillpipeline()
 
@@ -878,13 +878,17 @@ void execarm(int cycs)
                                         }
                                         break;
 
-                                case 0x10: /* MRS reg,CPSR and SWP word */
-                                        if ((opcode&0xF0)==0x90)
-                                        {
-                                                addr = arm.reg[RN];
-                                                templ=GETREG(RM);
-                                                LOADREG(RD,readmeml(addr));
-                                                writememl(addr,templ);
+				case 0x10: /* MRS reg,CPSR and SWP */
+					if ((opcode & 0xf0) == 0x90) {
+						/* SWP */
+						if (RD != 15) {
+							addr = GETADDR(RN);
+							templ = GETREG(RM);
+							dest = readmeml(addr);
+							dest = arm_ldr_rotate(dest, addr);
+							LOADREG(RD, dest);
+							writememl(addr, templ);
+						}
                                         }
                                         else if (!(opcode&0xFFF)) /*MRS CPSR*/
                                         {
@@ -935,13 +939,16 @@ void execarm(int cycs)
                                         }
                                         break;
 
-                                case 0x14: /* MRS reg,SPSR and SWPB */
-                                        if ((opcode&0xF0)==0x90) /* SWPB */
-                                        {
-                                                addr = arm.reg[RN];
-                                                templ=GETREG(RM);
-                                                LOADREG(RD,readmemb(addr));
-                                                writememb(addr,templ);
+				case 0x14: /* MRS reg,SPSR and SWPB */
+					if ((opcode & 0xf0) == 0x90) {
+						/* SWPB */
+						if (RD != 15) {
+							addr = GETADDR(RN);
+							templ = GETREG(RM);
+							dest = readmemb(addr);
+							LOADREG(RD, dest);
+							writememb(addr, templ);
+						}
                                         } else if (!(opcode&0xFFF)) /* MRS SPSR */
                                         {
                                                 arm.reg[RD] = spsr[mode & 0xf];

@@ -336,15 +336,18 @@ static void opRSCregS(uint32_t opcode)
 
 static void opSWPword(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t addr, dest, templ;
 
-        if ((opcode&0xF0)==0x90)
-        {
-                uint32_t addr;
-                addr = arm.reg[RN] & ~3;
-                templ=GETREG(RM);
-                LOADREG(RD,readmeml(addr));
-                writememl(addr,templ);
+	if ((opcode & 0xf0) == 0x90) {
+		/* SWP */
+		if (RD != 15) {
+			addr = GETADDR(RN);
+			templ = GETREG(RM);
+			dest = readmeml(addr);
+			dest = arm_ldr_rotate(dest, addr);
+			LOADREG(RD, dest);
+			writememl(addr, templ);
+		}
         }
         else if (!(opcode&0xFFF)) /*MRS CPSR*/
         {
@@ -401,15 +404,17 @@ static void opTEQreg(uint32_t opcode)
 
 static void opSWPbyte(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t addr, dest, templ;
 
-        if ((opcode&0xF0)==0x90) /* SWPB */
-        {
-                uint32_t addr;
-                addr = arm.reg[RN];
-                templ=GETREG(RM);
-                LOADREG(RD,readmemb(addr));
-                writememb(addr,templ);
+	if ((opcode & 0xf0) == 0x90) {
+		/* SWPB */
+		if (RD != 15) {
+			addr = GETADDR(RN);
+			templ = GETREG(RM);
+			dest = readmemb(addr);
+			LOADREG(RD, dest);
+			writememb(addr, templ);
+		}
         }
         else if (!(opcode&0xFFF)) /* MRS SPSR */
         {
