@@ -39,7 +39,7 @@
 #define off64_t off_t
 #endif
 
-#if defined _BIG_ENDIAN || defined __BIG_ENDIAN__
+#if defined WORDS_BIGENDIAN
 	#define _RPCEMU_BIG_ENDIAN
 #endif
 
