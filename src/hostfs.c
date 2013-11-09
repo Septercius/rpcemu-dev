@@ -31,11 +31,7 @@
 #else
 #include <unistd.h>
 #endif
-#if defined __unix || defined __MACH__
 #include <utime.h>
-#else
-#include <sys/utime.h>
-#endif
 #include <sys/stat.h>
 #include <limits.h>
 #include <stdint.h>
