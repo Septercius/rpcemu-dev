@@ -167,8 +167,9 @@ uint32_t cinit = 0; /**< Cursor DMA Init */
  * Structure to hold information about the variants of IOMD that are supported.
  */
 typedef struct {
-	uint8_t id_low;  /**< Low byte of ID */
-	uint8_t id_high; /**< High byte of ID */
+	uint8_t id_low;     /**< Low byte of ID */
+	uint8_t id_high;    /**< High byte of ID */
+	uint8_t id_version; /**< Byte of chip version */
 } IOMDVariant;
 
 /**
@@ -177,10 +178,10 @@ typedef struct {
  * This array must be kept in the same order as IOMDType in iomd.h
  */
 static const IOMDVariant iomds[] = {
-	{ 0xe7, 0xd4 }, /* IOMD */
-	{ 0x98, 0x5b }, /* ARM7500 */
-	{ 0x7c, 0xaa }, /* ARM7500FE */
-	{ 0xe8, 0xd4 }, /* IOMD2 */
+	{ 0xe7, 0xd4, 3 }, /* IOMD */
+	{ 0x98, 0x5b, 3 }, /* ARM7500 */
+	{ 0x7c, 0xaa, 1 }, /* ARM7500FE */
+	{ 0xe8, 0xd5, 1 }, /* IOMD2 */
 };
 
 static IOMDType iomd_type; /**< The current type of IOMD we're emulating */
@@ -683,7 +684,7 @@ iomd_read(uint32_t addr)
         case IOMD_0x098_ID1: /* Chip ID no. high byte */
 		return iomds[iomd_type].id_high;
         case IOMD_0x09C_VERSION: /* Chip version number */
-                return 0; /*Chip version*/
+		return iomds[iomd_type].id_version;
 
 	case IOMD_0x0A0_MOUSEX: /* Mouse X position (Quadrature - IOMD) */
 		if (iomd_type == IOMDType_IOMD) {
