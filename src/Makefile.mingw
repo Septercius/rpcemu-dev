@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -march=pentium -mtune=generic
+CFLAGS = -Wall -march=pentium -mtune=generic -I. -Iwin
 LD = $(CC)
 LDFLAGS =
 LIBS = -lcomdlg32
@@ -34,7 +34,6 @@ all: config.h $(EXE)
 OBJS =	arm.o       \
 	arm_common.o \
 	ArmDynarec.o \
-	cdrom-ioctl.o \
 	cdrom-iso.o \
 	cmos.o      \
 	codegen_null.o \
@@ -49,35 +48,38 @@ OBJS =	arm.o       \
 	i8042.o \
 	mem.o       \
 	network.o   \
-	network-win.o \
-	tap-win32.o \
 	podulerom.o \
 	podules.o   \
-	podules-win.o \
 	rpcemu.o    \
-	rpc-win.o   \
 	romload.o   \
 	sound.o     \
 	superio.o   \
 	vidc20.o    \
 	rpc-machdep.o \
-	acorn.o
+	win\cdrom-ioctl.o \
+	win\podules-win.o \
+	win\network-win.o \
+	win\tap-win32.o \
+	win\rpc-win.o   \
+	win\acorn.o
 
 $(EXE): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $+ $(LIBS)
 
-acorn.o: acorn.rc rpcemu.ico rpcemu.manifest
-	windres -O COFF acorn.rc acorn.o
-	
+win\acorn.o: win\acorn.rc win\rpcemu.ico win\rpcemu.manifest
+	windres -O COFF win\acorn.rc win\acorn.o
+
 config.h: config.h.mingw
 	copy /B config.h.mingw config.h
 	
 clean:
 	del *.o
+	del win\*.o
+	del win\RPCEmu.wixobj
 	del config.h
 
 installer:
-	copy /B COPYING.rtf License.rtf
-	candle.exe -nologo RPCEmu.wxs
-	light.exe -nologo -out rpcemu-win32-installer-x.x.x.msi "C:\Program Files\Wix\wixui.wixlib" -loc "C:\Program Files\Wix\WixUI_en-us.wxl" RPCEmu.wixobj
+	copy /B win\COPYING.rtf License.rtf
+	candle.exe -nologo -out win\RPCEmu.wixobj win\RPCEmu.wxs
+	light.exe -nologo -out rpcemu-win32-installer-x.x.x.msi "C:\Program Files\Wix\wixui.wixlib" -loc "C:\Program Files\Wix\WixUI_en-us.wxl" win\RPCEmu.wixobj
 	del License.rtf
