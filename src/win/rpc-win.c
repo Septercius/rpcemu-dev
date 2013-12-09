@@ -322,6 +322,9 @@ void sound_thread_start(void)
 
 	soundobject = CreateEvent(NULL, FALSE, FALSE, NULL);
 	soundthread = (HANDLE) _beginthread(sound_thread_function, 0, NULL);
+	if (soundthread == (HANDLE) -1) {
+		fatal("Failed to create sound thread");
+	}
 }
 
 /**
@@ -559,14 +562,12 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 static void changedisc(HWND hwnd, int drive)
 {
         char fn[512];
-        char start[512];
         OPENFILENAME ofn;
 
         assert(hwnd);
         assert(drive == 0 || drive == 1);
 
         fn[0]=0;
-        start[0]=0;
         ofn.lStructSize = sizeof(OPENFILENAME);
 	ofn.hwndOwner = hwnd;
 	ofn.hInstance = NULL;

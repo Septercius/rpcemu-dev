@@ -690,6 +690,9 @@ static int tap_win32_open(tap_win32_overlapped_t **phandle,
 
     hThread = CreateThread(NULL, 0, tap_win32_thread_entry,
                            (LPVOID)&tap_overlapped, 0, &idThread);
+    if (hThread == NULL) {
+        fatal("Failed to create networking thread");
+    }
 
     rpclog("Tap-Win32: Thread created\n");
 
