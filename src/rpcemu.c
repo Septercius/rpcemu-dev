@@ -468,11 +468,11 @@ loadconfig(void)
 	p = get_config_string(NULL, "network_type", NULL);
 	if (!p) {
 		config.network_type = NetworkType_Off;
-	} else if (!strcmp(p, "off")) {
+	} else if (!stricmp(p, "off")) {
 		config.network_type = NetworkType_Off;
-	} else if (!strcmp(p, "iptunnelling")) {
+	} else if (!stricmp(p, "iptunnelling")) {
 		config.network_type = NetworkType_IPTunnelling;
-	} else if (!strcmp(p, "ethernetbridging")) {
+	} else if (!stricmp(p, "ethernetbridging")) {
 		config.network_type = NetworkType_EthernetBridging;
 	} else {
 		rpclog("Unknown network_type '%s', defaulting to off\n", p);
