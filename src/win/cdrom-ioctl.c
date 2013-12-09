@@ -58,6 +58,9 @@ static int ioctl_ready(void)
         CDROM_TOC ltoc;
         ioctl_open(0);
         temp=DeviceIoControl(hIOCTL,IOCTL_CDROM_READ_TOC, NULL,0,&ltoc,sizeof(ltoc),&size,NULL);
+	if (temp == 0) {
+		rpclog("ioctl_ready: Read TOC failed (1)");
+	}
         ioctl_close();
         if ((ltoc.TrackData[ltoc.LastTrack].Address[1] != toc.TrackData[toc.LastTrack].Address[1]) ||
             (ltoc.TrackData[ltoc.LastTrack].Address[2] != toc.TrackData[toc.LastTrack].Address[2]) ||
@@ -67,6 +70,9 @@ static int ioctl_ready(void)
                 atapi_discchanged();
                 ioctl_open(0);
                 temp=DeviceIoControl(hIOCTL,IOCTL_CDROM_READ_TOC, NULL,0,&toc,sizeof(toc),&size,NULL);
+		if (temp == 0) {
+			rpclog("ioctl_ready: Read TOC failed (2)");
+		}
                 ioctl_close();
                 tocvalid=1;
                 return 0;
