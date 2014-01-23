@@ -26,6 +26,7 @@ enum {
 	FD_CMD_READ_DATA_MFM		= 0x46,
 	FD_CMD_READ_ID_MFM		= 0x4a,
 	FD_CMD_FORMAT_TRACK_MFM		= 0x4d,
+	FD_CMD_VERIFY_DATA_MFM          = 0x56,
 };
 
 static void fdcsend(uint8_t val);
@@ -224,6 +225,7 @@ fdc_write(uint32_t addr, uint32_t val)
                                         break;
 
                                 case FD_CMD_READ_DATA_MFM:
+                                case FD_CMD_VERIFY_DATA_MFM:
                                         fdc.commandpos=0;
                                         fdccallback=1000;
                                         fdc.st0=fdc.parameters[0]&7;
@@ -326,6 +328,7 @@ fdc_write(uint32_t addr, uint32_t val)
 
                 case FD_CMD_WRITE_DATA_MFM:
                 case FD_CMD_READ_DATA_MFM:
+                case FD_CMD_VERIFY_DATA_MFM:
                         fdc.params=8;
                         fdc.curparam=0;
                         fdc.status=0x90;
@@ -666,6 +669,27 @@ fdc_callback(void)
 		case 5: fdcsend2(0); break;
 		case 6:
 			fdcsend2(0);
+			fdc.incommand = 0;
+			fdc.params    = 0;
+			fdc.curparam  = 0;
+			break;
+		default:
+			fatal("Bad ReadID command pos %i", fdc.commandpos);
+		}
+		fdc.commandpos++;
+		break;
+
+	case FD_CMD_VERIFY_DATA_MFM:
+		fdc.sector = fdc.parameters[5]; /* Verified OK (amazing!), jump straight to the end */
+		switch (fdc.commandpos) {
+		case 0: fdcsend(fdc.st0); break;
+		case 1: fdcsend2(fdc.st1); break;
+		case 2: fdcsend2(fdc.st2); break;
+		case 3: fdcsend2(fdc.track); break;
+		case 4: fdcsend2((fdc.parameters[0] & 4) ? 1 : 0); break;
+		case 5: fdcsend2(fdc.sector); break;
+		case 6:
+			fdcsend2(3);
 			fdc.incommand = 0;
 			fdc.params    = 0;
 			fdc.curparam  = 0;
