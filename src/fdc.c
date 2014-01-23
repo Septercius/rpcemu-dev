@@ -25,6 +25,7 @@ enum {
 	FD_CMD_WRITE_DATA_MFM		= 0x45,
 	FD_CMD_READ_DATA_MFM		= 0x46,
 	FD_CMD_READ_ID_MFM		= 0x4a,
+	FD_CMD_FORMAT_TRACK_MFM		= 0x4d,
 };
 
 static void fdcsend(uint8_t val);
@@ -251,6 +252,14 @@ fdc_write(uint32_t addr, uint32_t val)
                                         fdc.st1=fdc.st2=0;
                                         break;
 
+				case FD_CMD_FORMAT_TRACK_MFM:
+					fdc.commandpos = 0;
+					fdc.st0        = fdc.parameters[0] & 7;
+					fdc.st1        = 0;
+					fdc.st2        = 0;
+					fdccallback    = 1000;
+					break;
+
                                 default:
                                         UNIMPLEMENTED("FDC command",
                                                       "Unknown command 0x%02x",
@@ -328,6 +337,12 @@ fdc_write(uint32_t addr, uint32_t val)
                         fdc.curparam=0;
                         fdc.status=0x90;
                         break;
+
+		case FD_CMD_FORMAT_TRACK_MFM:
+			fdc.params   = 5;
+			fdc.curparam = 0;
+			fdc.status   = 0x80;
+			break;
 
                 default:
                         UNIMPLEMENTED("FDC command 2",
@@ -640,6 +655,26 @@ fdc_callback(void)
                 fdc.incommand=0;
                 fdc.params=fdc.curparam=0;
                 break;
+
+	case FD_CMD_FORMAT_TRACK_MFM:
+		switch (fdc.commandpos) {
+		case 0: fdcsend(fdc.st0);  break;
+		case 1: fdcsend2(fdc.st1); break;
+		case 2: fdcsend2(fdc.st2); break;
+		case 3: fdcsend2(0); break;
+		case 4: fdcsend2(0); break;
+		case 5: fdcsend2(0); break;
+		case 6:
+			fdcsend2(0);
+			fdc.incommand = 0;
+			fdc.params    = 0;
+			fdc.curparam  = 0;
+			break;
+		default:
+			fatal("Bad ReadID command pos %i", fdc.commandpos);
+		}
+		fdc.commandpos++;
+		break;
         }
 }
 
