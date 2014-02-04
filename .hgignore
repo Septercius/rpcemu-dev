@@ -2,8 +2,11 @@
 syntax: glob
 
 *~
+*.msi
 *.o
 *.orig
+*.patch
+*.wixobj
 .deps
 autom4te.cache
 config.h
@@ -21,3 +24,4 @@ RPCEmu-Recompiler.exe
 rpclog.txt
 stamp-h1
 tags
+test
