@@ -259,6 +259,8 @@ resetarm(CPUModel cpu_model)
 {
 //        atexit(dumpregs);
 
+	memset(&arm, 0, sizeof(arm));
+
         r15mask=0x3FFFFFC;
         pccache=0xFFFFFFFF;
         updatemode(SUPERVISOR);
