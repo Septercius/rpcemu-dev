@@ -674,13 +674,18 @@ fdc_callback(void)
 			fdc.curparam  = 0;
 			break;
 		default:
-			fatal("Bad ReadID command pos %i", fdc.commandpos);
+			fatal("Bad FormatTrack command pos %i", fdc.commandpos);
 		}
 		fdc.commandpos++;
 		break;
 
 	case FD_CMD_VERIFY_DATA_MFM:
-		fdc.sector = fdc.parameters[5]; /* Verified OK (amazing!), jump straight to the end */
+		/* Verified OK (amazing!), jump straight to the end */
+		if (fdc.parameters[0] & 0x80 /* EC */) {
+			fdc.sector = fdc.parameters[7];
+		} else {
+			fdc.sector = fdc.parameters[5];
+		}
 		switch (fdc.commandpos) {
 		case 0: fdcsend(fdc.st0); break;
 		case 1: fdcsend2(fdc.st1); break;
@@ -695,7 +700,7 @@ fdc_callback(void)
 			fdc.curparam  = 0;
 			break;
 		default:
-			fatal("Bad ReadID command pos %i", fdc.commandpos);
+			fatal("Bad VerifyData command pos %i", fdc.commandpos);
 		}
 		fdc.commandpos++;
 		break;
