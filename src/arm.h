@@ -5,6 +5,13 @@
 
 typedef struct {
 	uint32_t	reg[18];
+
+	/* Banked registers */
+	uint32_t	irq_reg[2];
+	uint32_t	super_reg[2];
+	uint32_t	abort_reg[2];
+	uint32_t	undef_reg[2];
+
 	uint8_t		stm_writeback_at_end;
 } ARMState;
 

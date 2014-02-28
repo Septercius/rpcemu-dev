@@ -69,8 +69,7 @@ static uint32_t *pcpsr;
 static uint8_t flaglookup[16][16];
 
 uint32_t *usrregs[16];
-static uint32_t userregs[17], superregs[17], fiqregs[17], irqregs[17];
-static uint32_t abortregs[17], undefregs[17];
+static uint32_t userregs[17], fiqregs[17];
 static uint32_t spsr[16];
 uint32_t mode;
 int databort;
@@ -105,8 +104,8 @@ void updatemode(uint32_t m)
 
             case IRQ:
                 for (c=8;c<13;c++) userregs[c] = arm.reg[c];
-                irqregs[0] = arm.reg[13];
-                irqregs[1] = arm.reg[14];
+                arm.irq_reg[0] = arm.reg[13];
+                arm.irq_reg[1] = arm.reg[14];
                 break;
 
             case FIQ:
@@ -115,20 +114,20 @@ void updatemode(uint32_t m)
 
             case SUPERVISOR:
                 for (c=8;c<13;c++) userregs[c] = arm.reg[c];
-                superregs[0] = arm.reg[13];
-                superregs[1] = arm.reg[14];
+                arm.super_reg[0] = arm.reg[13];
+                arm.super_reg[1] = arm.reg[14];
                 break;
 
             case ABORT:
                 for (c=8;c<13;c++) userregs[c] = arm.reg[c];
-                abortregs[0] = arm.reg[13];
-                abortregs[1] = arm.reg[14];
+                arm.abort_reg[0] = arm.reg[13];
+                arm.abort_reg[1] = arm.reg[14];
                 break;
 
             case UNDEFINED:
                 for (c=8;c<13;c++) userregs[c] = arm.reg[c];
-                undefregs[0] = arm.reg[13];
-                undefregs[1] = arm.reg[14];
+                arm.undef_reg[0] = arm.reg[13];
+                arm.undef_reg[1] = arm.reg[14];
                 break;
         }
         mode=m;
@@ -143,8 +142,8 @@ void updatemode(uint32_t m)
 
             case IRQ:
                 for (c=8;c<13;c++) arm.reg[c] = userregs[c];
-                arm.reg[13] = irqregs[0];
-                arm.reg[14] = irqregs[1];
+                arm.reg[13] = arm.irq_reg[0];
+                arm.reg[14] = arm.irq_reg[1];
                 for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
@@ -157,24 +156,24 @@ void updatemode(uint32_t m)
 
             case SUPERVISOR:
                 for (c=8;c<13;c++) arm.reg[c] = userregs[c];
-                arm.reg[13] = superregs[0];
-                arm.reg[14] = superregs[1];
+                arm.reg[13] = arm.super_reg[0];
+                arm.reg[14] = arm.super_reg[1];
                 for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
             
             case ABORT:
                 for (c=8;c<13;c++) arm.reg[c] = userregs[c];
-                arm.reg[13] = abortregs[0];
-                arm.reg[14] = abortregs[1];
+                arm.reg[13] = arm.abort_reg[0];
+                arm.reg[14] = arm.abort_reg[1];
                 for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
 
             case UNDEFINED:
                 for (c=8;c<13;c++) arm.reg[c] = userregs[c];
-                arm.reg[13] = undefregs[0];
-                arm.reg[14] = undefregs[1];
+                arm.reg[13] = arm.undef_reg[0];
+                arm.reg[14] = arm.undef_reg[1];
                 for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
                 for (c=13;c<15;c++) usrregs[c]=&userregs[c];
                 break;
