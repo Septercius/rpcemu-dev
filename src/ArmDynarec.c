@@ -49,8 +49,6 @@ uint32_t *pcpsr;
 uint8_t flaglookup[16][16];
 
 uint32_t *usrregs[16];
-static uint32_t userregs[17], fiqregs[17];
-static uint32_t spsr[16];
 uint32_t mode;
 int databort;
 int prog32;
@@ -79,33 +77,33 @@ void updatemode(uint32_t m)
         {
             case USER:
             case SYSTEM: /* System (ARMv4) shares same bank as User mode */
-                for (c=8;c<15;c++) userregs[c] = arm.reg[c];
+                for (c=8;c<15;c++) arm.user_reg[c] = arm.reg[c];
                 break;
 
             case IRQ:
-                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                for (c=8;c<13;c++) arm.user_reg[c] = arm.reg[c];
                 arm.irq_reg[0] = arm.reg[13];
                 arm.irq_reg[1] = arm.reg[14];
                 break;
 
             case FIQ:
-                for (c=8;c<15;c++) fiqregs[c] = arm.reg[c];
+                for (c=8;c<15;c++) arm.fiq_reg[c] = arm.reg[c];
                 break;
 
             case SUPERVISOR:
-                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                for (c=8;c<13;c++) arm.user_reg[c] = arm.reg[c];
                 arm.super_reg[0] = arm.reg[13];
                 arm.super_reg[1] = arm.reg[14];
                 break;
 
             case ABORT:
-                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                for (c=8;c<13;c++) arm.user_reg[c] = arm.reg[c];
                 arm.abort_reg[0] = arm.reg[13];
                 arm.abort_reg[1] = arm.reg[14];
                 break;
 
             case UNDEFINED:
-                for (c=8;c<13;c++) userregs[c] = arm.reg[c];
+                for (c=8;c<13;c++) arm.user_reg[c] = arm.reg[c];
                 arm.undef_reg[0] = arm.reg[13];
                 arm.undef_reg[1] = arm.reg[14];
                 break;
@@ -116,46 +114,46 @@ void updatemode(uint32_t m)
         {
             case USER:
             case SYSTEM:
-                for (c=8;c<15;c++) arm.reg[c] = userregs[c];
+                for (c=8;c<15;c++) arm.reg[c] = arm.user_reg[c];
                 for (c=0;c<15;c++) usrregs[c] = &arm.reg[c];
                 break;
 
             case IRQ:
-                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = arm.user_reg[c];
                 arm.reg[13] = arm.irq_reg[0];
                 arm.reg[14] = arm.irq_reg[1];
                 for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
-                for (c=13;c<15;c++) usrregs[c]=&userregs[c];
+                for (c=13;c<15;c++) usrregs[c] = &arm.user_reg[c];
                 break;
             
             case FIQ:
-                for (c=8;c<15;c++) arm.reg[c] = fiqregs[c];
+                for (c=8;c<15;c++) arm.reg[c] = arm.fiq_reg[c];
                 for (c=0;c<8;c++)  usrregs[c] = &arm.reg[c];
-                for (c=8;c<15;c++) usrregs[c]=&userregs[c];
+                for (c=8;c<15;c++) usrregs[c] = &arm.user_reg[c];
                 break;
 
             case SUPERVISOR:
-                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = arm.user_reg[c];
                 arm.reg[13] = arm.super_reg[0];
                 arm.reg[14] = arm.super_reg[1];
                 for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
-                for (c=13;c<15;c++) usrregs[c]=&userregs[c];
+                for (c=13;c<15;c++) usrregs[c] = &arm.user_reg[c];
                 break;
             
             case ABORT:
-                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = arm.user_reg[c];
                 arm.reg[13] = arm.abort_reg[0];
                 arm.reg[14] = arm.abort_reg[1];
                 for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
-                for (c=13;c<15;c++) usrregs[c]=&userregs[c];
+                for (c=13;c<15;c++) usrregs[c] = &arm.user_reg[c];
                 break;
 
             case UNDEFINED:
-                for (c=8;c<13;c++) arm.reg[c] = userregs[c];
+                for (c=8;c<13;c++) arm.reg[c] = arm.user_reg[c];
                 arm.reg[13] = arm.undef_reg[0];
                 arm.reg[14] = arm.undef_reg[1];
                 for (c=0;c<13;c++) usrregs[c] = &arm.reg[c];
-                for (c=13;c<15;c++) usrregs[c]=&userregs[c];
+                for (c=13;c<15;c++) usrregs[c] = &arm.user_reg[c];
                 break;
 
             default:
@@ -477,7 +475,7 @@ void exception(int mmode, uint32_t address, int diff)
 
         if (ARM_MODE_32(mode)) {
                 templ = arm.reg[15] - diff;
-                spsr[mmode] = arm.reg[16];
+                arm.spsr[mmode] = arm.reg[16];
                 updatemode(mmode|16);
                 arm.reg[14] = templ;
                 arm.reg[16] &= ~0x1f;
@@ -490,8 +488,8 @@ void exception(int mmode, uint32_t address, int diff)
                 templ = arm.reg[15] - diff;
                 updatemode(mmode|16);
                 arm.reg[14] = templ & 0x3fffffc;
-                spsr[mmode] = (arm.reg[16] & ~0x1f) | (templ & 3);
-                spsr[mmode]&=~0x10;
+                arm.spsr[mmode] = (arm.reg[16] & ~0x1f) | (templ & 3);
+                arm.spsr[mmode] &= ~0x10;
                 arm.reg[16] |= irq_disable;
                 arm.reg[15] = address;
                 refillpipeline();
