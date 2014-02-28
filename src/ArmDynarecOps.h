@@ -418,7 +418,7 @@ static void opSWPbyte(uint32_t opcode)
         }
         else if (!(opcode&0xFFF)) /* MRS SPSR */
         {
-                arm.reg[RD] = spsr[mode & 0xf];
+                arm.reg[RD] = arm.spsr[mode & 0xf];
         }
         else
         {

@@ -195,7 +195,7 @@ arm_write_r15(uint32_t opcode, uint32_t dest)
 
 		if (ARM_MODE_32(mode)) {
 			/* Copy SPSR of current mode to CPSR */
-			arm.reg[16] = spsr[mode & 0xf];
+			arm.reg[16] = arm.spsr[mode & 0xf];
 		}
 		if ((arm.reg[cpsr] & mmask) != mode) {
 			updatemode(arm.reg[cpsr] & mmask);
@@ -221,7 +221,7 @@ arm_compare_rd15(uint32_t opcode, uint32_t dest)
 
 		if (ARM_MODE_PRIV(mode)) {
 			/* Copy SPSR of current mode to CPSR */
-			arm.reg[16] = spsr[mode & 0xf];
+			arm.reg[16] = arm.spsr[mode & 0xf];
 		}
 
 	} else {
@@ -311,8 +311,8 @@ arm_write_spsr(uint32_t opcode, uint32_t value)
 		field_mask = msrlookup[(opcode >> 16) & 0xf];
 
 		/* Write to SPSR for current mode */
-		spsr[mode & 0xf] = (spsr[mode & 0xf] & ~field_mask) |
-		                   (value & field_mask);
+		arm.spsr[mode & 0xf] = (arm.spsr[mode & 0xf] & ~field_mask) |
+		                       (value & field_mask);
 	}
 }
 
