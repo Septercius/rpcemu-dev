@@ -351,7 +351,7 @@ static void opSWPword(uint32_t opcode)
         }
         else if (!(opcode&0xFFF)) /*MRS CPSR*/
         {
-                if (!ARM_MODE_32(mode)) {
+                if (!ARM_MODE_32(arm.mode)) {
                         arm.reg[16] = (arm.reg[15] & 0xf0000000) | (arm.reg[15] & 3);
                         arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
                 }
@@ -418,7 +418,7 @@ static void opSWPbyte(uint32_t opcode)
         }
         else if (!(opcode&0xFFF)) /* MRS SPSR */
         {
-                arm.reg[RD] = arm.spsr[mode & 0xf];
+                arm.reg[RD] = arm.spsr[arm.mode & 0xf];
         }
         else
         {
