@@ -5,6 +5,8 @@
 
 typedef struct {
 	uint32_t	reg[18];
+	uint32_t	mode;
+	uint32_t	mmask;
 
 	/* Banked registers */
 	uint32_t	user_reg[15];
@@ -39,7 +41,6 @@ extern int cpsr;
 #define PC ((arm.reg[15] - 8) & r15mask)
 
 extern uint32_t r15mask;
-extern uint32_t mode;
 
 extern void arm_init(void);
 extern void resetarm(CPUModel cpu_model);

@@ -176,10 +176,10 @@ arm_write_r15(uint32_t opcode, uint32_t dest)
 {
 	uint32_t mask;
 
-	if (ARM_MODE_32(mode)) {
+	if (ARM_MODE_32(arm.mode)) {
 		/* In 32-bit mode, update all bits in R15 except 0 and 1 */
 		mask = 0xfffffffc;
-	} else if (ARM_MODE_PRIV(mode)) {
+	} else if (ARM_MODE_PRIV(arm.mode)) {
 		/* In 26-bit privileged mode, update all bits and flags */
 		mask = 0xffffffff;
 	} else {
@@ -190,15 +190,15 @@ arm_write_r15(uint32_t opcode, uint32_t dest)
 	/* Write to R15 (adding 4 for pipelining) */
 	arm.reg[15] = (arm.reg[15] & ~mask) | ((dest + 4) & mask);
 
-	if (ARM_MODE_PRIV(mode)) {
+	if (ARM_MODE_PRIV(arm.mode)) {
 		/* In privileged mode, can change mode */
 
-		if (ARM_MODE_32(mode)) {
+		if (ARM_MODE_32(arm.mode)) {
 			/* Copy SPSR of current mode to CPSR */
-			arm.reg[16] = arm.spsr[mode & 0xf];
+			arm.reg[16] = arm.spsr[arm.mode & 0xf];
 		}
-		if ((arm.reg[cpsr] & mmask) != mode) {
-			updatemode(arm.reg[cpsr] & mmask);
+		if ((arm.reg[cpsr] & arm.mmask) != arm.mode) {
+			updatemode(arm.reg[cpsr] & arm.mmask);
 		}
 		refillpipeline();
 	}
@@ -216,17 +216,17 @@ arm_compare_rd15(uint32_t opcode, uint32_t dest)
 {
 	uint32_t mask;
 
-	if (ARM_MODE_32(mode)) {
+	if (ARM_MODE_32(arm.mode)) {
 		/* In 32-bit mode */
 
-		if (ARM_MODE_PRIV(mode)) {
+		if (ARM_MODE_PRIV(arm.mode)) {
 			/* Copy SPSR of current mode to CPSR */
-			arm.reg[16] = arm.spsr[mode & 0xf];
+			arm.reg[16] = arm.spsr[arm.mode & 0xf];
 		}
 
 	} else {
 		/* In 26-bit mode */
-		if (ARM_MODE_PRIV(mode)) {
+		if (ARM_MODE_PRIV(arm.mode)) {
 			/* In privileged mode update all PSR bits */
 			mask = 0xfc000003;
 		} else {
@@ -239,8 +239,8 @@ arm_compare_rd15(uint32_t opcode, uint32_t dest)
 	}
 
 	/* Have we changed processor mode? */
-	if ((arm.reg[cpsr] & mmask) != mode) {
-		updatemode(arm.reg[cpsr] & mmask);
+	if ((arm.reg[cpsr] & arm.mmask) != arm.mode) {
+		updatemode(arm.reg[cpsr] & arm.mmask);
 	}
 }
 
@@ -260,7 +260,7 @@ arm_write_cpsr(uint32_t opcode, uint32_t value)
 
 	/* User mode can only change flags, so remove other fields from
 	   mask within 'opcode' */
-	if (!ARM_MODE_PRIV(mode)) {
+	if (!ARM_MODE_PRIV(arm.mode)) {
 		opcode &= ~0x70000;
 	}
 
@@ -270,7 +270,7 @@ arm_write_cpsr(uint32_t opcode, uint32_t value)
 	/* Write to CPSR */
 	arm.reg[16] = (arm.reg[16] & ~field_mask) | (value & field_mask);
 
-	if (!ARM_MODE_32(mode)) {
+	if (!ARM_MODE_32(arm.mode)) {
 		/* In 26-bit mode */
 		if (opcode & 0x80000) {
 			/* Also update flags within R15 */
@@ -287,7 +287,7 @@ arm_write_cpsr(uint32_t opcode, uint32_t value)
 	}
 
 	/* Have we changed processor mode? */
-	if ((arm.reg[16] & 0x1f) != mode) {
+	if ((arm.reg[16] & 0x1f) != arm.mode) {
 		updatemode(arm.reg[16] & 0x1f);
 	}
 }
@@ -306,13 +306,13 @@ arm_write_spsr(uint32_t opcode, uint32_t value)
 	uint32_t field_mask;
 
 	/* Only privileged modes have an SPSR */
-	if (ARM_MODE_PRIV(mode)) {
+	if (ARM_MODE_PRIV(arm.mode)) {
 		/* Look up which fields to write to SPSR */
 		field_mask = msrlookup[(opcode >> 16) & 0xf];
 
 		/* Write to SPSR for current mode */
-		arm.spsr[mode & 0xf] = (arm.spsr[mode & 0xf] & ~field_mask) |
-		                       (value & field_mask);
+		arm.spsr[arm.mode & 0xf] = (arm.spsr[arm.mode & 0xf] & ~field_mask) |
+		                           (value & field_mask);
 	}
 }
 

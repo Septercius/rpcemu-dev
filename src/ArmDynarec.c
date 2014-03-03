@@ -36,7 +36,6 @@ ARMState arm;
 
 static int r15diff;
 static int fdci=0;
-static int mmask;
 uint32_t r15mask;
 static int cycles;
 int prefabort;
@@ -49,7 +48,6 @@ uint32_t *pcpsr;
 uint8_t flaglookup[16][16];
 
 uint32_t *usrregs[16];
-uint32_t mode;
 int databort;
 int prog32;
 
@@ -70,11 +68,10 @@ uint32_t pccache,*pccache2;
 
 void updatemode(uint32_t m)
 {
-        uint32_t c,om=mode;
+        uint32_t c, om = arm.mode;
 
         usrregs[15] = &arm.reg[15];
-        switch (mode&15) /*Store back registers*/
-        {
+        switch (arm.mode & 0xf) { /* Store back registers */
             case USER:
             case SYSTEM: /* System (ARMv4) shares same bank as User mode */
                 for (c=8;c<15;c++) arm.user_reg[c] = arm.reg[c];
@@ -108,7 +105,7 @@ void updatemode(uint32_t m)
                 arm.undef_reg[1] = arm.reg[14];
                 break;
         }
-        mode=m;
+        arm.mode = m;
 
         switch (m&15)
         {
@@ -157,38 +154,38 @@ void updatemode(uint32_t m)
                 break;
 
             default:
-                fatal("Bad mode %i\n", mode);
+                fatal("Bad mode %i\n", arm.mode);
         }
 
-        if (ARM_MODE_32(mode)) {
-                mmask=31;
+        if (ARM_MODE_32(arm.mode)) {
+                arm.mmask = 0x1f;
                 cpsr=16;
                 pcpsr = &arm.reg[16];
                 r15mask=0xFFFFFFFC;
                 if (!ARM_MODE_32(om)) {
 			/* Change from 26-bit to 32-bit mode */
-                        arm.reg[16] = (arm.reg[15] & 0xf0000000) | mode;
+                        arm.reg[16] = (arm.reg[15] & 0xf0000000) | arm.mode;
                         arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
                         arm.reg[15] &= 0x3fffffc;
                 }
         }
         else
         {
-                mmask=3;
+                arm.mmask = 3;
                 cpsr=15;
                 pcpsr = &arm.reg[15];
                 r15mask=0x3FFFFFC;
-                arm.reg[16] = (arm.reg[16] & 0xffffffe0) | mode;
+                arm.reg[16] = (arm.reg[16] & 0xffffffe0) | arm.mode;
                 if (ARM_MODE_32(om)) {
                         arm.reg[15] &= r15mask;
-                        arm.reg[15] |= (mode & 3);
+                        arm.reg[15] |= (arm.mode & 3);
                         arm.reg[15] |= (arm.reg[16] & 0xf0000000);
                         arm.reg[15] |= ((arm.reg[16] & 0xc0) << 20);
                 }
         }
 
 	/* Update memory access mode based on privilege level of ARM mode */
-	memmode = ARM_MODE_PRIV(mode) ? 1 : 0;
+	memmode = ARM_MODE_PRIV(arm.mode) ? 1 : 0;
 }
 
 static int stmlookup[256];
@@ -266,7 +263,7 @@ resetarm(CPUModel cpu_model)
 
         arm.reg[15] = 0x0c000008 | 3;
         arm.reg[16] = SUPERVISOR | 0xd0;
-        mode=SUPERVISOR;
+        arm.mode = SUPERVISOR;
         pccache=0xFFFFFFFF;
 	if (cpu_model == CPUModel_SA110 || cpu_model == CPUModel_ARM810) {
 		r15diff = 0;
@@ -473,7 +470,7 @@ void exception(int mmode, uint32_t address, int diff)
 		irq_disable = 0x80;
 	}
 
-        if (ARM_MODE_32(mode)) {
+        if (ARM_MODE_32(arm.mode)) {
                 templ = arm.reg[15] - diff;
                 arm.spsr[mmode] = arm.reg[16];
                 updatemode(mmode|16);
@@ -648,7 +645,9 @@ void execarm(int cycs)
 //                                        gen_func=(void *)(&codeblock[blocks[templ]>>24][blocks[templ]&0xFFF][4]);
                                         gen_func();
                                         if (armirq & 0x40) arm.reg[15] += 4;
-                                        if ((arm.reg[cpsr] & mmask) != mode) updatemode(arm.reg[cpsr] & mmask);
+                                        if ((arm.reg[cpsr] & arm.mmask) != arm.mode) {
+                                                updatemode(arm.reg[cpsr] & arm.mmask);
+                                        }
                                 }
                                 else
                                 {
@@ -732,7 +731,7 @@ void execarm(int cycs)
 //                        linecyc+=10;
                         if (/*databort|*/armirq&0xC3)//|prefabort)
                         {
-                                if (!ARM_MODE_32(mode)) {
+                                if (!ARM_MODE_32(arm.mode)) {
                                         arm.reg[16] &= ~0xc0;
                                         arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
                                 }

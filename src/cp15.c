@@ -149,9 +149,8 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 }
                 mmu    = val & CP15_CTRL_MMU;
                 prog32 = val & CP15_CTRL_PROG32;
-                if (!prog32 && (mode&16))
-                {
-                        updatemode(mode&15);
+                if (!prog32 && (arm.mode & 0x10)) {
+                        updatemode(arm.mode & 0xf);
                 }
                 return; /*We can probably ignore all other bits*/
 
