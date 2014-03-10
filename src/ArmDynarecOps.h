@@ -1167,7 +1167,7 @@ static int opLDR(uint32_t opcode)
 
 static int opSTRB(uint32_t opcode)
 {
-	uint32_t addr, addr2;
+	uint32_t addr, addr2, value;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
 		undefined();
@@ -1192,7 +1192,11 @@ static int opSTRB(uint32_t opcode)
 	}
 
 	/* Store */
-	writememb(addr, arm.reg[RD]);
+	value = arm.reg[RD];
+	if (RD == 15) {
+		value += r15diff;
+	}
+	writememb(addr, value);
 
 	/* Check for Abort */
 	if (armirq & 0x40)

@@ -1628,7 +1628,11 @@ void execarm(int cycs)
 					}
 
 					/* Store */
-					writememb(addr, arm.reg[RD]);
+					templ = arm.reg[RD];
+					if (RD == 15) {
+						templ += r15diff;
+					}
+					writememb(addr, templ);
 
 					/* Check for Abort */
 					if (armirq & 0x40)
