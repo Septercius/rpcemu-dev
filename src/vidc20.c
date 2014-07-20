@@ -648,11 +648,11 @@ void vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x = 0; x < thr.xsize; x += 64) {
+                                for (x = 0; x < thr.xsize; x += 4) {
                                         if (drawit)
                                         {
                                                 int xx;
-                                                for (xx=0;xx<64;xx+=4)
+                                                for (xx=0;xx<4;xx+=4)
                                                 {
 #ifdef _RPCEMU_BIG_ENDIAN
                                                         addr ^= 3;
@@ -671,7 +671,7 @@ void vidcthread(void)
                                                 }
                                         }
                                         else
-                                           addr+=16;
+                                           addr+=1;
                                         if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
@@ -702,12 +702,11 @@ void vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<thr.xsize;x+=32)
-                                {
+                                for (x = 0; x < thr.xsize; x += 2) {
                                         if (drawit)
                                         {
                                                 int xx;
-                                                for (xx=0;xx<32;xx+=2)
+                                                for (xx=0;xx<2;xx+=2)
                                                 {
 #ifdef _RPCEMU_BIG_ENDIAN
                                                         addr ^= 3;
@@ -722,7 +721,7 @@ void vidcthread(void)
                                                 }
                                         }
                                         else
-                                           addr+=16;
+                                           addr+=1;
                                         if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
@@ -972,12 +971,11 @@ void vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<thr.xsize;x+=128)
-                                {
+                                for (x = 0; x < thr.xsize; x += 8) {
                                         if (drawit)
                                         {
                                                 int xx;
-                                                for (xx=0;xx<128;xx+=8)
+                                                for (xx=0;xx<8;xx+=8)
                                                 {
 #ifdef _RPCEMU_BIG_ENDIAN
                                                         addr ^= 3;
@@ -997,7 +995,7 @@ void vidcthread(void)
                                                 }
                                         }
                                         else
-                                           addr+=16;
+                                           addr+=1;
                                         if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
@@ -1026,12 +1024,11 @@ void vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<thr.xsize;x+=64)
-                                {
+                                for (x = 0; x < thr.xsize; x += 4) {
                                         if (drawit)
                                         {
                                                 int xx;
-                                                for (xx=0;xx<64;xx+=4)
+                                                for (xx=0;xx<4;xx+=4)
                                                 {
 #ifdef _RPCEMU_BIG_ENDIAN
                                                         addr ^= 3;
@@ -1047,7 +1044,7 @@ void vidcthread(void)
                                                 }
                                         }
                                         else
-                                           addr+=16;
+                                           addr+=1;
                                         if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
