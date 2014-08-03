@@ -222,9 +222,10 @@ network_plt_init(void)
 
     if (config.macaddress) {
         /* Parse supplied MAC address */
-        sscanf(config.macaddress, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-               &network_hwaddr[0], &network_hwaddr[1], &network_hwaddr[2],
-               &network_hwaddr[3], &network_hwaddr[4], &network_hwaddr[5]);
+        if (!network_macaddress_parse(config.macaddress, network_hwaddr)) {
+            error("Unable to parse '%s' as a MAC address", config.macaddress);
+            return 0;
+        }
     } else {
         network_hwaddr[0] = 0x06;
         network_hwaddr[1] = 0x02;
