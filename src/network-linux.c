@@ -63,47 +63,6 @@ static int dropprivileges(uid_t uid, gid_t gid)
         return 0;
 }
 
-static int parsemacaddr(const char *text, unsigned char *hwaddr)
-{
-    const char *textptr = text;
-    int byte;
-
-    for (byte = 0; byte < 6; byte++) {
-        int nybble;
-
-        network_hwaddr[byte] = 0;
-
-        for (nybble = 0; nybble < 2; nybble++) {
-            network_hwaddr[byte] <<= 4;
-
-            if (isdigit(*textptr)) {
-                network_hwaddr[byte] |= *textptr - '0';
-            } else if (isxdigit(*textptr)) {
-                network_hwaddr[byte] |= (toupper(*textptr) - 'A') + 10;
-            } else {
-                goto fail;
-            }
-
-            textptr++;
-        }
-
-        if (*textptr == ':') {
-            textptr++;
-        } else if (byte < 5) {
-            goto fail;
-        }
-    }
-
-    if (*textptr)
-        goto fail;
-
-    return 0;
-
-fail:
-    error("Error parsing hardware MAC address %s", text);
-    return -1;
-}
-
 /* Open and configure the tunnel device */
 static int tun_alloc(void)
 {
@@ -186,7 +145,13 @@ static int tun_alloc(void)
         return -1;
     }
 
-    if (config.macaddress == NULL || parsemacaddr(config.macaddress, network_hwaddr) < 0) {
+    if (config.macaddress != NULL) {
+        /* Parse supplied MAC address */
+        if (!network_macaddress_parse(config.macaddress, network_hwaddr)) {
+            error("Unable to parse '%s' as a MAC address", config.macaddress);
+            return -1;
+        }
+    } else {
         /* Get the hardware address */
         if (ioctl(sd, SIOCGIFHWADDR, &ifr) == -1) {
             error("Error getting %s hardware address: %s",

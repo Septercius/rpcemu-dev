@@ -23,6 +23,7 @@ void strcpyfromhost(uint32_t dest, const char *source);
 
 int network_config_changed(NetworkType networktype, const char *bridgename,
                            const char *ipaddress);
+int network_macaddress_parse(const char *macaddress, uint8_t hwaddr[6]);
 
 /* Functions provided by each host platform's network code */
 void network_plt_reset(void);

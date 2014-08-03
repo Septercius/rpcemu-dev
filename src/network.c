@@ -2,6 +2,7 @@
  network.c - code shared between each host platforms networking support
  */
 #include <assert.h>
+#include <ctype.h>
 #include <string.h>
 
 #include "rpcemu.h"
@@ -287,3 +288,52 @@ network_swi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4, uin
 	}
 }
 
+/**
+ * Parse a colon-separated MAC address
+ *
+ * @param macaddress string of MAC address
+ * @param hwaddr     pointer to 6 values to fill in with the MAC details
+ * @returns if parsed correct 1, else 0
+ */
+int
+network_macaddress_parse(const char *macaddress, uint8_t hwaddr[6])
+{
+	uint32_t hwaddr32[6];
+	int items;
+	unsigned i;
+
+	assert(macaddress != NULL);
+	assert(hwaddr != NULL);
+
+	if (strlen(macaddress) != 17) { /* xx:xx:xx:xx:xx:xx */
+		return 0;
+	}
+
+	for (i = 0; i < 6; i++) {
+		/* 6 sections of 2 hex digits */
+		if (!isxdigit(macaddress[(i * 3) + 0]) ||
+		    !isxdigit(macaddress[(i * 3) + 1]))
+		{
+			return 0;
+		}
+
+		/* 5 sections of : */
+		if (i < 5) {
+			if (macaddress[(i * 3) + 2] != ':') {
+				return 0;
+			}
+		}
+	}
+
+	items = sscanf(macaddress, "%x:%x:%x:%x:%x:%x",
+			&hwaddr32[0], &hwaddr32[1], &hwaddr32[2],
+			&hwaddr32[3], &hwaddr32[4], &hwaddr32[5]);
+
+	assert(items == 6); /* with pre-parsing it should be impossible for the above sscanf to fail */
+
+	for (i = 0; i < 6; i++) {
+		hwaddr[i] = hwaddr32[i];
+	}
+
+	return 1;
+}
