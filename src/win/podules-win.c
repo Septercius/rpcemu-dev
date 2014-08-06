@@ -18,44 +18,47 @@ static void closedlls(void)
 
 void opendlls(void)
 {
-        char olddir[512],fn[512];
         podule tempp;
         struct al_ffblk ff;
         int (*InitDll)();
         int finished;
         int dllnum=0;
         int i;
+	char podulesdir[512];
+	char searchwildcard[512];
         
         atexit(closedlls);
         for (dllnum=0;dllnum<8;dllnum++) hinstLib[dllnum]=NULL;
         dllnum=0;
-        
-        getcwd(olddir,sizeof(olddir));
-        append_filename(fn, rpcemu_get_datadir(), "podules", sizeof(fn));
-	if (chdir(fn)) {
-		rpclog("Cannot change to podules directory %s\n", fn);
-		return;
-	}
 
-        finished=al_findfirst("*.dll",&ff,0xFFFF&~FA_DIREC);
+	/* Build podules directory path */
+	snprintf(podulesdir, sizeof(podulesdir), "%spodules/", rpcemu_get_datadir());
+
+	/* Build a search string */
+	snprintf(searchwildcard, sizeof(searchwildcard), "%s*.dll", podulesdir);
+
+        finished = al_findfirst(searchwildcard, &ff, 0xffff & ~FA_DIREC);
         if (finished)
         {
-                chdir(olddir);
                 return;
         }
         while (!finished && dllnum<6)
         {
-                rpclog("Loading %s\n",ff.name);
-                hinstLib[dllnum]=LoadLibrary(ff.name);
+                char filepath[512];
+
+                snprintf(filepath, sizeof(filepath), "%s%s", podulesdir, ff.name);
+
+                rpclog("podules-win: Loading '%s'\n", filepath);
+                hinstLib[dllnum] = LoadLibrary(filepath);
                 if (hinstLib[dllnum] == NULL)
                 {
-                        rpclog("Failed to open DLL %s\n",ff.name);
+                        rpclog("podules-win: Failed to open DLL '%s'\n", filepath);
                         goto nextdll;
                 }
                 InitDll = (const void *) GetProcAddress(hinstLib[dllnum], "InitDll");
                 if (InitDll == NULL)
                 {
-                        rpclog("Couldn't find InitDll in %s\n",ff.name);
+                        rpclog("podules-win: Couldn't find InitDll in '%s'\n", filepath);
                         goto nextdll;
                 }
                 InitDll();
@@ -78,8 +81,7 @@ void opendlls(void)
         }
 
         al_findclose(&ff);
-        chdir(olddir);
-        
+
 //        FreeLibrary(hinstLib);
 }
 #endif
