@@ -1,7 +1,7 @@
 #ifndef __CP15__
 #define __CP15__
 
-extern void resetcp15(void);
+extern void cp15_reset(CPUModel cpu_model);
 extern void cp15_init(void);
 
 extern void writecp15(uint32_t addr, uint32_t val, uint32_t opcode);

@@ -22,6 +22,7 @@ static struct cp15
 {
         uint32_t tlbbase,dacr;
         uint32_t far,fsr,ctrl;
+	CPUModel cpu_model;
 } cp15;
 static int icache = 0;
 
@@ -83,8 +84,16 @@ void getcp15fsr(void)
         rpclog("%08X %08X\n",cp15.far,cp15.fsr);
 }
 
-void resetcp15(void)
+/**
+ * Called on program startup and emulated machine reset to
+ * prepare the cp15 module
+ *
+ * @param cpu_model Model of CPU (and associated mmu/cp15) being emulated
+ */
+void
+cp15_reset(CPUModel cpu_model)
 {
+        cp15.cpu_model = cpu_model;
         prog32=1;
         mmu=0;
         memset(tlbcache, 0xff, 0x100000 * sizeof(uint32_t));
@@ -96,6 +105,9 @@ void resetcp15(void)
         memset(vwaddrls,0xFF,1024*sizeof(uint32_t));
 }
 
+/**
+ * Called on program startup to prepare the cp15 module
+ */
 void
 cp15_init(void)
 {
@@ -201,7 +213,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
         case 5:
         case 6:
         case 8:
-                switch (machine.cpu_model) {
+                switch (cp15.cpu_model) {
                 /* ARMv3 Architecture */
                 case CPUModel_ARM610:
                 case CPUModel_ARM710:
@@ -242,7 +254,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 
                 default:
                         fprintf(stderr, "writecp15(): unknown CPU model %d\n",
-                                machine.cpu_model);
+                                cp15.cpu_model);
                         exit(EXIT_FAILURE);
                 }
                 break;
@@ -263,7 +275,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                 return;
 
 	case 15:
-		switch (machine.cpu_model) {
+		switch (cp15.cpu_model) {
 		case CPUModel_SA110: /* Test, Clock and Idle control */
 			if (OPC2 == 2 && CRm == 1) {
 				/* Enable clock switching - no need to implement */
@@ -277,7 +289,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 		default:
 			UNIMPLEMENTED("CP15 Write",
 			  "Unknown processor '%d' writing to reg 15",
-			  machine.cpu_model);
+			  cp15.cpu_model);
 		}
 		break;
 
@@ -293,7 +305,7 @@ uint32_t readcp15(uint32_t addr)
         switch (addr&15)
         {
                 case 0: /*ARM ID*/
-                switch (machine.cpu_model)
+                switch (cp15.cpu_model)
                 {
                         case CPUModel_ARM7500:   return 0x41027100;
                         case CPUModel_ARM7500FE: return 0x41077100;
