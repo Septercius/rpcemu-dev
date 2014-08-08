@@ -189,7 +189,7 @@ resetrpc(void)
 	rpclog("RPCEmu: Machine reset\n");
 
         mem_reset(config.mem_size);
-        resetcp15();
+        cp15_reset(machine.cpu_model);
         resetarm(machine.cpu_model);
         keyboard_reset();
 	iomd_reset(machine.iomd_type);
