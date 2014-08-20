@@ -38,6 +38,7 @@ static RECT oldclip; /**< Used to store the clip box of the cursor before we
                           enter 'mouse capture' mode, so it can be restored later */
 
 static HWND ghwnd;
+static HWND hwnd_about;	/**< Handle of About dialog when open, NULL otherwise */
 static HMENU menu;
 int handle_sigio; /**< bool to indicate new network data is received */
 
@@ -136,6 +137,48 @@ rpcemu_log_os(void)
 		pGPI(osvi.dwMajorVersion, osvi.dwMinorVersion, 0, 0, &dwType);
 		rpclog("OS: ProductInfoType = %ld\n", dwType);
 	}
+}
+
+/**
+ * Attempt to launch a url.
+ *
+ * @param url URL to be launched
+ */
+static void
+launch_url(const char *url)
+{
+	char args[1024];
+
+	assert(url != NULL);
+	assert(*url != '\0');
+
+	sprintf(args, "url.dll,FileProtocolHandler %s", url);
+	(void) ShellExecute(NULL, "open", "rundll32.exe", args, NULL, SW_SHOWNORMAL);
+}
+
+/**
+ * Set the position of a window so that it is centred relative to another window.
+ *
+ * @param hwnd_move Handle of window to be moved
+ * @param hwnd_base Handle of window to provide centre position
+ */
+static void
+window_centre_parent(HWND hwnd_move, HWND hwnd_base)
+{
+	RECT rect_move, rect_base, rect;
+
+	GetWindowRect(hwnd_base, &rect_base);
+	GetWindowRect(hwnd_move, &rect_move);
+	CopyRect(&rect, &rect_base);
+
+	OffsetRect(&rect_move, -rect_move.left, -rect_move.top);
+	OffsetRect(&rect, -rect.left, -rect.top);
+	OffsetRect(&rect, -rect_move.right, -rect_move.bottom);
+
+	SetWindowPos(hwnd_move, HWND_TOP,
+	             rect_base.left + (rect.right / 2),
+	             rect_base.top + (rect.bottom / 2),
+	             0, 0, SWP_NOSIZE);
 }
 
 static void vblupdate(void)
@@ -933,6 +976,54 @@ networkdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 /**
+ * Window procedure to handle events on the About window
+ *
+ * @param hwnd    Handle to current program instance
+ * @param message Event type this window has just received
+ * @param wParam  message specific data
+ * @param lParam  message specific data
+ * @return
+ */
+static BOOL CALLBACK
+about_dlg_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message) {
+	case WM_INITDIALOG:
+		{
+			const char datestr[] = __DATE__; /* Format is 08 Nov 2013 */
+			char copyright[64] = "";
+
+			/* Version String */
+			SendMessage(GetDlgItem(hwnd, Text_Version), WM_SETTEXT, 0, (LPARAM) VERSION);
+
+			/* Date, based on build date from __DATE__ std C macro */
+			sprintf(copyright, "Copyright 2005-%s RPCEmu Developers", datestr + 7);
+			SendMessage(GetDlgItem(hwnd, Text_Date), WM_SETTEXT, 0, (LPARAM) copyright);
+		}
+		return TRUE;
+
+	case WM_COMMAND:
+		switch (wParam) {
+		case IDOK:
+		case IDCANCEL:
+			DestroyWindow(hwnd);
+			return TRUE;
+		}
+		break;
+
+	case WM_CLOSE:
+		DestroyWindow(hwnd);
+		return TRUE;
+
+	case WM_DESTROY:
+		hwnd_about = NULL;
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
  * Window procedure to handle events on the main program window
  *
  * @param hdlg    Handle to current program instance
@@ -1071,7 +1162,23 @@ static LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
                         CheckMenuItem(hmenu, IDM_MOUSE_TWOBUTTON,
                                       config.mousetwobutton ? MF_CHECKED : MF_UNCHECKED);
                         return 0;
-                }
+
+		case IDM_HELP_ONLINE_MANUAL:
+			launch_url(URL_MANUAL);
+			return 0;
+
+		case IDM_HELP_VISIT_WEBSITE:
+			launch_url(URL_WEBSITE);
+			return 0;
+
+		case IDM_HELP_ABOUT:
+			if (!IsWindow(hwnd_about)) {
+				hwnd_about = CreateDialog(hinstance, MAKEINTRESOURCE(IDD_ABOUT), ghwnd, about_dlg_proc);
+				window_centre_parent(hwnd_about, ghwnd);
+				ShowWindow(hwnd_about, SW_SHOW);
+			}
+			return 0;
+		}
 
                 if (LOWORD(wParam)>=IDM_CDROM_REAL && LOWORD(wParam)<(IDM_CDROM_REAL+100))
                 {

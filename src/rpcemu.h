@@ -13,6 +13,10 @@
 #include "iomd.h"
 #include "superio.h"
 
+/* URLs used for the help menu weblinks */
+#define URL_MANUAL  "http://www.marutan.net/rpcemu/manual/"
+#define URL_WEBSITE "http://www.marutan.net/rpcemu/"
+
 #if !defined(_DEBUG) && !defined(NDEBUG)
 #define NDEBUG
 #endif

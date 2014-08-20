@@ -1,4 +1,10 @@
+#include <assert.h>
 #include <stdint.h>
+#include <stdlib.h>
+
+#include <unistd.h>
+#include <sys/stat.h>
+
 #include <allegro.h>
 
 #include "rpcemu.h"
@@ -74,6 +80,8 @@ extern void ioctl_init(void);
 #define MAX_BYTES_PER_CHAR 4
 
 static DIALOG configuregui[];
+static DIALOG about_dialog[];
+static char gui_date[64] = "";
 
 #ifdef RPCEMU_NETWORKING
 #define IPADDRLEN 15  /* (123.123.123.123) */
@@ -83,6 +91,42 @@ static DIALOG networkgui[];
 static char gui_ipaddress[(IPADDRLEN + 1) * MAX_BYTES_PER_CHAR] = "123.124.125.126";
 static char gui_bridgename[(BRNAMELEN + 1) * MAX_BYTES_PER_CHAR] = "br0";
 #endif /* RPCEMU_NETWORKING */
+
+/**
+ * Attempt to launch a url.
+ *
+ * On Linux/Unix there is no standard way of doing this, so try xdg-open and
+ * failing that popup the url in an alert box.
+ *
+ * @param url URL to be launched
+ */
+static void
+launch_url(const char *url)
+{
+	struct stat s;
+
+	assert(url != NULL);
+	assert(*url != '\0');
+
+	if (stat("/usr/bin/xdg-open", &s) == 0) {
+		pid_t pid = fork();
+		if (pid == 0) {
+			/* In child process */
+			execl("/usr/bin/xdg-open", "xdg-open", url, NULL);
+
+			/* If execl() returns there was an error */
+			exit(EXIT_FAILURE);
+		} else {
+			/* In parent process, just return all is well */
+			return;
+		}
+	} else {
+		alert("Unable to automatically open URL",
+		      "Please open the following in Browser",
+		      url,
+		      "OK", NULL, 'o', 0);
+	}
+}
 
 /**
  * Callback function for File->Exit menu item.
@@ -529,6 +573,50 @@ menunetworking(void)
 #endif /* RPCEMU_NETWORKING */
 
 /**
+ * Help->Online Manual function
+ * Load the manual URL
+ */
+static int
+menu_help_manual(void)
+{
+	launch_url(URL_MANUAL);
+	return D_CLOSE;
+}
+
+/**
+ * Help->Visit Website function
+ * Load the website URL
+ */
+static int
+menu_help_website(void)
+{
+	launch_url(URL_WEBSITE);
+	return D_CLOSE;
+}
+
+/**
+ * Help->About RPCEmu function
+ * Open the About box
+ */
+static int
+menu_help_about(void)
+{
+	/* Fill in dynamic aspects of the dialog */
+	const char datestr[] = __DATE__; /* Format is 08 Nov 2013 */
+	char copyright[64] = "";
+
+	/* Date, based on build date from __DATE__ std C macro */
+	sprintf(copyright, "Copyright 2005-%s RPCEmu Developers", datestr + 7);
+	strcpy(gui_date, copyright);
+
+	/* Display the GUI */
+	centre_dialog(about_dialog);
+	popup_dialog(about_dialog, 1);
+
+	return D_CLOSE;
+}
+
+/**
  * Callback function for the Refresh Rate slider
  *
  * @param dp3  not used
@@ -568,11 +656,20 @@ static MENU settingsmenu[]=
 	{ NULL,                     NULL,           NULL,   0, NULL }
 };
 
+static MENU help_menu[] = {
+	{ "Online &Manual",	menu_help_manual,	NULL, 0, NULL },
+	{ "Visit &Website",	menu_help_website,	NULL, 0, NULL },
+	{ "",			NULL,			NULL, 0, NULL },
+	{ "&About RPCEmu",	menu_help_about,	NULL, 0, NULL },
+	{ NULL,			NULL,			NULL, 0, NULL }
+};
+
 static MENU mainmenu[]=
 {
         {"&File",NULL,filemenu,0,NULL},
         {"&Disc",NULL,discmenu,0,NULL},
         {"&Settings",NULL,settingsmenu,0,NULL},
+        {"&Help", NULL, help_menu, 0, NULL},
         {NULL,NULL,NULL,0,NULL}
 };
 
@@ -638,17 +735,36 @@ static DIALOG networkgui[] =
 	{ d_button_proc,   CX+72, CY+96,          64, 16, 0, -1,0,D_EXIT,0,0,"OK",0,0}, // 1
 	{ d_button_proc,   CX+160, CY+96,         64, 16, 0, -1,0,D_EXIT,0,0,"Cancel",0,0}, // 2
 
-	{ d_radio_proc,    CX+8, CY+4,         24+16, 16, 0, -1,0,0,     2, 0, "Off",0,0}, // 18
-	{ d_radio_proc,    CX+8, CY+4+16,     136+16, 16, 0, -1,0,0,     2, 0, "Ethernet Bridging",0,0}, // 18
-	{ d_text_proc,     CX+8+16, CY+4+36,      40,  8, 0, -1,0,0,     0, 0, "Bridge Name :",0,0}, // 21
-	{ d_edit_proc,     CX+8+16+104, CY+4+36, 160, 16, 0, 0xdddddd,0,0, BRNAMELEN, 0, gui_bridgename, NULL, NULL },
-	{ d_radio_proc,    CX+8, CY+4+48,     104+16, 16, 0, -1,0,0,     2, 0, "IP Tunnelling",0,0}, // 18
-	{ d_text_proc,     CX+8+16, CY+4+68,      40,  8, 0, -1,0,0,     0, 0, "IP Address  :",0,0}, // 21
-	{ d_edit_proc,     CX+8+16+104, CY+4+68, 160, 16, 0, 0xdddddd,0,0, IPADDRLEN, 0, gui_ipaddress,  NULL, NULL },
+	{ d_radio_proc,    CX+8, CY+4,         24+16, 16, 0, -1,0,0,     2, 0, "Off",0,0}, // 3
+	{ d_radio_proc,    CX+8, CY+4+16,     136+16, 16, 0, -1,0,0,     2, 0, "Ethernet Bridging",0,0}, // 4
+	{ d_text_proc,     CX+8+16, CY+4+36,      40,  8, 0, -1,0,0,     0, 0, "Bridge Name :",0,0}, // 5
+	{ d_edit_proc,     CX+8+16+104, CY+4+36, 160, 16, 0, 0xdddddd,0,0, BRNAMELEN, 0, gui_bridgename, NULL, NULL }, // 6
+	{ d_radio_proc,    CX+8, CY+4+48,     104+16, 16, 0, -1,0,0,     2, 0, "IP Tunnelling",0,0}, // 7
+	{ d_text_proc,     CX+8+16, CY+4+68,      40,  8, 0, -1,0,0,     0, 0, "IP Address  :",0,0}, // 8
+	{ d_edit_proc,     CX+8+16+104, CY+4+68, 160, 16, 0, 0xdddddd,0,0, IPADDRLEN, 0, gui_ipaddress,  NULL, NULL }, // 9
 
 	{ 0,0,0,0,0,0,0,0,0,0,0,NULL,NULL,NULL }
 };
 #endif /* RPCEMU_NETWORKING */
+
+static DIALOG about_dialog[] = {
+	/* proc, x, y, w, h, fg, bg */
+	{ d_shadow_box_proc, 0, 0, 44*8, 20*8, 0,-1,0,0, 0,0,0,0,0 }, // 0
+
+	{ d_text_proc,   19*8,    2*8, 40,  8, 0,-1,0,0, 0,0, "RPCEmu",0,0 }, // 1
+	{ d_text_proc,   19*8,  3.5*8, 40,  8, 0,-1,0,0, 0,0, VERSION,0,0 }, // 2
+
+	{ d_text_proc,    3*8,    6*8, 40,  8, 0,-1,0,0, 0,0, gui_date,0,0 }, // 3
+
+	{ d_text_proc,    3*8,    9*8, 40,  8, 0,-1,0,0, 0,0, "RPCEmu is released under the terms of",0,0 }, // 4
+	{ d_text_proc,    3*8, 10.5*8, 40,  8, 0,-1,0,0, 0,0, "the GNU General Public License,",0,0 }, // 5
+	{ d_text_proc,    3*8,   12*8, 40,  8, 0,-1,0,0, 0,0, "Version 2. Please see the file COPYING",0,0 }, // 6
+	{ d_text_proc,    3*8, 13.5*8, 40,  8, 0,-1,0,0, 0,0, "for more details.",0,0 }, // 7
+
+	{ d_button_proc, 18*8,   16*8, 64, 16, 0,-1,0,D_EXIT, 0,0, "OK",0,0 }, // 8
+
+	{ NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL }
+};
 
 static DIALOG rpcemugui[]=
 {

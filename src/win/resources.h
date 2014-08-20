@@ -1,19 +1,26 @@
 /* Menu Items */
-#define IDM_FILE_RESET     40000
-#define IDM_FILE_EXIT      40001
-#define IDM_DISC_LD0       40010
-#define IDM_DISC_LD1       40011
-#define IDM_CONFIG         40052
-#define IDM_NETWORKING     40066
-#define IDM_FULLSCR        40054
-#define IDM_CPUIDLE        40055
-#define IDM_CDROM_DISABLED 40060
-#define IDM_CDROM_EMPTY    40061
-#define IDM_CDROM_ISO      40062
-#define IDM_CDROM_REAL     40063
-#define IDM_MOUSE_FOL      40064
-#define IDM_MOUSE_CAP      40065
-#define IDM_MOUSE_TWOBUTTON 40067   /* Last ID */
+#define IDM_FILE_RESET		40000
+#define IDM_FILE_EXIT		40001
+#define IDM_DISC_LD0		40010
+#define IDM_DISC_LD1		40011
+#define IDM_CONFIG		40052
+#define IDM_NETWORKING		40066
+#define IDM_FULLSCR		40054
+#define IDM_CPUIDLE		40055
+#define IDM_CDROM_DISABLED	40060
+#define IDM_CDROM_EMPTY		40061
+#define IDM_CDROM_ISO		40062
+#define IDM_CDROM_REAL		40100
+#define IDM_MOUSE_FOL		40064
+#define IDM_MOUSE_CAP		40065
+#define IDM_MOUSE_TWOBUTTON	40067
+#define IDM_HELP_ONLINE_MANUAL	40080
+#define IDM_HELP_VISIT_WEBSITE	40081
+#define IDM_HELP_ABOUT		40082
+/* Last ID */
+
+/* Dialog IDs */
+#define IDD_ABOUT	100
 
 /* Indexes into the items of the CONFIGUREDLG Dialog */
 #define ListBox_Hardware	1000
@@ -46,3 +53,10 @@
 #define Edit_BridgeName			2002
 #define Text_BridgeName			2003
 #define GroupBox_Networking		2004
+
+/* Indexes into the items of the About Dialog */
+#define Icon_App	3000
+#define Text_Name	3001
+#define Text_Version	3002
+#define Text_Date	3003
+#define Text_Licence	3004
