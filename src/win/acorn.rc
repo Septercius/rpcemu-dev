@@ -40,6 +40,13 @@ BEGIN
 			MENUITEM "&Two-button Mouse Mode", IDM_MOUSE_TWOBUTTON
 		END
 	END
+	POPUP "&Help"
+	BEGIN
+		MENUITEM "Online &Manual", IDM_HELP_ONLINE_MANUAL
+		MENUITEM "Visit &Website", IDM_HELP_VISIT_WEBSITE
+		MENUITEM SEPARATOR
+		MENUITEM "&About RPCEmu", IDM_HELP_ABOUT
+	END
 END
 
 ConfigureDlg DIALOGEX 20, 20, 225, 239
@@ -87,3 +94,16 @@ BEGIN
 	DEFPUSHBUTTON	"OK",     IDOK,     102, 76, 50, 14
 	PUSHBUTTON	"Cancel", IDCANCEL, 156, 76, 50, 14
 END
+
+IDD_ABOUT DIALOGEX 0, 0, 185, 113
+STYLE DS_SHELLFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About RPCEmu"
+FONT 8, "MS Shell Dlg"
+{
+	ICON		"allegro_icon", Icon_App, 7, 7, 32, 30, SS_ICON
+	LTEXT		"RPCEmu", Text_Name, 34, 7, 143, 8, SS_CENTER
+	LTEXT		"0.0.00", Text_Version, 34, 17, 143, 8, SS_CENTER
+	LTEXT		"Copyright 1895-2456 RPCEmu Developers", Text_Date, 34, 29, 143, 8, SS_CENTER
+	LTEXT		"RPCEmu is released under the terms of the GNU General Public Licence, Version 2. Please see the file COPYING for more details.", Text_Licence, 7, 53, 171, 36
+	DEFPUSHBUTTON	"OK", IDOK, 127, 93, 50, 14
+}

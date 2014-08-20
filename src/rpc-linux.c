@@ -3,10 +3,13 @@
   Not just for Linux - works as a Win32 console app as well*/
 
 #include <errno.h>
+#include <signal.h>
 #include <string.h>
 
 #include <pthread.h>
+#include <sys/types.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
 
 #include <allegro.h>
 extern void *allegro_icon; /**< Additional prototype required for X11 icon support */
@@ -223,6 +226,36 @@ static void close_button_handler(void)
 }
 END_OF_FUNCTION(close_button_handler)
 
+/**
+ * Handler for the SIGCHLD signal.
+ *
+ * Wait on child process to allow cleanup.
+ */
+static void
+sigchld_handler(int signum)
+{
+	(void) wait(NULL);
+}
+
+/**
+ * Install a handler for the SIGCHLD signal.
+ *
+ * Launching a URL forks a new process, and this installs a handler for the
+ * signal generated when the process exits.
+ */
+static void
+install_sigchld_handler(void)
+{
+	struct sigaction act;
+
+	act.sa_handler = sigchld_handler;
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = 0;
+
+	if (sigaction(SIGCHLD, &act, NULL) != 0) {
+		fatal("Could not install sigchld handler: %s\n", strerror(errno));
+	}
+}
 
 int main (int argc, char ** argv) 
 { 
@@ -231,6 +264,8 @@ int main (int argc, char ** argv)
 		fprintf(stderr, "No command line options supported.\n");
 		return 1;
 	}
+
+	install_sigchld_handler();
 
 	/* Setup X11 icon */
 	allegro_icon = rpcemu_xpm;
