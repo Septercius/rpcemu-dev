@@ -997,6 +997,9 @@ hostfs_args(ARMul_State *state)
   case 9:
     hostfs_args_9_read_file_datestamp(state);
     break;
+  default:
+    UNIMPLEMENTED("HostFS", "Args %u", state->Reg[0]);
+    break;
   }
 }
 
@@ -1464,6 +1467,9 @@ hostfs_file(ARMul_State *state)
   case 255:
     hostfs_file_255_load_file(state);
     break;
+  default:
+    UNIMPLEMENTED("HostFS", "File %u", state->Reg[0]);
+    break;
   }
 }
 
@@ -1848,26 +1854,24 @@ hostfs_func(ARMul_State *state)
   case 0:
     hostfs_func_0_chdir(state);
     break;
-
   case 8:
     hostfs_func_8_rename(state);
     break;
-
   case 11:
     dbug_hostfs("\tRead disc name and boot option\n");
     state->Reg[9] = NOT_IMPLEMENTED;
     break;
-
   case 14:
     hostfs_func_14_read_dir(state);
     break;
-
   case 15:
     hostfs_func_15_read_dir_info(state);
     break;
-
   case 19:
     hostfs_func_19_read_dir_info_timestamp(state);
+    break;
+  default:
+    UNIMPLEMENTED("HostFS", "Func %u", state->Reg[0]);
     break;
   }
 }
