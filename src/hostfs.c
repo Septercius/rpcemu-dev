@@ -1934,7 +1934,17 @@ hostfs_init(void)
 void
 hostfs_reset(void)
 {
+  unsigned i;
+
   hostfs_state = HOSTFS_STATE_UNREGISTERED;
+
+  /* Close any open files */
+  for (i = 1; i < (MAX_OPEN_FILES + 1); i++) {
+    if (open_file[i] != NULL) {
+      fclose(open_file[i]);
+      open_file[i] = NULL;
+    }
+  }
 }
 
 /**
