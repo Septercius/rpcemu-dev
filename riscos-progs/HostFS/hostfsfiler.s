@@ -81,7 +81,7 @@ modtitle:
         .string	"RPCEmuHostFSFiler"
 
 help:
-        .string	"HostFSFiler\t0.03 (08 Dec 2006)"
+        .string	"HostFSFiler\t0.04 (30 Aug 2014)"
         .align
 
 
@@ -367,7 +367,7 @@ mouse_click:
 	b	re_poll
 
 cli_command:
-	.string	"Filer_OpenDir HostFS:$"
+	.string	"Filer_OpenDir HostFS::HostFS.$"
 	.align
 
 
