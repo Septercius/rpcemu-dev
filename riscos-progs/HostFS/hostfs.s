@@ -22,7 +22,7 @@
 	ARCEM_SWI_CHUNKX = ARCEM_SWI_CHUNK | 0x20000
 	ArcEm_HostFS    = ARCEM_SWI_CHUNKX + 1
 
-	HOSTFS_PROTOCOL_VERSION = 1
+	HOSTFS_PROTOCOL_VERSION = 2
 
 	@ Filing system error codes
 	FILECORE_ERROR_DIRNOTEMPTY	= 0xb4
@@ -30,12 +30,13 @@
 	FILECORE_ERROR_ALREADYOPEN	= 0xc2
 	FILECORE_ERROR_DISCFULL		= 0xc6
 	FILECORE_ERROR_DISCPROT		= 0xc9
+	FILECORE_ERROR_DISCNOTFOUND	= 0xd4
 	FILECORE_ERROR_NOTFOUND		= 0xd6
 
 	@ Filing system properties
 	FILING_SYSTEM_NUMBER = 0x99	@ TODO choose unique value
 	MAX_OPEN_FILES       = 100	@ TODO choose sensible value
-
+	IMAGEFS_EXTENSIONS   = (1 << 23)
 
 
 	.global	_start
@@ -66,7 +67,7 @@ title:
 	.string	"RPCEmuHostFS"
 
 help:
-	.string	"RPCEmu HostFS\t0.08 (05 Nov 2011)"
+	.string	"RPCEmu HostFS\t0.09 (30 Aug 2014)"
 
 	.align
 
@@ -97,7 +98,7 @@ fs_info_block:
 	.int	fs_args		@ To Control open files (FSEntry_Args)
 	.int	fs_close	@ To Close open files (FSEntry_Close)
 	.int	fs_file		@ To perform whole-file ops (FSEntry_File)
-	.int	FILING_SYSTEM_NUMBER | (MAX_OPEN_FILES << 8)
+	.int	FILING_SYSTEM_NUMBER | (MAX_OPEN_FILES << 8) | IMAGEFS_EXTENSIONS
 				@ Filing System Information Word
 	.int	fs_func		@ To perform various ops (FSEntry_Func)
 	.int	fs_gbpb		@ To perform multi-byte ops (FSEntry_GBPB)
@@ -404,6 +405,10 @@ hostfs_error:
 	adreq	r0, err_discprot
 	beq	hostfs_return_error
 
+	teq	r9, #FILECORE_ERROR_DISCNOTFOUND
+	adreq	r0, err_discnotfound
+	beq	hostfs_return_error
+
 	teq	r9, #FILECORE_ERROR_NOTFOUND
 	adreq	r0, err_notfound
 	beq	hostfs_return_error
@@ -443,6 +448,11 @@ err_discfull:
 err_discprot:
 	.int	0x10000 | (FILING_SYSTEM_NUMBER << 8) | FILECORE_ERROR_DISCPROT
 	.string	"Disc is protected for changes"
+	.align
+
+err_discnotfound:
+	.int	0x10000 | (FILING_SYSTEM_NUMBER << 8) | FILECORE_ERROR_DISCNOTFOUND
+	.string	"Disc not found"
 	.align
 
 err_notfound:
