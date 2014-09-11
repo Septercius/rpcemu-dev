@@ -178,9 +178,9 @@ typedef struct {
  * This array must be kept in the same order as IOMDType in iomd.h
  */
 static const IOMDVariant iomds[] = {
-	{ 0xe7, 0xd4, 3 }, /* IOMD */
-	{ 0x98, 0x5b, 3 }, /* ARM7500 */
-	{ 0x7c, 0xaa, 1 }, /* ARM7500FE */
+	{ 0xe7, 0xd4, 0 }, /* IOMD */
+	{ 0x98, 0x5b, 0 }, /* ARM7500 */
+	{ 0x7c, 0xaa, 0 }, /* ARM7500FE */
 	{ 0xe8, 0xd5, 1 }, /* IOMD2 */
 };
 
