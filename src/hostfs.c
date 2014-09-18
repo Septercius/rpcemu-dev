@@ -1986,6 +1986,58 @@ hostfs_func_27_read_boot_option(ARMul_State *state)
   state->Reg[2] = 2; /* Return boot option of 2 */
 }
 
+/**
+ * FSEntry_Func 30 - Read free space (32-bit)
+ *
+ * @param state Emulator state
+ */
+static void
+hostfs_func_30_read_free_space32(ARMul_State *state)
+{
+  disk_info d;
+
+  dbug_hostfs("\tRead free space 32\n");
+  dbug_hostfs("\tr1 = 0x%08x (ptr to pathname of object on image)\n", state->Reg[1]);
+
+  (void) path_disk_info(HOSTFS_ROOT, &d);
+
+  /* If the disk size is >= 2GB, return it as 2GB-1 */
+  if (d.size >= 0x80000000) {
+    d.size = 0x7fffffff;
+  }
+
+  /* If the free space is >= 2GB, return it as 2GB-1 */
+  if (d.free >= 0x80000000) {
+    d.free = 0x7fffffff;
+  }
+
+  state->Reg[0] = (uint32_t) d.free;
+  state->Reg[1] = 0x7fffffff;
+  state->Reg[2] = (uint32_t) d.size;
+}
+
+/**
+ * FSEntry_Func 35 - Read free space (64-bit)
+ *
+ * @param state Emulator state
+ */
+static void
+hostfs_func_35_read_free_space64(ARMul_State *state)
+{
+  disk_info d;
+
+  dbug_hostfs("\tRead free space 64\n");
+  dbug_hostfs("\tr1 = 0x%08x (ptr to pathname of object on image)\n", state->Reg[1]);
+
+  (void) path_disk_info(HOSTFS_ROOT, &d);
+
+  state->Reg[0] = (uint32_t) d.free;
+  state->Reg[1] = (uint32_t) (d.free >> 32);
+  state->Reg[2] = 0x7fffffff;
+  state->Reg[3] = (uint32_t) d.size;
+  state->Reg[4] = (uint32_t) (d.size >> 32);
+}
+
 static void
 hostfs_func(ARMul_State *state)
 {
@@ -2020,6 +2072,12 @@ hostfs_func(ARMul_State *state)
     break;
   case 27:
     hostfs_func_27_read_boot_option(state);
+    break;
+  case 30:
+    hostfs_func_30_read_free_space32(state);
+    break;
+  case 35:
+    hostfs_func_35_read_free_space64(state);
     break;
   default:
     UNIMPLEMENTED("HostFS", "Func %u", state->Reg[0]);
