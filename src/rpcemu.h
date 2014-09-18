@@ -163,8 +163,16 @@ extern const char *rpcemu_get_datadir(void);
 extern const char *rpcemu_get_log_path(void);
 
 /* rpc-[linux|win].c */
+typedef struct {
+	uint64_t	size;		/**< Size of disk */
+	uint64_t	free;		/**< Free space on disk */
+} disk_info;
+
 extern void fatal(const char *format, ...) __attribute__((noreturn));
 extern void error(const char *format, ...);
+
+extern int path_disk_info(const char *path, disk_info *d);
+
 extern void updatewindowsize(uint32_t x, uint32_t y);
 extern void updateirqs(void);
 

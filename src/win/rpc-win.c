@@ -79,6 +79,31 @@ void fatal(const char *format, ...)
 }
 
 /**
+ * Return disk space information about a file system.
+ *
+ * @param path Pathname of object within file system
+ * @param d    Pointer to disk_info structure that will be filled in
+ * @return     On success 1 is returned, on error 0 is returned
+ */
+int
+path_disk_info(const char *path, disk_info *d)
+{
+	ULARGE_INTEGER free, total;
+
+	assert(path != NULL);
+	assert(d != NULL);
+
+	if (GetDiskFreeSpaceEx(path, &free, &total, NULL) == 0) {
+		return 0;
+	}
+
+	d->size = (uint64_t) total.QuadPart;
+	d->free = (uint64_t) free.QuadPart;
+
+	return 1;
+}
+
+/**
  * Log details about the current Operating System version.
  *
  * Called during program start-up.

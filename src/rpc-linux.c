@@ -2,11 +2,13 @@
   Main loop
   Not just for Linux - works as a Win32 console app as well*/
 
+#include <assert.h>
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
 
 #include <pthread.h>
+#include <sys/statvfs.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
@@ -134,6 +136,32 @@ void fatal(const char *format, ...)
 	}
 
 	exit(EXIT_FAILURE);
+}
+
+/**
+ * Return disk space information about a file system.
+ *
+ * @param path Pathname of object within file system
+ * @param d    Pointer to disk_info structure that will be filled in
+ * @return     On success 1 is returned, on error 0 is returned
+ */
+int
+path_disk_info(const char *path, disk_info *d)
+{
+	struct statvfs s;
+	int ret;
+
+	assert(path != NULL);
+	assert(d != NULL);
+
+	if ((ret = statvfs(path, &s)) != 0) {
+		return 0;
+	}
+
+	d->size = (uint64_t) s.f_blocks * (uint64_t) s.f_frsize;
+	d->free = (uint64_t) s.f_bavail * (uint64_t) s.f_frsize;
+
+	return 1;
 }
 
 /**
