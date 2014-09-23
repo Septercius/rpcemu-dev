@@ -21,6 +21,7 @@
         XOS_ReadMonotonicTime = 0x20042
         XWimp_Initialise = 0x600c0
         XWimp_CreateIcon = 0x600c2
+	XWimp_CreateMenu = 0x600d4
         XWimp_CloseDown  = 0x600dd
         XWimp_PollIdle   = 0x600e1
         XWimp_SpriteOp   = 0x600e9
@@ -81,7 +82,7 @@ modtitle:
         .string	"RPCEmuHostFSFiler"
 
 help:
-        .string	"HostFSFiler\t0.04 (30 Aug 2014)"
+        .string	"HostFSFiler\t0.05 (23 Sep 2014)"
         .align
 
 
@@ -280,6 +281,25 @@ icon_bar_icon_name:
 
 
 
+menu:
+	.string	"HostFS"	@ Menu Title, padded to 12 bytes
+	.align
+	.int	0
+
+	.byte	7, 2, 7, 0	@ Title colours
+	.int	16 * 6		@ Width
+	.int	44		@ Height
+	.int	0		@ Vertical gap
+	@ Menu items
+	.int	(1 << 7)	@ Flags: last item
+	.int	-1		@ Submenu pointer
+	.int	0x07000001	@ Menu item icon flags, Text
+	.string	"Free"		@ Menu item icon data, padded to 12 bytes
+	.align
+	.int	0
+
+
+
 	@ "Start" entry point
 	@ Entered in User Mode
 	@ Therefore no need to preserve link register before calling SWIs
@@ -345,6 +365,8 @@ re_poll:
 
 	teq	r0, #6			@ 6 = Mouse Click
 	beq	mouse_click
+	teq	r0, #9			@ 9 = Menu Selection
+	beq	menu_selection
 	teq	r0, #17			@ 17 = User Message
 	teqne	r0, #18			@ 18 = User Message Recorded
 	beq	user_message
@@ -357,17 +379,37 @@ mouse_click:
 	bne	re_poll
 
 	ldr	r0, [r1, #8]		@ Buttons
+
 	cmp	r0, #4			@ Select
 	cmpne	r0, #1			@ Adjust
+	adreq	r0, cli_command
+	swieq	XOS_CLI
+	beq	re_poll
+
+	cmp	r0, #2			@ Menu
 	bne	re_poll
 
-	adr	r0, cli_command
-	swi	XOS_CLI
+	ldr	r2, [r1, #0]		@ X coordinate of click
+	sub	r2, r2, #64
+	mov	r3, #(96 + 44)
+	adr	r1, menu
+	swi	XWimp_CreateMenu
 
 	b	re_poll
 
 cli_command:
 	.string	"Filer_OpenDir HostFS::HostFS.$"
+	.align
+
+
+menu_selection:
+	adr	r0, free_cli_command
+	swi	XOS_CLI
+
+	b	re_poll
+
+free_cli_command:
+	.string	"ShowFree -fs HostFS HostFS"
 	.align
 
 
