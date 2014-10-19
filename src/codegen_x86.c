@@ -746,6 +746,13 @@ generatesetznS(uint32_t opcode, uint32_t *pcpsr)
 static int lastrecompiled;
 
 static void
+gen_test_armirq(void)
+{
+	addbyte(0xf6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
+	gen_x86_jump(CC_NZ, 0);
+}
+
+static void
 genldr(void)
 {
 	int jump_nextbit, jump_notinbuffer;
@@ -763,8 +770,7 @@ genldr(void)
 	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_mov_reg32_stack(EDI, 0);
 	gen_x86_call(readmemfl);
-	addbyte(0xf6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
-	gen_x86_jump(CC_NZ, 0);
+	gen_test_armirq();
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 	/* Rotate if load is unaligned */
@@ -789,8 +795,7 @@ genldrb(void)
 	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_mov_reg32_stack(EBX, 0);
 	gen_x86_call(readmemfb);
-	addbyte(0xf6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
-	gen_x86_jump(CC_NZ, 0);
+	gen_test_armirq();
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 }
@@ -814,8 +819,7 @@ genstr(void)
 	gen_x86_mov_reg32_stack(EDI, 0);
 	gen_x86_mov_reg32_stack(ECX, 4);
 	gen_x86_call(writememfl);
-	addbyte(0xf6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
-	gen_x86_jump(CC_NZ, 0);
+	gen_test_armirq();
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 }
@@ -837,8 +841,7 @@ genstrb(void)
 	gen_x86_mov_reg32_stack(EBX, 0);
 	gen_x86_mov_reg32_stack(ECX, 4);
 	gen_x86_call(writememfb);
-	addbyte(0xf6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
-	gen_x86_jump(CC_NZ, 0);
+	gen_test_armirq();
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 }
@@ -1829,8 +1832,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                 addbyte(0x8B); addbyte(0x19); /*MOVL (%ecx),%ebx*/
                         }
                         gen_x86_call(mwritemem);
-                        addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                        gen_x86_jump(CC_NZ, 0);
+                        gen_test_armirq();
                         addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
                         c++;
                         templ>>=1;
@@ -1859,8 +1861,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                         temp|=2;
                                         if (templ&~1 && temp==3)
                                         {
-                                                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                                                gen_x86_jump(CC_NZ, 0);
+                                                gen_test_armirq();
                                         }
                                         addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
                                 }
@@ -1909,8 +1910,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (c==15) { addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%ebx*/ }
                 gen_x86_call(mwritemem);
                 gen_x86_pop_reg(EAX);
-                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                gen_x86_jump(CC_NZ, 0);
+                gen_test_armirq();
                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
                 c++;
                 templ>>=1;
@@ -1995,8 +1995,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                 addbyte(0x8B); addbyte(0x1B); /*MOVL (%ebx),%ebx*/
                         }
                         gen_x86_call(mwritemem);
-                        addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                        gen_x86_jump(CC_NZ, 0);
+                        gen_test_armirq();
 
 //                        addbyte(0x89); addbyte(0xF8); /*MOVL %edi,%eax*/
                         addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
@@ -2033,8 +2032,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                         if (templ&~1 && (temp==3 || first))
                                         {
                                                 first=0;
-                                                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                                                gen_x86_jump(CC_NZ, 0);
+                                                gen_test_armirq();
                                         }
                                         addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
                                 }
@@ -2090,8 +2088,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                         #if 0
                                         if (templ&~1)
                                         {
-                                                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                                                gen_x86_jump(CC_NZ, 0);
+                                                gen_test_armirq();
                                         }
                                         #endif
                                 }
@@ -2251,8 +2248,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                         #if 0
                                         if (templ&~1)
                                         {
-                                                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                                                gen_x86_jump(CC_NZ, 0);
+                                                gen_test_armirq();
                                         }
                                         #endif
                                 }

@@ -426,6 +426,13 @@ generate_shift(uint32_t opcode)
 }
 
 static void
+gen_test_armirq(void)
+{
+	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
+	gen_x86_jump(CC_NZ, 0);
+}
+
+static void
 genldr(void) /*address in %ebx, data in %eax*/
 {
 	int jump_nextbit, jump_notinbuffer;
@@ -442,8 +449,7 @@ genldr(void) /*address in %ebx, data in %eax*/
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_call(readmemfl);
-	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
-	gen_x86_jump(CC_NZ, 0);
+	gen_test_armirq();
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 	/* Rotate if load is unaligned */
@@ -468,8 +474,7 @@ genldrb(void) /*address in %ebx, data in %al*/
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_call(readmemfb);
-	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
-	gen_x86_jump(CC_NZ, 0);
+	gen_test_armirq();
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 }
@@ -491,8 +496,7 @@ genstr(void) /*address in %ebx, data in %esi*/
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_call(writememfl);
-	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
-	gen_x86_jump(CC_NZ, 0);
+	gen_test_armirq();
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 }
@@ -513,8 +517,7 @@ genstrb(void) /*address in %ebx, data in %sil*/
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_call(writememfb);
-	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
-	gen_x86_jump(CC_NZ, 0);
+	gen_test_armirq();
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 }
