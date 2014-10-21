@@ -287,9 +287,11 @@ resetarm(CPUModel cpu_model)
         pccache=0xFFFFFFFF;
 	if (cpu_model == CPUModel_SA110 || cpu_model == CPUModel_ARM810) {
 		r15diff = 0;
+		arm.abort_base_restored = 1;
 		arm.stm_writeback_at_end = 1;
 	} else {
 		r15diff = 4;
+		arm.abort_base_restored = 0;
 		arm.stm_writeback_at_end = 0;
 	}
 }
@@ -1369,8 +1371,9 @@ void execarm(int cycs)
 					memmode = templ;
 
 					/* Check for Abort */
-					if (armirq & 0x40)
+					if (arm.abort_base_restored && (armirq & 0x40)) {
 						break;
+					}
 
 					/* Writeback */
 					if (opcode & 0x2000000) {
@@ -1398,8 +1401,9 @@ void execarm(int cycs)
 					memmode = templ;
 
 					/* Check for Abort */
-					if (armirq & 0x40)
+					if (arm.abort_base_restored && (armirq & 0x40)) {
 						break;
+					}
 
 					/* Rotate if load is unaligned */
 					templ2 = arm_ldr_rotate(templ2, addr);
@@ -1415,6 +1419,11 @@ void execarm(int cycs)
 					}
 					addr += addr2;
 					arm.reg[RN] = addr;
+
+					/* Check for Abort (before writing Rd) */
+					if (armirq & 0x40) {
+						break;
+					}
 
 					/* Write Rd */
 					LOADREG(RD, templ2);
@@ -1433,8 +1442,9 @@ void execarm(int cycs)
 					memmode = templ;
 
 					/* Check for Abort */
-					if (armirq & 0x40)
+					if (arm.abort_base_restored && (armirq & 0x40)) {
 						break;
+					}
 
 					/* Writeback */
 					if (opcode & 0x2000000) {
@@ -1462,8 +1472,9 @@ void execarm(int cycs)
 					memmode = templ;
 
 					/* Check for Abort */
-					if (armirq & 0x40)
+					if (arm.abort_base_restored && (armirq & 0x40)) {
 						break;
+					}
 
 					/* Writeback */
 					if (opcode & 0x2000000) {
@@ -1476,6 +1487,11 @@ void execarm(int cycs)
 					}
 					addr += addr2;
 					arm.reg[RN] = addr;
+
+					/* Check for Abort (before writing Rd) */
+					if (armirq & 0x40) {
+						break;
+					}
 
 					/* Write Rd */
 					LOADREG(RD, templ2);
@@ -1523,8 +1539,9 @@ void execarm(int cycs)
 					writememl(addr & ~3, templ);
 
 					/* Check for Abort */
-					if (armirq & 0x40)
+					if (arm.abort_base_restored && (armirq & 0x40)) {
 						break;
+					}
 
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
@@ -1574,8 +1591,9 @@ void execarm(int cycs)
 					templ = readmeml(addr & ~3);
 
 					/* Check for Abort */
-					if (armirq & 0x40)
+					if (arm.abort_base_restored && (armirq & 0x40)) {
 						break;
+					}
 
 					/* Rotate if load is unaligned */
 					templ = arm_ldr_rotate(templ, addr);
@@ -1587,6 +1605,11 @@ void execarm(int cycs)
 					} else if (opcode & 0x200000) {
 						/* Pre-indexed with writeback */
 						arm.reg[RN] = addr;
+					}
+
+					/* Check for Abort (before writing Rd) */
+					if (armirq & 0x40) {
+						break;
 					}
 
 					/* Write Rd */
@@ -1635,8 +1658,9 @@ void execarm(int cycs)
 					writememb(addr, templ);
 
 					/* Check for Abort */
-					if (armirq & 0x40)
+					if (arm.abort_base_restored && (armirq & 0x40)) {
 						break;
+					}
 
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
@@ -1686,8 +1710,9 @@ void execarm(int cycs)
 					templ = readmemb(addr);
 
 					/* Check for Abort */
-					if (armirq & 0x40)
+					if (arm.abort_base_restored && (armirq & 0x40)) {
 						break;
+					}
 
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
@@ -1696,6 +1721,11 @@ void execarm(int cycs)
 					} else if (opcode & 0x200000) {
 						/* Pre-indexed with writeback */
 						arm.reg[RN] = addr;
+					}
+
+					/* Check for Abort (before writing Rd) */
+					if (armirq & 0x40) {
+						break;
 					}
 
 					/* Write Rd */

@@ -941,8 +941,9 @@ static int opSTRT(uint32_t opcode)
 	memmode = templ;
 
 	/* Check for Abort */
-	if (armirq & 0x40)
+	if (arm.abort_base_restored && (armirq & 0x40)) {
 		return 1;
+	}
 
 	/* Writeback */
 	if (opcode & 0x2000000) {
@@ -956,7 +957,7 @@ static int opSTRT(uint32_t opcode)
 	addr += addr2;
 	arm.reg[RN] = addr;
 
-	return 0;
+	return (armirq & 0x40);
 }
 
 static int opLDRT(uint32_t opcode)
@@ -973,8 +974,9 @@ static int opLDRT(uint32_t opcode)
 	memmode = templ;
 
 	/* Check for Abort */
-	if (armirq & 0x40)
+	if (arm.abort_base_restored && (armirq & 0x40)) {
 		return 1;
+	}
 
 	/* Rotate if load is unaligned */
 	templ2 = arm_ldr_rotate(templ2, addr);
@@ -990,6 +992,11 @@ static int opLDRT(uint32_t opcode)
 	}
 	addr += addr2;
 	arm.reg[RN] = addr;
+
+	/* Check for Abort (before writing Rd) */
+	if (armirq & 0x40) {
+		return 1;
+	}
 
 	/* Write Rd */
 	LOADREG(RD, templ2);
@@ -1011,8 +1018,9 @@ static int opSTRBT(uint32_t opcode)
 	memmode = templ;
 
 	/* Check for Abort */
-	if (armirq & 0x40)
+	if (arm.abort_base_restored && (armirq & 0x40)) {
 		return 1;
+	}
 
 	/* Writeback */
 	if (opcode & 0x2000000) {
@@ -1026,7 +1034,7 @@ static int opSTRBT(uint32_t opcode)
 	addr += addr2;
 	arm.reg[RN] = addr;
 
-	return 0;
+	return (armirq & 0x40);
 }
 
 static int opLDRBT(uint32_t opcode)
@@ -1043,8 +1051,9 @@ static int opLDRBT(uint32_t opcode)
 	memmode = templ;
 
 	/* Check for Abort */
-	if (armirq & 0x40)
+	if (arm.abort_base_restored && (armirq & 0x40)) {
 		return 1;
+	}
 
 	/* Writeback */
 	if (opcode & 0x2000000) {
@@ -1057,6 +1066,11 @@ static int opLDRBT(uint32_t opcode)
 	}
 	addr += addr2;
 	arm.reg[RN] = addr;
+
+	/* Check for Abort (before writing Rd) */
+	if (armirq & 0x40) {
+		return 1;
+	}
 
 	/* Write Rd */
 	LOADREG(RD, templ2);
@@ -1098,8 +1112,9 @@ static int opSTR(uint32_t opcode)
 	writememl(addr & ~3, value);
 
 	/* Check for Abort */
-	if (armirq & 0x40)
+	if (arm.abort_base_restored && (armirq & 0x40)) {
 		return 1;
+	}
 
 	if (!(opcode & 0x1000000)) {
 		/* Post-indexed */
@@ -1110,7 +1125,7 @@ static int opSTR(uint32_t opcode)
 		arm.reg[RN] = addr;
 	}
 
-	return 0;
+	return (armirq & 0x40);
 }
 
 static int opLDR(uint32_t opcode)
@@ -1144,8 +1159,9 @@ static int opLDR(uint32_t opcode)
 	templ = readmeml(addr & ~3);
 
 	/* Check for Abort */
-	if (armirq & 0x40)
+	if (arm.abort_base_restored && (armirq & 0x40)) {
 		return 1;
+	}
 
 	/* Rotate if load is unaligned */
 	templ = arm_ldr_rotate(templ, addr);
@@ -1157,6 +1173,11 @@ static int opLDR(uint32_t opcode)
 	} else if (opcode & 0x200000) {
 		/* Pre-indexed with writeback */
 		arm.reg[RN] = addr;
+	}
+
+	/* Check for Abort (before writing Rd) */
+	if (armirq & 0x40) {
+		return 1;
 	}
 
 	/* Write Rd */
@@ -1199,8 +1220,9 @@ static int opSTRB(uint32_t opcode)
 	writememb(addr, value);
 
 	/* Check for Abort */
-	if (armirq & 0x40)
+	if (arm.abort_base_restored && (armirq & 0x40)) {
 		return 1;
+	}
 
 	if (!(opcode & 0x1000000)) {
 		/* Post-indexed */
@@ -1211,7 +1233,7 @@ static int opSTRB(uint32_t opcode)
 		arm.reg[RN] = addr;
 	}
 
-	return 0;
+	return (armirq & 0x40);
 }
 
 static int opLDRB(uint32_t opcode)
@@ -1245,8 +1267,9 @@ static int opLDRB(uint32_t opcode)
 	templ = readmemb(addr);
 
 	/* Check for Abort */
-	if (armirq & 0x40)
+	if (arm.abort_base_restored && (armirq & 0x40)) {
 		return 1;
+	}
 
 	if (!(opcode & 0x1000000)) {
 		/* Post-indexed */
@@ -1255,6 +1278,11 @@ static int opLDRB(uint32_t opcode)
 	} else if (opcode & 0x200000) {
 		/* Pre-indexed with writeback */
 		arm.reg[RN] = addr;
+	}
+
+	/* Check for Abort (before writing Rd) */
+	if (armirq & 0x40) {
+		return 1;
 	}
 
 	/* Write Rd */
