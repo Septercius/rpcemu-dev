@@ -796,7 +796,7 @@ void execarm(int cycs)
                 }
                 if (fdccallback)
                 {
-                        fdccallback-=50;
+                        fdccallback -= 100;
                         if (fdccallback<=0)
                         {
                                 fdccallback=0;
