@@ -770,7 +770,9 @@ genldr(void)
 	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_mov_reg32_stack(EDI, 0);
 	gen_x86_call(readmemfl);
-	gen_test_armirq();
+	if (arm.abort_base_restored) {
+		gen_test_armirq();
+	}
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 	/* Rotate if load is unaligned */
@@ -795,7 +797,9 @@ genldrb(void)
 	gen_x86_jump_here(jump_notinbuffer);
 	gen_x86_mov_reg32_stack(EBX, 0);
 	gen_x86_call(readmemfb);
-	gen_test_armirq();
+	if (arm.abort_base_restored) {
+		gen_test_armirq();
+	}
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 }
@@ -819,7 +823,9 @@ genstr(void)
 	gen_x86_mov_reg32_stack(EDI, 0);
 	gen_x86_mov_reg32_stack(ECX, 4);
 	gen_x86_call(writememfl);
-	gen_test_armirq();
+	if (arm.abort_base_restored) {
+		gen_test_armirq();
+	}
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 }
@@ -841,7 +847,9 @@ genstrb(void)
 	gen_x86_mov_reg32_stack(EBX, 0);
 	gen_x86_mov_reg32_stack(ECX, 4);
 	gen_x86_call(writememfb);
-	gen_test_armirq();
+	if (arm.abort_base_restored) {
+		gen_test_armirq();
+	}
 	/* .nextbit */
 	gen_x86_jump_here(jump_nextbit);
 }
@@ -1482,6 +1490,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				addbyte(RN<<2); addlong(templ);
 			}
 		}
+		if (!arm.abort_base_restored) {
+			gen_test_armirq();
+		}
 		break;
 
 	case 0x44: /* STRB Rd, [Rn], #-imm   */
@@ -1517,6 +1528,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				addbyte(RN<<2); addlong(templ);
 			}
 		}
+		if (!arm.abort_base_restored) {
+			gen_test_armirq();
+		}
 		break;
 
 	case 0x41: /* LDR Rd, [Rn], #-imm   */
@@ -1550,6 +1564,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				}
 				addbyte(RN<<2); addlong(templ);
 			}
+		}
+		if (!arm.abort_base_restored) {
+			gen_test_armirq();
 		}
 		gen_save_reg(RD, EAX);
 		break;
@@ -1586,6 +1603,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				addbyte(RN<<2); addlong(templ);
 			}
 		}
+		if (!arm.abort_base_restored) {
+			gen_test_armirq();
+		}
 		gen_save_reg(RD, EAX);
 		break;
 
@@ -1620,6 +1640,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			/* Writeback */
 			gen_save_reg(RN, EBX);
 		}
+		if (!arm.abort_base_restored) {
+			gen_test_armirq();
+		}
 		break;
 
 	case 0x54: /* STRB Rd, [Rn, #-imm]    */
@@ -1653,6 +1676,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			/* Writeback */
 			gen_save_reg(RN, EBX);
 		}
+		if (!arm.abort_base_restored) {
+			gen_test_armirq();
+		}
 		break;
 
 	case 0x51: /* LDR Rd, [Rn, #-imm]    */
@@ -1684,6 +1710,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x200000) {
 			/* Writeback */
 			gen_save_reg(RN, EBX);
+		}
+		if (!arm.abort_base_restored) {
+			gen_test_armirq();
 		}
 		gen_save_reg(RD, EAX);
 		break;
@@ -1717,6 +1746,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x200000) {
 			/* Writeback */
 			gen_save_reg(RN, EBX);
+		}
+		if (!arm.abort_base_restored) {
+			gen_test_armirq();
 		}
 		gen_save_reg(RD, EAX);
 		break;

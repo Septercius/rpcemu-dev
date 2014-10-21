@@ -267,8 +267,10 @@ resetarm(CPUModel cpu_model)
         pccache=0xFFFFFFFF;
 	if (cpu_model == CPUModel_SA110 || cpu_model == CPUModel_ARM810) {
 		r15diff = 0;
+		arm.abort_base_restored = 1;
 	} else {
 		r15diff = 4;
+		arm.abort_base_restored = 0;
 	}
 }
 
