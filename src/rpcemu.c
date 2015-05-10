@@ -49,7 +49,6 @@ const Model_Details models[] = {
 Config config = {
 	0,			/* mem_size */
 	0,			/* vrammask */
-	0,			/* stretchmode */
 	NULL,			/* username */
 	NULL,			/* ipaddress */
 	NULL,			/* macaddress */
@@ -453,7 +452,6 @@ loadconfig(void)
 	}
 
         config.soundenabled = get_config_int(NULL, "sound_enabled", 1);
-        config.stretchmode  = get_config_int(NULL, "stretch_mode",  0);
         config.refresh      = get_config_int(NULL, "refresh_rate", 60);
         config.cdromenabled = get_config_int(NULL, "cdrom_enabled", 0);
         config.cdromtype    = get_config_int(NULL, "cdrom_type", 0);
@@ -519,7 +517,6 @@ saveconfig(void)
         if (config.vrammask) set_config_string(NULL, "vram_size", "2");
         else                 set_config_string(NULL, "vram_size", "0");
         set_config_int(NULL, "sound_enabled",     config.soundenabled);
-        set_config_int(NULL, "stretch_mode",      config.stretchmode);
         set_config_int(NULL, "refresh_rate",      config.refresh);
         set_config_int(NULL, "cdrom_enabled",     config.cdromenabled);
         set_config_int(NULL, "cdrom_type",        config.cdromtype);

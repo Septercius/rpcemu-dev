@@ -111,7 +111,6 @@ typedef enum {
 typedef struct {
 	unsigned mem_size;	/**< Amount of RAM in megabytes */
 	int vrammask;
-	int stretchmode;
 	char *username;
 	char *ipaddress;
 	char *macaddress;
