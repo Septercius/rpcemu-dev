@@ -99,15 +99,11 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 
 	switch (doublesize) {
 	case VIDC_DOUBLE_NONE:
-		if (!(lfullscreen && config.stretchmode)) {
+		if (!lfullscreen) {
 			ys = yh - yl;
 		}
 		if (lfullscreen) {
-			if (config.stretchmode) {
-				blit(b, backbuf, 0,  0, (SCREEN_W - xs) >> 1, ((SCREEN_H - oldsy) >> 1),      xs, ys);
-			} else {
-				blit(b, backbuf, 0, yl, (SCREEN_W - xs) >> 1, yl + ((SCREEN_H - oldsy) >> 1), xs, ys);
-			}
+			blit(b, backbuf, 0,  0, (SCREEN_W - xs) >> 1, ((SCREEN_H - oldsy) >> 1), xs, ys);
 		} else {
 			blit(b, screen, 0, yl, 0, yl, xs, ys);
 		}
@@ -129,54 +125,24 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 		break;
 
 	case VIDC_DOUBLE_Y:
-		if (config.stretchmode) {
-			if (lfullscreen) {
-				stretch_blit(b, backbuf, 0, 0, xs, ys, 0, 0, xs, (ys << 1) - 1);
-			} else {
-				stretch_blit(b,  screen, 0, 0, xs, ys, 0, 0, xs, (ys << 1) - 1);
-			}
+		if (lfullscreen) {
+			stretch_blit(b, backbuf, 0, 0, xs, ys, 0, 0, xs, (ys << 1) - 1);
 		} else {
-			ys = yh - yl;
-			if (lfullscreen) {
-				stretch_blit(b, backbuf, 0, yl, xs, ys,
-					     (SCREEN_W - xs) >> 1,
-					     (yl << 1) + ((SCREEN_H - oldsy) >> 1),
-					     xs, (ys << 1) - 1);
-			} else {
-				stretch_blit(b,  screen, 0, yl, xs, ys,
-					     0,
-					     yl<<1,
-					     xs, (ys << 1) - 1);
-			}
+			stretch_blit(b, screen, 0, 0, xs, ys, 0, 0, xs, (ys << 1) - 1);
 		}
 		break;
 
 	case VIDC_DOUBLE_BOTH:
-		if (config.stretchmode) {
-			if (lfullscreen) {
-				stretch_blit(b, backbuf, 0, 0, xs, ys,
-					     (SCREEN_W - (xs << 1)) >> 1,
-					     ((SCREEN_H - oldsy) >> 1),
-					     xs << 1, (ys << 1) - 1);
-			} else {
-				stretch_blit(b,  screen, 0, 0, xs, ys,
-					     0,
-					     0,
-					     xs << 1, (ys << 1) - 1);
-			}
+		if (lfullscreen) {
+			stretch_blit(b, backbuf, 0, 0, xs, ys,
+				     (SCREEN_W - (xs << 1)) >> 1,
+				     ((SCREEN_H - oldsy) >> 1),
+				     xs << 1, (ys << 1) - 1);
 		} else {
-			ys = yh - yl;
-			if (lfullscreen) {
-				stretch_blit(b, backbuf, 0, yl, xs, ys,
-					     (SCREEN_W - (xs << 1)) >> 1,
-					     (yl << 1) + ((SCREEN_H - oldsy) >> 1),
-					     xs << 1, (ys << 1) - 1);
-			} else {
-				stretch_blit(b,  screen, 0, yl, xs, ys,
-					     0,
-					     yl << 1,
-					     xs << 1, (ys << 1) - 1);
-			}
+			stretch_blit(b,  screen, 0, 0, xs, ys,
+				     0,
+				     0,
+				     xs << 1, (ys << 1) - 1);
 		}
 		break;
 	}
