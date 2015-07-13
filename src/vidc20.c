@@ -75,6 +75,15 @@ static uint8_t dirtybuffer2[512*4];
 /* Dirty buffer currently in use by main thread */
 uint8_t *dirtybuffer = dirtybuffer1;
 
+/**
+ * thread: vidc
+ * 
+ * @param xs
+ * @param ys
+ * @param yl
+ * @param yh
+ * @param doublesize
+ */
 static void
 blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 {
@@ -99,13 +108,10 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 
 	switch (doublesize) {
 	case VIDC_DOUBLE_NONE:
-		if (!lfullscreen) {
-			ys = yh - yl;
-		}
 		if (lfullscreen) {
 			blit(b, backbuf, 0,  0, (SCREEN_W - xs) >> 1, ((SCREEN_H - oldsy) >> 1), xs, ys);
 		} else {
-			blit(b, screen, 0, yl, 0, yl, xs, ys);
+			blit(b, screen, 0, yl, 0, yl, xs, yh - yl);
 		}
 		break;
 
@@ -461,8 +467,9 @@ void drawscr(int needredraw)
                 }
 #endif
                 if (thr.ysize!=oldsy || thr.xsize!=oldsx) resizedisplay(thr.xsize,thr.ysize);
-                if (!(thr.iomd_vidcr&0x20) || vidc.vdsr>vidc.vder)
-                {
+
+                /* If not Video cursor DMA enabled or vertical start > vertical end registered */
+                if (!(thr.iomd_vidcr & 0x20) || vidc.vdsr > vidc.vder) {
                         lastframeborder=1;
                         if (dirtybuffer[0] || vidc.palchange)
                         {
@@ -563,9 +570,16 @@ void drawscr(int needredraw)
         if (needredraw) vidcwakeupthread();
 }
 
-/* VIDC display thread. This is called whenever vidcwakeupthread() signals it.
-   It will only be called when it has the vidc mutex. */ 
-void vidcthread(void)
+/**
+ * VIDC display thread. This is called whenever vidcwakeupthread() signals it.
+ * It will only be called when it has the vidc mutex.
+ *
+ * Update bitmap backbuffer with values from hardware video ram, then update screen
+ *
+ * thread: vidc
+ */
+void
+vidcthread(void)
 {
         uint32_t *vidp=NULL;
         unsigned short *vidp16=NULL;
@@ -855,8 +869,9 @@ void vidcthread(void)
                                                 }
                                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1))) drawit=1;                                                
                                                 if (drawit && !olddrawit) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                if ((addr>>12)==thr.lastblock && y>(oldcursorheight+oldcursory))
-                                                   y=x=65536;
+                                                if ((addr >> 12) == thr.lastblock && y > (oldcursorheight + oldcursory)) {
+                                                        y = x = 65536; /* break out of x and y loops */
+                                                }
                                         }
                                 }
                         }
@@ -1238,8 +1253,9 @@ void vidcthread(void)
                         fatal("Bad BPP %i\n", thr.bpp);
                 }
         }
-        if (thr.cursorheight>1)
-        {
+
+        /* Cursor layer is plotted over regular display */
+        if (thr.cursorheight > 1) {
                 /* Calculate host address of cursor data from physical address.
                    This assumes that cursor data is always in DRAM, not VRAM,
                    which is currently true for RISC OS */
@@ -1332,6 +1348,8 @@ void vidcthread(void)
 //        printf("Cursor %i %i %i\n",thr.cursorx,thr.cursory,thr.cursorheight);
 //        rpclog("%i %02X\n",drawcode,bit8);        
 //        rpclog("Blitting from 0,%i size %i,%i\n",yl,thr.xsize,thr.ysize);
+
+        /* Copy backbuffer to screen */
         blitterthread(thr.xsize, thr.ysize, yl, yh, thr.doublesize);
 }
 
