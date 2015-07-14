@@ -37,7 +37,6 @@ static struct vidc_state {
         uint32_t b0,b1;
         int bit8;
         int palchange;
-        int curchange;
 } vidc;
 
 /* This state is a cached version of the main state, and is read by the display thread.
@@ -421,7 +420,7 @@ void drawscr(int needredraw)
         static int lastframeborder=0;
         int x,y;
         int c;
-        int firstblock,lastblock;
+        int lastblock;
 
         /* Must get the mutex before altering the thread's state. */
         if (!vidctrymutex()) return;
@@ -434,8 +433,11 @@ void drawscr(int needredraw)
                         
                 thr.xsize=vidc.hder-vidc.hdsr;
                 thr.ysize=vidc.vder-vidc.vdsr;
-                thr.cursorx=vidc.hcsr-vidc.hdsr;
-                thr.cursory=vidc.vcsr-vidc.vdsr;
+                thr.cursorx = vidc.hcsr - vidc.hdsr;
+                thr.cursory = vidc.vcsr - vidc.vdsr;
+                if (mousehack) {
+                        mouse_hack_get_pos(&thr.cursorx, &thr.cursory);
+                }
                 thr.cursorheight=vidc.vcer-vidc.vcsr;
 
                 if (vidc.palchange) {
@@ -502,20 +504,8 @@ void drawscr(int needredraw)
                         resetbuffer();
                 }
         
-                if (mousehack)
-                {
-                        static int oldcursorx=0;
-                        static int oldcursory=0;
-
-                        mouse_hack_get_pos(&thr.cursorx, &thr.cursory);
-                        if (thr.cursory!=oldcursory || thr.cursorx!=oldcursorx) vidc.curchange=1;
-                        oldcursory=thr.cursory;
-                        oldcursorx=thr.cursorx;
-//                        printf("Mouse at %i,%i %i\n",thr.cursorx,thr.cursory,thr.cursorheight);
-                }
-        
                 x=y=c=0;
-                firstblock=lastblock=-1;
+                lastblock = -1;
                 while (y<thr.ysize)
                 {
 			static const int xdiff[8] = { 8192, 4096, 2048, 1024, 512, 512, 256, 256 };
@@ -523,7 +513,6 @@ void drawscr(int needredraw)
                         if (dirtybuffer[c++])
                         {
                                 lastblock=c;
-                                if (firstblock==-1) firstblock=c;
                         }
                         x += xdiff[thr.bpp] << 2;
                         while (x>thr.xsize)
@@ -536,8 +525,7 @@ void drawscr(int needredraw)
                 thr.dirtybuffer = dirtybuffer;
                 dirtybuffer = (dirtybuffer == dirtybuffer1) ? dirtybuffer2 : dirtybuffer1;
 
-                vidc.curchange=0;
-//                rpclog("First block %i %08X last block %i %08X finished at %i %08X\n",firstblock,firstblock,lastblock,lastblock,c,c);
+                //rpclog("last block %d 0x%08x finished at %d 0x%08x\n", lastblock, lastblock, c, c);
         }
         if (needredraw)
         {
@@ -1393,7 +1381,6 @@ void writevidc20(uint32_t val)
 		if (val != vidc.vidcpal[index]) {
 			vidc.vidcpal[index] = val;
 			vidc.palchange = 1;
-			vidc.curchange = 1;
 		}
 		break;
 
@@ -1421,7 +1408,6 @@ void writevidc20(uint32_t val)
 		case 0x86: /* Horizontal Cursor Start Register */
 			if (vidc.hcsr != (val & 0x3fff)) {
 				vidc.hcsr = val & 0x3fff;
-				vidc.curchange = 1;
 			}
 			break;
 
@@ -1454,14 +1440,12 @@ void writevidc20(uint32_t val)
 		case 0x96: /* Vertical Cursor Start Register */
 			if (vidc.vcsr != (val & 0x1fff)) {
 				vidc.vcsr = val & 0x1fff;
-				vidc.curchange = 1;
 			}
 			break;
 
 		case 0x97: /* Vertical Cursor End Register */
 			if (vidc.vcer != (val & 0x1fff)) {
 				vidc.vcer = val & 0x1fff;
-				vidc.curchange = 1;
 			}
 			break;
 
