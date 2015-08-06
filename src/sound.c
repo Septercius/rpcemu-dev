@@ -162,7 +162,7 @@ void sound_unmute(void)
  */
 void sound_buffer_update(void)
 {
-        unsigned short *p;
+        uint16_t *p;
         int c;
 
         if (!config.soundenabled)

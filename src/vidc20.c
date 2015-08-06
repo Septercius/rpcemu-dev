@@ -569,12 +569,12 @@ void drawscr(int needredraw)
 void
 vidcthread(void)
 {
-        uint32_t *vidp=NULL;
-        unsigned short *vidp16=NULL;
+        uint32_t *vidp = NULL;
+        uint16_t *vidp16 = NULL;
         int drawit=0;
         int x, y;
-        const unsigned char *ramp;
-        const unsigned short *ramw;
+        const uint8_t *ramp;
+        const uint16_t *ramw;
         int addr;
         int yl=-1,yh=-1;
         static int oldcursorheight;
@@ -589,7 +589,7 @@ vidcthread(void)
 	} else {
 		ramp = (const uint8_t *) vram;
 	}
-        ramw = (const unsigned short *) ramp;
+        ramw = (const uint16_t *) ramp;
 
         addr=thr.iomd_vidinit&0x7FFFFF;
 
@@ -879,7 +879,7 @@ vidcthread(void)
                                 }
                                 if (drawit) 
                                 {
-                                        vidp16=(unsigned short *)bmp_write_line(b,y);
+                                        vidp16 = (uint16_t *) bmp_write_line(b, y);
                                         yh=y+1;
                                 }
                                 for (x=0;x<thr.xsize;x+=4)
@@ -905,7 +905,9 @@ vidcthread(void)
                                         if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
                                         if (!(addr&0xFFF))
                                         {
-                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp16=(unsigned short *)bmp_write_line(b,y);
+                                                if (!drawit && thr.dirtybuffer[addr >> 12]) {
+                                                        vidp16 = (uint16_t *) bmp_write_line(b, y);
+                                                }
                                                 drawit=thr.dirtybuffer[(addr>>12)];
 //                                                drawit=1;
                                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
@@ -1159,7 +1161,7 @@ vidcthread(void)
                                                 int xx;
                                                 for (xx=0;xx<8;xx+=2)
                                                 {
-                                                        unsigned short temp16;
+                                                        uint16_t temp16;
                                                         /*VIDC20 format :                      xBBB BBGG GGGR RRRR
                                                           Windows format : xxxx xxxx RRRR RRRR GGGG GGGG BBBB BBBB*/
 #ifdef _RPCEMU_BIG_ENDIAN
@@ -1264,7 +1266,7 @@ vidcthread(void)
                                 if ((y+thr.cursory)>=thr.ysize) break;
                                 if ((y+thr.cursory)>=0)
                                 {
-                                        vidp16=(unsigned short *)bmp_write_line(b,y+thr.cursory);
+                                        vidp16 = (uint16_t *) bmp_write_line(b, y + thr.cursory);
                                         for (x=0;x<32;x+=4)
                                         {
 #ifdef _RPCEMU_BIG_ENDIAN

@@ -56,8 +56,8 @@ void mem_init(void)
 {
 	rom  = malloc(ROMSIZE);
 	vram = malloc(8 * 1024 * 1024); /*8 meg VRAM!*/
-	romb  = (unsigned char *) rom;
-	vramb = (unsigned char *) vram;
+	romb  = (uint8_t *) rom;
+	vramb = (uint8_t *) vram;
 }
 
 /**
