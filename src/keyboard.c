@@ -93,11 +93,22 @@ static uint8_t mouse_type;	/**< 0 = PS/2, 3 = IMPS/2, 4 = IMEX */
 static uint8_t mouse_detect_state;
 
 /* Mousehack variables */
-static int point;
+static struct {
+	uint8_t	pointer;		/**< Currently selected pointer, 0 = off, 1-4 defined pointer shapes */
+	int	activex[5];		/**< click points of selected pointer */
+	int	activey[5];		/**< click points of selected pointer */
 
-static int cursor_linked;       /**< Is the cursor image currently linked to the mouse pointer location */
-static int cursor_unlinked_x;   /**< If cursor and mouse pointer are unlinked the X position of the cursor */
-static int cursor_unlinked_y;   /**< If cursor and mouse pointer are unlinked the Y position of the cursor */
+	int	cursor_linked;		/**< Is the cursor image currently linked to the mouse pointer location */
+	int	cursor_unlinked_x;	/**< If cursor and mouse pointer are unlinked the X position of the cursor */
+	int	cursor_unlinked_y;	/**< If cursor and mouse pointer are unlinked the Y position of the cursor */
+
+	struct {			/**< Mouse bounding box, defined with OS_Word 21, 1, values are in OS units */
+		int16_t	left;
+		int16_t	right;
+		int16_t	top;
+		int16_t	bottom;
+	} boundbox;
+} mouse_hack;
 
 static inline void
 keyboard_irq_rx_raise(void)
@@ -213,8 +224,8 @@ keyboard_reset(void)
 	mouse_detect_state = 0;
 
 	/* Mousehack reset */
-	point = 0;
-	cursor_linked = 1;
+	mouse_hack.pointer = 0;
+	mouse_hack.cursor_linked = 1;
 }
 
 static uint8_t
@@ -905,9 +916,6 @@ keyboard_poll(void)
 
 /* Mousehack functions */
 
-static short ml,mr,mt,mb;
-static int activex[5],activey[5];
-
 /**
  * Get the x and y coords in native and OS units.
  *
@@ -921,22 +929,32 @@ mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 {
         assert(mousehack);
 
-        *osy=(getys()<<1)-(mouse_y<<1);
-        if (*osy<mt) *osy=mt;
-        if (*osy>mb) *osy=mb;
-        *y=((getys()<<1)-*osy)>>1;
+	*osx = mouse_x << 1;				/* Allegro */
+	if (*osx > mouse_hack.boundbox.right) {
+		*osx = mouse_hack.boundbox.right;
+	}
+	if (*osx < mouse_hack.boundbox.left) {
+		*osx = mouse_hack.boundbox.left;
+	}
+	*x= *osx >> 1;
 
-        *osx=mouse_x<<1;
-        if (*osx>mr) *osx=mr;
-        if (*osx<ml) *osx=ml;
-        *x=*osx>>1;
+	*osy = (getys() << 1) - (mouse_y << 1);		/* Allegro */
+	if (*osy < mouse_hack.boundbox.top) {
+		*osy = mouse_hack.boundbox.top;
+	}
+	if (*osy > mouse_hack.boundbox.bottom) {
+		*osy = mouse_hack.boundbox.bottom;
+	}
+	*y = ((getys() << 1) - *osy) >> 1;
 
         if (((mouse_y != *y) || (mouse_x != *x)) && mousehack)
         {
                 /* Restrict the pointer to the bounding box, unless the 
                    box is greater than or equal to the full screen size */
-                if ((ml > 0) || (mr <= ((getxs()-1)<<1)) ||
-                    (mt > 0) || (mb <= ((getys()-1)<<1)))
+		if ((mouse_hack.boundbox.left > 0)
+		    || (mouse_hack.boundbox.right <= ((getxs() - 1) << 1))
+		    || (mouse_hack.boundbox.top > 0)
+		    || (mouse_hack.boundbox.bottom <= ((getys() - 1) << 1)))
                 {
                         position_mouse(*x,*y);
                 }
@@ -973,8 +991,8 @@ mouse_hack_osword_21_4(uint32_t a)
  *
  * Used by VIDC to determine if the cursor has moved since its last redraw.
  *
- * @param x Filled in with X coordinate of cursor
- * @param y Filled in with Y coordinate of cursor
+ * @param x Filled in with X coordinate of cursor in native units
+ * @param y Filled in with Y coordinate of cursor in native units
  */
 void
 mouse_hack_get_pos(int *x, int *y)
@@ -984,16 +1002,16 @@ mouse_hack_get_pos(int *x, int *y)
 
         assert(mousehack);
 
-	if (cursor_linked) {
+	if (mouse_hack.cursor_linked) {
 		/* Cursor is at current mouse pointer pos */
 		mouse_get_osxy(x, y, &osx, &osy);
 
-		*x -= activex[point];
-		*y -= activey[point];
+		*x -= mouse_hack.activex[mouse_hack.pointer];
+		*y -= mouse_hack.activey[mouse_hack.pointer];
 	} else {
 		/* Cursor has been detached from mouse pointer and is independent and not moving */
-		*x = cursor_unlinked_x;
-		*y = cursor_unlinked_y;
+		*x = mouse_hack.cursor_unlinked_x;
+		*y = mouse_hack.cursor_unlinked_y;
 	}
 }
 
@@ -1007,16 +1025,17 @@ mouse_hack_get_pos(int *x, int *y)
 void
 mouse_hack_osword_21_0(uint32_t a)
 {
-        int num=readmemb(a+1);
+	uint8_t pointer = readmemb(a + 1);
 
         assert(mousehack);
 
 	/* Reject any pointer shapes not in range 0-4 */
-        if (num > 4)
+	if (pointer > 4) {
 		return;
+	}
 
-        activex[num]=readmemb(a+4);
-        activey[num]=readmemb(a+5);
+	mouse_hack.activex[pointer] = readmemb(a + 4);
+	mouse_hack.activey[pointer] = readmemb(a + 5);
 }
 
 /**
@@ -1039,20 +1058,20 @@ mouse_hack_osbyte_106(uint32_t a)
 	if ((a & 0x7f) > 4)
 		return;
 
-	point = a & 0x7f; /* Obtain pointer number (range 0 to 4) */
+	mouse_hack.pointer = a & 0x7f; /* Obtain pointer number (range 0 to 4) */
+	/* pointer should now contain selected number 1-4 or 0 if turned off */
+	assert(mouse_hack.pointer <= 4);
 
 	/* Bit 7 =  Unlink visible pointer from mouse */
 	if (a & 0x80) {
 		/* Remember the location of the cursor as the mouse pointer is now independent */
-		mouse_hack_get_pos(&cursor_unlinked_x, &cursor_unlinked_y);
+		mouse_hack_get_pos(&mouse_hack.cursor_unlinked_x, &mouse_hack.cursor_unlinked_y);
 
-		cursor_linked = 0;
+		mouse_hack.cursor_linked = 0;
 	} else {
-		cursor_linked = 1;
+		mouse_hack.cursor_linked = 1;
 	}
 
-	/* point should now contain selected number 1-4 or 0 if turned off */
-	assert(point >= 0 && point <= 4);
 }
 
 /**
@@ -1069,15 +1088,23 @@ mouse_hack_osmouse(void)
 
         assert(mousehack);
 
-        temp = (getys() << 1) - (mouse_y << 1); /* Allegro */
-        if (temp<mt) temp=mt;
-        if (temp>mb) temp=mb;
-        arm.reg[1] = temp;                      /* R1 = mouse y coordinate */
+	temp = mouse_x << 1;			/* Allegro */
+	if (temp > mouse_hack.boundbox.right) {
+		temp = mouse_hack.boundbox.right;
+	}
+	if (temp < mouse_hack.boundbox.left) {
+		temp = mouse_hack.boundbox.left;
+	}
+	arm.reg[0] = (uint32_t) temp;		/* R0 = mouse x coordinate */
 
-        temp = mouse_x << 1;                    /* Allegro */
-        if (temp>mr) temp=mr;
-        if (temp<ml) temp=ml;
-        arm.reg[0] = temp;                      /* R0 = mouse x coordinate */
+	temp = (getys() << 1) - (mouse_y << 1);	/* Allegro */
+	if (temp < mouse_hack.boundbox.top) {
+		temp = mouse_hack.boundbox.top;
+	}
+	if (temp > mouse_hack.boundbox.bottom) {
+		temp = mouse_hack.boundbox.bottom;
+	}
+	arm.reg[1] = (uint32_t) temp;		/* R1 = mouse y coordinate */
 
         temp=0;
 	if (mouse_b & 1) temp |= 4;             /* Left button */
@@ -1109,8 +1136,8 @@ mouse_hack_osword_21_1(uint32_t a)
 {
         assert(mousehack);
 
-        ml=readmemb(a+1)|(readmemb(a+2)<<8);
-        mt=readmemb(a+3)|(readmemb(a+4)<<8);
-        mr=readmemb(a+5)|(readmemb(a+6)<<8);
-        mb=readmemb(a+7)|(readmemb(a+8)<<8);
+	mouse_hack.boundbox.left   = readmemb(a + 1) | (readmemb(a + 2) << 8);
+	mouse_hack.boundbox.top    = readmemb(a + 3) | (readmemb(a + 4) << 8);
+	mouse_hack.boundbox.right  = readmemb(a + 5) | (readmemb(a + 6) << 8);
+	mouse_hack.boundbox.bottom = readmemb(a + 7) | (readmemb(a + 8) << 8);
 }
