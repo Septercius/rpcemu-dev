@@ -294,6 +294,8 @@ resetarm(CPUModel cpu_model)
 		arm.abort_base_restored = 0;
 		arm.stm_writeback_at_end = 0;
 	}
+
+	cycles = 0;
 }
 
 void dumpregs(void)

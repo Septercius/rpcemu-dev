@@ -272,6 +272,8 @@ resetarm(CPUModel cpu_model)
 		r15diff = 4;
 		arm.abort_base_restored = 0;
 	}
+
+	cycles = 0;
 }
 
 void dumpregs(void)
