@@ -671,7 +671,9 @@ mouse_poll(void)
 	iomd.mousex += x;
 	iomd.mousey -= y; /* Allegro and RPC Y axis go in opposite directions */
 
-        if (mousecapture) position_mouse(getxs()>>1,getys()>>1);
+	if (mousecapture) {
+		position_mouse(vidc_get_xsize() >> 1, vidc_get_ysize() >> 1); /* Allegro */
+	}
 
         /* Return if not PS/2 mouse */
         if (machine.model != Model_A7000 && machine.model != Model_A7000plus && machine.model != Model_Phoebe) {
@@ -938,23 +940,23 @@ mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 	}
 	*x= *osx >> 1;
 
-	*osy = (getys() << 1) - (mouse_y << 1);		/* Allegro */
+	*osy = (vidc_get_ysize() << 1) - (mouse_y << 1);	/* Allegro */
 	if (*osy < mouse_hack.boundbox.top) {
 		*osy = mouse_hack.boundbox.top;
 	}
 	if (*osy > mouse_hack.boundbox.bottom) {
 		*osy = mouse_hack.boundbox.bottom;
 	}
-	*y = ((getys() << 1) - *osy) >> 1;
+	*y = ((vidc_get_ysize() << 1) - *osy) >> 1;
 
         if (((mouse_y != *y) || (mouse_x != *x)) && mousehack)
         {
                 /* Restrict the pointer to the bounding box, unless the 
                    box is greater than or equal to the full screen size */
 		if ((mouse_hack.boundbox.left > 0)
-		    || (mouse_hack.boundbox.right <= ((getxs() - 1) << 1))
+		    || (mouse_hack.boundbox.right <= ((vidc_get_xsize() - 1) << 1))
 		    || (mouse_hack.boundbox.top > 0)
-		    || (mouse_hack.boundbox.bottom <= ((getys() - 1) << 1)))
+		    || (mouse_hack.boundbox.bottom <= ((vidc_get_ysize() - 1) << 1)))
                 {
                         position_mouse(*x,*y);
                 }
@@ -1097,7 +1099,7 @@ mouse_hack_osmouse(void)
 	}
 	arm.reg[0] = (uint32_t) temp;		/* R0 = mouse x coordinate */
 
-	temp = (getys() << 1) - (mouse_y << 1);	/* Allegro */
+	temp = (vidc_get_ysize() << 1) - (mouse_y << 1);	/* Allegro */
 	if (temp < mouse_hack.boundbox.top) {
 		temp = mouse_hack.boundbox.top;
 	}
