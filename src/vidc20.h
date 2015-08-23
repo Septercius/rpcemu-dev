@@ -3,8 +3,8 @@
 
 extern void initvideo(void);
 extern void closevideo(void);
-extern int getxs(void);
-extern int getys(void);
+extern int vidc_get_xsize(void);
+extern int vidc_get_ysize(void);
 extern void resetbuffer(void);
 extern void writevidc20(uint32_t val);
 extern void drawscr(int needredraw);

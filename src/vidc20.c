@@ -9,13 +9,14 @@
 #include "mem.h"
 #include "iomd.h"
 
-int fullscreen=0;
+int fullscreen = 0; /**< Bool of whether in host fullscreen mode or not */ 
 static BITMAP *b = NULL, *bs2 = NULL, *bs3 = NULL, *bs4 = NULL;
 #ifdef HARDWAREBLIT                
 static int currentbuffer=1;
 #endif
-static int oldsx = 0,oldsy = 0;
-static int drawcode = 0;
+static int current_sizex = -1; /**< Size of the host screen, including any doublesize doubling, -1 on invalid and in fullscreen */
+static int current_sizey = -1; /**< Size of the host screen, including any doublesize doubling, -1 on invalid and in fullscreen */
+static int host_bpp = 0; /**< Which drawing code to use, 16 or 32bpp */
 
 // Don't resize the window to smaller than this.
 static const int MIN_X_SIZE = 320;
@@ -53,8 +54,10 @@ static struct cached_state {
         uint32_t iomd_vidend;
         uint32_t iomd_vidinit;
         unsigned char iomd_vidcr;
-        int xsize;
-        int ysize;
+        int vidc_xsize;			/**< X pixel size of VIDC displayed area */
+        int vidc_ysize;			/**< Y pixel size of VIDC displayed area */
+        int host_xsize;			/**< X pixel size of display including any doublesize doubling */
+        int host_ysize;			/**< Y pixel size of display including any doublesize doubling */
         int cursorx;
         int cursory;
         int cursorheight;
@@ -108,7 +111,7 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 	switch (doublesize) {
 	case VIDC_DOUBLE_NONE:
 		if (lfullscreen) {
-			blit(b, backbuf, 0,  0, (SCREEN_W - xs) >> 1, ((SCREEN_H - oldsy) >> 1), xs, ys);
+			blit(b, backbuf, 0, 0, (SCREEN_W - xs) >> 1, ((SCREEN_H - current_sizey) >> 1), xs, ys);
 		} else {
 			blit(b, screen, 0, yl, 0, yl, xs, yh - yl);
 		}
@@ -119,7 +122,7 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 		if (lfullscreen) {
 			stretch_blit(b, backbuf, 0, yl, xs, ys,
 				     (SCREEN_W - (xs << 1)) >> 1,
-				     yl + ((SCREEN_H - oldsy) >> 1),
+				     yl + ((SCREEN_H - current_sizey) >> 1),
 				     xs << 1, ys);
 		} else {
 			stretch_blit(b,  screen, 0, yl, xs, ys,
@@ -141,7 +144,7 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 		if (lfullscreen) {
 			stretch_blit(b, backbuf, 0, 0, xs, ys,
 				     (SCREEN_W - (xs << 1)) >> 1,
-				     ((SCREEN_H - oldsy) >> 1),
+				     ((SCREEN_H - current_sizey) >> 1),
 				     xs << 1, (ys << 1) - 1);
 		} else {
 			stretch_blit(b,  screen, 0, 0, xs, ys,
@@ -188,20 +191,21 @@ void initvideo(void)
                         set_color_depth(16);
                         set_gfx_mode(GFX_AUTODETECT_WINDOWED,DEFAULT_W,DEFAULT_H,0,0);
                 }
-                drawcode=16;
+                host_bpp = 16;
         }
         else if (depth==32)
         {
                 set_color_depth(depth);
                 set_gfx_mode(GFX_AUTODETECT_WINDOWED,DEFAULT_W,DEFAULT_H,0,0);
-                drawcode=32;
+                host_bpp = 32;
         }
         else
         {
                 fatal("Your desktop must be set to either 16-bit or 32-bit colour to run RPCEmu");
         }
 
-        oldsx=oldsy=-1;
+	current_sizex = -1;
+	current_sizey = -1;
         memset(&thr, 0, sizeof(thr));
         memset(dirtybuffer1,1,512*4);
         memset(dirtybuffer2,1,512*4);
@@ -215,9 +219,9 @@ void initvideo(void)
  * @return width
  */
 int
-getxs(void)
+vidc_get_xsize(void)
 {
-        return vidc.hder-vidc.hdsr;
+	return vidc.hder - vidc.hdsr;
 }
 
 /**
@@ -226,9 +230,9 @@ getxs(void)
  * @return height
  */
 int
-getys(void)
+vidc_get_ysize(void)
 {
-        return vidc.vder-vidc.vdsr;
+	return vidc.vder - vidc.vdsr;
 }
 
 static void freebitmaps(void)
@@ -264,14 +268,25 @@ static const int fullresolutions[][2]=
         {-1,-1}
 };
 
-static void resizedisplay(int x, int y)
+/**
+ * Called when emulated screen size changes, resize the host display
+ *
+ * Called when main thread has VIDC mutex
+ *
+ * @param x Width (including any doublesize doubling)
+ * @param y Height (including any doublesize doubling)
+ */
+static void
+resizedisplay(int x, int y)
 {
         int c;
 
         if (x<16) x=16;
         if (y<16) y=16;
-        oldsx=x;
-        oldsy=y;
+
+	current_sizex = x;
+	current_sizey = y;
+
         freebitmaps();
         if (fullscreen)
         {
@@ -280,6 +295,7 @@ static void resizedisplay(int x, int y)
 #endif
                 c=0;
 
+                /* First try setting the host screen to the exact size of the emulated screen */
                 if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN, x, y, 0, 0) == 0)
                 {
 #ifdef HARDWAREBLIT
@@ -385,7 +401,8 @@ void togglefullscreen(int fs)
 	rpclog("Fullscreen: %s\n", fs ? "Enter" : "Leave");
 
         fullscreen=fs;
-        oldsx=oldsy=-1;
+	current_sizex = -1;
+	current_sizey = -1;
         memset(dirtybuffer,1,512*4);
 }
 
@@ -404,7 +421,7 @@ vidc_palette_update(void)
 		                      (vidc.vidcpal[i] >> 8) & 0xff,
 		                      (vidc.vidcpal[i] >> 16) & 0xff);
 	}
-	if ((vidc.bit8 == 4) && (drawcode == 16)) {
+	if ((vidc.bit8 == 4) && (host_bpp == 16)) {
 		for (i = 0; i < 65536; i++) {
 			thr.pal16lookup[i] = thr.pal[i & 0xff].r |
 			                     thr.pal[(i >> 4) & 0xff].g |
@@ -431,8 +448,8 @@ void drawscr(int needredraw)
         if (needredraw)
         {
                         
-                thr.xsize=vidc.hder-vidc.hdsr;
-                thr.ysize=vidc.vder-vidc.vdsr;
+                thr.vidc_xsize = vidc.hder - vidc.hdsr;
+                thr.vidc_ysize = vidc.vder - vidc.vdsr;
                 thr.cursorx = vidc.hcsr - vidc.hdsr;
                 thr.cursory = vidc.vcsr - vidc.vdsr;
                 if (mousehack) {
@@ -452,24 +469,34 @@ void drawscr(int needredraw)
                 thr.iomd_vidcr = iomd.vidcr;
                 thr.bpp = vidc.bit8;
 //                rpclog("XS %i YS %i\n",thr.xsize,thr.ysize);
-                if (thr.xsize<2) thr.xsize=2;
-                if (thr.ysize<1) thr.ysize=480;
+                if (thr.vidc_xsize < 2) {
+                        thr.vidc_xsize = 2;
+                }
+                if (thr.vidc_ysize < 1) {
+                        thr.vidc_ysize = 480;
+                }
 
+                thr.host_xsize = thr.vidc_xsize;
+                thr.host_ysize = thr.vidc_ysize;
                 thr.doublesize = VIDC_DOUBLE_NONE;
 #ifdef HARDWAREBLIT
-                if (thr.xsize<=448 || (thr.xsize<=480 && thr.ysize<=352))
+                if (thr.vidc_xsize <= 448 || (thr.vidc_xsize <= 480 && thr.vidc_ysize <= 352))
                 {
-                        thr.xsize<<=1;
+                        thr.host_xsize = thr.vidc_xsize << 1;
                         thr.doublesize |= VIDC_DOUBLE_X;
                 }
-                if (thr.ysize<=352)
+                if (thr.vidc_ysize <= 352)
                 {
-                        thr.ysize<<=1;
+                        thr.host_ysize = thr.vidc_ysize << 1;
                         thr.doublesize |= VIDC_DOUBLE_Y;
                 }
 #endif
-                if (thr.ysize!=oldsy || thr.xsize!=oldsx) resizedisplay(thr.xsize,thr.ysize);
+                /* Have we changed screen mode since the last draw? */
+                if (thr.host_xsize != current_sizex || thr.host_ysize != current_sizey) {
+                        resizedisplay(thr.host_xsize, thr.host_ysize);
+                }
 
+                /* Handle full screen border plotting */
                 /* If not Video cursor DMA enabled or vertical start > vertical end registered */
                 if (!(thr.iomd_vidcr & 0x20) || vidc.vdsr > vidc.vder) {
                         lastframeborder=1;
@@ -477,9 +504,9 @@ void drawscr(int needredraw)
                         {
                                 dirtybuffer[0]=0;
                                 vidc.palchange=0;
-                                rectfill(b,0,0,thr.xsize,thr.ysize,thr.vpal[0x100]);
-//                                      printf("%i %i\n",thr.xsize,thr.ysize);
-                                blit(b,screen,0,0,0,0,thr.xsize,thr.ysize);
+                                rectfill(b, 0, 0, thr.host_xsize, thr.host_ysize, thr.vpal[0x100]);
+//                                      printf("%i %i\n", thr.vidc_xsize, thr.vidc_ysize);
+                                blit(b, screen, 0, 0, 0, 0, thr.host_xsize, thr.host_ysize);
                         }
                         needredraw = 0;
                         thr.needvsync = 1;
@@ -494,10 +521,6 @@ void drawscr(int needredraw)
                         vidc.palchange=0;
                 }
 
-                if (thr.doublesize & VIDC_DOUBLE_X)
-                        thr.xsize >>= 1;
-                if (thr.doublesize & VIDC_DOUBLE_Y)
-                        thr.ysize >>= 1;
                 if (lastframeborder)
                 {
                         lastframeborder=0;
@@ -506,8 +529,7 @@ void drawscr(int needredraw)
         
                 x=y=c=0;
                 lastblock = -1;
-                while (y<thr.ysize)
-                {
+                while (y < thr.vidc_ysize) {
 			static const int xdiff[8] = { 8192, 4096, 2048, 1024, 512, 512, 256, 256 };
 
                         if (dirtybuffer[c++])
@@ -515,9 +537,8 @@ void drawscr(int needredraw)
                                 lastblock=c;
                         }
                         x += xdiff[thr.bpp] << 2;
-                        while (x>thr.xsize)
-                        {
-                                x-=thr.xsize;
+                        while (x > thr.vidc_xsize) {
+                                x -= thr.vidc_xsize;
                                 y++;
                         }
                 }
@@ -596,14 +617,13 @@ vidcthread(void)
         drawit=thr.dirtybuffer[addr>>12];
         if (drawit) yl=0;
 
-        switch (drawcode)
-        {
+        switch (host_bpp) {
                 case 16:
                 switch (thr.bpp)
                 {
                         case 0: /*1 bpp*/
-                        thr.xsize>>=1;
-                        for (y = 0; y < thr.ysize; y++) {
+                        thr.vidc_xsize >>= 1;
+                        for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
@@ -616,7 +636,7 @@ vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x = 0; x < thr.xsize; x += 4) {
+                                for (x = 0; x < thr.vidc_xsize; x += 4) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -652,12 +672,11 @@ vidcthread(void)
                                         }
                                 }
                         }
-                        thr.xsize<<=1;
+                        thr.vidc_xsize <<= 1;
                         break;
                         case 1: /*2 bpp*/
-                        thr.xsize>>=1;
-                        for (y=0;y<thr.ysize;y++)
-                        {
+                        thr.vidc_xsize >>= 1;
+                        for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
@@ -670,7 +689,7 @@ vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x = 0; x < thr.xsize; x += 2) {
+                                for (x = 0; x < thr.vidc_xsize; x += 2) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -702,12 +721,11 @@ vidcthread(void)
                                         }
                                 }
                         }
-                        thr.xsize<<=1;
+                        thr.vidc_xsize <<= 1;
                         break;
                         case 2: /*4 bpp*/
-                        thr.xsize>>=1;
-                        for (y=0;y<thr.ysize;y++)
-                        {
+                        thr.vidc_xsize >>= 1;
+                        for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))                                
                                 {
                                         drawit=1;
@@ -721,8 +739,7 @@ vidcthread(void)
                                         yh=y+1;
                                 }
 //                                rpclog("Line %i drawit %i addr %06X\n",y,drawit,addr);
-                                for (x=0;x<thr.xsize;x+=16)
-                                {
+                                for (x = 0; x < thr.vidc_xsize; x += 16) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -760,12 +777,12 @@ vidcthread(void)
                                         }
                                 }
                         }
-                        thr.xsize<<=1;
+                        thr.vidc_xsize <<= 1;
                         break;
                         case 3: /*8 bpp*/
-                        thr.xsize>>=1;
+                        thr.vidc_xsize >>= 1;
 //                        rpclog("Start %08X End %08X Init %08X\n",thr.iomd_vidstart,thr.iomd_vidend,addr);
-                        for (y = 0; y < thr.ysize; y++) {
+                        for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1)))
                                 {
                                         drawit=1;
@@ -778,7 +795,7 @@ vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x = 0; x < thr.xsize; x += 8) {
+                                for (x = 0; x < thr.vidc_xsize; x += 8) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -812,13 +829,12 @@ vidcthread(void)
                                         }
                                 }
                         }
-                        thr.xsize<<=1;
+                        thr.vidc_xsize <<= 1;
   //                      rpclog("Yl %i Yh %i\n",yl,yh);
                         break;
                         case 4: /*16 bpp*/
-                        thr.xsize>>=1;
-                        for (y=0;y<thr.ysize;y++)
-                        {
+                        thr.vidc_xsize >>= 1;
+                        for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1)))
                                 {
                                         drawit=1;
@@ -831,8 +847,7 @@ vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<thr.xsize;x+=4)
-                                {
+                                for (x = 0; x < thr.vidc_xsize; x += 4) {
                                         if (drawit)
                                         {
                                                 addr>>=1;
@@ -863,13 +878,12 @@ vidcthread(void)
                                         }
                                 }
                         }
-                        thr.xsize<<=1;
+                        thr.vidc_xsize <<= 1;
                         break;
                         case 6: /*32 bpp*/
 //                        textprintf(b,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,thr.xsize,thr.ysize);
 //                        textprintf(screen,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,thr.xsize,thr.ysize);
-                        for (y=0;y<thr.ysize;y++)
-                        {
+                        for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
@@ -882,8 +896,7 @@ vidcthread(void)
                                         vidp16 = (uint16_t *) bmp_write_line(b, y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<thr.xsize;x+=4)
-                                {
+                                for (x = 0; x < thr.vidc_xsize; x += 4) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -928,7 +941,7 @@ vidcthread(void)
                 switch (thr.bpp)
                 {
                         case 0: /*1 bpp*/
-                        for (y=0;y<thr.ysize;y++)
+                        for (y = 0; y < thr.vidc_ysize; y++)
                         {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
@@ -942,7 +955,7 @@ vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x = 0; x < thr.xsize; x += 8) {
+                                for (x = 0; x < thr.vidc_xsize; x += 8) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -981,8 +994,7 @@ vidcthread(void)
                         }
                         break;
                         case 1: /*2 bpp*/
-                        for (y=0;y<thr.ysize;y++)
-                        {
+                        for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
@@ -995,7 +1007,7 @@ vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x = 0; x < thr.xsize; x += 4) {
+                                for (x = 0; x < thr.vidc_xsize; x += 4) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -1030,8 +1042,7 @@ vidcthread(void)
                         }
                         break;
                         case 2: /*4 bpp*/
-                        for (y=0;y<thr.ysize;y++)
-                        {
+                        for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
@@ -1044,8 +1055,7 @@ vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<thr.xsize;x+=32)
-                                {
+                                for (x = 0; x < thr.vidc_xsize; x += 32) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -1089,8 +1099,7 @@ vidcthread(void)
                         }
                         break;
                         case 3: /*8 bpp*/
-                        for (y=0;y<thr.ysize;y++)
-                        {
+                        for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
@@ -1103,8 +1112,7 @@ vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<thr.xsize;x+=16)
-                                {
+                                for (x = 0; x < thr.vidc_xsize; x += 16) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -1140,8 +1148,7 @@ vidcthread(void)
                         }
                         break;
                         case 4: /*16 bpp*/
-                        for (y=0;y<thr.ysize;y++)
-                        {
+                        for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
@@ -1154,8 +1161,7 @@ vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<thr.xsize;x+=8)
-                                {
+                                for (x = 0; x < thr.vidc_xsize; x += 8) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -1195,8 +1201,7 @@ vidcthread(void)
                         }
                         break;
                         case 6: /*32 bpp*/
-                        for (y=0;y<thr.ysize;y++)
-                        {
+                        for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
                                 {
                                         drawit=1;
@@ -1209,8 +1214,7 @@ vidcthread(void)
                                         vidp=(uint32_t *)bmp_write_line(b,y);
                                         yh=y+1;
                                 }
-                                for (x=0;x<thr.xsize;x+=4)
-                                {
+                                for (x = 0; x < thr.vidc_xsize; x += 4) {
                                         if (drawit)
                                         {
                                                 int xx;
@@ -1258,12 +1262,13 @@ vidcthread(void)
                 }
                 addr = cinit & mem_rammask;
 //                printf("Mouse now at %i,%i\n",thr.cursorx,thr.cursory);
-                switch (drawcode)
-                {
+                switch (host_bpp) {
                         case 16:
                         for (y=0;y<thr.cursorheight;y++)
                         {
-                                if ((y+thr.cursory)>=thr.ysize) break;
+                                if ((y + thr.cursory) >= thr.vidc_ysize) {
+                                        break;
+                                }
                                 if ((y+thr.cursory)>=0)
                                 {
                                         vidp16 = (uint16_t *) bmp_write_line(b, y + thr.cursory);
@@ -1272,14 +1277,18 @@ vidcthread(void)
 #ifdef _RPCEMU_BIG_ENDIAN
                                                 addr^=3;
 #endif
-                                                if ((x+thr.cursorx)>=0   && (x+thr.cursorx)<thr.xsize && ramp[addr]&3)
+                                                if ((x + thr.cursorx)     >= 0 && (x + thr.cursorx)     < thr.vidc_xsize && ramp[addr]        & 3) {
                                                     vidp16[x+thr.cursorx]=thr.vpal[(ramp[addr]&3)|0x100];
-                                                if ((x+thr.cursorx+1)>=0 && (x+thr.cursorx+1)<thr.xsize && (ramp[addr]>>2)&3)
+                                                }
+                                                if ((x + thr.cursorx + 1) >= 0 && (x + thr.cursorx + 1) < thr.vidc_xsize && (ramp[addr] >> 2) & 3) {
                                                     vidp16[x+thr.cursorx+1]=thr.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                if ((x+thr.cursorx+2)>=0 && (x+thr.cursorx+2)<thr.xsize && (ramp[addr]>>4)&3)
+                                                }
+                                                if ((x + thr.cursorx + 2) >= 0 && (x + thr.cursorx + 2) < thr.vidc_xsize && (ramp[addr] >> 4) & 3) {
                                                     vidp16[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                if ((x+thr.cursorx+3)>=0 && (x+thr.cursorx+3)<thr.xsize && (ramp[addr]>>6)&3)
+                                                }
+                                                if ((x + thr.cursorx + 3) >= 0 && (x + thr.cursorx + 3) < thr.vidc_xsize && (ramp[addr] >> 6) & 3) {
                                                     vidp16[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
+                                                }
 #ifdef _RPCEMU_BIG_ENDIAN
                                                 addr^=3;
 #endif
@@ -1291,7 +1300,9 @@ vidcthread(void)
                         case 32:
                         for (y=0;y<thr.cursorheight;y++)
                         {
-                                if ((y+thr.cursory)>=thr.ysize) break;
+                                if ((y + thr.cursory) >= thr.vidc_ysize) {
+                                        break;
+                                }
                                 if ((y+thr.cursory)>=0)
                                 {
                                         vidp=(uint32_t *)bmp_write_line(b,y+thr.cursory);
@@ -1300,14 +1311,18 @@ vidcthread(void)
 #ifdef _RPCEMU_BIG_ENDIAN
                                                 addr^=3;
 #endif
-                                                if ((x+thr.cursorx)>=0   && (x+thr.cursorx)<thr.xsize && ramp[addr]&3)
+                                                if ((x + thr.cursorx)     >= 0 && (x + thr.cursorx)     < thr.vidc_xsize && ramp[addr]        & 3) {
                                                     vidp[x+thr.cursorx]=thr.vpal[(ramp[addr]&3)|0x100];
-                                                if ((x+thr.cursorx+1)>=0 && (x+thr.cursorx+1)<thr.xsize && (ramp[addr]>>2)&3)
+                                                }
+                                                if ((x + thr.cursorx + 1) >= 0 && (x + thr.cursorx + 1) < thr.vidc_xsize && (ramp[addr] >> 2) & 3) {
                                                     vidp[x+thr.cursorx+1]=thr.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                if ((x+thr.cursorx+2)>=0 && (x+thr.cursorx+2)<thr.xsize && (ramp[addr]>>4)&3)
+                                                }
+                                                if ((x + thr.cursorx + 2) >= 0 && (x + thr.cursorx + 2) < thr.vidc_xsize && (ramp[addr] >> 4) & 3) {
                                                     vidp[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                if ((x+thr.cursorx+3)>=0 && (x+thr.cursorx+3)<thr.xsize && (ramp[addr]>>6)&3) 
+                                                }
+                                                if ((x + thr.cursorx + 3) >= 0 && (x + thr.cursorx + 3) < thr.vidc_xsize && (ramp[addr] >> 6) & 3) {
                                                     vidp[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
+                                                }
 #ifdef _RPCEMU_BIG_ENDIAN
                                                 addr^=3;
 #endif
@@ -1332,15 +1347,17 @@ vidcthread(void)
         memset(thr.dirtybuffer,0,512*4);
         thr.needvsync = 1;
 //        rpclog("YL %i YH %i\n",yl,yh);
-        if (yh>thr.ysize) yh=thr.ysize;
+	if (yh > thr.vidc_ysize) {
+		yh = thr.vidc_ysize;
+	}
         if (yl==-1 && yh==-1) return;
         if (yl==-1) yl=0;
 //        printf("Cursor %i %i %i\n",thr.cursorx,thr.cursory,thr.cursorheight);
 //        rpclog("%i %02X\n",drawcode,bit8);        
 //        rpclog("Blitting from 0,%i size %i,%i\n",yl,thr.xsize,thr.ysize);
 
-        /* Copy backbuffer to screen */
-        blitterthread(thr.xsize, thr.ysize, yl, yh, thr.doublesize);
+	/* Copy backbuffer to screen */
+	blitterthread(thr.vidc_xsize, thr.vidc_ysize, yl, yh, thr.doublesize);
 }
 
 
