@@ -885,9 +885,15 @@ void execarm(int cycs)
 							addr = GETADDR(RN);
 							templ = GETREG(RM);
 							dest = readmeml(addr);
+							if (armirq & 0x40) {
+								break;
+							}
 							dest = arm_ldr_rotate(dest, addr);
-							LOADREG(RD, dest);
 							writememl(addr, templ);
+							if (armirq & 0x40) {
+								break;
+							}
+							LOADREG(RD, dest);
 						}
                                         }
                                         else if (!(opcode&0xFFF)) /*MRS CPSR*/
@@ -946,8 +952,14 @@ void execarm(int cycs)
 							addr = GETADDR(RN);
 							templ = GETREG(RM);
 							dest = readmemb(addr);
-							LOADREG(RD, dest);
+							if (armirq & 0x40) {
+								break;
+							}
 							writememb(addr, templ);
+							if (armirq & 0x40) {
+								break;
+							}
+							LOADREG(RD, dest);
 						}
                                         } else if (!(opcode&0xFFF)) /* MRS SPSR */
                                         {
