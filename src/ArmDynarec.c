@@ -584,6 +584,16 @@ int linecyc=0;
         #endif
 #endif
 
+static inline int
+arm_opcode_may_abort(uint32_t opcode)
+{
+	/* Is this a single or multiple data transfer? */
+	if (((opcode + 0x6000000) & 0xf000000) >= 0xa000000) {
+		return 1;
+	}
+	return 0;
+}
+
 void execarm(int cycs)
 {
         int hash;
@@ -701,7 +711,9 @@ void execarm(int cycs)
                                                         else                   lastflagchange=0;
                                                         generatecall(opcodes[(opcode>>20)&0xFF],opcode,pcpsr);
                                                         #ifdef ABORTCHECKING
-                                                        if (((opcode+0x6000000)&0xF000000)>=0xA000000) generateirqtest();
+                                                        if (arm_opcode_may_abort(opcode)) {
+                                                                generateirqtest();
+                                                        }
                                                         #endif
 //                                                        if ((opcode&0x0E000000)==0x0A000000) blockend=1; /*Always end block on branches*/
                                                         if ((opcode&0x0C000000)==0x0C000000) blockend=1; /*And SWIs and copro stuff*/
