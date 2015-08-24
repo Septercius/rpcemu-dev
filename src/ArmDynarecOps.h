@@ -334,7 +334,8 @@ static void opRSCregS(uint32_t opcode)
 	}
 }
 
-static void opSWPword(uint32_t opcode)
+static int
+opSWPword(uint32_t opcode)
 {
 	uint32_t addr, dest, templ;
 
@@ -344,9 +345,15 @@ static void opSWPword(uint32_t opcode)
 			addr = GETADDR(RN);
 			templ = GETREG(RM);
 			dest = readmeml(addr);
+			if (armirq & 0x40) {
+				return 1;
+			}
 			dest = arm_ldr_rotate(dest, addr);
-			LOADREG(RD, dest);
 			writememl(addr, templ);
+			if (armirq & 0x40) {
+				return 1;
+			}
+			LOADREG(RD, dest);
 		}
         }
         else if (!(opcode&0xFFF)) /*MRS CPSR*/
@@ -361,6 +368,7 @@ static void opSWPword(uint32_t opcode)
         {
                 undefined();
         }
+	return 0;
 }
 
 static void opTSTreg(uint32_t opcode)
@@ -402,7 +410,8 @@ static void opTEQreg(uint32_t opcode)
         }
 }
 
-static void opSWPbyte(uint32_t opcode)
+static int
+opSWPbyte(uint32_t opcode)
 {
 	uint32_t addr, dest, templ;
 
@@ -412,8 +421,14 @@ static void opSWPbyte(uint32_t opcode)
 			addr = GETADDR(RN);
 			templ = GETREG(RM);
 			dest = readmemb(addr);
-			LOADREG(RD, dest);
+			if (armirq & 0x40) {
+				return 1;
+			}
 			writememb(addr, templ);
+			if (armirq & 0x40) {
+				return 1;
+			}
+			LOADREG(RD, dest);
 		}
         }
         else if (!(opcode&0xFFF)) /* MRS SPSR */
@@ -424,6 +439,7 @@ static void opSWPbyte(uint32_t opcode)
         {
 		bad_opcode(opcode);
         }
+	return 0;
 }
 
 static void opCMPreg(uint32_t opcode)

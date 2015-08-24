@@ -534,7 +534,7 @@ static const OpFn opcodes[256]=
 {
 	opANDreg, opANDregS,opEORreg, opEORregS,opSUBreg,opSUBregS,opRSBreg,opRSBregS,   //00
 	opADDreg, opADDregS,opADCreg, opADCregS,opSBCreg,opSBCregS,opRSCreg,opRSCregS,   //08
-	opSWPword,opTSTreg, opMSRcreg,opTEQreg, opSWPbyte,opCMPreg,opMSRsreg,opCMNreg,   //10
+	(OpFn)opSWPword,opTSTreg, opMSRcreg,opTEQreg, (OpFn)opSWPbyte,opCMPreg,opMSRsreg,opCMNreg,   //10
 	opORRreg, opORRregS,opMOVreg, opMOVregS,opBICreg,opBICregS,opMVNreg,opMVNregS,   //18
 
 	opANDimm, opANDimmS,opEORimm, opEORimmS,opSUBimm, opSUBimmS,opRSBimm, opRSBimmS, //20
@@ -589,6 +589,10 @@ arm_opcode_may_abort(uint32_t opcode)
 {
 	/* Is this a single or multiple data transfer? */
 	if (((opcode + 0x6000000) & 0xf000000) >= 0xa000000) {
+		return 1;
+	}
+	/* Is this a swap? */
+	if ((opcode & 0x0fb000f0) == 0x01000090) {
 		return 1;
 	}
 	return 0;
