@@ -956,6 +956,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x98: /* STMIB */
 	case 0x9a: /* STMIB ! */
 		if (RN==15) return 0;
+		if (opcode & 0x200000) return 0;
 		if (lastjumppos) return 0;
 		gen_load_reg(RN, EDI);
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
@@ -1022,6 +1023,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x99: /* LDMIB */
 	case 0x9b: /* LDMIB ! */
 		if (RN==15) return 0;
+		if (opcode & 0x200000) return 0;
 		if (lastjumppos) return 0;
 //		if (opcode&0x8000) return 0;
 		//if (opcode&0x8000) { printf("R15 set!\n"); blockend=1; }
