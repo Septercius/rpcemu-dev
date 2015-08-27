@@ -10,6 +10,7 @@ extern void writevidc20(uint32_t val);
 extern void drawscr(int needredraw);
 extern void togglefullscreen(int fs);
 extern void vidcthread(void);
+extern void vidc_get_doublesize(int *double_x, int *double_y);
 
 /* Platform specific functions */
 extern void vidcstartthread(void);

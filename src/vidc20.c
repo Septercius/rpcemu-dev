@@ -29,6 +29,8 @@ static const int MIN_Y_SIZE = 256;
 #define VIDC_DOUBLE_Y    2
 #define VIDC_DOUBLE_BOTH 3
 
+static int doublesize = VIDC_DOUBLE_NONE; /**< Current state of doubling X/Y values */
+
 /* This state is written by the main thread. The display thread should not read it. */
 static struct vidc_state {
         uint32_t vidcpal[0x104];
@@ -233,6 +235,20 @@ int
 vidc_get_ysize(void)
 {
 	return vidc.vder - vidc.vdsr;
+}
+
+/**
+ * Return the values of whether the display is being doubled in either
+ * direction
+ *
+ * @param double_x filled in with a bool of X doubling
+ * @param double_y filled in with a bool of Y doubling
+ */
+void
+vidc_get_doublesize(int *double_x, int *double_y)
+{
+	*double_x = doublesize & VIDC_DOUBLE_X;
+	*double_y = doublesize & VIDC_DOUBLE_Y;
 }
 
 static void freebitmaps(void)
@@ -480,6 +496,9 @@ void drawscr(int needredraw)
                 thr.host_ysize = thr.vidc_ysize;
                 thr.doublesize = VIDC_DOUBLE_NONE;
 #ifdef HARDWAREBLIT
+		/* Modes below certain sizes are scaled up, e.g. 320x256. Modes with rectangular
+		   pixels, e.g. 640x256, are doubled up in the Y direction to look better on
+		   square pixel hosts */
                 if (thr.vidc_xsize <= 448 || (thr.vidc_xsize <= 480 && thr.vidc_ysize <= 352))
                 {
                         thr.host_xsize = thr.vidc_xsize << 1;
@@ -491,6 +510,10 @@ void drawscr(int needredraw)
                         thr.doublesize |= VIDC_DOUBLE_Y;
                 }
 #endif
+
+		/* Store the value of this screen's pixel doubling, used in keyboard.c for mousehack */
+		doublesize = thr.doublesize;
+
                 /* Have we changed screen mode since the last draw? */
                 if (thr.host_xsize != current_sizex || thr.host_ysize != current_sizey) {
                         resizedisplay(thr.host_xsize, thr.host_ysize);

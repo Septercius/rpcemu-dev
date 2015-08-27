@@ -919,48 +919,91 @@ keyboard_poll(void)
 /* Mousehack functions */
 
 /**
- * Get the x and y coords in native and OS units.
+ * Get the x and y coords in VIDC and OS units.
  *
- * @param x
- * @param y
- * @param osx
- * @param osy
+ * @param x Mouse x position in vidc units
+ * @param y Mouse y position in vidc units
+ * @param osx Mouse x position in OS units
+ * @param osy Mouse y position in OS units
  */
 static void
 mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 {
-        assert(mousehack);
+	int32_t xeig = 1;
+	int32_t yeig = 1;
+	int double_x;
+	int double_y;
+	int host_x; /* host mouse position after placed inside bounding box */
+	int host_y;
+	int vidc_x; /* host mouse pos in vidc units */
+	int vidc_y;
+	int lmouse_x = mouse_x; /* Allegro */
+	int lmouse_y = mouse_y; /* Allegro */
 
-	*osx = mouse_x << 1;				/* Allegro */
+	assert(mousehack);
+
+	/* Are we doubling up any directions in the host display? */
+	vidc_get_doublesize(&double_x, &double_y);
+
+	if (double_x) {
+		xeig = 2;
+	}
+	if (double_y) {
+		yeig = 2;
+	}
+
+	*osx = lmouse_x << 1;
 	if (*osx > mouse_hack.boundbox.right) {
 		*osx = mouse_hack.boundbox.right;
 	}
 	if (*osx < mouse_hack.boundbox.left) {
 		*osx = mouse_hack.boundbox.left;
 	}
-	*x= *osx >> 1;
+	*x = *osx >> xeig;
 
-	*osy = (vidc_get_ysize() << 1) - (mouse_y << 1);	/* Allegro */
+	*osy = (vidc_get_ysize() << yeig) - (lmouse_y << 1);
 	if (*osy < mouse_hack.boundbox.bottom) {
 		*osy = mouse_hack.boundbox.bottom;
 	}
 	if (*osy > mouse_hack.boundbox.top) {
 		*osy = mouse_hack.boundbox.top;
 	}
-	*y = ((vidc_get_ysize() << 1) - *osy) >> 1;
+	*y = ((vidc_get_ysize() << yeig) - *osy) >> yeig;
 
-        if (((mouse_y != *y) || (mouse_x != *x)) && mousehack)
-        {
-                /* Restrict the pointer to the bounding box, unless the 
-                   box is greater than or equal to the full screen size */
-		if ((mouse_hack.boundbox.left > 0)
-		    || (mouse_hack.boundbox.right <= ((vidc_get_xsize() - 1) << 1))
-		    || (mouse_hack.boundbox.bottom > 0)
-		    || (mouse_hack.boundbox.top <= ((vidc_get_ysize() - 1) << 1)))
-                {
-                        position_mouse(*x,*y);
-                }
-        }
+	/* Where should we place the host pointer, based on the position inside the RO bounding box? */
+	host_x = *x;
+	host_y = *y;
+
+	/* Calculate the host mouse coordinates in vidc units */
+	vidc_x = lmouse_x;
+	vidc_y = lmouse_y;
+
+	if (double_x) {
+		host_x <<= 1;
+		vidc_x >>= 1;
+	}
+	if (double_y) {
+		host_y <<= 1;
+		vidc_y >>= 1;
+	}
+
+	/* If the host mouse isn't where where the risc os bounding box has placed it,
+	   place the host pointer inside the bounding box */ 
+	if ((vidc_x != *x) || (vidc_y != *y))
+	{
+		int screen_osx = vidc_get_xsize() << xeig; /* Screen size in OS units */
+		int screen_osy = vidc_get_ysize() << yeig;
+
+		/* Restrict the host pointer to the bounding box, unless the 
+		   box is greater than or equal to the full screen size */
+		if ((mouse_hack.boundbox.left >= 0)
+		    || (mouse_hack.boundbox.right < screen_osx)
+		    || (mouse_hack.boundbox.bottom >= 0)
+		    || (mouse_hack.boundbox.top < screen_osy))
+		{
+			position_mouse(host_x, host_y); /* Allegro */
+		}
+	}
 }
 
 /**
@@ -1086,44 +1129,71 @@ mouse_hack_osbyte_106(uint32_t a)
 void
 mouse_hack_osmouse(void)
 {
-        int32_t temp;
+	int32_t temp_x;
+	int32_t temp_y;
+	uint32_t buttons = 0;
+	int32_t yeig = 1;
+	int double_x;
+	int double_y;
 
-        assert(mousehack);
+	assert(mousehack);
 
-	temp = mouse_x << 1;			/* Allegro */
-	if (temp > mouse_hack.boundbox.right) {
-		temp = mouse_hack.boundbox.right;
-	}
-	if (temp < mouse_hack.boundbox.left) {
-		temp = mouse_hack.boundbox.left;
-	}
-	arm.reg[0] = (uint32_t) temp;		/* R0 = mouse x coordinate */
+	/* Are we doubling up any directions in the host display? */
+	vidc_get_doublesize(&double_x, &double_y);
 
-	temp = (vidc_get_ysize() << 1) - (mouse_y << 1);	/* Allegro */
-	if (temp < mouse_hack.boundbox.bottom) {
-		temp = mouse_hack.boundbox.bottom;
+	/* Mouse X coordinate */
+	temp_x = mouse_x << 1;		/* Allegro */
+	if (temp_x > mouse_hack.boundbox.right) {
+		temp_x = mouse_hack.boundbox.right;
 	}
-	if (temp > mouse_hack.boundbox.top) {
-		temp = mouse_hack.boundbox.top;
+	if (temp_x < mouse_hack.boundbox.left) {
+		temp_x = mouse_hack.boundbox.left;
 	}
-	arm.reg[1] = (uint32_t) temp;		/* R1 = mouse y coordinate */
+	arm.reg[0] = (uint32_t) temp_x;
 
-        temp=0;
-	if (mouse_b & 1) temp |= 4;             /* Left button */
+	/* Mouse Y coordinate */
+	if (double_y) {
+		yeig = 2;
+	}
+	temp_y = (vidc_get_ysize() << yeig) - (mouse_y << 1);	/* Allegro */
+	if (temp_y < mouse_hack.boundbox.bottom) {
+		temp_y = mouse_hack.boundbox.bottom;
+	}
+	if (temp_y > mouse_hack.boundbox.top) {
+		temp_y = mouse_hack.boundbox.top;
+	}
+	arm.reg[1] = (uint32_t) temp_y;
+
+	/* Mouse buttons */
+	if (mouse_b & 1) { 
+		buttons |= 4;			/* Left button */
+	}
 	if (config.mousetwobutton) {
 		/* To help people with only two buttons on their mouse, swap
 		   the behaviour of middle and right buttons */
-		if (mouse_b & 2) temp |= 2;             /* Middle button */
-		if (mouse_b & 4) temp |= 1;             /* Right button */
-		if (key[KEY_MENU] || key[KEY_ALTGR]) temp |= 1;
+		if (mouse_b & 2) {
+			buttons |= 2;		/* Middle button */
+		}
+		if (mouse_b & 4) {
+			buttons |= 1;		/* Right button */
+		}
+		if (key[KEY_MENU] || key[KEY_ALTGR]) {
+			buttons |= 1;
+		}
 	} else {
-		if (mouse_b & 2) temp |= 1;             /* Right button */
-		if (mouse_b & 4) temp |= 2;             /* Middle button */
-		if (key[KEY_MENU] || key[KEY_ALTGR]) temp |= 2;
+		if (mouse_b & 2) {
+			buttons |= 1;		/* Right button */
+		}
+		if (mouse_b & 4) {
+			buttons |= 2; 		/* Middle button */
+		}
+		if (key[KEY_MENU] || key[KEY_ALTGR]) {
+			buttons |= 2;
+		}
 	}
-        arm.reg[2] = temp;                      /* R2 = mouse buttons */
+	arm.reg[2] = buttons;
 
-        arm.reg[3] = 0;                         /* R3 = time of button change */
+	arm.reg[3] = 0; /* R3 = time of button change */
 }
 
 /**
