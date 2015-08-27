@@ -537,7 +537,7 @@ void execarm(int cycs)
         int linecyc;
 	uint32_t opcode;
 	uint32_t lhs, rhs, dest;
-	uint32_t templ, templ2, addr, addr2, writeback;
+	uint32_t templ, templ2, addr, addr2, offset, writeback;
 
         cycles+=cycs;
         while (cycles>0)
@@ -1750,8 +1750,8 @@ void execarm(int cycs)
 				case 0x82: /* STMDA ! */
 				case 0x90: /* STMDB */
 				case 0x92: /* STMDB ! */
-					templ = countbits(opcode & 0xffff);
-					addr = arm.reg[RN] - templ;
+					offset = countbits(opcode & 0xffff);
+					addr = arm.reg[RN] - offset;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
 						/* Decrement After */
@@ -1764,9 +1764,9 @@ void execarm(int cycs)
 				case 0x8a: /* STMIA ! */
 				case 0x98: /* STMIB */
 				case 0x9a: /* STMIB ! */
-					templ = countbits(opcode & 0xffff);
+					offset = countbits(opcode & 0xffff);
 					addr = arm.reg[RN];
-					writeback = addr + templ;
+					writeback = addr + offset;
 					if (opcode & (1 << 24)) {
 						/* Increment Before */
 						addr += 4;
@@ -1778,8 +1778,8 @@ void execarm(int cycs)
 				case 0x86: /* STMDA ^! */
 				case 0x94: /* STMDB ^ */
 				case 0x96: /* STMDB ^! */
-					templ = countbits(opcode & 0xffff);
-					addr = arm.reg[RN] - templ;
+					offset = countbits(opcode & 0xffff);
+					addr = arm.reg[RN] - offset;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
 						/* Decrement After */
@@ -1792,9 +1792,9 @@ void execarm(int cycs)
 				case 0x8e: /* STMIA ^! */
 				case 0x9c: /* STMIB ^ */
 				case 0x9e: /* STMIB ^! */
-					templ = countbits(opcode & 0xffff);
+					offset = countbits(opcode & 0xffff);
 					addr = arm.reg[RN];
-					writeback = addr + templ;
+					writeback = addr + offset;
 					if (opcode & (1 << 24)) {
 						/* Increment Before */
 						addr += 4;
@@ -1806,8 +1806,8 @@ void execarm(int cycs)
 				case 0x83: /* LDMDA ! */
 				case 0x91: /* LDMDB */
 				case 0x93: /* LDMDB ! */
-					templ = countbits(opcode & 0xffff);
-					addr = arm.reg[RN] - templ;
+					offset = countbits(opcode & 0xffff);
+					addr = arm.reg[RN] - offset;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
 						/* Decrement After */
@@ -1820,9 +1820,9 @@ void execarm(int cycs)
 				case 0x8b: /* LDMIA ! */
 				case 0x99: /* LDMIB */
 				case 0x9b: /* LDMIB ! */
-					templ = countbits(opcode & 0xffff);
+					offset = countbits(opcode & 0xffff);
 					addr = arm.reg[RN];
-					writeback = addr + templ;
+					writeback = addr + offset;
 					if (opcode & (1 << 24)) {
 						/* Increment Before */
 						addr += 4;
@@ -1834,8 +1834,8 @@ void execarm(int cycs)
 				case 0x87: /* LDMDA ^! */
 				case 0x95: /* LDMDB ^ */
 				case 0x97: /* LDMDB ^! */
-					templ = countbits(opcode & 0xffff);
-					addr = arm.reg[RN] - templ;
+					offset = countbits(opcode & 0xffff);
+					addr = arm.reg[RN] - offset;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
 						/* Decrement After */
@@ -1848,9 +1848,9 @@ void execarm(int cycs)
 				case 0x8f: /* LDMIA ^! */
 				case 0x9d: /* LDMIB ^ */
 				case 0x9f: /* LDMIB ^! */
-					templ = countbits(opcode & 0xffff);
+					offset = countbits(opcode & 0xffff);
 					addr = arm.reg[RN];
-					writeback = addr + templ;
+					writeback = addr + offset;
 					if (opcode & (1 << 24)) {
 						/* Increment Before */
 						addr += 4;
