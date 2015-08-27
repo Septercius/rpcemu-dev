@@ -1309,10 +1309,10 @@ static int opLDRB(uint32_t opcode)
 
 static int opSTMD(uint32_t opcode)
 {
-	uint32_t templ, addr, writeback;
+	uint32_t addr, offset, writeback;
 
-	templ = countbits(opcode & 0xffff);
-	addr = arm.reg[RN] - templ;
+	offset = countbits(opcode & 0xffff);
+	addr = arm.reg[RN] - offset;
 	writeback = addr;
 	if (!(opcode & (1 << 24))) {
 		/* Decrement After */
@@ -1324,11 +1324,11 @@ static int opSTMD(uint32_t opcode)
 
 static int opSTMI(uint32_t opcode)
 {
-	uint32_t templ, addr, writeback;
+	uint32_t addr, offset, writeback;
 
-	templ = countbits(opcode & 0xffff);
+	offset = countbits(opcode & 0xffff);
 	addr = arm.reg[RN];
-	writeback = addr + templ;
+	writeback = addr + offset;
 	if (opcode & (1 << 24)) {
 		/* Increment Before */
 		addr += 4;
@@ -1339,10 +1339,10 @@ static int opSTMI(uint32_t opcode)
 
 static int opSTMDS(uint32_t opcode)
 {
-	uint32_t templ, addr, writeback;
+	uint32_t addr, offset, writeback;
 
-	templ = countbits(opcode & 0xffff);
-	addr = arm.reg[RN] - templ;
+	offset = countbits(opcode & 0xffff);
+	addr = arm.reg[RN] - offset;
 	writeback = addr;
 	if (!(opcode & (1 << 24))) {
 		/* Decrement After */
@@ -1354,11 +1354,11 @@ static int opSTMDS(uint32_t opcode)
 
 static int opSTMIS(uint32_t opcode)
 {
-	uint32_t templ, addr, writeback;
+	uint32_t addr, offset, writeback;
 
-	templ = countbits(opcode & 0xffff);
+	offset = countbits(opcode & 0xffff);
 	addr = arm.reg[RN];
-	writeback = addr + templ;
+	writeback = addr + offset;
 	if (opcode & (1 << 24)) {
 		/* Increment Before */
 		addr += 4;
@@ -1369,10 +1369,10 @@ static int opSTMIS(uint32_t opcode)
 
 static int opLDMD(uint32_t opcode)
 {
-	uint32_t templ, addr, writeback;
+	uint32_t addr, offset, writeback;
 
-	templ = countbits(opcode & 0xffff);
-	addr = arm.reg[RN] - templ;
+	offset = countbits(opcode & 0xffff);
+	addr = arm.reg[RN] - offset;
 	writeback = addr;
 	if (!(opcode & (1 << 24))) {
 		/* Decrement After */
@@ -1384,11 +1384,11 @@ static int opLDMD(uint32_t opcode)
 
 static int opLDMI(uint32_t opcode)
 {
-	uint32_t templ, addr, writeback;
+	uint32_t addr, offset, writeback;
 
-	templ = countbits(opcode & 0xffff);
+	offset = countbits(opcode & 0xffff);
 	addr = arm.reg[RN];
-	writeback = addr + templ;
+	writeback = addr + offset;
 	if (opcode & (1 << 24)) {
 		/* Increment Before */
 		addr += 4;
@@ -1399,10 +1399,10 @@ static int opLDMI(uint32_t opcode)
 
 static int opLDMDS(uint32_t opcode)
 {
-	uint32_t templ, addr, writeback;
+	uint32_t addr, offset, writeback;
 
-	templ = countbits(opcode & 0xffff);
-	addr = arm.reg[RN] - templ;
+	offset = countbits(opcode & 0xffff);
+	addr = arm.reg[RN] - offset;
 	writeback = addr;
 	if (!(opcode & (1 << 24))) {
 		/* Decrement After */
@@ -1414,11 +1414,11 @@ static int opLDMDS(uint32_t opcode)
 
 static int opLDMIS(uint32_t opcode)
 {
-	uint32_t templ, addr, writeback;
+	uint32_t addr, offset, writeback;
 
-	templ = countbits(opcode & 0xffff);
+	offset = countbits(opcode & 0xffff);
 	addr = arm.reg[RN];
-	writeback = addr + templ;
+	writeback = addr + offset;
 	if (opcode & (1 << 24)) {
 		/* Increment Before */
 		addr += 4;
