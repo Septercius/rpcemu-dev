@@ -105,8 +105,8 @@ static struct {
 	struct {			/**< Mouse bounding box, defined with OS_Word 21, 1, values are in OS units */
 		int16_t	left;
 		int16_t	right;
-		int16_t	top;
 		int16_t	bottom;
+		int16_t	top;
 	} boundbox;
 } mouse_hack;
 
@@ -941,11 +941,11 @@ mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 	*x= *osx >> 1;
 
 	*osy = (vidc_get_ysize() << 1) - (mouse_y << 1);	/* Allegro */
-	if (*osy < mouse_hack.boundbox.top) {
-		*osy = mouse_hack.boundbox.top;
-	}
-	if (*osy > mouse_hack.boundbox.bottom) {
+	if (*osy < mouse_hack.boundbox.bottom) {
 		*osy = mouse_hack.boundbox.bottom;
+	}
+	if (*osy > mouse_hack.boundbox.top) {
+		*osy = mouse_hack.boundbox.top;
 	}
 	*y = ((vidc_get_ysize() << 1) - *osy) >> 1;
 
@@ -955,8 +955,8 @@ mouse_get_osxy(int *x, int *y, int *osx, int *osy)
                    box is greater than or equal to the full screen size */
 		if ((mouse_hack.boundbox.left > 0)
 		    || (mouse_hack.boundbox.right <= ((vidc_get_xsize() - 1) << 1))
-		    || (mouse_hack.boundbox.top > 0)
-		    || (mouse_hack.boundbox.bottom <= ((vidc_get_ysize() - 1) << 1)))
+		    || (mouse_hack.boundbox.bottom > 0)
+		    || (mouse_hack.boundbox.top <= ((vidc_get_ysize() - 1) << 1)))
                 {
                         position_mouse(*x,*y);
                 }
@@ -1100,11 +1100,11 @@ mouse_hack_osmouse(void)
 	arm.reg[0] = (uint32_t) temp;		/* R0 = mouse x coordinate */
 
 	temp = (vidc_get_ysize() << 1) - (mouse_y << 1);	/* Allegro */
-	if (temp < mouse_hack.boundbox.top) {
-		temp = mouse_hack.boundbox.top;
-	}
-	if (temp > mouse_hack.boundbox.bottom) {
+	if (temp < mouse_hack.boundbox.bottom) {
 		temp = mouse_hack.boundbox.bottom;
+	}
+	if (temp > mouse_hack.boundbox.top) {
+		temp = mouse_hack.boundbox.top;
 	}
 	arm.reg[1] = (uint32_t) temp;		/* R1 = mouse y coordinate */
 
@@ -1139,7 +1139,7 @@ mouse_hack_osword_21_1(uint32_t a)
         assert(mousehack);
 
 	mouse_hack.boundbox.left   = readmemb(a + 1) | (readmemb(a + 2) << 8);
-	mouse_hack.boundbox.top    = readmemb(a + 3) | (readmemb(a + 4) << 8);
+	mouse_hack.boundbox.bottom = readmemb(a + 3) | (readmemb(a + 4) << 8);
 	mouse_hack.boundbox.right  = readmemb(a + 5) | (readmemb(a + 6) << 8);
-	mouse_hack.boundbox.bottom = readmemb(a + 7) | (readmemb(a + 8) << 8);
+	mouse_hack.boundbox.top    = readmemb(a + 7) | (readmemb(a + 8) << 8);
 }
