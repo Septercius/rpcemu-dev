@@ -495,7 +495,7 @@ void drawscr(int needredraw)
                 thr.host_xsize = thr.vidc_xsize;
                 thr.host_ysize = thr.vidc_ysize;
                 thr.doublesize = VIDC_DOUBLE_NONE;
-#ifdef HARDWAREBLIT
+
 		/* Modes below certain sizes are scaled up, e.g. 320x256. Modes with rectangular
 		   pixels, e.g. 640x256, are doubled up in the Y direction to look better on
 		   square pixel hosts */
@@ -509,7 +509,6 @@ void drawscr(int needredraw)
                         thr.host_ysize = thr.vidc_ysize << 1;
                         thr.doublesize |= VIDC_DOUBLE_Y;
                 }
-#endif
 
 		/* Store the value of this screen's pixel doubling, used in keyboard.c for mousehack */
 		doublesize = thr.doublesize;
