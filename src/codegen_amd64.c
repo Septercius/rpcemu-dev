@@ -1005,7 +1005,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
 				if (c==15)
 				{
-					blockend=1;
 					addbyte(0x83); addbyte(0xC2); addbyte(0x04); /*ADDL $4,%edx*/
 					gentestabort();
 				}
@@ -1034,7 +1033,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x200000) return 0;
 		if (lastjumppos) return 0;
 //		if (opcode&0x8000) return 0;
-		//if (opcode&0x8000) { printf("R15 set!\n"); blockend=1; }
 		gen_load_reg(RN, EDI);
 //		if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
@@ -1047,7 +1045,6 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				if (!(opcode&0x1000000)) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 				if (c==15)
 				{
-					blockend=1;
 					addbyte(0x83); addbyte(0xC2); addbyte(0x04); /*ADDL $4,%edx*/
 					gentestabort();
 				}
