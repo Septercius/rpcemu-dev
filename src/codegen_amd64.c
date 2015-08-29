@@ -963,17 +963,20 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (RN==15) return 0;
 		if (opcode & 0x200000) return 0;
 		if (lastjumppos) return 0;
+		offset = countbits(opcode & 0xffff);
 		gen_load_reg(RN, EDI);
+		if (opcode & (1u << 24)) {
+			/* Increment Before */
+			addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
+		}
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
-		for (c=0;c<16;c++)
-		{
+		for (c = 0; c < 16; c++) {
 			if (opcode&(1<<c))
 			{
 				gen_load_reg(c, EAX);
-				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 				if (c==15) { addbyte(0x83); addbyte(0xC0); addbyte(4); /*ADD $4,%eax*/ }
 				gen_x86_call(recompwritememl);
-				if (!(opcode&0x1000000)) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
+				addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
 			}
 		}
 		gentestabort();
@@ -1033,16 +1036,18 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (opcode & 0x200000) return 0;
 		if (lastjumppos) return 0;
 //		if (opcode&0x8000) return 0;
+		offset = countbits(opcode & 0xffff);
 		gen_load_reg(RN, EDI);
-//		if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
+		if (opcode & (1u << 24)) {
+			/* Increment Before */
+			addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
+		}
 		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
-		for (c=0;c<16;c++)
-		{
+		for (c = 0; c < 16; c++) {
 			if (opcode&(1<<c))
 			{
-				if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
 				gen_x86_call(recompreadmeml);
-				if (!(opcode&0x1000000)) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
+				addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
 				if (c==15)
 				{
 					addbyte(0x83); addbyte(0xC2); addbyte(0x04); /*ADDL $4,%edx*/
