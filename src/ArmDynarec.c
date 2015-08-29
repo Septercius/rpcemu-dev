@@ -34,7 +34,6 @@ extern void removeblock(void); /* in codegen_*.c */
 	
 ARMState arm;
 
-static int r15diff;
 static int fdci=0;
 uint32_t r15mask;
 static int cycles;
@@ -58,7 +57,7 @@ int prog32;
 
 #define GETADDR(r) ((r == 15) ? (arm.reg[15] & r15mask) : arm.reg[r])
 #define LOADREG(r,v) if (r==15) { arm.reg[15]=(arm.reg[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else arm.reg[r]=(v);
-#define GETREG(r) ((r == 15) ? (arm.reg[15] + r15diff) : arm.reg[r])
+#define GETREG(r) ((r == 15) ? (arm.reg[15] + arm.r15_diff) : arm.reg[r])
 
 #define refillpipeline() blockend=1;
 
@@ -266,10 +265,10 @@ resetarm(CPUModel cpu_model)
         arm.mode = SUPERVISOR;
         pccache=0xFFFFFFFF;
 	if (cpu_model == CPUModel_SA110 || cpu_model == CPUModel_ARM810) {
-		r15diff = 0;
+		arm.r15_diff = 0;
 		arm.abort_base_restored = 1;
 	} else {
-		r15diff = 4;
+		arm.r15_diff = 4;
 		arm.abort_base_restored = 0;
 	}
 

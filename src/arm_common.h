@@ -381,7 +381,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 
 	/* Store R15 (if requested) */
 	if (opcode & (1 << 15)) {
-		writememl(addr, arm.reg[15] + r15diff);
+		writememl(addr, arm.reg[15] + arm.r15_diff);
 		exception_flags |= armirq;
 	}
 
@@ -451,7 +451,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 
 	/* Store R15 (if requested) */
 	if (opcode & (1 << 15)) {
-		writememl(addr, arm.reg[15] + r15diff);
+		writememl(addr, arm.reg[15] + arm.r15_diff);
 		exception_flags |= armirq;
 	}
 

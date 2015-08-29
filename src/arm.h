@@ -17,6 +17,7 @@ typedef struct {
 	uint32_t	undef_reg[2];
 	uint32_t	spsr[16];
 
+	uint32_t	r15_diff;
 	uint8_t		abort_base_restored;
 	uint8_t		stm_writeback_at_end;
 } ARMState;
