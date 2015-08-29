@@ -1121,10 +1121,7 @@ static int opSTR(uint32_t opcode)
 	}
 
 	/* Store */
-	value = arm.reg[RD];
-	if (RD == 15) {
-		value += r15diff;
-	}
+	value = GETREG(RD);
 	writememl(addr & ~3, value);
 
 	/* Check for Abort */
@@ -1229,10 +1226,7 @@ static int opSTRB(uint32_t opcode)
 	}
 
 	/* Store */
-	value = arm.reg[RD];
-	if (RD == 15) {
-		value += r15diff;
-	}
+	value = GETREG(RD);
 	writememb(addr, value);
 
 	/* Check for Abort */
