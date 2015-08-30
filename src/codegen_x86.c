@@ -2124,16 +2124,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                         }
                                         #endif
                                 }
-                                if (c==15)
-                                {
-                                        if (r15mask!=0xFFFFFFFC) gen_load_reg(c, EAX);
-                                        addbyte(0x83); addbyte(0xC2); addbyte(4); /*ADDL $4,%edx*/
-                                        if (r15mask!=0xFFFFFFFC)
-                                        {
-                                                addbyte(0x25); addlong(~r15mask); /*ANDL $~r15mask,%eax*/
-                                                addbyte(0x81); addbyte(0xE2); addlong(r15mask); /*ANDL $r15mask,%edx*/
-                                                addbyte(0x09); addbyte(0xC2); /*ORL %eax,%edx*/
-                                        }
+                                if (c == 15) {
+                                        gen_load_reg(15, EAX);
+                                        addbyte(0x8b); addbyte(0x0d); addlong(&r15mask); /* MOV r15mask,%ecx */
+                                        addbyte(0x83); addbyte(0xc2); addbyte(4); /* ADD $4,%edx */
+                                        addbyte(0x21); addbyte(0xca); /* AND %ecx,%edx */
+                                        addbyte(0xf7); addbyte(0xd1); /* NOT %ecx */
+                                        addbyte(0x21); addbyte(0xc8); /* AND %ecx,%eax */
+                                        addbyte(0x09); addbyte(0xc2); /* OR %eax,%edx */
                                 }
                                 gen_save_reg(c, EDX);
                                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
@@ -2284,16 +2282,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                         }
                                         #endif
                                 }
-                                if (c==15)
-                                {
-                                        if (r15mask!=0xFFFFFFFC) gen_load_reg(c, EAX);
-                                        addbyte(0x83); addbyte(0xC2); addbyte(4); /*ADDL $4,%edx*/
-                                        if (r15mask!=0xFFFFFFFC)
-                                        {
-                                                addbyte(0x25); addlong(~r15mask); /*ANDL $~r15mask,%eax*/
-                                                addbyte(0x81); addbyte(0xE2); addlong(r15mask); /*ANDL $r15mask,%edx*/
-                                                addbyte(0x09); addbyte(0xC2); /*ORL %eax,%edx*/
-                                        }
+                                if (c == 15) {
+                                        gen_load_reg(15, EAX);
+                                        addbyte(0x8b); addbyte(0x0d); addlong(&r15mask); /* MOV r15mask,%ecx */
+                                        addbyte(0x83); addbyte(0xc2); addbyte(4); /* ADD $4,%edx */
+                                        addbyte(0x21); addbyte(0xca); /* AND %ecx,%edx */
+                                        addbyte(0xf7); addbyte(0xd1); /* NOT %ecx */
+                                        addbyte(0x21); addbyte(0xc8); /* AND %ecx,%eax */
+                                        addbyte(0x09); addbyte(0xc2); /* OR %eax,%edx */
                                 }
                                 gen_save_reg(c, EDX);
                                 addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
