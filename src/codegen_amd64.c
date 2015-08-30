@@ -1006,22 +1006,22 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			{
 				gen_x86_call(recompreadmeml);
 				addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
-				if (c==15)
-				{
-					addbyte(0x83); addbyte(0xC2); addbyte(0x04); /*ADDL $4,%edx*/
+				if (c == 15) {
 					gentestabort();
-				}
-				if (c==15 && r15mask!=0xFFFFFFFC)
-				{
-					gen_load_reg(15, ECX);
-					addbyte(0x81); addbyte(0xE2); addlong(r15mask); /*AND $r15mask,%edx*/
-					addbyte(0x81); addbyte(0xE1); addlong((~r15mask)); /*AND $~r15mask,%ecx*/
-					addbyte(0x09); addbyte(0xCA); /*OR %ecx,%edx*/
+					gen_load_reg(15, EAX);
+					addbyte(0x8b); addbyte(0x0c); addbyte(0x25); addlong(&r15mask); /* MOV r15mask,%ecx */
+					addbyte(0x83); addbyte(0xc2); addbyte(4); /* ADD $4,%edx */
+					addbyte(0x21); addbyte(0xca); /* AND %ecx,%edx */
+					addbyte(0xf7); addbyte(0xd1); /* NOT %ecx */
+					addbyte(0x21); addbyte(0xc8); /* AND %ecx,%eax */
+					addbyte(0x09); addbyte(0xc2); /* OR %eax,%edx */
 				}
 				gen_save_reg(c, EDX);
 			}
 		}
-		gentestabort();
+		if (!(opcode & 0x8000)) {
+			gentestabort();
+		}
 		if (opcode&0x200000)
 		{
 			gen_save_reg(RN, EDI);
@@ -1048,22 +1048,22 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			{
 				gen_x86_call(recompreadmeml);
 				addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
-				if (c==15)
-				{
-					addbyte(0x83); addbyte(0xC2); addbyte(0x04); /*ADDL $4,%edx*/
+				if (c == 15) {
 					gentestabort();
-				}
-				if (c==15 && r15mask!=0xFFFFFFFC)
-				{
-					gen_load_reg(15, ECX);
-					addbyte(0x81); addbyte(0xE2); addlong(r15mask); /*AND $r15mask,%edx*/
-					addbyte(0x81); addbyte(0xE1); addlong((~r15mask)); /*AND $~r15mask,%ecx*/
-					addbyte(0x09); addbyte(0xCA); /*OR %ecx,%edx*/
+					gen_load_reg(15, EAX);
+					addbyte(0x8b); addbyte(0x0c); addbyte(0x25); addlong(&r15mask); /* MOV r15mask,%ecx */
+					addbyte(0x83); addbyte(0xc2); addbyte(4); /* ADD $4,%edx */
+					addbyte(0x21); addbyte(0xca); /* AND %ecx,%edx */
+					addbyte(0xf7); addbyte(0xd1); /* NOT %ecx */
+					addbyte(0x21); addbyte(0xc8); /* AND %ecx,%eax */
+					addbyte(0x09); addbyte(0xc2); /* OR %eax,%edx */
 				}
 				gen_save_reg(c, EDX);
 			}
 		}
-		if (!(opcode&0x8000)) gentestabort();
+		if (!(opcode & 0x8000)) {
+			gentestabort();
+		}
 		if (opcode&0x200000)
 		{
 			gen_save_reg(RN, EDI);
