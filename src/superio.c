@@ -50,15 +50,18 @@
 
 static SuperIOType super_type;     /**< Which variant of SuperIO chip are we emulating */
 
-static int configmode = 0;
+static int configmode = SUPERIO_MODE_NORMAL;
 static uint8_t configregs665[16];  /**< Internal configuration registers of FDC 37C665GT */
 static uint8_t configregs672[256]; /**< Internal configuration registers of FDC 37C672 */
 static int configreg;
 
 static uint8_t scratch, linectrl;
 
-static int gp_index;
-static uint8_t gp_regs[16];
+/** FDC37C672 GP Index Registers */
+static int gp_index;		/**< Which register to select, 0-15 */
+static uint8_t gp_regs[16];	/**< Values of GP registers */
+
+static uint8_t printstat = 0;
 
 static void
 superio_smi_update(void)
@@ -183,6 +186,8 @@ superio_reset(SuperIOType chosen_super_type)
 	assert(chosen_super_type == SuperIOType_FDC37C665GT || chosen_super_type == SuperIOType_FDC37C672);
 
 	super_type = chosen_super_type;
+	configmode = SUPERIO_MODE_NORMAL;
+	printstat = 0;
 
 	/* Initial configuration register default values from the datasheet */
 	configregs665[0x0] = 0x3b;
@@ -220,8 +225,6 @@ superio_reset(SuperIOType chosen_super_type)
 void
 superio_write(uint32_t addr, uint32_t val)
 {
-	static unsigned char printstat = 0;
-
         /* Convert memory-mapped address to IO port */
         addr = (addr >> 2) & 0x3ff;
 
