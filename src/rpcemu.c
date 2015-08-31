@@ -221,6 +221,7 @@ void
 rpcemu_log_information(void)
 {
 	char cwd[1024];
+	int width, height;
 
 	/* Log version and build type */
 	rpclog("RPCEmu " VERSION " [");
@@ -249,6 +250,11 @@ rpcemu_log_information(void)
 
 	/* Log Allegro information */
 	rpclog("Allegro version ID: %s\n", allegro_id);
+
+	/* Log display information */
+	if (get_desktop_resolution(&width, &height) == 0) {
+		rpclog("Desktop Resolution: %d x %d\n", width, height);
+	}
 	rpclog("Host Colour Depth: %u\n", desktop_color_depth());
 
 	/* Log working directory */
