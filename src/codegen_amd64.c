@@ -944,7 +944,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			if (opcode&(1<<c))
 			{
 				gen_load_reg(c, EAX);
-				if (c==15) { addbyte(0x83); addbyte(0xC0); addbyte(4); /*ADD $4,%eax*/ }
+				if ((c == 15) && (arm.r15_diff != 0)) {
+					addbyte(0x83); addbyte(0xc0); addbyte(arm.r15_diff); /* ADD $arm.r15_diff,%eax */
+				}
 				gen_x86_call(recompwritememl);
 				addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
 			}
@@ -974,7 +976,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			if (opcode&(1<<c))
 			{
 				gen_load_reg(c, EAX);
-				if (c==15) { addbyte(0x83); addbyte(0xC0); addbyte(4); /*ADD $4,%eax*/ }
+				if ((c == 15) && (arm.r15_diff != 0)) {
+					addbyte(0x83); addbyte(0xc0); addbyte(arm.r15_diff); /* ADD $arm.r15_diff,%eax */
+				}
 				gen_x86_call(recompwritememl);
 				addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
 			}
