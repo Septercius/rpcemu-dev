@@ -82,6 +82,7 @@ cmos_update_settings(void)
 {
 	time_t now = time(NULL);
 	const struct tm *t = gmtime(&now);
+	const struct tm *tloc = localtime(&now);
 
 	/* The year should be stored too, otherwise RISC OS refuses to
 	 * read any time from the CMOS/RTC chip!
@@ -89,6 +90,15 @@ cmos_update_settings(void)
 	/* The standard C time functionality subtracts 1900 from the year */
 	cmosram[0xc0] = (t->tm_year + 1900) % 100;
 	cmosram[0xc1] = (t->tm_year + 1900) / 100;
+
+	/* Set the Daylight Savings Time flag */
+	if (tloc->tm_isdst >= 0) {
+		if (tloc->tm_isdst > 0) { /* Is in Daylight Savings Time */
+			cmosram[0x2c] |= 1u << 7;
+		} else { /* Is not in Daylight Savings Time */
+			cmosram[0x2c] &= ~(1u << 7);
+		}
+	}
 
 	/* Automatically configure the mousetype depending on which machine
 	   model is selected. CMOS location has been verified on 3.50-Select 4
