@@ -225,11 +225,11 @@ rpcemu_log_information(void)
 
 	/* Log version and build type */
 	rpclog("RPCEmu " VERSION " [");
-#if defined(DYNAREC)
-	rpclog("DYNAREC");
-#else
-	rpclog("INTERPRETER");
-#endif
+	if (arm_is_dynarec()) {
+		rpclog("DYNAREC");
+	} else {
+		rpclog("INTERPRETER");
+	}
 
 #if defined(_DEBUG)
 	rpclog(" DEBUG");
