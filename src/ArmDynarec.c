@@ -1,7 +1,5 @@
 #include "rpcemu.h"
 
-#ifdef DYNAREC
-
 /*RPCemu v0.6 by Tom Walker
   SA110 emulation
   Dynamic recompiling version!*/
@@ -853,4 +851,4 @@ void execarm(int cycs)
                 cycles-=1000;
         }
 }
-#endif
+
