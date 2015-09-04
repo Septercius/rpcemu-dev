@@ -53,7 +53,7 @@ static SuperIOType super_type;     /**< Which variant of SuperIO chip are we emu
 static int configmode = SUPERIO_MODE_NORMAL;
 static uint8_t configregs665[16];  /**< Internal configuration registers of FDC 37C665GT */
 static uint8_t configregs672[256]; /**< Internal configuration registers of FDC 37C672 */
-static int configreg;
+static uint8_t configreg;
 
 static uint8_t scratch, linectrl;
 
@@ -112,8 +112,6 @@ superio_smi_clrint2(uint8_t i)
 static void
 superio_config_reg_write(uint8_t configreg, uint8_t val)
 {
-	assert(configreg < 256);
-
 	/* Check for various configurations that we don't handle yet */
 	switch (configreg) {
 	case 1:
