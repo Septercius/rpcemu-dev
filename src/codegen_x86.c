@@ -1780,7 +1780,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 gen_load_reg(c, EBX);
                 gen_x86_push_reg(EAX);
-                if (c==15) { addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%ebx*/ }
+                if ((c == 15) && (arm.r15_diff != 0)) {
+                        addbyte(0x83); addbyte(0xc3); addbyte(arm.r15_diff); /* ADD $arm.r15_diff,%ebx */
+                }
                 gen_x86_call(mwritemem);
                 gen_x86_pop_reg(EAX);
                 gen_x86_jump(CC_NZ, 0);
@@ -1814,7 +1816,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                 if (templ&1)
                                 {
                                         gen_load_reg(c, EBX);
-                                        if (c==15) { addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%ebx*/ }
+                                        if ((c == 15) && (arm.r15_diff != 0)) {
+                                                addbyte(0x83); addbyte(0xc3); addbyte(arm.r15_diff); /* ADD $arm.r15_diff,%ebx */
+                                        }
                                         if (!d) { addbyte(0x89); addbyte(0x1F); /*MOVL %ebx,(%edi)*/ }
                                         else    { addbyte(0x89); addbyte(0x5F); addbyte(d); /*MOVL %ebx,d(%edi)*/}
                                         d+=4;
@@ -1855,10 +1859,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                 templ>>=1;
                                 c++;
                         }
-                        if (c==15) { gen_load_reg(c, EBX); addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%eax*/ }
-                        else if (!(opcode&0x400000)) gen_load_reg(c, EBX);
-                        else
-                        {
+                        if (c == 15) {
+                                gen_load_reg(c, EBX);
+                                if (arm.r15_diff != 0) {
+                                        addbyte(0x83); addbyte(0xc3); addbyte(arm.r15_diff); /* ADD $arm.r15_diff,%ebx */
+                                }
+                        } else if (!(opcode & 0x400000)) {
+                                gen_load_reg(c, EBX);
+                        } else {
                                 addbyte(0x8B); addbyte(0x0D); addlong(&usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
 //                                addbyte(0xB9); addlong(usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
                                 addbyte(0x8B); addbyte(0x19); /*MOVL (%ecx),%ebx*/
@@ -1874,10 +1882,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 {
                         if (templ&1)
                         {
-                                if (c==15) { gen_load_reg(c, EBX); addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%eax*/ }
-                                else if (!(opcode&0x400000)) gen_load_reg(c, EBX);
-                                else
-                                {
+                                if (c == 15) {
+                                        gen_load_reg(c, EBX);
+                                        if (arm.r15_diff != 0) {
+                                                addbyte(0x83); addbyte(0xc3); addbyte(arm.r15_diff); /* ADD $arm.r15_diff,%ebx */
+                                        }
+                                } else if (!(opcode & 0x400000)) {
+                                        gen_load_reg(c, EBX);
+                                } else {
                                         addbyte(0x8B); addbyte(0x1D); addlong(&usrregs[c]); /*MOVL usrregs+(c*4),%ebx*/
 //                                        addbyte(0xB9); addlong(usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
                                         addbyte(0x8B); addbyte(0x1B); /*MOVL (%ebx),%ebx*/
@@ -1939,7 +1951,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 }
                 gen_load_reg(c, EBX);
                 gen_x86_push_reg(EAX);
-                if (c==15) { addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%ebx*/ }
+                if ((c == 15) && (arm.r15_diff != 0)) {
+                        addbyte(0x83); addbyte(0xc3); addbyte(arm.r15_diff); /* ADD $arm.r15_diff,%ebx */
+                }
                 gen_x86_call(mwritemem);
                 gen_x86_pop_reg(EAX);
                 gen_test_armirq();
@@ -1974,7 +1988,9 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                 if (templ&1)
                                 {
                                         gen_load_reg(c, EBX);
-                                        if (c==15) { addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%ebx*/ }
+                                        if ((c == 15) && (arm.r15_diff != 0)) {
+                                                addbyte(0x83); addbyte(0xc3); addbyte(arm.r15_diff); /* ADD $arm.r15_diff,%ebx */
+                                        }
                                         if (!d) { addbyte(0x89); addbyte(0x1F); /*MOVL %ebx,(%edi)*/ }
                                         else    { addbyte(0x89); addbyte(0x5F); addbyte(d); /*MOVL %ebx,d(%edi)*/}
                                         d+=4;
@@ -2018,10 +2034,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                                 templ>>=1;
                                 c++;
                         }
-                        if (c==15) { gen_load_reg(c, EBX); addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%eax*/ }
-                        else if (!(opcode&0x400000)) gen_load_reg(c, EBX);
-                        else
-                        {
+                        if (c == 15) {
+                                gen_load_reg(c, EBX);
+                                if (arm.r15_diff != 0) {
+                                        addbyte(0x83); addbyte(0xc3); addbyte(arm.r15_diff); /* ADD $arm.r15_diff,%eax */
+                                }
+                        } else if (!(opcode & 0x400000)) {
+                                gen_load_reg(c, EBX);
+                        } else {
                                 addbyte(0x8B); addbyte(0x1D); addlong(&usrregs[c]); /*MOVL usrregs+(c*4),%ebx*/
                                 //addbyte(0xB9); addlong(usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
                                 addbyte(0x8B); addbyte(0x1B); /*MOVL (%ebx),%ebx*/
@@ -2044,10 +2064,14 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 {
                         if (templ&1)
                         {
-                                if (c==15) { gen_load_reg(c, EBX); addbyte(0x83); addbyte(0xC0|EBX); addbyte(4); /*ADDL $4,%eax*/ }
-                                else if (!(opcode&0x400000)) gen_load_reg(c, EBX);
-                                else
-                                {
+                                if (c == 15) {
+                                        gen_load_reg(c, EBX);
+                                        if (arm.r15_diff != 0) {
+                                                addbyte(0x83); addbyte(0xc3); addbyte(arm.r15_diff); /* ADD $arm.r15_diff,%eax */
+                                        }
+                                } else if (!(opcode & 0x400000)) {
+                                        gen_load_reg(c, EBX);
+                                } else {
                                         addbyte(0x8B); addbyte(0x1D); addlong(&usrregs[c]); /*MOVL usrregs+(c*4),%ebx*/
 //                                        addbyte(0xB9); addlong(usrregs[c]); /*MOVL usrregs+(c*4),%ecx*/
                                         addbyte(0x8B); addbyte(0x1B); /*MOVL (%ebx),%ebx*/
