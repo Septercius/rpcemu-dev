@@ -4,9 +4,6 @@ LD = $(CC)
 LDFLAGS =
 LIBS = -lcomdlg32
 
-# Build a Dynamic Recompiling (JIT) build
-#DYNAREC=1
-
 # Enable extra debugging support
 #DEBUG=1
 
@@ -22,22 +19,11 @@ else
 	LIBS += -lallegro-4.4.2-mt
 endif
 
-ifdef DYNAREC
-	CFLAGS += -D DYNAREC
-	EXE = ../RPCEmu-Recompiler.exe
-else
-	EXE = ../RPCEmu-Interpreter.exe
-endif
+all: config.h ../RPCEmu-Interpreter.exe ../RPCEmu-Recompiler.exe
 
-all: config.h $(EXE)
-
-OBJS =	arm.o       \
-	arm_common.o \
-	ArmDynarec.o \
+OBJS =	arm_common.o \
 	cdrom-iso.o \
 	cmos.o      \
-	codegen_null.o \
-	codegen_x86.o \
 	cp15.o      \
 	fdc.o       \
 	fpa.o       \
@@ -63,7 +49,10 @@ OBJS =	arm.o       \
 	win\rpc-win.o   \
 	win\acorn.o
 
-$(EXE): $(OBJS)
+../RPCEmu-Interpreter.exe: $(OBJS) arm.o codegen_null.o
+	$(LD) $(LDFLAGS) -o $@ $+ $(LIBS)
+
+../RPCEmu-Recompiler.exe: $(OBJS) ArmDynarec.o codegen_x86.o
 	$(LD) $(LDFLAGS) -o $@ $+ $(LIBS)
 
 win\acorn.o: win\acorn.rc win\rpcemu.ico win\rpcemu.manifest

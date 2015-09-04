@@ -2,7 +2,6 @@
 
 #include "rpcemu.h"
 
-#ifdef DYNAREC
 #if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
 
 #include <assert.h>
@@ -2804,4 +2803,4 @@ generateirqtest(void)
 }
 
 #endif
-#endif
+

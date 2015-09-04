@@ -3,8 +3,6 @@
 
 #include "rpcemu.h"
 
-#ifndef DYNAREC
-
 /*3/12/06 - databort and prefabort have been rolled into bits 6 and 7 of armirq.
   This gives a minor speedup.
   MSR fixes from John-Mark Bell allow RISC OS 6 to work.
@@ -2069,4 +2067,4 @@ void execarm(int cycs)
                 cycles-=200;
         }
 }
-#endif
+
