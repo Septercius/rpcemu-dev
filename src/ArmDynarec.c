@@ -65,6 +65,17 @@ int prog32;
 
 uint32_t pccache,*pccache2;
 
+/**
+ * Return true if this ARM core is the dynarec version
+ *
+ * @return 1 yes this is dynarec
+ */
+int
+arm_is_dynarec(void)
+{
+	return 1;
+}
+
 void updatemode(uint32_t m)
 {
         uint32_t c, om = arm.mode;

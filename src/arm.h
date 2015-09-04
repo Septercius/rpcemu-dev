@@ -44,6 +44,7 @@ extern int cpsr;
 
 extern uint32_t r15mask;
 
+extern int arm_is_dynarec(void); 
 extern void arm_init(void);
 extern void resetarm(CPUModel cpu_model);
 extern void execarm(int cycles);
