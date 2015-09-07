@@ -342,7 +342,7 @@ arm_ldr_rotate(uint32_t value, uint32_t addr)
 static inline void
 arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 {
-	uint32_t orig_base, addr, mask, exception_flags;
+	uint32_t orig_base, addr, mask;
 	int c;
 
 	orig_base = arm.reg[RN];
@@ -350,12 +350,13 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	addr = address & ~3;
 
 	/* Store first register */
-	exception_flags = 0;
 	mask = 1;
 	for (c = 0; c < 15; c++) {
 		if (opcode & mask) {
 			writememl(addr, arm.reg[c]);
-			exception_flags = armirq;
+			if (armirq & 0x40) {
+				goto data_abort;
+			}
 			addr += 4;
 			break;
 		}
@@ -373,7 +374,9 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	for ( ; c < 15; c++) {
 		if (opcode & mask) {
 			writememl(addr, arm.reg[c]);
-			exception_flags |= armirq;
+			if (armirq & 0x40) {
+				goto data_abort;
+			}
 			addr += 4;
 		}
 		mask <<= 1;
@@ -382,7 +385,9 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* Store R15 (if requested) */
 	if (opcode & (1 << 15)) {
 		writememl(addr, arm.reg[15] + arm.r15_diff);
-		exception_flags |= armirq;
+		if (armirq & 0x40) {
+			goto data_abort;
+		}
 	}
 
 	/* Perform Writeback (if requested) at end of instruction (SA110) */
@@ -390,12 +395,13 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 		arm.reg[RN] = writeback;
 	}
 
-	/* If a Data Abort occurred, update the Data Abort flag and restore
-	   the Base Register to the value it had before the instruction */
-	if (exception_flags & 0x40) {
-		armirq |= 0x40;
-		arm.reg[RN] = orig_base;
-	}
+	/* No Data Abort */
+	return;
+
+	/* A Data Abort occurred, restore the Base Register to the value it
+	   had before the instruction */
+data_abort:
+	arm.reg[RN] = orig_base;
 }
 
 /**
@@ -412,7 +418,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 static inline void
 arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 {
-	uint32_t orig_base, addr, mask, exception_flags;
+	uint32_t orig_base, addr, mask;
 	int c;
 
 	orig_base = arm.reg[RN];
@@ -420,12 +426,13 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	addr = address & ~3;
 
 	/* Store first register */
-	exception_flags = 0;
 	mask = 1;
 	for (c = 0; c < 15; c++) {
 		if (opcode & mask) {
 			writememl(addr, *usrregs[c]);
-			exception_flags = armirq;
+			if (armirq & 0x40) {
+				goto data_abort;
+			}
 			addr += 4;
 			break;
 		}
@@ -443,7 +450,9 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	for ( ; c < 15; c++) {
 		if (opcode & mask) {
 			writememl(addr, *usrregs[c]);
-			exception_flags |= armirq;
+			if (armirq & 0x40) {
+				goto data_abort;
+			}
 			addr += 4;
 		}
 		mask <<= 1;
@@ -452,7 +461,9 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* Store R15 (if requested) */
 	if (opcode & (1 << 15)) {
 		writememl(addr, arm.reg[15] + arm.r15_diff);
-		exception_flags |= armirq;
+		if (armirq & 0x40) {
+			goto data_abort;
+		}
 	}
 
 	/* Perform Writeback (if requested) at end of instruction (SA110) */
@@ -460,12 +471,13 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 		arm.reg[RN] = writeback;
 	}
 
-	/* If a Data Abort occurred, update the Data Abort flag and restore
-	   the Base Register to the value it had before the instruction */
-	if (exception_flags & 0x40) {
-		armirq |= 0x40;
-		arm.reg[RN] = orig_base;
-	}
+	/* No Data Abort */
+	return;
+
+	/* A Data Abort occurred, restore the Base Register to the value it
+	   had before the instruction */
+data_abort:
+	arm.reg[RN] = orig_base;
 }
 
 /**
