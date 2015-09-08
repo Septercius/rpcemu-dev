@@ -276,9 +276,11 @@ resetarm(CPUModel cpu_model)
 	if (cpu_model == CPUModel_SA110 || cpu_model == CPUModel_ARM810) {
 		arm.r15_diff = 0;
 		arm.abort_base_restored = 1;
+		arm.stm_writeback_at_end = 1;
 	} else {
 		arm.r15_diff = 4;
 		arm.abort_base_restored = 0;
+		arm.stm_writeback_at_end = 0;
 	}
 
 	cycles = 0;
