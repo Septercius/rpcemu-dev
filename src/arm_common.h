@@ -354,9 +354,6 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	for (c = 0; c < 15; c++) {
 		if (opcode & mask) {
 			writememl(addr, arm.reg[c]);
-			if (armirq & 0x40) {
-				goto data_abort;
-			}
 			addr += 4;
 			break;
 		}
@@ -368,6 +365,11 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* Perform Writeback (if requested) at end of 2nd cycle */
 	if (!arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15)) {
 		arm.reg[RN] = writeback;
+	}
+
+	/* Check for Abort from first Store */
+	if (armirq & 0x40) {
+		goto data_abort;
 	}
 
 	/* Store remaining registers up to R14 */
@@ -401,7 +403,9 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* A Data Abort occurred, restore the Base Register to the value it
 	   had before the instruction */
 data_abort:
-	arm.reg[RN] = orig_base;
+	if (arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15)) {
+		arm.reg[RN] = orig_base;
+	}
 }
 
 /**
@@ -430,9 +434,6 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	for (c = 0; c < 15; c++) {
 		if (opcode & mask) {
 			writememl(addr, *usrregs[c]);
-			if (armirq & 0x40) {
-				goto data_abort;
-			}
 			addr += 4;
 			break;
 		}
@@ -444,6 +445,11 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* Perform Writeback (if requested) at end of 2nd cycle */
 	if (!arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15)) {
 		arm.reg[RN] = writeback;
+	}
+
+	/* Check for Abort from first Store */
+	if (armirq & 0x40) {
+		goto data_abort;
 	}
 
 	/* Store remaining registers up to R14 */
@@ -477,7 +483,9 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* A Data Abort occurred, restore the Base Register to the value it
 	   had before the instruction */
 data_abort:
-	arm.reg[RN] = orig_base;
+	if (arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15)) {
+		arm.reg[RN] = orig_base;
+	}
 }
 
 /**
@@ -532,10 +540,13 @@ arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* No Data Abort */
 	return;
 
-	/* A Data Abort occurred, restore the Base Register to the value it
-	   had before the instruction */
+	/* A Data Abort occurred, modify the Base Register */
 data_abort:
-	arm.reg[RN] = orig_base;
+	if (!arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15)) {
+		arm.reg[RN] = writeback;
+	} else {
+		arm.reg[RN] = orig_base;
+	}
 }
 
 /**
@@ -608,10 +619,13 @@ arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* No Data Abort */
 	return;
 
-	/* A Data Abort occurred, restore the Base Register to the value it
-	   had before the instruction */
+	/* A Data Abort occurred, modify the Base Register */
 data_abort:
-	arm.reg[RN] = orig_base;
+	if (!arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15)) {
+		arm.reg[RN] = writeback;
+	} else {
+		arm.reg[RN] = orig_base;
+	}
 }
 
 #endif
