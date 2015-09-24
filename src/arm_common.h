@@ -38,7 +38,7 @@ setadd(uint32_t op1, uint32_t op2, uint32_t result)
 	if ((op1 ^ result) & (op2 ^ result) & 0x80000000) {
 		flags |= VFLAG;
 	}
-	*pcpsr = ((*pcpsr) & 0x0fffffff) | flags;
+	arm.reg[cpsr] = (arm.reg[cpsr] & 0x0fffffff) | flags;
 }
 
 static inline void
@@ -57,7 +57,7 @@ setsub(uint32_t op1, uint32_t op2, uint32_t result)
 	if ((op1 ^ op2) & (op1 ^ result) & 0x80000000) {
 		flags |= VFLAG;
 	}
-	*pcpsr = ((*pcpsr) & 0x0fffffff) | flags;
+	arm.reg[cpsr] = (arm.reg[cpsr] & 0x0fffffff) | flags;
 }
 
 static inline void
@@ -118,7 +118,7 @@ setzn(uint32_t op)
 	} else {
 		flags = 0;
 	}
-	*pcpsr = flags | ((*pcpsr) & 0x3fffffff);
+	arm.reg[cpsr] = (arm.reg[cpsr] & 0x3fffffff) | flags;
 }
 
 /**
@@ -144,7 +144,7 @@ arm_flags_long_multiply(uint64_t result)
 	   N flag in CPSR is bit 31, so shift down by 32 */
 	flags |= (((uint32_t) (result >> 32)) & NFLAG);
 
-	*pcpsr = ((*pcpsr) & 0x3fffffff) | flags;
+	arm.reg[cpsr] = (arm.reg[cpsr] & 0x3fffffff) | flags;
 }
 
 /**
