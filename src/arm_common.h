@@ -160,7 +160,6 @@ arm_write_dest(uint32_t opcode, uint32_t dest)
 
 	if (rd == 15) {
 		dest = ((dest + 4) & r15mask) | (arm.reg[15] & ~r15mask);
-		refillpipeline();
 	}
 	arm.reg[rd] = dest;
 }
@@ -200,7 +199,6 @@ arm_write_r15(uint32_t opcode, uint32_t dest)
 		if ((arm.reg[cpsr] & arm.mmask) != arm.mode) {
 			updatemode(arm.reg[cpsr] & arm.mmask);
 		}
-		refillpipeline();
 	}
 }
 
@@ -534,7 +532,6 @@ arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 		/* Only update R15 if no Data Abort occurred */
 		arm.reg[15] = (arm.reg[15] & ~r15mask) |
 		              ((temp + 4) & r15mask);
-		refillpipeline();
 	}
 
 	/* No Data Abort */
