@@ -185,6 +185,7 @@ extern void rpcemu_log_os(void);
 /*rpcemu.c*/
 extern int startrpcemu(void);
 extern void execrpcemu(void);
+extern void rpcemu_idle(void);
 extern void endrpcemu(void);
 extern void resetrpc(void);
 extern void rpcemu_floppy_load(int drive, const char *filename);

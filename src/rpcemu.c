@@ -5,7 +5,12 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+
 #include <allegro.h>
+#if defined WIN32 || defined _WIN32
+#include <winalleg.h>
+#endif
+
 #include "rpcemu.h"
 #include "mem.h"
 #include "vidc20.h"
@@ -335,6 +340,81 @@ execrpcemu(void)
         }
 
 	keyboard_poll();
+}
+
+/**
+ * Attempt to reduce CPU usage by checking for pending interrupts, running
+ * any callbacks, and then sleeping for a short period of time.
+ *
+ * Called when RISC OS calls "Portable_Idle" SWI.
+ */
+void
+rpcemu_idle(void)
+{
+	int hostupdate = 0;
+
+	/* Loop while no interrupts pending */
+	while (!armirq) {
+		/* Run down any callback timers */
+		if (kcallback) {
+			kcallback--;
+			if (kcallback <= 0) {
+				kcallback = 0;
+				keyboard_callback_rpcemu();
+			}
+		}
+		if (mcallback) {
+			mcallback -= 10;
+			if (mcallback <= 0) {
+				mcallback = 0;
+				mouse_ps2_callback();
+			}
+		}
+		if (fdccallback) {
+			fdccallback -= 10;
+			if (fdccallback <= 0) {
+				fdccallback = 0;
+				fdc_callback();
+			}
+		}
+		if (idecallback) {
+			idecallback -= 10;
+			if (idecallback <= 0) {
+				idecallback = 0;
+				callbackide();
+			}
+		}
+		if (motoron) {
+			/* Not much point putting a counter here */
+			iomd.irqa.status |= IOMD_IRQA_FLOPPY_INDEX;
+			updateirqs();
+		}
+		/* Sleep if no interrupts pending */
+		if (!armirq) {
+#ifdef RPCEMU_WIN
+			Sleep(1);
+#else
+			struct timespec tm;
+
+			tm.tv_sec = 0;
+			tm.tv_nsec = 1000000;
+			nanosleep(&tm, NULL);
+#endif
+		}
+		/* Run other periodic actions */
+		if (!armirq && !(++hostupdate > 20)) {
+			hostupdate = 0;
+			drawscr(drawscre);
+			if (drawscre > 0) {
+				drawscre--;
+				if (drawscre > 5)
+					drawscre = 0;
+
+				mouse_poll();
+			}
+			keyboard_poll();
+		}
+	}
 }
 
 /**
