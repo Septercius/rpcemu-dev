@@ -318,6 +318,8 @@ data_abort:
 		arm.reg[RN] = orig_base;
 	}
 }
+
+#ifndef TEST
 /**
  * Handler for SWI instructions; includes all the emulator specific SWIs as
  * well as the standard SWI interface of raising an exception.
@@ -403,4 +405,4 @@ realswi:
 		exception(SUPERVISOR, 0xc, 4);
 	}
 }
-
+#endif /* ifndef TEST */
