@@ -10,6 +10,7 @@
 #include "codegen_amd64.h"
 #include "mem.h"
 #include "arm.h"
+#include "arm_common.h"
 
 #if defined __linux__ || defined __MACH__
 #include <sys/mman.h>
@@ -262,19 +263,6 @@ initcodeblock(uint32_t l)
 	addlong(((uint64_t)(&vraddrl[0]))>>32);
 	addbyte(0x45); addbyte(0x8B); addbyte(0x67); addbyte(15<<2); /*MOVL R15,%r12d*/
 	block_enter = codeblockpos;
-}
-
-static int
-recompreadmeml(uint32_t addr)
-{
-	asm("push %rdi; push %r12");
-	uint32_t temp=readmeml(addr);
-        asm("movl %0,%%edx;"
-            :
-            : "r" (temp)
-        );
-	asm("pop %r12; pop %rdi;");
-	return (armirq&0x40)?1:0;
 }
 
 static int
@@ -536,6 +524,152 @@ gentestabort(void)
 	addbyte(0x84); /*TESTL %al,%al*/
 	addbyte(0xC0);
 	gen_x86_jump(CC_NE, 0);
+}
+
+/**
+ * Generate code to calculate the address and writeback values for a LDM/STM
+ * decrement.
+ *
+ * Register usage:
+ *	%esi	addr (aligned)
+ *	%edx	writeback
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @param offset Offset of transfer (transfer size)
+ */
+static void
+gen_arm_ldm_stm_decrement(uint32_t opcode, uint32_t offset)
+{
+	gen_load_reg(RN, ESI);
+	addbyte(0x83); addbyte(0xee); addbyte(offset); // SUB $offset,%esi
+	addbyte(0x89); addbyte(0xf2); // MOV %esi,%edx
+	if (!(opcode & (1u << 24))) {
+		/* Decrement After */
+		addbyte(0x83); addbyte(0xc6); addbyte(4); // ADD $4,%esi
+	}
+
+	/* Align addr */
+	addbyte(0x83); addbyte(0xe6); addbyte(0xfc); // AND $0xfffffffc,%esi
+}
+
+/**
+ * Generate code to calculate the address and writeback values for a LDM/STM
+ * increment.
+ *
+ * Register usage:
+ *	%esi	addr (aligned)
+ *	%edx	writeback
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @param offset Offset of transfer (transfer size)
+ */
+static void
+gen_arm_ldm_stm_increment(uint32_t opcode, uint32_t offset)
+{
+	gen_load_reg(RN, ESI);
+	addbyte(0x89); addbyte(0xf2); // MOV %esi,%edx
+	addbyte(0x83); addbyte(0xc2); addbyte(offset); // ADD $offset,%edx
+	if (opcode & (1u << 24)) {
+		/* Increment Before */
+		addbyte(0x83); addbyte(0xc6); addbyte(4); // ADD $4,%esi
+	}
+
+	/* Align addr */
+	addbyte(0x83); addbyte(0xe6); addbyte(0xfc); // AND $0xfffffffc,%esi
+}
+
+/**
+ * Generate code to call a LDM/STM helper function.
+ *
+ * Requires %esi and %edx to contain values for 2nd and 3rd arguments.
+ *
+ * @param opcode    Opcode of instruction being emulated
+ * @param helper_fn Pointer to function to call
+ */
+static void
+gen_call_ldm_stm_helper(uint32_t opcode, const void *helper_fn)
+{
+	addbyte(0xbf); addlong(opcode); // MOV $opcode,%edi (argument 1)
+
+	addbyte(0x45); addbyte(0x89); addbyte(0x67); addbyte(15<<2); // MOV %r12d,R15
+	gen_x86_call(helper_fn);
+	addbyte(0x45); addbyte(0x8b); addbyte(0x67); addbyte(15<<2); // MOV R15,%r12d
+
+	gen_test_armirq();
+}
+
+/**
+ * Generate code to perform a Load Multiple register operation when the S flag
+ * is clear.
+ *
+ * Register usage:
+ *	%edi	opcode		(1st function call argument)
+ *	%esi	addr		(also 2nd function call argument)
+ *	%edx	writeback	(also 3rd function call argument)
+ *	%eax	data (scratch)
+ *	%ecx	TLB page
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @param offset Offset of transfer (transfer size)
+ */
+static void
+gen_arm_load_multiple(uint32_t opcode, uint32_t offset)
+{
+	int jump_page_boundary_cross, jump_tlb_miss, jump_done;
+	uint32_t mask, d;
+	int c;
+
+	/* Check if crossing Page boundary */
+	addbyte(0x89); addbyte(0xf0); // MOV %esi,%eax
+	addbyte(0x0d); addlong(0xfffffc00); // OR $0xfffffc00,%eax
+	addbyte(0x83); addbyte(0xc0); addbyte(offset - 1); // ADD $(offset - 1),%eax
+	jump_page_boundary_cross = gen_x86_jump_forward_long(CC_C);
+
+	/* TLB lookup */
+	addbyte(0x89); addbyte(0xf0); // MOV %esi,%eax
+	addbyte(0xc1); addbyte(0xe8); addbyte(12); // SHR $12,%eax
+	addbyte(0x49); addbyte(0x8b); addbyte(0x44); addbyte(0xc5); addbyte(0x00); // MOV (%r13,%rax,8),%rax
+	addbyte(0xa8); addbyte(0x01); // TEST $1,%al
+	jump_tlb_miss = gen_x86_jump_forward_long(CC_NZ);
+
+	/* Convert TLB Page and Address to Host address */
+	addbyte(0x48); addbyte(0x01); addbyte(0xc6); // ADD %rax,%rsi
+
+	/* Perform Writeback (if requested) */
+	if ((opcode & (1u << 21)) && (RN != 15)) {
+		gen_save_reg(RN, EDX);
+	}
+
+	/* Load registers */
+	mask = 1;
+	d = 0;
+	for (c = 0; c < 16; c++) {
+		if (opcode & mask) {
+			addbyte(0x8b); addbyte(0x46); addbyte(d); // MOV d(%rsi),%eax
+			if (c == 15) {
+				addbyte(0x8b); addbyte(0x0c); addbyte(0x25); addlong(&r15mask); // MOV r15mask,%ecx
+				gen_load_reg(15, EDX);
+				addbyte(0x83); addbyte(0xc0); addbyte(4); // ADD $4,%eax
+				addbyte(0x21); addbyte(0xc8); // AND %ecx,%eax
+				addbyte(0xf7); addbyte(0xd1); // NOT %ecx
+				addbyte(0x21); addbyte(0xca); // AND %ecx,%edx
+				addbyte(0x09); addbyte(0xd0); // OR %edx,%eax
+			}
+			gen_save_reg(c, EAX);
+			d += 4;
+		}
+		mask <<= 1;
+	}
+
+	jump_done = gen_x86_jump_forward(CC_ALWAYS);
+
+	/* Call helper function */
+	gen_x86_jump_here_long(jump_page_boundary_cross);
+	gen_x86_jump_here_long(jump_tlb_miss);
+	gen_call_ldm_stm_helper(opcode, arm_load_multiple);
+
+	/* All done, continue here */
+	gen_x86_jump_here(jump_done);
 }
 
 static int
@@ -994,84 +1128,24 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0x83: /* LDMDA ! */
 	case 0x91: /* LDMDB */
 	case 0x93: /* LDMDB ! */
-		if (RN==15) return 0;
-		if (opcode & 0x200000) return 0;
-		if (lastjumppos) return 0;
+		if (RN == 15) {
+			return 0;
+		}
 		offset = countbits(opcode & 0xffff);
-		gen_load_reg(RN, EDI);
-		addbyte(0x83); addbyte(0xef); addbyte(offset); /* SUB $offset,%edi */
-		if (!(opcode & (1u << 24))) {
-			/* Decrement After */
-			addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
-		}
-		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
-		for (c = 0; c < 16; c++) {
-			if (opcode&(1<<c))
-			{
-				gen_x86_call(recompreadmeml);
-				addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
-				if (c == 15) {
-					gentestabort();
-					gen_load_reg(15, EAX);
-					addbyte(0x8b); addbyte(0x0c); addbyte(0x25); addlong(&r15mask); /* MOV r15mask,%ecx */
-					addbyte(0x83); addbyte(0xc2); addbyte(4); /* ADD $4,%edx */
-					addbyte(0x21); addbyte(0xca); /* AND %ecx,%edx */
-					addbyte(0xf7); addbyte(0xd1); /* NOT %ecx */
-					addbyte(0x21); addbyte(0xc8); /* AND %ecx,%eax */
-					addbyte(0x09); addbyte(0xc2); /* OR %eax,%edx */
-				}
-				gen_save_reg(c, EDX);
-			}
-		}
-		if (!(opcode & 0x8000)) {
-			gentestabort();
-		}
-		if (opcode&0x200000)
-		{
-			gen_save_reg(RN, EDI);
-		}
+		gen_arm_ldm_stm_decrement(opcode, offset);
+		gen_arm_load_multiple(opcode, offset);
 		break;
 
 	case 0x89: /* LDMIA */
 	case 0x8b: /* LDMIA ! */
 	case 0x99: /* LDMIB */
 	case 0x9b: /* LDMIB ! */
-		if (RN==15) return 0;
-		if (opcode & 0x200000) return 0;
-		if (lastjumppos) return 0;
-//		if (opcode&0x8000) return 0;
+		if (RN == 15) {
+			return 0;
+		}
 		offset = countbits(opcode & 0xffff);
-		gen_load_reg(RN, EDI);
-		if (opcode & (1u << 24)) {
-			/* Increment Before */
-			addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
-		}
-		addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL $0xFFFFFFFC,%edi*/
-		for (c = 0; c < 16; c++) {
-			if (opcode&(1<<c))
-			{
-				gen_x86_call(recompreadmeml);
-				addbyte(0x83); addbyte(0xc7); addbyte(4); /* ADD $4,%edi */
-				if (c == 15) {
-					gentestabort();
-					gen_load_reg(15, EAX);
-					addbyte(0x8b); addbyte(0x0c); addbyte(0x25); addlong(&r15mask); /* MOV r15mask,%ecx */
-					addbyte(0x83); addbyte(0xc2); addbyte(4); /* ADD $4,%edx */
-					addbyte(0x21); addbyte(0xca); /* AND %ecx,%edx */
-					addbyte(0xf7); addbyte(0xd1); /* NOT %ecx */
-					addbyte(0x21); addbyte(0xc8); /* AND %ecx,%eax */
-					addbyte(0x09); addbyte(0xc2); /* OR %eax,%edx */
-				}
-				gen_save_reg(c, EDX);
-			}
-		}
-		if (!(opcode & 0x8000)) {
-			gentestabort();
-		}
-		if (opcode&0x200000)
-		{
-			gen_save_reg(RN, EDI);
-		}
+		gen_arm_ldm_stm_increment(opcode, offset);
+		gen_arm_load_multiple(opcode, offset);
 		break;
 
 	case 0xa0: case 0xa1: case 0xa2: case 0xa3: /* B */
