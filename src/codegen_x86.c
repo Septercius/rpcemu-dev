@@ -9,6 +9,7 @@
 #include "codegen_x86.h"
 #include "mem.h"
 #include "arm.h"
+#include "arm_common.h"
 #include "cp15.h"
 
 #if defined __linux__ || defined __MACH__
@@ -21,13 +22,10 @@ int linecyc;
 
 #define mwritemem rcodeblock[BLOCKS]
 #define mreadmem rcodeblock[BLOCKS+1]
-#define mreadmemfast rcodeblock[BLOCKS+2]
-#define mreadmemslow &rcodeblock[BLOCKS+2][256]
 #define mwritememfast rcodeblock[BLOCKS+3]
 #define mwritememslow &rcodeblock[BLOCKS+3][256]
-static void codereadmemlnt(void);
 static void codewritememflnt(void);
-//#define mreadmem rcodeblock[BLOCKS+1]
+
 unsigned char rcodeblock[BLOCKS+4][1792+512+64] = {{0}};
 static const void *codeblockaddr[BLOCKS];
 unsigned long codeblockpc[0x8000] = {0};
@@ -88,7 +86,6 @@ void
 initcodeblocks(void)
 {
 	int jump_next, jump_notinbuffer, jump_samepage;
-	int label_backup;
         int c;
 #if defined __linux__ || defined __MACH__
 	void *start;
@@ -160,50 +157,6 @@ initcodeblocks(void)
         addbyte(0x8B); addbyte(0x0C); addbyte(0x8D); addlong(vraddrl); /*MOV vraddrl(,%ecx,4),%ecx*/
         gen_x86_ret();
 
-        /*Generatemreadmemfast*/
-        blockpoint2=BLOCKS+2;
-        codeblockpos=0;
-        addbyte(0xF7); addbyte(0xC7); addlong(0xFFF); /*TST $0xFFF,%edi*/
-        jump_samepage = gen_x86_jump_forward(CC_NZ);
-        label_backup = codeblockpos;
-        addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
-        addbyte(0xC1); addbyte(0xEA); addbyte(12); /*SHR $12,%edx*/
-        addbyte(0x8B); addbyte(0x0C); addbyte(0x95); /*MOV vraddrl(,%edx,4),%ecx*/
-        addlong(vraddrl);
-        addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
-        jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-        addbyte(0x8B); addbyte(0x14); addbyte(0x39); /*MOVL (%ecx,%edi),%edx*/
-        gen_x86_ret();
-
-        gen_x86_jump_here(jump_notinbuffer);
-        addbyte(0x89); addbyte(0xFA); /*MOVL %edi,%edx*/
-        gen_x86_call(codereadmemlnt);
-        addbyte(0x89); addbyte(0xF9); /*MOVL %edi,%ecx*/
-        addbyte(0xC1); addbyte(0xE9); addbyte(12); /*SHR $12,%ecx*/
-        addbyte(0x8B); addbyte(0x0C); addbyte(0x8D); addlong(vraddrl); /*MOV vraddrl(,%ecx,4),%ecx*/
-        gen_x86_ret();
-        /*.samepage*/
-        gen_x86_jump_here(jump_samepage);
-        addbyte(0xF6); addbyte(0xC1); addbyte(1); /*TST %cl,1*/
-        gen_x86_jump(CC_NZ, label_backup);
-        addbyte(0x8B); addbyte(0x14); addbyte(0x39); /*MOVL (%ecx,%edi),%edx*/
-        gen_x86_ret();
-
-        /*Generatemreadmemslow*/
-        blockpoint2=BLOCKS+2;
-        codeblockpos=256;
-        /*EDI=address, EBP=mask*/
-        for (c=1;c<16;c++)
-        {
-                addbyte(0xD1); addbyte(0xED); /*SHR $1,%ebp*/
-                jump_next = gen_x86_jump_forward(CC_NC);
-                gen_x86_call(mreadmem);
-                gen_save_reg(c, EDX);
-                addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
-                gen_x86_jump_here(jump_next);
-        }
-        gen_x86_ret();
-        
         /*Generatemwritememfast*/
         blockpoint2=BLOCKS+3;
         codeblockpos=0;
@@ -514,19 +467,6 @@ codewritememflnt(void)
         writememfl(a,v);
 }
 
-static void
-codereadmemlnt(void)
-{
-        register uint32_t a asm("edx");
-//        register uint32_t v asm("ecx");
-        a=readmemfl(a);
-        /*This is to make sure that GCC doesn't optimise out the load*/
-        asm("movl %0,%%edx;"
-            :
-            : "r" (a)
-        );
-}
-
 /*int mwritemem(void)
 {
         register uint32_t a asm("edi");
@@ -534,21 +474,6 @@ codereadmemlnt(void)
         writememl(a,v);
         return (armirq&0x40)?1:0;
 }*/
-
-#if 0
-int mreadmem(void)
-{
-        register uint32_t a asm("edi");
-        register uint32_t v asm("edx");
-        v=readmeml(a);
-        /*This is to make sure that GCC doesn't optimise out the load*/
-        asm("movl %0,%%edx;"
-            :
-            : "r" (v)
-        );
-        return (armirq&0x40)?1:0;
-}
-#endif
 
 static int
 generate_shift(uint32_t opcode)
@@ -853,13 +778,163 @@ genstrb(void)
 	gen_x86_jump_here(jump_nextbit);
 }
 
+/**
+ * Generate code to calculate the address and writeback values for a LDM/STM
+ * decrement.
+ *
+ * Register usage:
+ *	%ebx	addr (aligned)
+ *	%edx	writeback
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @param offset Offset of transfer (transfer size)
+ */
+static void
+gen_arm_ldm_stm_decrement(uint32_t opcode, uint32_t offset)
+{
+	gen_load_reg(RN, EBX);
+	addbyte(0x83); addbyte(0xeb); addbyte(offset); // SUB $offset,%ebx
+	addbyte(0x89); addbyte(0xda); // MOV %ebx,%edx
+	if (!(opcode & (1u << 24))) {
+		/* Decrement After */
+		addbyte(0x83); addbyte(0xc3); addbyte(4); // ADD $4,%ebx
+	}
+
+	/* Align addr */
+	addbyte(0x83); addbyte(0xe3); addbyte(0xfc); // AND $0xfffffffc,%ebx
+}
+
+/**
+ * Generate code to calculate the address and writeback values for a LDM/STM
+ * increment.
+ *
+ * Register usage:
+ *	%ebx	addr (aligned)
+ *	%edx	writeback
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @param offset Offset of transfer (transfer size)
+ */
+static void
+gen_arm_ldm_stm_increment(uint32_t opcode, uint32_t offset)
+{
+	gen_load_reg(RN, EBX);
+	addbyte(0x89); addbyte(0xda); // MOV %ebx,%edx
+	addbyte(0x83); addbyte(0xc2); addbyte(offset); // ADD $offset,%edx
+	if (opcode & (1u << 24)) {
+		/* Increment Before */
+		addbyte(0x83); addbyte(0xc3); addbyte(4); // ADD $4,%ebx
+	}
+
+	/* Align addr */
+	addbyte(0x83); addbyte(0xe3); addbyte(0xfc); // AND $0xfffffffc,%ebx
+}
+
+/**
+ * Generate code to call a LDM/STM helper function.
+ *
+ * Requires %ebx and %edx to contain values for 2nd and 3rd arguments.
+ *
+ * @param opcode    Opcode of instruction being emulated
+ * @param helper_fn Pointer to function to call
+ */
+static void
+gen_call_ldm_stm_helper(uint32_t opcode, const void *helper_fn)
+{
+	gen_x86_mov_reg32_stack(EDX, 8);
+	gen_x86_mov_reg32_stack(EBX, 4);
+	addbyte(0xc7); addbyte(0x04); addbyte(0x24); addlong(opcode); // MOVL $opcode,(%esp)
+
+	gen_x86_call(helper_fn);
+
+	gen_test_armirq();
+}
+
+/**
+ * Generate code to perform a Load Multiple register operation when the S flag
+ * is clear.
+ *
+ * Register usage:
+ *	%ebx	addr
+ *	%edx	writeback
+ *	%eax	data (scratch)
+ *	%ecx	TLB page
+ * Stack usage:
+ *	0(%esp)	1st function call argument (opcode)
+ *	4(%esp)	2nd function call argument (addr)
+ *	8(%esp)	3rd function call argument (writeback)
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @param offset Offset of transfer (transfer size)
+ */
+static void
+gen_arm_load_multiple(uint32_t opcode, uint32_t offset)
+{
+	int jump_page_boundary_cross, jump_tlb_miss, jump_done;
+	uint32_t mask, d;
+	int c;
+
+	/* Check if crossing Page boundary */
+	addbyte(0x89); addbyte(0xd8); // MOV %ebx,%eax
+	addbyte(0x0d); addlong(0xfffffc00); // OR $0xfffffc00,%eax
+	addbyte(0x83); addbyte(0xc0); addbyte(offset - 1); // ADD $(offset - 1),%eax
+	jump_page_boundary_cross = gen_x86_jump_forward_long(CC_C);
+
+	/* TLB lookup */
+	addbyte(0x89); addbyte(0xd8); // MOV %ebx,%eax
+	addbyte(0xc1); addbyte(0xe8); addbyte(12); // SHR $12,%eax
+	addbyte(0x8b); addbyte(0x04); addbyte(0x85); addlong(vraddrl); // MOV vraddrl(,%eax,4),%eax
+	addbyte(0xa8); addbyte(0x01); // TEST $1,%al
+	jump_tlb_miss = gen_x86_jump_forward_long(CC_NZ);
+
+	/* Convert TLB Page and Address to Host address */
+	addbyte(0x01); addbyte(0xc3); // ADD %eax,%ebx
+
+	/* Perform Writeback (if requested) */
+	if ((opcode & (1u << 21)) && (RN != 15)) {
+		gen_save_reg(RN, EDX);
+	}
+
+	/* Load registers */
+	mask = 1;
+	d = 0;
+	for (c = 0; c < 16; c++) {
+		if (opcode & mask) {
+			addbyte(0x8b); addbyte(0x43); addbyte(d); // MOV d(%ebx),%eax
+			if (c == 15) {
+				addbyte(0x8b); addbyte(0x0d); addlong(&r15mask); // MOV r15mask,%ecx
+				gen_load_reg(15, EDX);
+				addbyte(0x83); addbyte(0xc0); addbyte(4); // ADD $4,%eax
+				addbyte(0x21); addbyte(0xc8); // AND %ecx,%eax
+				addbyte(0xf7); addbyte(0xd1); // NOT %ecx
+				addbyte(0x21); addbyte(0xca); // AND %ecx,%edx
+				addbyte(0x09); addbyte(0xd0); // OR %edx,%eax
+			}
+			gen_save_reg(c, EAX);
+			d += 4;
+		}
+		mask <<= 1;
+	}
+
+	jump_done = gen_x86_jump_forward(CC_ALWAYS);
+
+	/* Call helper function */
+	gen_x86_jump_here_long(jump_page_boundary_cross);
+	gen_x86_jump_here_long(jump_tlb_miss);
+	gen_call_ldm_stm_helper(opcode, arm_load_multiple);
+
+	/* All done, continue here */
+	gen_x86_jump_here(jump_done);
+}
+
 static int
 recompile(uint32_t opcode, uint32_t *pcpsr)
 {
         int temp=0;
         int c,d;
         int first=0;
-        uint32_t templ;
+	uint32_t templ;
+	uint32_t offset;
 	int jump_end, jump_fast, jump_not_abort;
 
         switch ((opcode>>20)&0xFF)
@@ -2113,233 +2188,32 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                         gen_x86_jump(CC_NZ, 0);
                 }
                 break;
-                
-        case 0x81: /* LDMDA */
-        case 0x83: /* LDMDA ! */
-        case 0x91: /* LDMDB */
-        case 0x93: /* LDMDB ! */
-                flagsdirty=0;
-//                if (opcode&0x8000) return 0;
-                templ=opcode&0xFFFF;
-                temp = isvalidforfastread(arm.reg[RN]);
-                gen_load_reg(RN, EDI);
-                if (opcode&0x200000) gen_save_reg(17, EDI);
-                addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL ~3,%edi*/
-//                if (opcode&0x200000) { addbyte(0x83); addbyte(0x2D); addlong(&arm.reg[RN]); addbyte(countbits(opcode&0xFFFF)); } /*ADDL $countbits(opcode&0xFFFF),arm.reg[RN]*/
-                if (opcode&0x1000000) { addbyte(0x83); addbyte(0xEF); addbyte(countbits(opcode&0xFFFF));   /*SUBL $4,%edi*/ }
-                else                  { addbyte(0x83); addbyte(0xEF); addbyte(countbits(opcode&0xFFFF)-4); /*SUBL $4,%edi*/ }
-                for (c=0;c<16;c++)
-                {
-                        if (templ&1)
-                        {
-                                if (temp==3)
-                                {
-                                        gen_x86_call(mreadmemfast);
-                                }
-                                else
-                                {
-                                        gen_x86_call(mreadmem);
-                                        temp|=2;
-                                        #if 0
-                                        if (templ&~1)
-                                        {
-                                                gen_test_armirq();
-                                        }
-                                        #endif
-                                }
-                                if (c == 15) {
-                                        gen_load_reg(15, EAX);
-                                        addbyte(0x8b); addbyte(0x0d); addlong(&r15mask); /* MOV r15mask,%ecx */
-                                        addbyte(0x83); addbyte(0xc2); addbyte(4); /* ADD $4,%edx */
-                                        addbyte(0x21); addbyte(0xca); /* AND %ecx,%edx */
-                                        addbyte(0xf7); addbyte(0xd1); /* NOT %ecx */
-                                        addbyte(0x21); addbyte(0xc8); /* AND %ecx,%eax */
-                                        addbyte(0x09); addbyte(0xc2); /* OR %eax,%edx */
-                                }
-                                gen_save_reg(c, EDX);
-                                addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
-                        }
-                        templ>>=1;
-                }
-                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
 
-                if (opcode&0x200000)
-                {
-                        gen_load_reg(17, EDI);
-                        jump_not_abort = gen_x86_jump_forward(CC_Z);
-//                        addbyte(0x83); addbyte(0xC7); addbyte(countbits(opcode&0xFFFF)+((opcode&0x1000000)?0:4)); /*ADDL countbits(opcode&0xFFFF),%edi*/
-//                        addbyte(0x89); addbyte(0x3D); addlong(&arm.reg[RN]); /*MOVL %edi,arm.reg[RN]*/
-                        gen_x86_jump(CC_ALWAYS, 0);
-                        gen_x86_jump_here(jump_not_abort);
-                        addbyte(0x83); addbyte(0xEF); addbyte(countbits(opcode&0xFFFF));   /*SUBL $4,%edi*/
-                        gen_save_reg(RN, EDI);
-                }
-                else
-                {
-                        gen_x86_jump(CC_NZ, 0);
-                }
-                break;
+	case 0x81: /* LDMDA */
+	case 0x83: /* LDMDA ! */
+	case 0x91: /* LDMDB */
+	case 0x93: /* LDMDB ! */
+		if (RN == 15) {
+			return 0;
+		}
+		flagsdirty = 0;
+		offset = countbits(opcode & 0xffff);
+		gen_arm_ldm_stm_decrement(opcode, offset);
+		gen_arm_load_multiple(opcode, offset);
+		break;
 
-        case 0x89: /* LDMIA */
-        case 0x8b: /* LDMIA ! */
-        case 0x99: /* LDMIB */
-        case 0x9b: /* LDMIB ! */
-                flagsdirty=0;
-                first=1;
-                templ=opcode&0xFFFF;
-                temp = isvalidforfastwrite(arm.reg[RN]);
-                if (!temp) goto ldmiaslow;
-                if (opcode&0x8000) goto ldmiaslow;
-                gen_load_reg(RN, EDI);
-                if (opcode&0x200000) gen_save_reg(17, EDI);
-                addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL ~3,%edi*/
-                addbyte(0x89); addbyte(0xF8); /*MOVL %edi,%eax*/
-                if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
-                addbyte(0x25); addlong(0xFC0); /*ANDL $0xFC0,%eax*/
-                addbyte(0x3D); addlong(0xFC0); /*CMP $0xFC0,%eax*/
-                addbyte(0x0F); addbyte(0x95); addbyte(0xC0); /*SETLE %al*/
-                c=0;
-                while (!(templ&1))
-                {
-                        templ>>=1;
-                        c++;
-                }
-                gen_x86_push_reg(EAX);
-                gen_x86_call(mreadmem);
-                gen_x86_pop_reg(EAX);
-                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                if (opcode&0x200000)
-                {
-                        jump_not_abort = gen_x86_jump_forward(CC_Z);
-                        gen_load_reg(17, EDI);
-                        gen_save_reg(RN, EDI);
-                        gen_x86_jump(CC_ALWAYS, 0);
-                        gen_x86_jump_here(jump_not_abort);
-                }
-                else
-                {
-                        gen_x86_jump(CC_NZ, 0);
-                }
-                gen_save_reg(c, EDX);
-                addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
-                c++;
-                templ>>=1;
-                if (templ)
-                {
-                        addbyte(0x08); addbyte(0xC0); /*OR %al,%al*/
-                        jump_fast = gen_x86_jump_forward(CC_NZ);
-                        gen_x86_push_reg(EBP);
-                        addbyte(0xBD); addlong((templ<<c)>>1); /*MOVL (templ<<c)>>1,%ebp*/
-                        gen_x86_call(mreadmemslow);
-                        addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                        gen_x86_pop_reg(EBP);
-                        jump_end = gen_x86_jump_forward_long(CC_Z);
-                        if (opcode&0x200000)
-                        {
-                                gen_load_reg(17, EDI);
-                                //gen_x86_pop_reg(EDI);
-                                gen_save_reg(RN, EDI);
-                        }
-                        gen_x86_jump(CC_ALWAYS, 0);
-
-                        gen_x86_jump_here(jump_fast);
-                        d=0;
-                        addbyte(0x01); addbyte(0xCF); /*ADDL %ecx,%edi*/
-                        for (;c<16;c++)
-                        {
-                                if (templ&1)
-                                {
-                                        if (!d) { addbyte(0x8B); addbyte(0x17); /*MOVL (%edi),%edx*/ }
-                                        else    { addbyte(0x8B); addbyte(0x57); addbyte(d); /*MOVL d(%edi),%edx*/}
-//                                        if (c==15) { addbyte(0x83); addbyte(0xC2); addbyte(4); /*ADDL $4,%edx*/ }
-                                        gen_save_reg(c, EDX);
-                                        d+=4;
-                                }
-                                templ>>=1;
-                        }
-                        gen_x86_jump_here_long(jump_end);
-                }
-                if (opcode&0x200000)
-                {
-                        //gen_x86_pop_reg(EDI);
-                        gen_load_reg(17, EDI);
-                        if (!(opcode&(1<<RN)))
-                        {
-                                addbyte(0x83); addbyte(0xC7); addbyte(countbits(opcode&0xFFFF));   /*ADDL $4,%edi*/
-                                gen_save_reg(RN, EDI);
-                        }
-//                        addbyte(0x83); addbyte(0x05); addlong(&arm.reg[RN]); addbyte(countbits(opcode&0xFFFF)); /*ADDL $countbits(opcode&0xFFFF),arm.reg[RN]*/
-                }
-                break;
-
-
-        //case 0x89: /* LDMIA */
-        //case 0x8b: /* LDMIA ! */
-        //case 0x99: /* LDMIB */
-        //case 0x9b: /* LDMIB ! */
-                flagsdirty=0;
-                templ=opcode&0xFFFF;
-                temp = isvalidforfastread(arm.reg[RN]);
-        ldmiaslow:
-                gen_load_reg(RN, EDI);
-                if (opcode&0x200000) gen_save_reg(17, EDI);
-                addbyte(0x83); addbyte(0xE7); addbyte(0xFC); /*ANDL ~3,%edi*/
-//                if (opcode&0x200000) { addbyte(0x83); addbyte(0x05); addlong(&arm.reg[RN]); addbyte(countbits(opcode&0xFFFF)); } /*ADDL $countbits(opcode&0xFFFF),arm.reg[RN]*/
-                if (opcode&0x1000000) { addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/ }
-                for (c=0;c<16;c++)
-                {
-                        if (templ&1)
-                        {
-                                if (temp==3)
-                                {
-                                        gen_x86_call(mreadmemfast);
-                                }
-                                else
-                                {
-                                        gen_x86_call(mreadmem);
-                                        temp|=2;
-                                        #if 0
-                                        if (templ&~1)
-                                        {
-                                                gen_test_armirq();
-                                        }
-                                        #endif
-                                }
-                                if (c == 15) {
-                                        gen_load_reg(15, EAX);
-                                        addbyte(0x8b); addbyte(0x0d); addlong(&r15mask); /* MOV r15mask,%ecx */
-                                        addbyte(0x83); addbyte(0xc2); addbyte(4); /* ADD $4,%edx */
-                                        addbyte(0x21); addbyte(0xca); /* AND %ecx,%edx */
-                                        addbyte(0xf7); addbyte(0xd1); /* NOT %ecx */
-                                        addbyte(0x21); addbyte(0xc8); /* AND %ecx,%eax */
-                                        addbyte(0x09); addbyte(0xc2); /* OR %eax,%edx */
-                                }
-                                gen_save_reg(c, EDX);
-                                addbyte(0x83); addbyte(0xC7); addbyte(4); /*ADDL $4,%edi*/
-                        }
-                        templ>>=1;
-                }
-                addbyte(0xF6); addbyte(0x05); addlong(&armirq); addbyte(0x40); /*TESTB $0x40,armirq*/
-                if (opcode&0x200000)
-                {
-                        //gen_x86_pop_reg(EDI);
-                        gen_load_reg(17, EDI);
-                        jump_not_abort = gen_x86_jump_forward(CC_Z);
-//                        addbyte(0x83); addbyte(0xEF); addbyte(countbits(opcode&0xFFFF)+((opcode&0x1000000)?4:0)); /*SUBL countbits(opcode&0xFFFF),%edi*/
-//                        addbyte(0x89); addbyte(0x3D); addlong(&arm.reg[RN]); /*MOVL %edi,arm.reg[RN]*/
-                        gen_x86_jump(CC_ALWAYS, 0);
-                        gen_x86_jump_here(jump_not_abort);
-                        if (!(opcode&(1<<RN)))
-                        {
-                                addbyte(0x83); addbyte(0xC7); addbyte(countbits(opcode&0xFFFF)); /*ADDL $4,%edi*/
-                                gen_save_reg(RN, EDI);
-                        }
-                }
-                else
-                {
-                        gen_x86_jump(CC_NZ, 0);
-                }
-                break;
+	case 0x89: /* LDMIA */
+	case 0x8b: /* LDMIA ! */
+	case 0x99: /* LDMIB */
+	case 0x9b: /* LDMIB ! */
+		if (RN == 15) {
+			return 0;
+		}
+		flagsdirty = 0;
+		offset = countbits(opcode & 0xffff);
+		gen_arm_ldm_stm_increment(opcode, offset);
+		gen_arm_load_multiple(opcode, offset);
+		break;
 
         case 0x85: /* LDMDA ^ */
         case 0x87: /* LDMDA ^! */
