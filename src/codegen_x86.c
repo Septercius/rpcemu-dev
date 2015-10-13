@@ -10,7 +10,6 @@
 #include "mem.h"
 #include "arm.h"
 #include "arm_common.h"
-#include "cp15.h"
 
 #if defined __linux__ || defined __MACH__
 #include <sys/mman.h>
