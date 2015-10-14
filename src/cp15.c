@@ -223,6 +223,7 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
                         case 5: /* TLB Flush */
                         case 6: /* TLB Purge */
                                 cp15_tlb_flush_all();
+                                resetcodeblocks();
                                 break;
 
                         default:
