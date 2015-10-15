@@ -143,36 +143,17 @@ initcodeblocks(void)
 void
 resetcodeblocks(void)
 {
-        int c;
-        /*Clear all blocks _except_ those pointing between 0x3800000 and 0x3FFFFFF (ROM)*/
-/*        for (c=0;c<0x1000;c++)
-        {
-                if ((codeblockpc[c][2]&0xFF800000)!=0x3800000)
-                   codeblockpc[c][2]=0xFFFFFFFF;
-                if ((codeblockpc[c][1]&0xFF800000)!=0x3800000)
-                {
-                        codeblockpc[c][1]=0xFFFFFFFF;
-                        codeblockcount[c]=1;
-                }
-                if ((codeblockpc[c][0]&0xFF800000)!=0x3800000)
-                {
-                        codeblockpc[c][0]=0xFFFFFFFF;
-                        codeblockcount[c]=0;
-                }
-        }*/
-        blockpoint=0;
-        for (c=0;c<BLOCKS;c++)
-        {
-                if (blocks[c]!=0xFFFFFFFF)
-                {
-                        if ((codeblockpc[blocks[c]&0x7FFF]&0xFF800000)!=0x3800000)
-                        {
-                                codeblockpc[blocks[c]&0x7FFF]=0xFFFFFFFF;
-                                codeblocknum[blocks[c]&0x7FFF]=0xFFFFFFFF;
-                                blocks[c]=0xFFFFFFFF;
-                        }
-                }
-        }
+	int c;
+
+	blockpoint = 0;
+
+	for (c = 0; c < BLOCKS; c++) {
+		if (blocks[c] != 0xffffffff) {
+			codeblockpc[blocks[c] & 0x7fff] = 0xffffffff;
+			codeblocknum[blocks[c] & 0x7fff] = 0xffffffff;
+			blocks[c] = 0xffffffff;
+		}
+	}
 }
 
 void
