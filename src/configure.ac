@@ -1,7 +1,7 @@
 # configure.ac for RPCEmu
 #
 
-AC_PREREQ([2.65])
+AC_PREREQ([2.69])
 AC_INIT(RPCEmu, 0.8.12, , rpcemu)
 
 AC_CANONICAL_BUILD
