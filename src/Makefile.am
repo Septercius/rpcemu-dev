@@ -24,7 +24,6 @@ i8042.c
 
 if DYNAREC
 rpcemu_SOURCES += ArmDynarec.c ArmDynarecOps.h
-rpcemu_CFLAGS += -DDYNAREC
 
 if CPU_X86_64
 rpcemu_SOURCES += codegen_amd64.c codegen_amd64.h codegen_x86_common.h

@@ -83,18 +83,17 @@ build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = rpcemu$(EXEEXT)
 @DYNAREC_TRUE@am__append_1 = ArmDynarec.c ArmDynarecOps.h
-@DYNAREC_TRUE@am__append_2 = -DDYNAREC
-@CPU_X86_64_TRUE@@DYNAREC_TRUE@am__append_3 = codegen_amd64.c codegen_amd64.h codegen_x86_common.h
-@CPU_I386_TRUE@@DYNAREC_TRUE@am__append_4 = codegen_x86.c codegen_x86.h codegen_x86_common.h
+@CPU_X86_64_TRUE@@DYNAREC_TRUE@am__append_2 = codegen_amd64.c codegen_amd64.h codegen_x86_common.h
+@CPU_I386_TRUE@@DYNAREC_TRUE@am__append_3 = codegen_x86.c codegen_x86.h codegen_x86_common.h
 
 # non-DYNAREC
-@DYNAREC_FALSE@am__append_5 = arm.c arm.h codegen_null.c
-@OS_WIN_TRUE@am__append_6 = cdrom-ioctl.c rpc-win.c resources.h
-@OS_LINUX_TRUE@am__append_7 = rpc-linux.c gui.c cdrom-linuxioctl.c network-linux.c \
+@DYNAREC_FALSE@am__append_4 = arm.c arm.h codegen_null.c
+@OS_WIN_TRUE@am__append_5 = cdrom-ioctl.c rpc-win.c resources.h
+@OS_LINUX_TRUE@am__append_6 = rpc-linux.c gui.c cdrom-linuxioctl.c network-linux.c \
 @OS_LINUX_TRUE@network.c network.h
 
-@OS_MACOSX_TRUE@am__append_8 = rpc-macosx.c gui.c
-@OS_OTHER_TRUE@am__append_9 = rpc-linux.c gui.c
+@OS_MACOSX_TRUE@am__append_7 = rpc-macosx.c gui.c
+@OS_OTHER_TRUE@am__append_8 = rpc-linux.c gui.c
 subdir = .
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/configure $(am__configure_deps) \
@@ -340,7 +339,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_SCRIPTS = ../rpcemu
 CLEANFILES = $(noinst_SCRIPTS)
-rpcemu_CFLAGS = $(allegro_CFLAGS) $(am__append_2)
+rpcemu_CFLAGS = $(allegro_CFLAGS)
 @OS_WIN_FALSE@rpcemu_LDADD = $(allegro_LIBS)
 
 # workaround for Win32 Allegro, which has `allegro-config' missing
@@ -350,9 +349,9 @@ rpcemu_SOURCES = superio.c superio.h cdrom-iso.c cmos.c cmos.h cp15.c \
 	iomd.h keyboard.c keyboard.h mem.c mem.h romload.c rpcemu.c \
 	sound.c sound.h vidc20.c vidc20.h podules.c podulerom.c \
 	icside.c rpc-machdep.c arm_common.h arm_common.c i8042.c \
-	$(am__append_1) $(am__append_3) $(am__append_4) \
-	$(am__append_5) $(am__append_6) $(am__append_7) \
-	$(am__append_8) $(am__append_9)
+	$(am__append_1) $(am__append_2) $(am__append_3) \
+	$(am__append_4) $(am__append_5) $(am__append_6) \
+	$(am__append_7) $(am__append_8)
 @OS_WIN_TRUE@rpcemu_CPPFLAGS = -Dsleep=Sleep
 EXTRA_DIST = acorn.rc rpcemu.ico
 all: config.h
