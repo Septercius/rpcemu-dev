@@ -945,8 +945,7 @@ static void opMVNimmS(uint32_t opcode)
 
 static int opSTRT(uint32_t opcode)
 {
-	uint32_t templ;
-	uint32_t addr, addr2;
+	uint32_t addr, offset, templ;
 
 	addr = GETADDR(RN);
 
@@ -963,14 +962,14 @@ static int opSTRT(uint32_t opcode)
 
 	/* Writeback */
 	if (opcode & 0x2000000) {
-		addr2 = shift_ldrstr(opcode);
+		offset = shift_ldrstr(opcode);
 	} else {
-		addr2 = opcode & 0xfff;
+		offset = opcode & 0xfff;
 	}
 	if (!(opcode & 0x800000)) {
-		addr2 = -addr2;
+		offset = -offset;
 	}
-	addr += addr2;
+	addr += offset;
 	arm.reg[RN] = addr;
 
 	return (armirq & 0x40);
@@ -978,8 +977,7 @@ static int opSTRT(uint32_t opcode)
 
 static int opLDRT(uint32_t opcode)
 {
-	uint32_t templ, templ2;
-	uint32_t addr, addr2;
+	uint32_t addr, offset, templ, templ2;
 
 	addr = GETADDR(RN);
 
@@ -999,14 +997,14 @@ static int opLDRT(uint32_t opcode)
 
 	/* Writeback */
 	if (opcode & 0x2000000) {
-		addr2 = shift_ldrstr(opcode);
+		offset = shift_ldrstr(opcode);
 	} else {
-		addr2 = opcode & 0xfff;
+		offset = opcode & 0xfff;
 	}
 	if (!(opcode & 0x800000)) {
-		addr2 = -addr2;
+		offset = -offset;
 	}
-	addr += addr2;
+	addr += offset;
 	arm.reg[RN] = addr;
 
 	/* Check for Abort (before writing Rd) */
@@ -1022,8 +1020,7 @@ static int opLDRT(uint32_t opcode)
 
 static int opSTRBT(uint32_t opcode)
 {
-	uint32_t templ;
-	uint32_t addr, addr2;
+	uint32_t addr, offset, templ;
 
 	addr = GETADDR(RN);
 
@@ -1040,14 +1037,14 @@ static int opSTRBT(uint32_t opcode)
 
 	/* Writeback */
 	if (opcode & 0x2000000) {
-		addr2 = shift_ldrstr(opcode);
+		offset = shift_ldrstr(opcode);
 	} else {
-		addr2 = opcode & 0xfff;
+		offset = opcode & 0xfff;
 	}
 	if (!(opcode & 0x800000)) {
-		addr2 = -addr2;
+		offset = -offset;
 	}
-	addr += addr2;
+	addr += offset;
 	arm.reg[RN] = addr;
 
 	return (armirq & 0x40);
@@ -1055,8 +1052,7 @@ static int opSTRBT(uint32_t opcode)
 
 static int opLDRBT(uint32_t opcode)
 {
-	uint32_t templ, templ2;
-	uint32_t addr, addr2;
+	uint32_t addr, offset, templ, templ2;
 
 	addr = GETADDR(RN);
 
@@ -1073,14 +1069,14 @@ static int opLDRBT(uint32_t opcode)
 
 	/* Writeback */
 	if (opcode & 0x2000000) {
-		addr2 = shift_ldrstr(opcode);
+		offset = shift_ldrstr(opcode);
 	} else {
-		addr2 = opcode & 0xfff;
+		offset = opcode & 0xfff;
 	}
 	if (!(opcode & 0x800000)) {
-		addr2 = -addr2;
+		offset = -offset;
 	}
-	addr += addr2;
+	addr += offset;
 	arm.reg[RN] = addr;
 
 	/* Check for Abort (before writing Rd) */
@@ -1096,7 +1092,7 @@ static int opLDRBT(uint32_t opcode)
 
 static int opSTR(uint32_t opcode)
 {
-	uint32_t addr, addr2, value;
+	uint32_t addr, offset, value;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
 		undefined();
@@ -1107,17 +1103,17 @@ static int opSTR(uint32_t opcode)
 
 	/* Calculate offset */
 	if (opcode & 0x2000000) {
-		addr2 = shift_ldrstr(opcode);
+		offset = shift_ldrstr(opcode);
 	} else {
-		addr2 = opcode & 0xfff;
+		offset = opcode & 0xfff;
 	}
 	if (!(opcode & 0x800000)) {
-		addr2 = -addr2;
+		offset = -offset;
 	}
 
 	/* Pre-indexed */
 	if (opcode & 0x1000000) {
-		addr += addr2;
+		addr += offset;
 	}
 
 	/* Store */
@@ -1131,7 +1127,7 @@ static int opSTR(uint32_t opcode)
 
 	if (!(opcode & 0x1000000)) {
 		/* Post-indexed */
-		addr += addr2;
+		addr += offset;
 		arm.reg[RN] = addr;
 	} else if (opcode & 0x200000) {
 		/* Pre-indexed with writeback */
@@ -1143,8 +1139,7 @@ static int opSTR(uint32_t opcode)
 
 static int opLDR(uint32_t opcode)
 {
-	uint32_t templ;
-	uint32_t addr, addr2;
+	uint32_t addr, offset, templ;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
 		undefined();
@@ -1155,17 +1150,17 @@ static int opLDR(uint32_t opcode)
 
 	/* Calculate offset */
 	if (opcode & 0x2000000) {
-		addr2 = shift_ldrstr(opcode);
+		offset = shift_ldrstr(opcode);
 	} else {
-		addr2 = opcode & 0xfff;
+		offset = opcode & 0xfff;
 	}
 	if (!(opcode & 0x800000)) {
-		addr2 = -addr2;
+		offset = -offset;
 	}
 
 	/* Pre-indexed */
 	if (opcode & 0x1000000) {
-		addr += addr2;
+		addr += offset;
 	}
 
 	/* Load */
@@ -1181,7 +1176,7 @@ static int opLDR(uint32_t opcode)
 
 	if (!(opcode & 0x1000000)) {
 		/* Post-indexed */
-		addr += addr2;
+		addr += offset;
 		arm.reg[RN] = addr;
 	} else if (opcode & 0x200000) {
 		/* Pre-indexed with writeback */
@@ -1201,7 +1196,7 @@ static int opLDR(uint32_t opcode)
 
 static int opSTRB(uint32_t opcode)
 {
-	uint32_t addr, addr2, value;
+	uint32_t addr, offset, value;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
 		undefined();
@@ -1212,17 +1207,17 @@ static int opSTRB(uint32_t opcode)
 
 	/* Calculate offset */
 	if (opcode & 0x2000000) {
-		addr2 = shift_ldrstr(opcode);
+		offset = shift_ldrstr(opcode);
 	} else {
-		addr2 = opcode & 0xfff;
+		offset = opcode & 0xfff;
 	}
 	if (!(opcode & 0x800000)) {
-		addr2 = -addr2;
+		offset = -offset;
 	}
 
 	/* Pre-indexed */
 	if (opcode & 0x1000000) {
-		addr += addr2;
+		addr += offset;
 	}
 
 	/* Store */
@@ -1236,7 +1231,7 @@ static int opSTRB(uint32_t opcode)
 
 	if (!(opcode & 0x1000000)) {
 		/* Post-indexed */
-		addr += addr2;
+		addr += offset;
 		arm.reg[RN] = addr;
 	} else if (opcode & 0x200000) {
 		/* Pre-indexed with writeback */
@@ -1248,8 +1243,7 @@ static int opSTRB(uint32_t opcode)
 
 static int opLDRB(uint32_t opcode)
 {
-	uint32_t templ;
-	uint32_t addr, addr2;
+	uint32_t addr, offset, templ;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
 		undefined();
@@ -1260,17 +1254,17 @@ static int opLDRB(uint32_t opcode)
 
 	/* Calculate offset */
 	if (opcode & 0x2000000) {
-		addr2 = shift_ldrstr(opcode);
+		offset = shift_ldrstr(opcode);
 	} else {
-		addr2 = opcode & 0xfff;
+		offset = opcode & 0xfff;
 	}
 	if (!(opcode & 0x800000)) {
-		addr2 = -addr2;
+		offset = -offset;
 	}
 
 	/* Pre-indexed */
 	if (opcode & 0x1000000) {
-		addr += addr2;
+		addr += offset;
 	}
 
 	/* Load */
@@ -1283,7 +1277,7 @@ static int opLDRB(uint32_t opcode)
 
 	if (!(opcode & 0x1000000)) {
 		/* Post-indexed */
-		addr += addr2;
+		addr += offset;
 		arm.reg[RN] = addr;
 	} else if (opcode & 0x200000) {
 		/* Pre-indexed with writeback */

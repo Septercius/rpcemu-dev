@@ -545,7 +545,7 @@ void execarm(int cycs)
         int linecyc;
 	uint32_t opcode;
 	uint32_t lhs, rhs, dest;
-	uint32_t templ, templ2, addr, addr2, offset, writeback;
+	uint32_t templ, templ2, addr, offset, writeback;
 
         cycles+=cycs;
         while (cycles>0)
@@ -1399,14 +1399,14 @@ void execarm(int cycs)
 
 					/* Writeback */
 					if (opcode & 0x2000000) {
-						addr2 = shift_ldrstr(opcode);
+						offset = shift_ldrstr(opcode);
 					} else {
-						addr2 = opcode & 0xfff;
+						offset = opcode & 0xfff;
 					}
 					if (!(opcode & 0x800000)) {
-						addr2 = -addr2;
+						offset = -offset;
 					}
-					addr += addr2;
+					addr += offset;
 					arm.reg[RN] = addr;
 					break;
 
@@ -1432,14 +1432,14 @@ void execarm(int cycs)
 
 					/* Writeback */
 					if (opcode & 0x2000000) {
-						addr2 = shift_ldrstr(opcode);
+						offset = shift_ldrstr(opcode);
 					} else {
-						addr2 = opcode & 0xfff;
+						offset = opcode & 0xfff;
 					}
 					if (!(opcode & 0x800000)) {
-						addr2 = -addr2;
+						offset = -offset;
 					}
-					addr += addr2;
+					addr += offset;
 					arm.reg[RN] = addr;
 
 					/* Check for Abort (before writing Rd) */
@@ -1470,14 +1470,14 @@ void execarm(int cycs)
 
 					/* Writeback */
 					if (opcode & 0x2000000) {
-						addr2 = shift_ldrstr(opcode);
+						offset = shift_ldrstr(opcode);
 					} else {
-						addr2 = opcode & 0xfff;
+						offset = opcode & 0xfff;
 					}
 					if (!(opcode & 0x800000)) {
-						addr2 = -addr2;
+						offset = -offset;
 					}
-					addr += addr2;
+					addr += offset;
 					arm.reg[RN] = addr;
 					break;
 
@@ -1500,14 +1500,14 @@ void execarm(int cycs)
 
 					/* Writeback */
 					if (opcode & 0x2000000) {
-						addr2 = shift_ldrstr(opcode);
+						offset = shift_ldrstr(opcode);
 					} else {
-						addr2 = opcode & 0xfff;
+						offset = opcode & 0xfff;
 					}
 					if (!(opcode & 0x800000)) {
-						addr2 = -addr2;
+						offset = -offset;
 					}
-					addr += addr2;
+					addr += offset;
 					arm.reg[RN] = addr;
 
 					/* Check for Abort (before writing Rd) */
@@ -1540,17 +1540,17 @@ void execarm(int cycs)
 
 					/* Calculate offset */
 					if (opcode & 0x2000000) {
-						addr2 = shift_ldrstr(opcode);
+						offset = shift_ldrstr(opcode);
 					} else {
-						addr2 = opcode & 0xfff;
+						offset = opcode & 0xfff;
 					}
 					if (!(opcode & 0x800000)) {
-						addr2 = -addr2;
+						offset = -offset;
 					}
 
 					/* Pre-indexed */
 					if (opcode & 0x1000000) {
-						addr += addr2;
+						addr += offset;
 					}
 
 					/* Store */
@@ -1564,7 +1564,7 @@ void execarm(int cycs)
 
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
-						addr += addr2;
+						addr += offset;
 						arm.reg[RN] = addr;
 					} else if (opcode & 0x200000) {
 						/* Pre-indexed with writeback */
@@ -1593,17 +1593,17 @@ void execarm(int cycs)
 
 					/* Calculate offset */
 					if (opcode & 0x2000000) {
-						addr2 = shift_ldrstr(opcode);
+						offset = shift_ldrstr(opcode);
 					} else {
-						addr2 = opcode & 0xfff;
+						offset = opcode & 0xfff;
 					}
 					if (!(opcode & 0x800000)) {
-						addr2 = -addr2;
+						offset = -offset;
 					}
 
 					/* Pre-indexed */
 					if (opcode & 0x1000000) {
-						addr += addr2;
+						addr += offset;
 					}
 
 					/* Load */
@@ -1619,7 +1619,7 @@ void execarm(int cycs)
 
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
-						addr += addr2;
+						addr += offset;
 						arm.reg[RN] = addr;
 					} else if (opcode & 0x200000) {
 						/* Pre-indexed with writeback */
@@ -1656,17 +1656,17 @@ void execarm(int cycs)
 
 					/* Calculate offset */
 					if (opcode & 0x2000000) {
-						addr2 = shift_ldrstr(opcode);
+						offset = shift_ldrstr(opcode);
 					} else {
-						addr2 = opcode & 0xfff;
+						offset = opcode & 0xfff;
 					}
 					if (!(opcode & 0x800000)) {
-						addr2 = -addr2;
+						offset = -offset;
 					}
 
 					/* Pre-indexed */
 					if (opcode & 0x1000000) {
-						addr += addr2;
+						addr += offset;
 					}
 
 					/* Store */
@@ -1680,7 +1680,7 @@ void execarm(int cycs)
 
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
-						addr += addr2;
+						addr += offset;
 						arm.reg[RN] = addr;
 					} else if (opcode & 0x200000) {
 						/* Pre-indexed with writeback */
@@ -1709,17 +1709,17 @@ void execarm(int cycs)
 
 					/* Calculate offset */
 					if (opcode & 0x2000000) {
-						addr2 = shift_ldrstr(opcode);
+						offset = shift_ldrstr(opcode);
 					} else {
-						addr2 = opcode & 0xfff;
+						offset = opcode & 0xfff;
 					}
 					if (!(opcode & 0x800000)) {
-						addr2 = -addr2;
+						offset = -offset;
 					}
 
 					/* Pre-indexed */
 					if (opcode & 0x1000000) {
-						addr += addr2;
+						addr += offset;
 					}
 
 					/* Load */
@@ -1732,7 +1732,7 @@ void execarm(int cycs)
 
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
-						addr += addr2;
+						addr += offset;
 						arm.reg[RN] = addr;
 					} else if (opcode & 0x200000) {
 						/* Pre-indexed with writeback */
