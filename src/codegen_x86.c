@@ -19,7 +19,7 @@
 void generateupdatepc(void);
 int linecyc;
 
-unsigned char rcodeblock[BLOCKS+4][1792+512+64] = {{0}};
+unsigned char rcodeblock[BLOCKS][1792+512+64];
 static const void *codeblockaddr[BLOCKS];
 unsigned long codeblockpc[0x8000] = {0};
 static unsigned char codeblockpresent[0x10000];
