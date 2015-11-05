@@ -977,14 +977,14 @@ static int opSTRT(uint32_t opcode)
 
 static int opLDRT(uint32_t opcode)
 {
-	uint32_t addr, offset, templ, templ2;
+	uint32_t addr, data, offset, templ;
 
 	addr = GETADDR(RN);
 
 	/* Temporarily switch to user permissions */
 	templ = memmode;
 	memmode = 0;
-	templ2 = readmeml(addr & ~3);
+	data = readmeml(addr & ~3);
 	memmode = templ;
 
 	/* Check for Abort */
@@ -993,7 +993,7 @@ static int opLDRT(uint32_t opcode)
 	}
 
 	/* Rotate if load is unaligned */
-	templ2 = arm_ldr_rotate(templ2, addr);
+	data = arm_ldr_rotate(data, addr);
 
 	/* Writeback */
 	if (opcode & 0x2000000) {
@@ -1013,7 +1013,7 @@ static int opLDRT(uint32_t opcode)
 	}
 
 	/* Write Rd */
-	LOADREG(RD, templ2);
+	LOADREG(RD, data);
 
 	return 0;
 }
@@ -1052,14 +1052,14 @@ static int opSTRBT(uint32_t opcode)
 
 static int opLDRBT(uint32_t opcode)
 {
-	uint32_t addr, offset, templ, templ2;
+	uint32_t addr, data, offset, templ;
 
 	addr = GETADDR(RN);
 
 	/* Temporarily switch to user permissions */
 	templ = memmode;
 	memmode = 0;
-	templ2 = readmemb(addr);
+	data = readmemb(addr);
 	memmode = templ;
 
 	/* Check for Abort */
@@ -1085,14 +1085,14 @@ static int opLDRBT(uint32_t opcode)
 	}
 
 	/* Write Rd */
-	LOADREG(RD, templ2);
+	LOADREG(RD, data);
 
 	return 0;
 }
 
 static int opSTR(uint32_t opcode)
 {
-	uint32_t addr, offset, value;
+	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
 		undefined();
@@ -1117,8 +1117,8 @@ static int opSTR(uint32_t opcode)
 	}
 
 	/* Store */
-	value = GETREG(RD);
-	writememl(addr & ~3, value);
+	data = GETREG(RD);
+	writememl(addr & ~3, data);
 
 	/* Check for Abort */
 	if (arm.abort_base_restored && (armirq & 0x40)) {
@@ -1139,7 +1139,7 @@ static int opSTR(uint32_t opcode)
 
 static int opLDR(uint32_t opcode)
 {
-	uint32_t addr, offset, templ;
+	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
 		undefined();
@@ -1164,7 +1164,7 @@ static int opLDR(uint32_t opcode)
 	}
 
 	/* Load */
-	templ = readmeml(addr & ~3);
+	data = readmeml(addr & ~3);
 
 	/* Check for Abort */
 	if (arm.abort_base_restored && (armirq & 0x40)) {
@@ -1172,7 +1172,7 @@ static int opLDR(uint32_t opcode)
 	}
 
 	/* Rotate if load is unaligned */
-	templ = arm_ldr_rotate(templ, addr);
+	data = arm_ldr_rotate(data, addr);
 
 	if (!(opcode & 0x1000000)) {
 		/* Post-indexed */
@@ -1189,14 +1189,14 @@ static int opLDR(uint32_t opcode)
 	}
 
 	/* Write Rd */
-	LOADREG(RD, templ);
+	LOADREG(RD, data);
 
 	return 0;
 }
 
 static int opSTRB(uint32_t opcode)
 {
-	uint32_t addr, offset, value;
+	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
 		undefined();
@@ -1221,8 +1221,8 @@ static int opSTRB(uint32_t opcode)
 	}
 
 	/* Store */
-	value = GETREG(RD);
-	writememb(addr, value);
+	data = GETREG(RD);
+	writememb(addr, data);
 
 	/* Check for Abort */
 	if (arm.abort_base_restored && (armirq & 0x40)) {
@@ -1243,7 +1243,7 @@ static int opSTRB(uint32_t opcode)
 
 static int opLDRB(uint32_t opcode)
 {
-	uint32_t addr, offset, templ;
+	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
 		undefined();
@@ -1268,7 +1268,7 @@ static int opLDRB(uint32_t opcode)
 	}
 
 	/* Load */
-	templ = readmemb(addr);
+	data = readmemb(addr);
 
 	/* Check for Abort */
 	if (arm.abort_base_restored && (armirq & 0x40)) {
@@ -1290,7 +1290,7 @@ static int opLDRB(uint32_t opcode)
 	}
 
 	/* Write Rd */
-	LOADREG(RD, templ);
+	LOADREG(RD, data);
 
 	return 0;
 }

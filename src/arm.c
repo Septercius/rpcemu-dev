@@ -545,7 +545,7 @@ void execarm(int cycs)
         int linecyc;
 	uint32_t opcode;
 	uint32_t lhs, rhs, dest;
-	uint32_t templ, templ2, addr, offset, writeback;
+	uint32_t templ, addr, data, offset, writeback;
 
         cycles+=cycs;
         while (cycles>0)
@@ -1419,7 +1419,7 @@ void execarm(int cycs)
 					/* Temp switch to user permissions */
 					templ = memmode;
 					memmode = 0;
-					templ2 = readmeml(addr & ~3);
+					data = readmeml(addr & ~3);
 					memmode = templ;
 
 					/* Check for Abort */
@@ -1428,7 +1428,7 @@ void execarm(int cycs)
 					}
 
 					/* Rotate if load is unaligned */
-					templ2 = arm_ldr_rotate(templ2, addr);
+					data = arm_ldr_rotate(data, addr);
 
 					/* Writeback */
 					if (opcode & 0x2000000) {
@@ -1448,7 +1448,7 @@ void execarm(int cycs)
 					}
 
 					/* Write Rd */
-					LOADREG(RD, templ2);
+					LOADREG(RD, data);
 					break;
 
 				case 0x46: /* STRBT Rd, [Rn], #-imm   */
@@ -1490,7 +1490,7 @@ void execarm(int cycs)
 					/* Temp switch to user permissions */
 					templ = memmode;
 					memmode = 0;
-					templ2 = readmemb(addr);
+					data = readmemb(addr);
 					memmode = templ;
 
 					/* Check for Abort */
@@ -1516,7 +1516,7 @@ void execarm(int cycs)
 					}
 
 					/* Write Rd */
-					LOADREG(RD, templ2);
+					LOADREG(RD, data);
 					break;
 
 				case 0x60: /* STR Rd, [Rn], -reg...  */
@@ -1554,8 +1554,8 @@ void execarm(int cycs)
 					}
 
 					/* Store */
-					templ = GETREG(RD);
-					writememl(addr & ~3, templ);
+					data = GETREG(RD);
+					writememl(addr & ~3, data);
 
 					/* Check for Abort */
 					if (arm.abort_base_restored && (armirq & 0x40)) {
@@ -1607,7 +1607,7 @@ void execarm(int cycs)
 					}
 
 					/* Load */
-					templ = readmeml(addr & ~3);
+					data = readmeml(addr & ~3);
 
 					/* Check for Abort */
 					if (arm.abort_base_restored && (armirq & 0x40)) {
@@ -1615,7 +1615,7 @@ void execarm(int cycs)
 					}
 
 					/* Rotate if load is unaligned */
-					templ = arm_ldr_rotate(templ, addr);
+					data = arm_ldr_rotate(data, addr);
 
 					if (!(opcode & 0x1000000)) {
 						/* Post-indexed */
@@ -1632,7 +1632,7 @@ void execarm(int cycs)
 					}
 
 					/* Write Rd */
-					LOADREG(RD, templ);
+					LOADREG(RD, data);
 					break;
 
 				case 0x64: /* STRB Rd, [Rn], -reg...  */
@@ -1670,8 +1670,8 @@ void execarm(int cycs)
 					}
 
 					/* Store */
-					templ = GETREG(RD);
-					writememb(addr, templ);
+					data = GETREG(RD);
+					writememb(addr, data);
 
 					/* Check for Abort */
 					if (arm.abort_base_restored && (armirq & 0x40)) {
@@ -1723,7 +1723,7 @@ void execarm(int cycs)
 					}
 
 					/* Load */
-					templ = readmemb(addr);
+					data = readmemb(addr);
 
 					/* Check for Abort */
 					if (arm.abort_base_restored && (armirq & 0x40)) {
@@ -1745,7 +1745,7 @@ void execarm(int cycs)
 					}
 
 					/* Write Rd */
-					LOADREG(RD, templ);
+					LOADREG(RD, data);
 					break;
 
 				case 0x80: /* STMDA */
