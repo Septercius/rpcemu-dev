@@ -309,6 +309,15 @@ riscos_path_to_host(const char *path, char *host_path)
     case '/':
       *host_path++ = '.';
       break;
+    case '?':
+      *host_path++ = '#';
+      break;
+    case '<':
+      *host_path++ = '$';
+      break;
+    case '>':
+      *host_path++ = '^';
+      break;
     default:
       *host_path++ = *path;
       break;
@@ -340,6 +349,15 @@ name_host_to_riscos(const char *object_name, size_t len, char *riscos_name)
       break;
     case 32:
       *riscos_name++ = 160;
+      break;
+    case '#':
+      *riscos_name++ = '?';
+      break;
+    case '$':
+      *riscos_name++ = '<';
+      break;
+    case '^':
+      *riscos_name++ = '>';
       break;
     default:
       *riscos_name++ = *object_name;
