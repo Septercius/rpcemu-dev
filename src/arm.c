@@ -74,10 +74,8 @@ int prog32;
 #define VFSET ((arm.reg[cpsr] & VFLAG) ? 1 : 0)
 
 #define GETADDR(r) ((r == 15) ? (arm.reg[15] & r15mask) : arm.reg[r])
-#define LOADREG(r,v) if (r==15) { arm.reg[15]=(arm.reg[15]&~r15mask)|(((v)+4)&r15mask); refillpipeline(); } else arm.reg[r]=(v);
+#define LOADREG(r,v) if (r == 15) { arm.reg[15] = (arm.reg[15] & ~r15mask) | (((v) + 4) & r15mask); } else arm.reg[r] = (v);
 #define GETREG(r) ((r == 15) ? (arm.reg[15] + arm.r15_diff) : arm.reg[r])
-
-#define refillpipeline()
 
 #include "arm_common.h"
 
@@ -513,7 +511,6 @@ void exception(int mmode, uint32_t address, int diff)
                 arm.reg[16] &= ~0x1f;
                 arm.reg[16] |= 0x10 | mmode | irq_disable;
                 arm.reg[15] = address;
-                refillpipeline();
         }
         else if (prog32)
         {
@@ -524,7 +521,6 @@ void exception(int mmode, uint32_t address, int diff)
                 arm.spsr[mmode] &= ~0x10;
                 arm.reg[16] |= irq_disable;
                 arm.reg[15] = address;
-                refillpipeline();
         }
         else
         {
@@ -536,7 +532,6 @@ void exception(int mmode, uint32_t address, int diff)
                 arm.reg[14] = templ;
                 arm.reg[15] &= 0xfc000003;
                 arm.reg[15] |= ((irq_disable << 20) | address);
-                refillpipeline();
         }
 }
 
@@ -1881,7 +1876,6 @@ void execarm(int cycs)
                                         arm.reg[14] = arm.reg[15] - 4;
                                         arm.reg[15] = ((arm.reg[15] + templ + 4) & r15mask) |
                                                       (arm.reg[15] & ~r15mask);
-                                        refillpipeline();
                                         break;
 
                                         case 0xE0: case 0xE2: case 0xE4: case 0xE6: /*MCR*/
@@ -1992,7 +1986,6 @@ void execarm(int cycs)
                                         arm.reg[14] = templ;
                                         arm.reg[15] &= 0xfc000003;
                                         arm.reg[15] |= 0x08000018;
-                                        refillpipeline();
                                         databort=0;
                                 }
 //                                #endif
