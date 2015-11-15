@@ -1855,28 +1855,28 @@ void execarm(int cycs)
 					arm_load_multiple_s(opcode, addr, writeback);
 					break;
 
-                                case 0xA0: case 0xA1: case 0xA2: case 0xA3: /* B */
-                                case 0xA4: case 0xA5: case 0xA6: case 0xA7:
-                                case 0xA8: case 0xA9: case 0xAA: case 0xAB:
-                                case 0xAC: case 0xAD: case 0xAE: case 0xAF:
-                                        /* Extract offset bits, and sign-extend */
-                                        templ = (opcode << 8);
-                                        templ = (uint32_t) ((int32_t) templ >> 6);
-                                        arm.reg[15] = ((arm.reg[15] + templ + 4) & r15mask) |
-                                                      (arm.reg[15]&~r15mask);
-                                        break;
+				case 0xa0: case 0xa1: case 0xa2: case 0xa3: /* B */
+				case 0xa4: case 0xa5: case 0xa6: case 0xa7:
+				case 0xa8: case 0xa9: case 0xaa: case 0xab:
+				case 0xac: case 0xad: case 0xae: case 0xaf:
+					/* Extract offset bits, and sign-extend */
+					offset = (opcode << 8);
+					offset = (uint32_t) ((int32_t) offset >> 6);
+					arm.reg[15] = ((arm.reg[15] + offset + 4) & r15mask) |
+					              (arm.reg[15] & ~r15mask);
+					break;
 
-                                case 0xB0: case 0xB1: case 0xB2: case 0xB3: /* BL */
-                                case 0xB4: case 0xB5: case 0xB6: case 0xB7:
-                                case 0xB8: case 0xB9: case 0xBA: case 0xBB:
-                                case 0xBC: case 0xBD: case 0xBE: case 0xBF:
-                                        /* Extract offset bits, and sign-extend */
-                                        templ = (opcode << 8);
-                                        templ = (uint32_t) ((int32_t) templ >> 6);
-                                        arm.reg[14] = arm.reg[15] - 4;
-                                        arm.reg[15] = ((arm.reg[15] + templ + 4) & r15mask) |
-                                                      (arm.reg[15] & ~r15mask);
-                                        break;
+				case 0xb0: case 0xb1: case 0xb2: case 0xb3: /* BL */
+				case 0xb4: case 0xb5: case 0xb6: case 0xb7:
+				case 0xb8: case 0xb9: case 0xba: case 0xbb:
+				case 0xbc: case 0xbd: case 0xbe: case 0xbf:
+					/* Extract offset bits, and sign-extend */
+					offset = (opcode << 8);
+					offset = (uint32_t) ((int32_t) offset >> 6);
+					arm.reg[14] = arm.reg[15] - 4;
+					arm.reg[15] = ((arm.reg[15] + offset + 4) & r15mask) |
+					              (arm.reg[15] & ~r15mask);
+					break;
 
                                         case 0xE0: case 0xE2: case 0xE4: case 0xE6: /*MCR*/
                                         case 0xE8: case 0xEA: case 0xEC: case 0xEE:

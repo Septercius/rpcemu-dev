@@ -1418,29 +1418,29 @@ static int opLDMIS(uint32_t opcode)
 
 static void opB(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t offset;
 
 	/* Extract offset bits, and sign-extend */
-	templ = (opcode << 8);
-	templ = (uint32_t) ((int32_t) templ >> 6);
+	offset = (opcode << 8);
+	offset = (uint32_t) ((int32_t) offset >> 6);
 
-        arm.reg[15] = ((arm.reg[15] + templ + 4) & r15mask) |
-                      (arm.reg[15] & ~r15mask);
-        blockend=1;
+	arm.reg[15] = ((arm.reg[15] + offset + 4) & r15mask) |
+	              (arm.reg[15] & ~r15mask);
+	blockend = 1;
 }
 
 static void opBL(uint32_t opcode)
 {
-	uint32_t templ;
+	uint32_t offset;
 
 	/* Extract offset bits, and sign-extend */
-	templ = (opcode << 8);
-	templ = (uint32_t) ((int32_t) templ >> 6);
+	offset = (opcode << 8);
+	offset = (uint32_t) ((int32_t) offset >> 6);
 
-        arm.reg[14] = arm.reg[15] - 4;
-        arm.reg[15] = ((arm.reg[15] + templ + 4) & r15mask) |
-                      (arm.reg[15] & ~r15mask);
-        refillpipeline();
+	arm.reg[14] = arm.reg[15] - 4;
+	arm.reg[15] = ((arm.reg[15] + offset + 4) & r15mask) |
+	              (arm.reg[15] & ~r15mask);
+	refillpipeline();
 }
 
 
