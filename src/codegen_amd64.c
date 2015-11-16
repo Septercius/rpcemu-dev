@@ -775,25 +775,25 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 
 	case 0x20: /* AND imm */
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_AND, templ);
                 break;
 
 	case 0x22: /* EOR imm */
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_XOR, templ);
                 break;
 
 	case 0x24: /* SUB imm */
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_SUB, templ);
                 break;
 
 	case 0x28: /* ADD imm */
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_ADD, templ);
                 break;
 
@@ -802,19 +802,19 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 if (RD==15) return 0;
 		gen_load_reg(15, ECX);
 		addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx - puts ARM carry into x64 carry*/
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_ADC, templ);
                 break;
 
 	case 0x38: /* ORR imm */
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_OR, templ);
                 break;
 
 	case 0x3a: /* MOV imm */
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
 		genstoreimm(RD,templ);
 		break;
 

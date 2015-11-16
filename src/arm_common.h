@@ -26,6 +26,21 @@ static const uint32_t msrlookup[16] = {
 	0xffff0000, 0xffff00ff, 0xffffff00, 0xffffffff
 };
 
+/**
+ * Return the immediate operand in an opcode.
+ *
+ * It is encoded as an 8-bit constant rotated by twice the value of a 4-bit
+ * constant.
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @return Value of immediate operand
+ */
+static inline uint32_t
+arm_imm(uint32_t opcode)
+{
+	return rotatelookup[opcode & 0xfff];
+}
+
 static inline void
 setadd(uint32_t op1, uint32_t op2, uint32_t result)
 {

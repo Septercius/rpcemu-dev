@@ -463,7 +463,7 @@ generaterotate(uint32_t opcode, uint32_t *pcpsr, uint8_t mask)
         uint32_t temp;
         if (!flagsdirty)
            { addbyte(0x8A); addbyte(0x0D); addlong(pcpsr+3); } /*MOVB *pcpsr,%cl*/
-        temp=rotate2(opcode);
+        temp = arm_imm(opcode);
         if (mask!=0xF0)
         {
                 if (opcode&0xF00)
@@ -1446,7 +1446,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x20: /* AND imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_AND, templ);
                 break;
 
@@ -1462,7 +1462,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x22: /* EOR imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_XOR, templ);
                 break;
 
@@ -1478,7 +1478,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x24: /* SUB imm */
   //              flagsdirty=0;
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_SUB, templ);
                 break;
 
@@ -1486,7 +1486,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=0;
                 if (RD==15) return 0;
                 addbyte(0x80); addbyte(0x25); addlong(pcpsr+3); addbyte(0xf); /* ANDB $0xf,pcpsr */
-                templ=rotate2(opcode);//,pcpsr,0xF0);
+                templ = arm_imm(opcode);
                 generatedataprocS(opcode, X86_OP_SUB, templ);
                 //gen_x86_lahf();
                 addbyte(0x0F); addbyte(0x90); addbyte(0xC1); /*SETO %cl*/
@@ -1500,7 +1500,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x28: /* ADD imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_ADD, templ);
                 break;
 
@@ -1508,7 +1508,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=0;
                 if (RD==15) return 0;
                 addbyte(0x80); addbyte(0x25); addlong(pcpsr+3); addbyte(0xf); /* ANDB $0xf,pcpsr */
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataprocS(opcode, X86_OP_ADD, templ);
                 
                 addbyte(0x0F); addbyte(0x90); addbyte(0xC1); /*SETO %cl*/
@@ -1522,7 +1522,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x38: /* ORR imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_OR, templ);
                 break;
 
@@ -1537,7 +1537,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x3a: /* MOV imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); /* MOVL $templ,Rd */
                 break;
 
@@ -1556,7 +1556,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x3c: /* BIC imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
-                templ=~rotate2(opcode);
+                templ = ~arm_imm(opcode);
                 generatedataproc(opcode, X86_OP_AND, templ);
                 break;
 
@@ -1572,7 +1572,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
         case 0x3e: /* MVN imm */
 //                flagsdirty=0;
                 if (RD==15) return 0;
-                templ = ~rotate2(opcode);
+                templ = ~arm_imm(opcode);
                 addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); /* MOVL $templ,Rd */
                 break;
 
@@ -1614,7 +1614,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 flagsdirty=0;
                 if (RD==15) return 0;
                 addbyte(0x80); addbyte(0x25); addlong(pcpsr+3); addbyte(0xf); /* ANDB $0xf,pcpsr */
-                templ=rotate2(opcode);
+                templ = arm_imm(opcode);
                 gen_load_reg(RN, EAX);
                 addbyte(0x3D); addlong(templ); /*CMP $templ,%eax*/
                 gen_x86_lahf();
