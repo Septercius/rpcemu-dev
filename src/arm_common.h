@@ -44,6 +44,33 @@ arm_imm(uint32_t opcode)
 	return (val >> amount) | (val << (32 - amount));
 }
 
+/**
+ * Return the immediate operand in an opcode, and update the C flag.
+ *
+ * It is encoded as an 8-bit constant rotated by twice the value of a 4-bit
+ * constant. The C flag will be updated if the rotate amount is non-zero.
+ *
+ * This is used by AND, EOR, TST, TEQ, ORR, MOV, BIC and MVN when the S flag
+ * is set.
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @return Value of immediate operand
+ */
+static inline uint32_t
+arm_imm_cflag(uint32_t opcode)
+{
+	uint32_t result = arm_imm(opcode);
+
+	if (opcode & 0xf00) {
+		if (result & 0x80000000) {
+			arm.reg[cpsr] |= CFLAG;
+		} else {
+			arm.reg[cpsr] &= ~CFLAG;
+		}
+	}
+	return result;
+}
+
 static inline void
 setadd(uint32_t op1, uint32_t op2, uint32_t result)
 {

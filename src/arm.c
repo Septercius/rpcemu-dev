@@ -461,18 +461,6 @@ static inline unsigned shift4(unsigned opcode)
         }
 }
 
-static inline unsigned rotate(unsigned data)
-{
-	uint32_t rotval = arm_imm(data);
-
-        if (/*data&0x100000 && */data&0xF00)
-        {
-                if (rotval&0x80000000) arm.reg[cpsr] |= CFLAG;
-                else                   arm.reg[cpsr] &= ~CFLAG;
-        }
-        return rotval;
-}
-
 #define undefined() exception(UNDEFINED,8,4)
 
 static void bad_opcode(uint32_t opcode) 
@@ -1087,7 +1075,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                dest = lhs & rotate(opcode);
+                                                dest = lhs & arm_imm_cflag(opcode);
                                                 arm.reg[RD] = dest;
                                                 setzn(dest);
                                         }
@@ -1106,7 +1094,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                dest = lhs ^ rotate(opcode);
+                                                dest = lhs ^ arm_imm_cflag(opcode);
                                                 arm.reg[RD] = dest;
                                                 setzn(dest);
                                         }
@@ -1241,7 +1229,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                setzn(lhs & rotate(opcode));
+                                                setzn(lhs & arm_imm_cflag(opcode));
                                         }
                                         break;
 
@@ -1262,7 +1250,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                setzn(lhs ^ rotate(opcode));
+                                                setzn(lhs ^ arm_imm_cflag(opcode));
                                         }
                                         break;
 
@@ -1307,7 +1295,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                dest = lhs | rotate(opcode);
+                                                dest = lhs | arm_imm_cflag(opcode);
                                                 arm.reg[RD] = dest;
                                                 setzn(dest);
                                         }
@@ -1325,7 +1313,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                arm.reg[RD] = rotate(opcode);
+                                                arm.reg[RD] = arm_imm_cflag(opcode);
                                                 setzn(arm.reg[RD]);
                                         }
                                         break;
@@ -1343,7 +1331,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                dest = lhs & ~rotate(opcode);
+                                                dest = lhs & ~arm_imm_cflag(opcode);
                                                 arm.reg[RD] = dest;
                                                 setzn(dest);
                                         }
@@ -1361,7 +1349,7 @@ void execarm(int cycs)
                                         }
                                         else
                                         {
-                                                arm.reg[RD] = ~rotate(opcode);
+                                                arm.reg[RD] = ~arm_imm_cflag(opcode);
                                                 setzn(arm.reg[RD]);
                                         }
                                         break;

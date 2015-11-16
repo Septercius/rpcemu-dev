@@ -443,18 +443,6 @@ static inline unsigned shift4(unsigned opcode)
         }
 }
 
-static inline unsigned rotate(unsigned data)
-{
-	uint32_t rotval = arm_imm(data);
-
-        if (/*data&0x100000 && */data&0xF00)
-        {
-                if (rotval&0x80000000) arm.reg[cpsr] |= CFLAG;
-                else                   arm.reg[cpsr] &= ~CFLAG;
-        }
-        return rotval;
-}
-
 #define undefined() exception(UNDEFINED,8,4)
 
 static void bad_opcode(uint32_t opcode) 

@@ -598,7 +598,7 @@ static void opANDimmS(uint32_t opcode)
         }
         else
         {
-                dest = lhs & rotate(opcode);
+                dest = lhs & arm_imm_cflag(opcode);
                 arm.reg[RD] = dest;
                 setzn(dest);
         }
@@ -623,7 +623,7 @@ static void opEORimmS(uint32_t opcode)
         }
         else
         {
-                dest = lhs ^ rotate(opcode);
+                dest = lhs ^ arm_imm_cflag(opcode);
                 arm.reg[RD] = dest;
                 setzn(dest);
         }
@@ -788,7 +788,7 @@ static void opTSTimm(uint32_t opcode)
         }
         else
         {
-                setzn(lhs & rotate(opcode));
+                setzn(lhs & arm_imm_cflag(opcode));
         }
 }
 
@@ -813,7 +813,7 @@ static void opTEQimm(uint32_t opcode)
         }
         else
         {
-                setzn(lhs ^ rotate(opcode));
+                setzn(lhs ^ arm_imm_cflag(opcode));
         }
 }
 
@@ -870,7 +870,7 @@ static void opORRimmS(uint32_t opcode)
         }
         else
         {
-                dest = lhs | rotate(opcode);
+                dest = lhs | arm_imm_cflag(opcode);
                 arm.reg[RD] = dest;
                 setzn(dest);
         }
@@ -892,7 +892,7 @@ static void opMOVimmS(uint32_t opcode)
         }
         else
         {
-                arm.reg[RD] = rotate(opcode);
+                arm.reg[RD] = arm_imm_cflag(opcode);
                 setzn(arm.reg[RD]);
         }
 }
@@ -916,7 +916,7 @@ static void opBICimmS(uint32_t opcode)
         }
         else
         {
-                dest = lhs & ~rotate(opcode);
+                dest = lhs & ~arm_imm_cflag(opcode);
                 arm.reg[RD] = dest;
                 setzn(dest);
         }
@@ -938,7 +938,7 @@ static void opMVNimmS(uint32_t opcode)
         }
         else
         {
-                arm.reg[RD] = ~rotate(opcode);
+                arm.reg[RD] = ~arm_imm_cflag(opcode);
                 setzn(arm.reg[RD]);
         }
 }
