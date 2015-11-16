@@ -38,7 +38,10 @@ static const uint32_t msrlookup[16] = {
 static inline uint32_t
 arm_imm(uint32_t opcode)
 {
-	return rotatelookup[opcode & 0xfff];
+	uint32_t val = opcode & 0xff;
+	uint32_t amount = ((opcode >> 8) & 0xf) << 1;
+
+	return (val >> amount) | (val << (32 - amount));
 }
 
 static inline void
