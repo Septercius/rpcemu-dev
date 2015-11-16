@@ -56,7 +56,6 @@ static int fdci=0;
 uint32_t r15mask;
 static int cycles;
 int prefabort;
-uint32_t rotatelookup[4096];
 uint32_t inscount;
 int armirq=0;
 int cpsr;
@@ -221,7 +220,7 @@ int countbitstable[65536];
 void
 arm_init(void)
 {
-	unsigned c, d, exec, data;
+	unsigned c, d, exec;
 
 	for (c = 0; c < 256; c++) {
 		stmlookup[c] = 0;
@@ -264,13 +263,6 @@ arm_init(void)
 			}
 			flaglookup[c][d] = (uint8_t) exec;
 		}
-	}
-
-	for (data = 0; data < 4096; data++) {
-		uint32_t val = data & 0xff;
-		uint32_t amount = ((data >> 8) & 0xf) << 1;
-
-		rotatelookup[data] = (val >> amount) | (val << (32 - amount));
 	}
 }
 
@@ -471,8 +463,8 @@ static inline unsigned shift4(unsigned opcode)
 
 static inline unsigned rotate(unsigned data)
 {
-        uint32_t rotval;
-        rotval=rotatelookup[data&4095];
+	uint32_t rotval = arm_imm(data);
+
         if (/*data&0x100000 && */data&0xF00)
         {
                 if (rotval&0x80000000) arm.reg[cpsr] |= CFLAG;

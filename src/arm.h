@@ -68,8 +68,6 @@ extern int lastflagchange;
 #define MULRS ((opcode>>8)&0xF)
 #define MULRM (opcode&0xF)
 
-extern uint32_t rotatelookup[4096];
-
 #define countbits(c) countbitstable[c]
 extern int countbitstable[65536];
 
