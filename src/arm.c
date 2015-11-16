@@ -1083,7 +1083,7 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x20: /* AND imm */
-                                        dest = GETADDR(RN) & rotate2(opcode);
+                                        dest = GETADDR(RN) & arm_imm(opcode);
                                         arm_write_dest(opcode, dest);
                                         break;
 
@@ -1091,7 +1091,7 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs & rotate2(opcode));
+                                                arm_write_r15(opcode, lhs & arm_imm(opcode));
                                         }
                                         else
                                         {
@@ -1102,7 +1102,7 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x22: /* EOR imm */
-                                        dest = GETADDR(RN) ^ rotate2(opcode);
+                                        dest = GETADDR(RN) ^ arm_imm(opcode);
                                         arm_write_dest(opcode, dest);
                                         break;
 
@@ -1110,7 +1110,7 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs ^ rotate2(opcode));
+                                                arm_write_r15(opcode, lhs ^ arm_imm(opcode));
                                         }
                                         else
                                         {
@@ -1121,13 +1121,13 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x24: /* SUB imm */
-                                        dest = GETADDR(RN) - rotate2(opcode);
+                                        dest = GETADDR(RN) - arm_imm(opcode);
                                         arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x25: /* SUBS imm */
                                         lhs = GETADDR(RN);
-                                        rhs = rotate2(opcode);
+                                        rhs = arm_imm(opcode);
                                         dest = lhs - rhs;
                                         if (RD==15)
                                         {
@@ -1141,13 +1141,13 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x26: /* RSB imm */
-                                        dest = rotate2(opcode) - GETADDR(RN);
+                                        dest = arm_imm(opcode) - GETADDR(RN);
                                         arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x27: /* RSBS imm */
                                         lhs = GETADDR(RN);
-                                        rhs = rotate2(opcode);
+                                        rhs = arm_imm(opcode);
                                         dest = rhs - lhs;
                                         if (RD==15)
                                         {
@@ -1161,13 +1161,13 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x28: /* ADD imm */
-                                        dest = GETADDR(RN) + rotate2(opcode);
+                                        dest = GETADDR(RN) + arm_imm(opcode);
                                         arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x29: /* ADDS imm */
                                         lhs = GETADDR(RN);
-                                        rhs = rotate2(opcode);
+                                        rhs = arm_imm(opcode);
                                         dest = lhs + rhs;
                                         if (RD==15)
                                         {
@@ -1181,13 +1181,13 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x2A: /* ADC imm */
-                                        dest = GETADDR(RN) + rotate2(opcode) + CFSET;
+                                        dest = GETADDR(RN) + arm_imm(opcode) + CFSET;
                                         arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x2B: /* ADCS imm */
                                         lhs = GETADDR(RN);
-                                        rhs = rotate2(opcode);
+                                        rhs = arm_imm(opcode);
                                         dest = lhs + rhs + CFSET;
                                         if (RD==15)
                                         {
@@ -1201,13 +1201,13 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x2C: /* SBC imm */
-                                        dest = GETADDR(RN) - rotate2(opcode) - ((CFSET) ? 0 : 1);
+                                        dest = GETADDR(RN) - arm_imm(opcode) - ((CFSET) ? 0 : 1);
                                         arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x2D: /* SBCS imm */
                                         lhs = GETADDR(RN);
-                                        rhs = rotate2(opcode);
+                                        rhs = arm_imm(opcode);
                                         dest = lhs - rhs - (CFSET ? 0 : 1);
                                         if (RD==15)
                                         {
@@ -1221,13 +1221,13 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x2E: /* RSC imm */
-                                        dest = rotate2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
+                                        dest = arm_imm(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
                                         arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x2F: /* RSCS imm */
                                         lhs = GETADDR(RN);
-                                        rhs = rotate2(opcode);
+                                        rhs = arm_imm(opcode);
                                         dest = rhs - lhs - (CFSET ? 0 : 1);
                                         if (RD==15)
                                         {
@@ -1245,7 +1245,7 @@ void execarm(int cycs)
                                         if (RD==15)
                                         {
                                                 /* TSTP imm */
-                                                arm_compare_rd15(opcode, lhs & rotate2(opcode));
+                                                arm_compare_rd15(opcode, lhs & arm_imm(opcode));
                                         }
                                         else
                                         {
@@ -1255,7 +1255,7 @@ void execarm(int cycs)
 
 				case 0x32: /* MSR CPSR, imm */
 					if (RD == 15) {
-						arm_write_cpsr(opcode, rotate2(opcode));
+						arm_write_cpsr(opcode, arm_imm(opcode));
 					} else {
 						bad_opcode(opcode);
 					}
@@ -1266,7 +1266,7 @@ void execarm(int cycs)
                                         if (RD==15)
                                         {
                                                 /* TEQP imm */
-                                                arm_compare_rd15(opcode, lhs ^ rotate2(opcode));
+                                                arm_compare_rd15(opcode, lhs ^ arm_imm(opcode));
                                         }
                                         else
                                         {
@@ -1276,7 +1276,7 @@ void execarm(int cycs)
 
                                 case 0x35: /* CMP imm */
                                         lhs = GETADDR(RN);
-                                        rhs = rotate2(opcode);
+                                        rhs = arm_imm(opcode);
                                         dest = lhs - rhs;
                                         if (RD==15)
                                         {
@@ -1291,7 +1291,7 @@ void execarm(int cycs)
 
                                 case 0x37: /* CMN imm */
                                         lhs = GETADDR(RN);
-                                        rhs = rotate2(opcode);
+                                        rhs = arm_imm(opcode);
                                         dest = lhs + rhs;
                                         if (RD==15)
                                         {
@@ -1303,7 +1303,7 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x38: /* ORR imm */
-                                        dest = GETADDR(RN) | rotate2(opcode);
+                                        dest = GETADDR(RN) | arm_imm(opcode);
                                         arm_write_dest(opcode, dest);
                                         break;
 
@@ -1311,7 +1311,7 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs | rotate2(opcode));
+                                                arm_write_r15(opcode, lhs | arm_imm(opcode));
                                         }
                                         else
                                         {
@@ -1322,14 +1322,14 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x3A: /* MOV imm */
-                                        dest = rotate2(opcode);
+                                        dest = arm_imm(opcode);
                                         arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x3B: /* MOVS imm */
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, rotate2(opcode));
+                                                arm_write_r15(opcode, arm_imm(opcode));
                                         }
                                         else
                                         {
@@ -1339,7 +1339,7 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x3C: /* BIC imm */
-                                        dest = GETADDR(RN) & ~rotate2(opcode);
+                                        dest = GETADDR(RN) & ~arm_imm(opcode);
                                         arm_write_dest(opcode, dest);
                                         break;
 
@@ -1347,7 +1347,7 @@ void execarm(int cycs)
                                         lhs = GETADDR(RN);
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, lhs & ~rotate2(opcode));
+                                                arm_write_r15(opcode, lhs & ~arm_imm(opcode));
                                         }
                                         else
                                         {
@@ -1358,14 +1358,14 @@ void execarm(int cycs)
                                         break;
 
                                 case 0x3E: /* MVN imm */
-                                        dest = ~rotate2(opcode);
+                                        dest = ~arm_imm(opcode);
                                         arm_write_dest(opcode, dest);
                                         break;
 
                                 case 0x3F: /* MVNS imm */
                                         if (RD==15)
                                         {
-                                                arm_write_r15(opcode, ~rotate2(opcode));
+                                                arm_write_r15(opcode, ~arm_imm(opcode));
                                         }
                                         else
                                         {

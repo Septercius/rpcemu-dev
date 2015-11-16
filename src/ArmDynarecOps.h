@@ -583,7 +583,7 @@ static void opANDimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = GETADDR(RN) & rotate2(opcode);
+	dest = GETADDR(RN) & arm_imm(opcode);
 	arm_write_dest(opcode, dest);
 }
 
@@ -594,7 +594,7 @@ static void opANDimmS(uint32_t opcode)
         lhs = GETADDR(RN);
         if (RD==15)
         {
-                arm_write_r15(opcode, lhs & rotate2(opcode));
+                arm_write_r15(opcode, lhs & arm_imm(opcode));
         }
         else
         {
@@ -608,7 +608,7 @@ static void opEORimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = GETADDR(RN) ^ rotate2(opcode);
+	dest = GETADDR(RN) ^ arm_imm(opcode);
 	arm_write_dest(opcode, dest);
 }
 
@@ -619,7 +619,7 @@ static void opEORimmS(uint32_t opcode)
         lhs = GETADDR(RN);
         if (RD==15)
         {
-                arm_write_r15(opcode, lhs ^ rotate2(opcode));
+                arm_write_r15(opcode, lhs ^ arm_imm(opcode));
         }
         else
         {
@@ -633,7 +633,7 @@ static void opSUBimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = GETADDR(RN) - rotate2(opcode);
+	dest = GETADDR(RN) - arm_imm(opcode);
 	arm_write_dest(opcode, dest);
 }
 
@@ -642,7 +642,7 @@ static void opSUBimmS(uint32_t opcode)
 	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
-        rhs = rotate2(opcode);
+        rhs = arm_imm(opcode);
         dest = lhs - rhs;
         if (RD==15)
         {
@@ -659,7 +659,7 @@ static void opRSBimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = rotate2(opcode) - GETADDR(RN);
+	dest = arm_imm(opcode) - GETADDR(RN);
 	arm_write_dest(opcode, dest);
 }
 
@@ -668,7 +668,7 @@ static void opRSBimmS(uint32_t opcode)
 	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
-        rhs = rotate2(opcode);
+        rhs = arm_imm(opcode);
         dest = rhs - lhs;
         if (RD==15)
         {
@@ -685,7 +685,7 @@ static void opADDimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = GETADDR(RN) + rotate2(opcode);
+	dest = GETADDR(RN) + arm_imm(opcode);
 	arm_write_dest(opcode, dest);
 }
 
@@ -694,7 +694,7 @@ static void opADDimmS(uint32_t opcode)
 	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
-        rhs = rotate2(opcode);
+        rhs = arm_imm(opcode);
         dest = lhs + rhs;
         if (RD==15)
         {
@@ -711,7 +711,7 @@ static void opADCimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = GETADDR(RN) + rotate2(opcode) + CFSET;
+	dest = GETADDR(RN) + arm_imm(opcode) + CFSET;
 	arm_write_dest(opcode, dest);
 }
 
@@ -720,7 +720,7 @@ static void opADCimmS(uint32_t opcode)
 	uint32_t lhs, rhs, dest;
 
 	lhs = GETADDR(RN);
-	rhs = rotate2(opcode);
+	rhs = arm_imm(opcode);
 	dest = lhs + rhs + CFSET;
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
@@ -734,7 +734,7 @@ static void opSBCimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = GETADDR(RN) - rotate2(opcode) - ((CFSET) ? 0 : 1);
+	dest = GETADDR(RN) - arm_imm(opcode) - ((CFSET) ? 0 : 1);
 	arm_write_dest(opcode, dest);
 }
 
@@ -743,7 +743,7 @@ static void opSBCimmS(uint32_t opcode)
 	uint32_t lhs, rhs, dest;
 
 	lhs = GETADDR(RN);
-	rhs = rotate2(opcode);
+	rhs = arm_imm(opcode);
 	dest = lhs - rhs - (CFSET ? 0 : 1);
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
@@ -757,7 +757,7 @@ static void opRSCimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = rotate2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
+	dest = arm_imm(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
 	arm_write_dest(opcode, dest);
 }
 
@@ -766,7 +766,7 @@ static void opRSCimmS(uint32_t opcode)
 	uint32_t lhs, rhs, dest;
 
 	lhs = GETADDR(RN);
-	rhs = rotate2(opcode);
+	rhs = arm_imm(opcode);
 	dest = rhs - lhs - (CFSET ? 0 : 1);
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
@@ -784,7 +784,7 @@ static void opTSTimm(uint32_t opcode)
         if (RD==15)
         {
                 /* TSTP imm */
-                arm_compare_rd15(opcode, lhs & rotate2(opcode));
+                arm_compare_rd15(opcode, lhs & arm_imm(opcode));
         }
         else
         {
@@ -795,7 +795,7 @@ static void opTSTimm(uint32_t opcode)
 static void opMSRcimm(uint32_t opcode)
 {
 	if (RD == 15) {
-		arm_write_cpsr(opcode, rotate2(opcode));
+		arm_write_cpsr(opcode, arm_imm(opcode));
 	} else {
 		bad_opcode(opcode);
 	}
@@ -809,7 +809,7 @@ static void opTEQimm(uint32_t opcode)
         if (RD==15)
         {
                 /* TEQP imm */
-                arm_compare_rd15(opcode, lhs ^ rotate2(opcode));
+                arm_compare_rd15(opcode, lhs ^ arm_imm(opcode));
         }
         else
         {
@@ -822,7 +822,7 @@ static void opCMPimm(uint32_t opcode)
 	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
-        rhs = rotate2(opcode);
+        rhs = arm_imm(opcode);
         dest = lhs - rhs;
         if (RD==15)
         {
@@ -840,7 +840,7 @@ static void opCMNimm(uint32_t opcode)
 	uint32_t lhs, rhs, dest;
 
         lhs = GETADDR(RN);
-        rhs = rotate2(opcode);
+        rhs = arm_imm(opcode);
         dest = lhs + rhs;
         if (RD==15)
         {
@@ -855,7 +855,7 @@ static void opORRimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = GETADDR(RN) | rotate2(opcode);
+	dest = GETADDR(RN) | arm_imm(opcode);
 	arm_write_dest(opcode, dest);
 }
 
@@ -866,7 +866,7 @@ static void opORRimmS(uint32_t opcode)
         lhs = GETADDR(RN);
         if (RD==15)
         {
-                arm_write_r15(opcode, lhs | rotate2(opcode));
+                arm_write_r15(opcode, lhs | arm_imm(opcode));
         }
         else
         {
@@ -880,7 +880,7 @@ static void opMOVimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = rotate2(opcode);
+	dest = arm_imm(opcode);
 	arm_write_dest(opcode, dest);
 }
 
@@ -888,7 +888,7 @@ static void opMOVimmS(uint32_t opcode)
 {
         if (RD==15)
         {
-                arm_write_r15(opcode, rotate2(opcode));
+                arm_write_r15(opcode, arm_imm(opcode));
         }
         else
         {
@@ -901,7 +901,7 @@ static void opBICimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = GETADDR(RN) & ~rotate2(opcode);
+	dest = GETADDR(RN) & ~arm_imm(opcode);
 	arm_write_dest(opcode, dest);
 }
 
@@ -912,7 +912,7 @@ static void opBICimmS(uint32_t opcode)
         lhs = GETADDR(RN);
         if (RD==15)
         {
-                arm_write_r15(opcode, lhs & ~rotate2(opcode));
+                arm_write_r15(opcode, lhs & ~arm_imm(opcode));
         }
         else
         {
@@ -926,7 +926,7 @@ static void opMVNimm(uint32_t opcode)
 {
 	uint32_t dest;
 
-	dest = ~rotate2(opcode);
+	dest = ~arm_imm(opcode);
 	arm_write_dest(opcode, dest);
 }
 
@@ -934,7 +934,7 @@ static void opMVNimmS(uint32_t opcode)
 {
         if (RD==15)
         {
-                arm_write_r15(opcode, ~rotate2(opcode));
+                arm_write_r15(opcode, ~arm_imm(opcode));
         }
         else
         {
