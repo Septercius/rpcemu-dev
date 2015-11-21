@@ -1113,7 +1113,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (RN == 15) {
 			return 0;
 		}
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_decrement(opcode, offset);
 		gen_arm_store_multiple(opcode, offset);
 		break;
@@ -1125,7 +1125,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (RN == 15) {
 			return 0;
 		}
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_increment(opcode, offset);
 		gen_arm_store_multiple(opcode, offset);
 		break;
@@ -1137,7 +1137,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (RN == 15) {
 			return 0;
 		}
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_decrement(opcode, offset);
 		gen_arm_load_multiple(opcode, offset);
 		break;
@@ -1149,7 +1149,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		if (RN == 15) {
 			return 0;
 		}
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_increment(opcode, offset);
 		gen_arm_load_multiple(opcode, offset);
 		break;

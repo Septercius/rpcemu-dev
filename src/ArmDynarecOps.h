@@ -1299,7 +1299,7 @@ static int opSTMD(uint32_t opcode)
 {
 	uint32_t addr, offset, writeback;
 
-	offset = countbits(opcode & 0xffff);
+	offset = arm_ldm_stm_offset(opcode);
 	addr = arm.reg[RN] - offset;
 	writeback = addr;
 	if (!(opcode & (1 << 24))) {
@@ -1314,7 +1314,7 @@ static int opSTMI(uint32_t opcode)
 {
 	uint32_t addr, offset, writeback;
 
-	offset = countbits(opcode & 0xffff);
+	offset = arm_ldm_stm_offset(opcode);
 	addr = arm.reg[RN];
 	writeback = addr + offset;
 	if (opcode & (1 << 24)) {
@@ -1329,7 +1329,7 @@ static int opSTMDS(uint32_t opcode)
 {
 	uint32_t addr, offset, writeback;
 
-	offset = countbits(opcode & 0xffff);
+	offset = arm_ldm_stm_offset(opcode);
 	addr = arm.reg[RN] - offset;
 	writeback = addr;
 	if (!(opcode & (1 << 24))) {
@@ -1344,7 +1344,7 @@ static int opSTMIS(uint32_t opcode)
 {
 	uint32_t addr, offset, writeback;
 
-	offset = countbits(opcode & 0xffff);
+	offset = arm_ldm_stm_offset(opcode);
 	addr = arm.reg[RN];
 	writeback = addr + offset;
 	if (opcode & (1 << 24)) {
@@ -1359,7 +1359,7 @@ static int opLDMD(uint32_t opcode)
 {
 	uint32_t addr, offset, writeback;
 
-	offset = countbits(opcode & 0xffff);
+	offset = arm_ldm_stm_offset(opcode);
 	addr = arm.reg[RN] - offset;
 	writeback = addr;
 	if (!(opcode & (1 << 24))) {
@@ -1374,7 +1374,7 @@ static int opLDMI(uint32_t opcode)
 {
 	uint32_t addr, offset, writeback;
 
-	offset = countbits(opcode & 0xffff);
+	offset = arm_ldm_stm_offset(opcode);
 	addr = arm.reg[RN];
 	writeback = addr + offset;
 	if (opcode & (1 << 24)) {
@@ -1389,7 +1389,7 @@ static int opLDMDS(uint32_t opcode)
 {
 	uint32_t addr, offset, writeback;
 
-	offset = countbits(opcode & 0xffff);
+	offset = arm_ldm_stm_offset(opcode);
 	addr = arm.reg[RN] - offset;
 	writeback = addr;
 	if (!(opcode & (1 << 24))) {
@@ -1404,7 +1404,7 @@ static int opLDMIS(uint32_t opcode)
 {
 	uint32_t addr, offset, writeback;
 
-	offset = countbits(opcode & 0xffff);
+	offset = arm_ldm_stm_offset(opcode);
 	addr = arm.reg[RN];
 	writeback = addr + offset;
 	if (opcode & (1 << 24)) {
