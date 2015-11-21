@@ -68,7 +68,6 @@ extern int lastflagchange;
 #define MULRS ((opcode>>8)&0xF)
 #define MULRM (opcode&0xF)
 
-#define countbits(c) countbitstable[c]
 extern int countbitstable[65536];
 
 #define NFLAG 0x80000000

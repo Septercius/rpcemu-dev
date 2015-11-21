@@ -1929,7 +1929,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			return 0;
 		}
 		flagsdirty = 0;
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_decrement(opcode, offset);
 		gen_arm_store_multiple(opcode, offset);
 		break;
@@ -1942,7 +1942,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			return 0;
 		}
 		flagsdirty = 0;
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_decrement(opcode, offset);
 		gen_arm_store_multiple_s(opcode, offset);
 		break;
@@ -1955,7 +1955,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			return 0;
 		}
 		flagsdirty = 0;
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_increment(opcode, offset);
 		gen_arm_store_multiple(opcode, offset);
 		break;
@@ -1968,7 +1968,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			return 0;
 		}
 		flagsdirty = 0;
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_increment(opcode, offset);
 		gen_arm_store_multiple_s(opcode, offset);
 		break;
@@ -1981,7 +1981,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			return 0;
 		}
 		flagsdirty = 0;
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_decrement(opcode, offset);
 		gen_arm_load_multiple(opcode, offset);
 		break;
@@ -1994,7 +1994,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			return 0;
 		}
 		flagsdirty = 0;
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_decrement(opcode, offset);
 		gen_arm_load_multiple_s(opcode, offset);
 		break;
@@ -2007,7 +2007,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			return 0;
 		}
 		flagsdirty = 0;
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_increment(opcode, offset);
 		gen_arm_load_multiple(opcode, offset);
 		break;
@@ -2020,7 +2020,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 			return 0;
 		}
 		flagsdirty = 0;
-		offset = countbits(opcode & 0xffff);
+		offset = arm_ldm_stm_offset(opcode);
 		gen_arm_ldm_stm_increment(opcode, offset);
 		gen_arm_load_multiple_s(opcode, offset);
 		break;

@@ -378,5 +378,19 @@ arm_ldr_rotate(uint32_t value, uint32_t addr)
 	return (value >> rotate) | (value << (32 - rotate));
 }
 
+/**
+ * Calculate the offset (size) of a LDM/STM transfer.
+ *
+ * This is 4 bytes for each register being transferred.
+ *
+ * @param opcode Opcode of instruction being emulated
+ * @return Offset (size) of LDM/STM transfer
+ */
+static inline uint32_t
+arm_ldm_stm_offset(uint32_t opcode)
+{
+	return (uint32_t) countbitstable[opcode & 0xffff];
+}
+
 #endif
 

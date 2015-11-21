@@ -1727,7 +1727,7 @@ void execarm(int cycs)
 				case 0x82: /* STMDA ! */
 				case 0x90: /* STMDB */
 				case 0x92: /* STMDB ! */
-					offset = countbits(opcode & 0xffff);
+					offset = arm_ldm_stm_offset(opcode);
 					addr = arm.reg[RN] - offset;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
@@ -1741,7 +1741,7 @@ void execarm(int cycs)
 				case 0x8a: /* STMIA ! */
 				case 0x98: /* STMIB */
 				case 0x9a: /* STMIB ! */
-					offset = countbits(opcode & 0xffff);
+					offset = arm_ldm_stm_offset(opcode);
 					addr = arm.reg[RN];
 					writeback = addr + offset;
 					if (opcode & (1 << 24)) {
@@ -1755,7 +1755,7 @@ void execarm(int cycs)
 				case 0x86: /* STMDA ^! */
 				case 0x94: /* STMDB ^ */
 				case 0x96: /* STMDB ^! */
-					offset = countbits(opcode & 0xffff);
+					offset = arm_ldm_stm_offset(opcode);
 					addr = arm.reg[RN] - offset;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
@@ -1769,7 +1769,7 @@ void execarm(int cycs)
 				case 0x8e: /* STMIA ^! */
 				case 0x9c: /* STMIB ^ */
 				case 0x9e: /* STMIB ^! */
-					offset = countbits(opcode & 0xffff);
+					offset = arm_ldm_stm_offset(opcode);
 					addr = arm.reg[RN];
 					writeback = addr + offset;
 					if (opcode & (1 << 24)) {
@@ -1783,7 +1783,7 @@ void execarm(int cycs)
 				case 0x83: /* LDMDA ! */
 				case 0x91: /* LDMDB */
 				case 0x93: /* LDMDB ! */
-					offset = countbits(opcode & 0xffff);
+					offset = arm_ldm_stm_offset(opcode);
 					addr = arm.reg[RN] - offset;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
@@ -1797,7 +1797,7 @@ void execarm(int cycs)
 				case 0x8b: /* LDMIA ! */
 				case 0x99: /* LDMIB */
 				case 0x9b: /* LDMIB ! */
-					offset = countbits(opcode & 0xffff);
+					offset = arm_ldm_stm_offset(opcode);
 					addr = arm.reg[RN];
 					writeback = addr + offset;
 					if (opcode & (1 << 24)) {
@@ -1811,7 +1811,7 @@ void execarm(int cycs)
 				case 0x87: /* LDMDA ^! */
 				case 0x95: /* LDMDB ^ */
 				case 0x97: /* LDMDB ^! */
-					offset = countbits(opcode & 0xffff);
+					offset = arm_ldm_stm_offset(opcode);
 					addr = arm.reg[RN] - offset;
 					writeback = addr;
 					if (!(opcode & (1 << 24))) {
@@ -1825,7 +1825,7 @@ void execarm(int cycs)
 				case 0x8f: /* LDMIA ^! */
 				case 0x9d: /* LDMIB ^ */
 				case 0x9f: /* LDMIB ^! */
-					offset = countbits(opcode & 0xffff);
+					offset = arm_ldm_stm_offset(opcode);
 					addr = arm.reg[RN];
 					writeback = addr + offset;
 					if (opcode & (1 << 24)) {
