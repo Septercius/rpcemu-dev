@@ -612,6 +612,8 @@ void drawscr(int needredraw)
 void
 vidcthread(void)
 {
+	const uint32_t vidstart = thr.iomd_vidstart;
+	const uint32_t vidend = thr.iomd_vidend;
         uint32_t *vidp = NULL;
         uint16_t *vidp16 = NULL;
         int drawit=0;
@@ -682,7 +684,9 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=1;
-                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
+                                        }
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -731,7 +735,9 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=1;
-                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
+                                        }
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -783,9 +789,8 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)thr.iomd_vidend)
-                                        {
-                                                addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
                                         }
                                         if (!(addr&0xFFF))
                                         {
@@ -803,7 +808,6 @@ vidcthread(void)
                         break;
                         case 3: /*8 bpp*/
                         thr.vidc_xsize >>= 1;
-//                        rpclog("Start %08X End %08X Init %08X\n",thr.iomd_vidstart,thr.iomd_vidend,addr);
                         for (y = 0; y < thr.vidc_ysize; y++) {
                                 if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1)))
                                 {
@@ -835,8 +839,9 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)thr.iomd_vidend)
-                                           addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
+                                        }
                                         if (!(addr&0xFFF))
                                         {
                                                 int olddrawit=drawit;
@@ -882,7 +887,9 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
+                                        }
                                         if (!(addr&0xFFF))
                                         {
                                                 int olddrawit=drawit;
@@ -937,7 +944,9 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
+                                        }
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && thr.dirtybuffer[addr >> 12]) {
@@ -1002,7 +1011,9 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=1;
-                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
+                                        }
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -1050,7 +1061,9 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=1;
-                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
+                                        }
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -1107,7 +1120,9 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
+                                        }
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -1156,7 +1171,9 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
+                                        }
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -1209,7 +1226,9 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
+                                        }
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
@@ -1252,7 +1271,9 @@ vidcthread(void)
                                         }
                                         else
                                            addr+=16;
-                                        if (addr==(int)thr.iomd_vidend) addr=thr.iomd_vidstart;
+                                        if (addr == (int) vidend) {
+                                                addr = vidstart;
+                                        }
                                         if (!(addr&0xFFF))
                                         {
                                                 if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
