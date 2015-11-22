@@ -612,8 +612,8 @@ void drawscr(int needredraw)
 void
 vidcthread(void)
 {
-	const uint32_t vidstart = thr.iomd_vidstart;
-	const uint32_t vidend = thr.iomd_vidend;
+	const uint32_t vidstart = thr.iomd_vidstart & 0x7ffff0;
+	uint32_t vidend;
         uint32_t *vidp = NULL;
         uint16_t *vidp16 = NULL;
         int drawit=0;
@@ -630,9 +630,14 @@ vidcthread(void)
         if (b == NULL) abort();
 
 	if (thr.iomd_vidinit & 0x10000000) {
+		/* Using DRAM for video */
+		/* TODO video could be in DRAM other than simm 0 bank 0 */
 		ramp = (const uint8_t *) ram00;
+		vidend = (thr.iomd_vidend + 16) & 0x7ffff0;
 	} else {
+		/* Using VRAM for video */
 		ramp = (const uint8_t *) vram;
+		vidend = (thr.iomd_vidend + 2048) & 0x7ffff0;
 	}
         ramw = (const uint16_t *) ramp;
 
