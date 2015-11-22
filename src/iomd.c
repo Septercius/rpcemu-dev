@@ -497,28 +497,30 @@ iomd_write(uint32_t addr, uint32_t val)
                 // curchange=1;
                 return;
 
-        case IOMD_0x1D0_VIDCUR: /* Video DMA Current */
-                iomd.vidcur=val&0x7FFFFF;
-                // rpclog("Vidcur = %08X\n",val);
-                return;
-        case IOMD_0x1D4_VIDEND: /* Video DMA End */
-                if (config.vrammask)
-                        iomd.vidend = (val + 2048) & 0x7FFFF0;
-                else
-                        iomd.vidend = (val + 16) & 0x7FFFF0;
-                return;
-        case IOMD_0x1D8_VIDSTART: /* Video DMA Start */
-                iomd.vidstart=val&0x7FFFFF;
-                resetbuffer();
-                return;
-        case IOMD_0x1DC_VIDINIT: /* Video DMA Init */
-                iomd.vidinit=val;
-                resetbuffer();
-                return;
-        case IOMD_0x1E0_VIDCR: /* Video DMA Control */
-                iomd.vidcr=val;
-                resetbuffer();
-                return;
+	case IOMD_0x1D0_VIDCUR: /* Video DMA Current */
+		iomd.vidcur = val & 0x1ffffff0; /* Mask out bits ignored by IOMD */
+		return;
+	case IOMD_0x1D4_VIDEND: /* Video DMA End */
+		iomd.vidend = val & 0x1ffffff0; /* Mask out bits ignored by IOMD */
+		resetbuffer();
+		return;
+	case IOMD_0x1D8_VIDSTART: /* Video DMA Start */
+		iomd.vidstart = val & 0x1ffffff0; /* Mask out bits ignored by IOMD */
+		if (!((iomd.vidstart >= 0x02000000 && iomd.vidstart < 0x03000000)
+		   || (iomd.vidstart >= 0x10000000 && iomd.vidstart < 0x14000000)))
+		{
+			UNIMPLEMENTED("Video RAM location", "Video memory not in VRAM or RAM SIMM 0 bank 0 (0x%08x)", iomd.vidstart);
+		}
+		resetbuffer();
+		return;
+	case IOMD_0x1DC_VIDINIT: /* Video DMA Init */
+		iomd.vidinit = val & 0xfffffff0; /* Ignore bottom 4 bits (quad word aligned) */
+		resetbuffer();
+		return;
+	case IOMD_0x1E0_VIDCR: /* Video DMA Control */
+		iomd.vidcr = val;
+		resetbuffer();
+		return;
 
         case IOMD_0x1F0_DMAST: /* DMA interupt status */
         case IOMD_0x1F4_DMARQ: /* DMA interupt request */
@@ -742,12 +744,16 @@ iomd_read(uint32_t addr)
         case IOMD_0x194_SD0ST: /* Sound DMA 0 Status */
                 return iomd.sndstat;
 
-        case IOMD_0x1D4_VIDEND: /* Video DMA End */
-                return iomd.vidend&~15;
-        case IOMD_0x1D8_VIDSTART: /* Video DMA Start */
-                return iomd.vidstart&~15;
-        case IOMD_0x1E0_VIDCR: /* Video DMA Control */
-                return iomd.vidcr|0x50;
+	case IOMD_0x1D0_VIDCUR: /* Video DMA Current */
+		return iomd.vidcur;
+	case IOMD_0x1D4_VIDEND: /* Video DMA End */
+		return iomd.vidend;
+	case IOMD_0x1D8_VIDSTART: /* Video DMA Start */
+		return iomd.vidstart;
+	case IOMD_0x1DC_VIDINIT: /* Video DMA Init */
+		return iomd.vidinit;
+	case IOMD_0x1E0_VIDCR: /* Video DMA Control */
+		return iomd.vidcr | 0x50;
 
         case IOMD_0x1F0_DMAST: /* DMA interupt status */
                 return iomd.irqdma.status;
@@ -870,6 +876,12 @@ iomd_reset(IOMDType type)
 
 	/* Investigate further */
 	// iomd.ctrl = 0x0b; /* I/O Control, ID and I2C pins set as input */
+
+	/* The bottom 4 bits of these fields should be always 0 */
+	iomd.vidcur   = 0;
+	iomd.vidstart = 0;
+	iomd.vidend   = 0;
+	iomd.vidinit  = 0;
 
         soundcount=100000;
         iomd.t0.counter = 0xffff;

@@ -339,6 +339,7 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 		if (config.vrammask == 0)
 			return;
 		vram[(addr & config.vrammask) >> 2] = val;
+		dirtybuffer[(addr & config.vrammask) >> 12] = 1;
 		break;
 
 	case 0x03000000: /* IO */
@@ -402,9 +403,11 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 	case 0x12000000:
 	case 0x13000000:
 		ram00[(addr & mem_rammask) >> 2] = val;
-//		  if (config.vrammask == 0 && (addr & mem_rammask) < 0x100000)
-//			  dirtybuffer[(addr & mem_rammask) >> 12] = 1;
-//		  dirtybuffer[(addr & mem_rammask) >> 10] = 1;
+		/* TODO fff00000 only allows blocks on 1MB boundaries not 8MB/16MB
+		   this suggests writes to > 1MB inside video mem in dram mode aren't updating dirtybuffer */
+		if ((config.vrammask == 0) && ((addr & 0xfff00000) == (iomd.vidstart & 0xfff00000))) {
+			dirtybuffer[(addr & mem_rammask) >> 12] = 1;
+		}
 		return;
 
 	case 0x14000000: /* SIMM 0 bank 1 */
@@ -412,7 +415,6 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 	case 0x16000000:
 	case 0x17000000:
 		ram01[(addr & mem_rammask) >> 2] = val;
-//		  dirtybuffer[(addr & mem_rammask) >> 10] = 1;
 		return;
 
 	case 0x18000000: /* SIMM 1 bank 0 */
@@ -449,6 +451,7 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 		addr ^= 3;
 #endif
 		vramb[addr & config.vrammask] = val;
+		dirtybuffer[(addr & config.vrammask) >> 12] = 1;
 		return;
 
 	case 0x03000000: /* IO */
@@ -514,8 +517,11 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 		addr ^= 3;
 #endif
 		ramb00[addr & mem_rammask] = val;
-//		  if (config.vrammask == 0 && (addr & mem_rammask) < 0x100000)
-//			  dirtybuffer[(addr & mem_rammask) >> 12] = 1;
+		/* TODO fff00000 only allows blocks on 1MB boundaries not 8MB/16MB
+		   this suggests writes to > 1MB inside video mem in dram mode aren't updating dirtybuffer */
+		if ((config.vrammask == 0) && ((addr & 0xfff00000) == (iomd.vidstart & 0xfff00000))) {
+			dirtybuffer[(addr & mem_rammask) >> 12] = 1;
+		}
 		return;
 
 	case 0x14000000: /* SIMM 0 bank 1 */
@@ -526,7 +532,6 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 		addr ^= 3;
 #endif
 		ramb01[addr & mem_rammask] = val;
-//		  dirtybuffer[(addr & mem_rammask) >> 10] = 1;
 		return;
 
 	case 0x18000000: /* SIMM 1 bank 0 */
@@ -572,7 +577,6 @@ readmemfl(uint32_t addr)
 			return *(const uint32_t *) ((vraddrl[addr2 >> 12] & ~3) + (addr2 & ~3));
 
 		case 0x02000000: /* VRAM */
-			dirtybuffer[(addr & config.vrammask) >> 12] = 2;
 			vradd(addr2, &vram[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
 			return *(const uint32_t *) (vraddrl[addr2 >> 12] + (addr2 & ~3));
 
@@ -676,7 +680,6 @@ readmemfb(uint32_t addr)
 			return *(const uint8_t *) ((vraddrl[addr2 >> 12] & ~3) + addr2);
 
 		case 0x02000000: /* VRAM */
-			dirtybuffer[(addr & config.vrammask) >> 12] = 2;
 			vradd(addr2, &vram[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
 			addr2 ^= 3;
@@ -744,14 +747,10 @@ writememfl(uint32_t addr, uint32_t val)
 		}
 		switch (writememcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
-			dirtybuffer[(addr & config.vrammask) >> 12] = 2;
 			vwadd(addr2, &vram[((writememcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
 			break;
 
 		case 0x10000000: /* SIMM 0 bank 0 */
-			if ((config.vrammask == 0) && (addr & (phys_space_mask & 0xfff00000)) == 0x10000000) {
-				dirtybuffer[(addr & mem_rammask) >> 12] = 2;
-			}
 		case 0x11000000:
 		case 0x12000000:
 		case 0x13000000:
@@ -803,14 +802,10 @@ writememfb(uint32_t addr, uint8_t val)
 		}
 		switch (writemembcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
-			dirtybuffer[(addr & config.vrammask) >> 12] = 2;
 			vwadd(addr2, &vram[((writemembcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
 			break;
 
 		case 0x10000000: /* SIMM 0 bank 0 */
-			if ((config.vrammask == 0) && (addr & (phys_space_mask & 0xfff00000)) == 0x10000000) {
-				dirtybuffer[(addr & mem_rammask) >> 12] = 2;
-			}
 		case 0x11000000:
 		case 0x12000000:
 		case 0x13000000:
