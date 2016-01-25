@@ -577,8 +577,11 @@ readmemfl(uint32_t addr)
 			return *(const uint32_t *) ((vraddrl[addr2 >> 12] & ~3) + (addr2 & ~3));
 
 		case 0x02000000: /* VRAM */
-			vradd(addr2, &vram[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
-			return *(const uint32_t *) (vraddrl[addr2 >> 12] + (addr2 & ~3));
+			if (config.vrammask != 0) {
+				vradd(addr2, &vram[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
+				return *(const uint32_t *) (vraddrl[addr2 >> 12] + (addr2 & ~3));
+			}
+			break;
 
 		case 0x10000000: /* SIMM 0 bank 0 */
 		case 0x11000000:
@@ -614,7 +617,9 @@ readmemfl(uint32_t addr)
 			//vradd(addr, &rom[((addr & 0x7ff000) - (long) (addr & ~0xfff)) >> 2], 2, addr);
 			break;
 		case 0x02000000: /* VRAM */
-			vradd(addr, &vram[((addr & 0x7ff000) - (long) (addr & ~0xfff)) >> 2], 0, addr);
+			if (config.vrammask != 0) {
+				vradd(addr, &vram[((addr & 0x7ff000) - (long) (addr & ~0xfff)) >> 2], 0, addr);
+			}
 			break;
 		case 0x10000000: /* SIMM 0 bank 0 */
 		case 0x11000000:
@@ -675,11 +680,14 @@ readmemfb(uint32_t addr)
 			return *(const uint8_t *) ((vraddrl[addr2 >> 12] & ~3) + addr2);
 
 		case 0x02000000: /* VRAM */
-			vradd(addr2, &vram[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
+			if (config.vrammask != 0) {
+				vradd(addr2, &vram[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
-			addr2 ^= 3;
+				addr2 ^= 3;
 #endif
-			return *(const uint8_t *) (vraddrl[addr2 >> 12] + addr2);
+				return *(const uint8_t *) (vraddrl[addr2 >> 12] + addr2);
+			}
+			break;
 
 		case 0x10000000: /* SIMM 0 bank 0 */
 		case 0x11000000:
@@ -743,7 +751,9 @@ writememfl(uint32_t addr, uint32_t val)
 		}
 		switch (writememcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
-			vwadd(addr2, &vram[((writememcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
+			if (config.vrammask != 0) {
+				vwadd(addr2, &vram[((writememcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
+			}
 			break;
 
 		case 0x10000000: /* SIMM 0 bank 0 */
@@ -798,7 +808,9 @@ writememfb(uint32_t addr, uint8_t val)
 		}
 		switch (writemembcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
-			vwadd(addr2, &vram[((writemembcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
+			if (config.vrammask != 0) {
+				vwadd(addr2, &vram[((writemembcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
+			}
 			break;
 
 		case 0x10000000: /* SIMM 0 bank 0 */
