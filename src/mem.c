@@ -606,10 +606,7 @@ readmemfl(uint32_t addr)
 				vradd(addr2, &ram1[((readmemcache2 & 0x7ffffff) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
 				return *(const uint32_t *) (vraddrl[addr2 >> 12] + (addr2 & ~3));
 			}
-			/* Fall-through */
-
-		default:
-			vraddrl[addr2 >> 12] = 0xffffffff;
+			break;
 		}
 	} else {
 		switch (addr & (phys_space_mask & 0xff000000)) {
@@ -642,9 +639,7 @@ readmemfl(uint32_t addr)
 			if (ram1 != NULL) {
 				vradd(addr, &ram1[((addr & 0x7ffffff & ~0xfff) - (long) (addr & ~0xfff)) >> 2], 0, addr);
 			}
-			/* Fall-through */
-		default:
-			vraddrl[addr >> 12] = 0xffffffff;
+			break;
 		}
 	}
 	/* At this point 'addr' is a physical address */
@@ -721,6 +716,7 @@ readmemfb(uint32_t addr)
 #endif
 				return *(const uint8_t *) (vraddrl[addr2 >> 12] + addr2);
 			}
+			break;
 		}
 	}
 	/* At this point 'addr' is a physical address */
