@@ -43,7 +43,6 @@ OBJS =	arm_common.o \
 	vidc20.o    \
 	rpc-machdep.o \
 	win\cdrom-ioctl.o \
-	win\podules-win.o \
 	win\network-win.o \
 	win\tap-win32.o \
 	win\rpc-win.o   \
