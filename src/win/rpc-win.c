@@ -25,7 +25,6 @@
 #include "cmos.h"
 #include "cp15.h"
 #include "fdc.h"
-#include "podules-win.h"
 #include "cdrom-iso.h"
 #include "cdrom-ioctl.h"
 #include "network.h"
@@ -527,9 +526,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         /* Initialise the emulation and read the config file */
         if (startrpcemu())
            return -1;
-
-        /* Initialise the podules */
-        opendlls();
 
         /* Based on the contents of config file, dynamically update the Windows GUI items */
         if (config.cdromtype > 2) {
