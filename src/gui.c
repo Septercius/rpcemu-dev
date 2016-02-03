@@ -696,32 +696,32 @@ model_listbox(int index, int *list_size)
 #define CX 0
 /* This array must be kept in sync with the CONF_ defines above */
 static DIALOG configuregui[] = {
-	{ d_shadow_box_proc, 0, 0, 37*8, 35*8, 0,-1,0,0, 0,0,0,0,0 }, // 0
+	{ d_shadow_box_proc, 0, 0, 63*8, 35*8, 0,-1,0,0, 0,0,0,0,0 }, // 0
 
 	{ d_text_proc,   2*8, 2*8, 84, 16, 0,-1,0,0, 0, 0,"Hardware:",0,0 }, // 1
-	{ d_list_proc,   3*8, 4*8, 22*8, 12*8, 0,0xffffff,0,0, 0, 0, model_listbox, NULL, NULL },  // 2
+	{ d_list_proc,   3*8, 4*8, 34*8, 12*8, 0,0xffffff,0,0, 0, 0, model_listbox, NULL, NULL },  // 2
 
-	{ d_text_proc,  27*8,  2*8, 40, 16, 0,-1,0,0, 0, 0,"RAM:",0,0 }, // 3
-	{ d_radio_proc, 28*8,  3*8, 36, 16, 0,-1,0,0, 1, 0,"4MB",0,0 }, // 4
-	{ d_radio_proc, 28*8,  5*8, 36, 16, 0,-1,0,0, 1, 0,"8MB",0,0 }, // 5
-	{ d_radio_proc, 28*8,  7*8, 44, 16, 0,-1,0,0, 1, 0,"16MB",0,0 }, // 6
-	{ d_radio_proc, 28*8,  9*8, 44, 16, 0,-1,0,0, 1, 0,"32MB",0,0 }, // 7
-	{ d_radio_proc, 28*8, 11*8, 44, 16, 0,-1,0,0, 1, 0,"64MB",0,0 }, // 8
-	{ d_radio_proc, 28*8, 13*8, 52, 16, 0,-1,0,0, 1, 0,"128MB",0,0 }, // 9
-	{ d_radio_proc, 28*8, 15*8, 52, 16, 0,-1,0,0, 1, 0,"256MB",0,0 }, // 10
+	{ d_text_proc,  39*8,  2*8, 40, 16, 0,-1,0,0, 0, 0,"RAM:",0,0 }, // 3
+	{ d_radio_proc, 40*8,  3*8, 36, 16, 0,-1,0,0, 1, 0,"4MB",0,0 }, // 4
+	{ d_radio_proc, 40*8,  5*8, 36, 16, 0,-1,0,0, 1, 0,"8MB",0,0 }, // 5
+	{ d_radio_proc, 40*8,  7*8, 44, 16, 0,-1,0,0, 1, 0,"16MB",0,0 }, // 6
+	{ d_radio_proc, 40*8,  9*8, 44, 16, 0,-1,0,0, 1, 0,"32MB (recommended)",0,0 }, // 7
+	{ d_radio_proc, 40*8, 11*8, 44, 16, 0,-1,0,0, 1, 0,"64MB (recommended)",0,0 }, // 8
+	{ d_radio_proc, 40*8, 13*8, 52, 16, 0,-1,0,0, 1, 0,"128MB (recommended)",0,0 }, // 9
+	{ d_radio_proc, 40*8, 15*8, 52, 16, 0,-1,0,0, 1, 0,"256MB",0,0 }, // 10
 
 	{ d_text_proc,   2*8, 18*8, 52, 16, 0,-1,0,0, 0, 0,"VRAM:",0,0 }, // 11
 	{ d_radio_proc,  3*8, 19*8, 44, 16, 0,-1,0,0, 2, 0,"None",0,0 }, // 12
-	{ d_radio_proc,  3*8, 21*8, 36, 16, 0,-1,0,0, 2, 0,"2MB",0,0 }, // 13
+	{ d_radio_proc,  3*8, 21*8, 36, 16, 0,-1,0,0, 2, 0,"2MB (8MB if OS supported)",0,0 }, // 13
 
-	{ d_check_proc, 26*8, 19*8, 52, 16, 0,-1,0,D_DISABLED,1,0, "Sound",0,0 }, // 14
+	{ d_check_proc, 38*8, 19*8, 52, 16, 0,-1,0,D_DISABLED,1,0, "Sound",0,0 }, // 14
 
 	{ d_text_proc,    2*8, 25*8,   40,  8, 0,-1,0,0,0,0,"Video refresh rate:",0,0 }, // 15
 	{ d_slider_proc,  3*8, 27*8,  192, 16, 0,-1,0,0,80/5,0,NULL,hzcallback,0 }, // 16
 	{ d_text_proc,   28*8, 27*8+5, 40,  8, 0,-1,0,0,0,0,NULL,0,0 }, // 17
 
-	{ d_button_proc, 10*8, 31*8, 64, 16, 0,-1,0,D_EXIT,0,0,"OK",0,0 }, // 18
-	{ d_button_proc, 20*8, 31*8, 64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0 }, // 19
+	{ d_button_proc, 23*8, 31*8, 64, 16, 0,-1,0,D_EXIT,0,0,"OK",0,0 }, // 18
+	{ d_button_proc, 33*8, 31*8, 64, 16, 0,-1,0,D_EXIT,0,0,"Cancel",0,0 }, // 19
 
 	{ NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL }
 };
