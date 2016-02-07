@@ -15,6 +15,57 @@
 
 #define ROM_WEB_SITE_STRING "For information on how to acquire ROM images please visit\n" ROM_WEB_SITE
 
+typedef struct {
+	uint32_t	addr_data;	///< Address to try matching data
+	uint32_t	data[4];	///< Data that must match
+	uint32_t	addr_replace;	///< Address of replacement data
+	uint32_t	replace;	///< Replacement data
+	const char	*comment;	///< Comment that will be added to logfile
+} rom_patch_t;
+
+static const rom_patch_t rom_patch[] = {
+	// Patching for 8MB VRAM
+	{ 0x138c0, { 0xe3a00402, 0xe2801004, 0xeb000128, 0x03a06002 }, 0x138cc, 0x03a06008, "8MB VRAM RISC OS 3.50" },
+	{ 0x1411c, { 0xe3a00402, 0xe2801004, 0xeb000122, 0x03a06002 }, 0x14128, 0x03a06008, "8MB VRAM RISC OS 3.60" },
+	{ 0x15874, { 0xe3a00402, 0xe2801004, 0xeb000143, 0x03a06002 }, 0x15880, 0x03a06008, "8MB VRAM RISC OS 3.70" },
+	{ 0x15898, { 0xe3a00402, 0xe2801004, 0xeb000143, 0x03a06002 }, 0x158a4, 0x03a06008, "8MB VRAM RISC OS 3.71" },
+	{ 0x14744, { 0xe3a00402, 0xe2801004, 0xeb000148, 0x03a06002 }, 0x14750, 0x03a06008, "8MB VRAM RISC OS 4.02" },
+	{ 0x148e8, { 0xe3a00402, 0xe2801004, 0xeb0001ae, 0x03a06002 }, 0x148f4, 0x03a06008, "8MB VRAM RISC OS 4.04" },
+	{ 0x14150, { 0xe3a00402, 0xe2801004, 0xeb0001ad, 0x03a06002 }, 0x1415c, 0x03a06008, "8MB VRAM RISC OS 4.29" },
+	{ 0x1473c, { 0xe3a00402, 0xe2801004, 0xeb0001ad, 0x03a06002 }, 0x14748, 0x03a06008, "8MB VRAM RISC OS 4.33" },
+	{ 0xe504,  { 0xe3a00402, 0xe2801004, 0xeb0001ad, 0x03a06002 }, 0xe510,  0x03a06008, "8MB VRAM RISC OS 4.37" },
+	{ 0xe248,  { 0xe3a00402, 0xe2801004, 0xeb0001ae, 0x03a06002 }, 0xe254,  0x03a06008, "8MB VRAM RISC OS 4.39" },
+	{ 0x8a764, { 0xe1a00001, 0xe2801004, 0xeb00000d, 0x03a06002 }, 0x8a770, 0x03a06008, "8MB VRAM RISC OS 6.02" },
+};
+
+/**
+ * Scan through the table of ROM patches, looking for a match with the current
+ * ROM. If a match is found, make the required change and log the patch name.
+ */
+static void
+romload_patch(void)
+{
+	const rom_patch_t *p;
+	int i;
+
+	for (i = 0, p = rom_patch; i < sizeof(rom_patch) / sizeof(rom_patch[0]); i++, p++) {
+		uint32_t addr = p->addr_data;
+		const uint32_t *data = p->data;
+
+		if (rom[addr >> 2] == data[0] &&
+		    rom[(addr + 4) >> 2] == data[1] &&
+		    rom[(addr + 8) >> 2] == data[2] &&
+		    rom[(addr + 12) >> 2] == data[3])
+		{
+			// Patch the data
+			rom[p->addr_replace >> 2] = p->replace;
+
+			// Log the patch
+			rpclog("romload: ROM patch applied: %s\n", p->comment);
+		}
+	}
+}
+
 /**
  * qsort comparison function for alphabetical sorting of
  *  C char *pointers. From the qsort() manpage
@@ -150,15 +201,8 @@ void loadroms(void)
 	}
 #endif
 
-	/* Patch ROM for 8MB VRAM */
-	/* (RISC OS 4.02) */
-	if (rom[0x14744 >> 2] == 0xe3a00402 &&
-	    rom[0x14748 >> 2] == 0xe2801004 &&
-	    rom[0x1474c >> 2] == 0xeb000148 &&
-	    rom[0x14750 >> 2] == 0x03a06002)
-	{
-		rom[0x14750 >> 2] = 0x03a06008; /* MOVEQ r6, #8 */
-	}
+	/* Patch ROM  */
+	romload_patch();
 
 	/* Patch Netstation versions of NCOS to bypass the results of the POST that we currently fail */
 	/* NCOS 0.10 */
