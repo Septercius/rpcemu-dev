@@ -344,12 +344,12 @@ opSWPword(uint32_t opcode)
 		if (RD != 15) {
 			addr = GETADDR(RN);
 			templ = GETREG(RM);
-			dest = readmeml(addr);
+			dest = readmeml(addr & ~3u);
 			if (armirq & 0x40) {
 				return 1;
 			}
 			dest = arm_ldr_rotate(dest, addr);
-			writememl(addr, templ);
+			writememl(addr & ~3u, templ);
 			if (armirq & 0x40) {
 				return 1;
 			}
