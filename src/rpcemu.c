@@ -518,7 +518,7 @@ loadconfig(void)
 	model = Model_RPCARM710;
 	if (p != NULL) {
 		for (i = 0; i < Model_MAX; i++) {
-			if (stricmp(p, models[i].name_config) == 0) {
+			if (strcasecmp(p, models[i].name_config) == 0) {
 				model = i;
 				break;
 			}
@@ -552,11 +552,11 @@ loadconfig(void)
 	p = get_config_string(NULL, "network_type", NULL);
 	if (!p) {
 		config.network_type = NetworkType_Off;
-	} else if (!stricmp(p, "off")) {
+	} else if (!strcasecmp(p, "off")) {
 		config.network_type = NetworkType_Off;
-	} else if (!stricmp(p, "iptunnelling")) {
+	} else if (!strcasecmp(p, "iptunnelling")) {
 		config.network_type = NetworkType_IPTunnelling;
-	} else if (!stricmp(p, "ethernetbridging")) {
+	} else if (!strcasecmp(p, "ethernetbridging")) {
 		config.network_type = NetworkType_EthernetBridging;
 	} else {
 		rpclog("Unknown network_type '%s', defaulting to off\n", p);

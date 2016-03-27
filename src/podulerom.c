@@ -96,7 +96,7 @@ initpodulerom(void)
         {
                 const char *ext = get_extension(ff.name);
                 /* Skip files with a .txt extension or starting with '.' */
-                if (stricmp(ext, "txt") && ff.name[0] != '.') {
+                if (strcasecmp(ext, "txt") && ff.name[0] != '.') {
                         strcpy(romfns[file++], ff.name);
                 }
                 finished = al_findnext(&ff);

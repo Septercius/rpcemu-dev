@@ -114,8 +114,7 @@ void loadroms(void)
         {
                 const char *ext = get_extension(ff.name);
                 /* Skip files with a .txt extension or starting with '.' */
-                if (stricmp(ext,"txt") && ff.name[0] != '.')
-                {
+                if (strcasecmp(ext, "txt") && ff.name[0] != '.') {
                         romfilenames[number_of_files] = strdup(ff.name);
                         if (romfilenames[number_of_files] == NULL) {
                                 fatal("Out of memory in loadroms()");
