@@ -10,8 +10,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include <allegro.h>
-
 #include "rpcemu.h"
 #include "mem.h"
 #include "romload.h"
@@ -115,7 +113,7 @@ void loadroms(void)
 	dir = opendir(romdirectory);
 	if (dir != NULL) {
 		while ((d = readdir(dir)) != NULL && number_of_files < MAXROMS) {
-			const char *ext = get_extension(d->d_name);
+			const char *ext = rpcemu_file_get_extension(d->d_name);
 			char filepath[512];
 			struct stat buf;
 

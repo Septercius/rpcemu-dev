@@ -663,3 +663,27 @@ rpcemu_floppy_load(int drive, const char *filename)
 	strncpy(discname[drive], filename, 260);
 	fdc_adf_load(discname[drive], drive);
 }
+
+/**
+ * Find a filename's extension (bit after the .)
+ *
+ * @param filename string to check
+ * @returns pointer to first char in extension, or pointer to
+ *          null terminator (empty string) if no extension found
+ */
+const char *
+rpcemu_file_get_extension(const char *filename)
+{
+	const char *position;
+
+	assert(filename);
+
+	position = strrchr(filename, '.');
+	if (position == NULL) {
+		/* No extension, return empty string */
+		return &filename[strlen(filename)];
+	} else {
+		/* Found extension */
+		return position + 1;
+	}
+}

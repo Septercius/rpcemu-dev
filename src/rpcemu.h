@@ -191,6 +191,7 @@ extern void resetrpc(void);
 extern void rpcemu_floppy_load(int drive, const char *filename);
 extern void rpclog(const char *format, ...);
 extern void rpcemu_model_changed(Model model);
+extern const char *rpcemu_file_get_extension(const char *filename);
 
 extern int mousecapture;
 extern int drawscre;
