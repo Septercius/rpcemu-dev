@@ -1,9 +1,17 @@
 /*RPCemu v0.6 by Tom Walker
   ROM loader*/
+#include <errno.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <allegro.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include <allegro.h>
+
 #include "rpcemu.h"
 #include "mem.h"
 #include "romload.h"
@@ -91,39 +99,44 @@ static int cmpstringp(const void *p1, const void *p2)
  */
 void loadroms(void)
 {
-        int finished;
         int number_of_files = 0;
         int c;
         int pos = 0;
-        struct al_ffblk ff;
-        const char *wildcard = "*.*";
         const char *dirname = "roms";
         char *romfilenames[MAXROMS];
 	char romdirectory[512];
-	char searchwildcard[512];
+	DIR *dir;
+	const struct dirent *d;
 
 	/* Build rom directory path */
 	snprintf(romdirectory, sizeof(romdirectory), "%s%s/", rpcemu_get_datadir(), dirname);
 
-	/* Build a search string */
-	snprintf(searchwildcard, sizeof(searchwildcard), "%s%s", romdirectory, wildcard);
+	/* Scan directory for ROM files */
+	dir = opendir(romdirectory);
+	if (dir != NULL) {
+		while ((d = readdir(dir)) != NULL && number_of_files < MAXROMS) {
+			const char *ext = get_extension(d->d_name);
+			char filepath[512];
+			struct stat buf;
 
-        /* Scan directory for ROM files */
-        finished = al_findfirst(searchwildcard, &ff, 0xffff & ~FA_DIREC);
-        while (!finished && number_of_files < MAXROMS)
-        {
-                const char *ext = get_extension(ff.name);
-                /* Skip files with a .txt extension or starting with '.' */
-                if (strcasecmp(ext, "txt") && ff.name[0] != '.') {
-                        romfilenames[number_of_files] = strdup(ff.name);
-                        if (romfilenames[number_of_files] == NULL) {
-                                fatal("Out of memory in loadroms()");
-                        }
-                        number_of_files++;
-                }
-                finished = al_findnext(&ff);
-        }
-        al_findclose(&ff);
+			snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, d->d_name);
+
+			if (stat(filepath, &buf) == 0) {
+				/* Skip directories or files with a .txt extension or starting with '.' */
+				if (S_ISREG(buf.st_mode) && (strcasecmp(ext, "txt") != 0) && d->d_name[0] != '.') {
+					romfilenames[number_of_files] = strdup(d->d_name);
+					if (romfilenames[number_of_files] == NULL) {
+						fatal("Out of memory in loadroms()");
+					}
+					number_of_files++;
+				}
+			}
+		}
+		closedir(dir);
+	} else {
+		fatal("Could not open ROM files directory '%s': %s\n",
+		      romdirectory, strerror(errno));
+	}
 
         /* Empty directory? or only .txt files? */
         if (number_of_files == 0) {
