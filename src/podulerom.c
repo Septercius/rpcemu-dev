@@ -1,5 +1,15 @@
+#include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <allegro.h>
+
 #include "rpcemu.h"
 #include "podules.h"
 #include "podulerom.h"
@@ -75,34 +85,42 @@ podulerom_reset(void)
 void
 initpodulerom(void)
 {
-        int finished=0;
         int file=0;
-        struct al_ffblk ff;
         int i;
 	char romdirectory[512];
-	char searchwildcard[512];
+	DIR *dir;
+	const struct dirent *d;
 
 	/* Build podulerom directory path */
 	snprintf(romdirectory, sizeof(romdirectory), "%spoduleroms/", rpcemu_get_datadir());
 
-	/* Build a search string */
-	snprintf(searchwildcard, sizeof(searchwildcard), "%s*.*", romdirectory);
-
         if (podulerom) free(podulerom);
         poduleromsize = 0;
 
-        finished = al_findfirst(searchwildcard, &ff, FA_ALL & ~FA_DIREC);
-        while (!finished && file < MAXROMS)
-        {
-                const char *ext = get_extension(ff.name);
-                /* Skip files with a .txt extension or starting with '.' */
-                if (strcasecmp(ext, "txt") && ff.name[0] != '.') {
-                        strcpy(romfns[file++], ff.name);
-                }
-                finished = al_findnext(&ff);
-        }
-        al_findclose(&ff);
+	/* Scan directory for podule files */
+	dir = opendir(romdirectory);
+	if (dir != NULL) {
+		while ((d = readdir(dir)) != NULL && file < MAXROMS) {
+			const char *ext = get_extension(d->d_name);
+			char filepath[512];
+			struct stat buf;
 
+			snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, d->d_name);
+
+			if (stat(filepath, &buf) == 0) {
+				/* Skip directories or files with a .txt extension or starting with '.' */
+				if (S_ISREG(buf.st_mode) && (strcasecmp(ext, "txt") != 0) && d->d_name[0] != '.') {
+					strcpy(romfns[file++], d->d_name);
+				}
+			}
+		}
+		closedir(dir);
+	} else {
+		rpclog("Could not open podulerom directory '%s': %s\n",
+		      romdirectory, strerror(errno));
+	}
+
+	/* Build podulerom header */
         chunkbase = 0x10;
         filebase = chunkbase + 8 * file + 8;
         poduleromsize = filebase + ((sizeof(description)+3) &~3); /* Word align description string */
@@ -123,6 +141,7 @@ initpodulerom(void)
         makechunk(0xF5, filebase, sizeof(description)); /* F = Device Data, 5 = description */
         filebase+=(sizeof(description)+3)&~3;
 
+	/* Add each file into the podule's rom */
         for (i=0;i<file;i++)
         {
                 FILE *f;
