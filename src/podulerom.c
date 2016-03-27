@@ -8,8 +8,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include <allegro.h>
-
 #include "rpcemu.h"
 #include "podules.h"
 #include "podulerom.h"
@@ -101,7 +99,7 @@ initpodulerom(void)
 	dir = opendir(romdirectory);
 	if (dir != NULL) {
 		while ((d = readdir(dir)) != NULL && file < MAXROMS) {
-			const char *ext = get_extension(d->d_name);
+			const char *ext = rpcemu_file_get_extension(d->d_name);
 			char filepath[512];
 			struct stat buf;
 
