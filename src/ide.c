@@ -13,8 +13,6 @@ void callbackide(void);
 
 #include <sys/types.h>
 
-#include <allegro.h>
-
 #include "rpcemu.h"
 #include "vidc20.h"
 #include "mem.h"
@@ -291,11 +289,12 @@ ide_next_sector(void)
 	}
 }
 
-static void loadhd(int d, const char *fn)
+static void
+loadhd(int d, const char *filename)
 {
 	char pathname[512];
 
-	append_filename(pathname, rpcemu_get_datadir(), fn, 512);
+	snprintf(pathname, sizeof(pathname), "%s%s", rpcemu_get_datadir(), filename);
 
 	if (ide.hdfile[d] == NULL) {
 		/* Try to open existing hard disk image */

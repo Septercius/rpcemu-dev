@@ -5,11 +5,12 @@
   Includes code from Softgun by Jochen Karrer used under the terms of the
   GPLv2.
 */
+#include <errno.h>
 #include <stdint.h>
-#include <allegro.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
 #include "rpcemu.h"
 #include "cmos.h"
 
@@ -155,7 +156,7 @@ loadcmos(void)
         FILE *cmosf;
 
         /* Append "cmos.ram" to the given executable path */
-        append_filename(fn, rpcemu_get_datadir(), "cmos.ram", sizeof(fn) - 1);
+	snprintf(fn, sizeof(fn), "%scmos.ram", rpcemu_get_datadir());
         cmosf = fopen(fn, "rb");
 
         if (cmosf) {
@@ -192,7 +193,7 @@ savecmos(void)
         char fn[512];
         FILE *cmosf;
 
-        append_filename(fn, rpcemu_get_datadir(), "cmos.ram", sizeof(fn) - 1);
+	snprintf(fn, sizeof(fn), "%scmos.ram", rpcemu_get_datadir());
         cmosf = fopen(fn, "wb");
 
         if (cmosf) {

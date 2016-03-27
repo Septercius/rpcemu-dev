@@ -35,7 +35,6 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <stdint.h>
-#include <allegro.h>
 
 #include "arm.h"
 #include "mem.h"
@@ -2147,7 +2146,7 @@ hostfs_init(void)
 {
   int c;
 
-  append_filename(HOSTFS_ROOT, rpcemu_get_datadir(), "hostfs", 511);
+  snprintf(HOSTFS_ROOT, sizeof(HOSTFS_ROOT), "%shostfs", rpcemu_get_datadir());
   for (c = 0; c < 511; c++) {
     if (HOSTFS_ROOT[c] == '\\') {
       HOSTFS_ROOT[c] = '/';

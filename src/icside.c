@@ -1,5 +1,6 @@
 #include <stdio.h>
-#include <allegro.h>
+#include <string.h>
+
 #include "rpcemu.h"
 #include "podules.h"
 #include "ide.h"
@@ -59,7 +60,8 @@ void initics(void)
 {
 /*        FILE *f;
         char fn[512];
-        append_filename(fn, rpcemu_get_datadir(), "zidefs", sizeof(fn));
+
+	snprintf(fn, sizeof(fn), "%szidefs", rpcemu_get_datadir());
         f=fopen(fn,"rb");
         if (!f)
         {
