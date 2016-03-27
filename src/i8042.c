@@ -10,8 +10,8 @@
 */
 #include <assert.h>
 #include <stdint.h>
-#include <allegro.h>
 #include <stdio.h>
+
 #include "rpcemu.h"
 #include "iomd.h"
 #include "superio.h"

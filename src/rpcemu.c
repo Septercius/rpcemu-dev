@@ -469,13 +469,13 @@ rpcemu_model_changed(Model model)
 static void
 loadconfig(void)
 {
-        char fn[512];
-        const char *p;
+	char filename[512];
+	const char *p;
 	Model model;
 	int i;
 
-	append_filename(fn, rpcemu_get_datadir(), "rpc.cfg", 511);
-        set_config_file(fn);
+	snprintf(filename, sizeof(filename), "%srpc.cfg", rpcemu_get_datadir());
+	set_config_file(filename);
 
 	/* Copy the contents of the configfile to the log */
 	{
