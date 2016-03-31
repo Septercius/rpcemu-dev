@@ -16,27 +16,12 @@ extern void mem_reset(uint32_t ramsize);
 
 extern unsigned long *vraddrl;
 extern uint32_t vraddrls[1024],vraddrphys[1024];
-//#define readmeml(a) readmemfl(a)
-
-#define readmeml(a) ((vraddrl[(a)>>12]&1)?readmemfl(a):*(uint32_t *)(/*(int32_t)*/(a)+(vraddrl[(a)>>12])))
-#ifdef _RPCEMU_BIG_ENDIAN
-	#define readmemb(a) ((vraddrl[(a)>>12]&1)?readmemfb(a):*(unsigned char *)(((a)^3)+(vraddrl[(a)>>12])))
-#else
-	#define readmemb(a) ((vraddrl[(a)>>12]&1)?readmemfb(a):*(unsigned char *)((a)+(vraddrl[(a)>>12])))
-#endif
 
 extern unsigned long *vwaddrl;
 extern uint32_t vwaddrls[1024],vwaddrphys[1024];
 
 //uint8_t pagedirty[0x1000];
-//#define writememb(a,v) writememfb(a,v)
 #define HASH(l) (((l)>>2)&0x7FFF)
-#define writememl(a,v) if (vwaddrl[(a)>>12]&3) writememfl(a,v); else { *(uint32_t *)(/*(int32_t)*/(a)+vwaddrl[(a)>>12])=v; }
-#ifdef _RPCEMU_BIG_ENDIAN
-	#define writememb(a,v) if (vwaddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)(((a)^3)+vwaddrl[(a)>>12])=v; }
-#else
-	#define writememb(a,v) if (vwaddrl[(a)>>12]&3) writememfb(a,v); else { *(unsigned char *)((a)+vwaddrl[(a)>>12])=v; }
-#endif
 
 #define ROMSIZE (8*1024*1024)
 
@@ -51,5 +36,85 @@ extern int mmu,memmode;
 extern void cacheclearpage(uint32_t a);
 
 extern uint32_t mem_rammask;
+
+/**
+ * Read a 32-bit word from a virtual address.
+ *
+ * Performs direct access if possible.
+ *
+ * @param addr Virtual address
+ * @return 32-bit word read from given virtual address
+ */
+static inline uint32_t
+readmeml(uint32_t addr)
+{
+	if (vraddrl[addr >> 12] & 1) {
+		return readmemfl(addr);
+	} else {
+		return *((const uint32_t *) (addr + vraddrl[addr >> 12]));
+	}
+}
+
+/**
+ * Read a byte from a virtual address.
+ *
+ * Performs direct access if possible.
+ *
+ * @param addr Virtual address
+ * @return Byte read from given virtual address
+ */
+static inline uint32_t
+readmemb(uint32_t addr)
+{
+	if (vraddrl[addr >> 12] & 1) {
+		return readmemfb(addr);
+	} else {
+#ifdef _RPCEMU_BIG_ENDIAN
+		return *((const uint8_t *) ((addr ^ 3) + vraddrl[addr >> 12]));
+#else
+		return *((const uint8_t *) (addr + vraddrl[addr >> 12]));
+#endif
+	}
+}
+
+/**
+ * Write a 32-bit word to a virtual address.
+ *
+ * Performs direct access if possible.
+ *
+ * @param addr Virtual address
+ * @param val  32-bit word to write
+ */
+static inline void
+writememl(uint32_t addr, uint32_t val)
+{
+	if (vwaddrl[addr >> 12] & 3) {
+		writememfl(addr, val);
+	} else {
+		*((uint32_t *) (addr + vwaddrl[addr >> 12])) = val;
+	}
+}
+
+/**
+ * Write a byte to a virtual address.
+ *
+ * Performs direct access if possible.
+ *
+ * @param addr Virtual address
+ * @param val  Byte to write
+ */
+static inline void
+writememb(uint32_t addr, uint8_t val)
+{
+	if (vwaddrl[addr >> 12] & 3) {
+		writememfb(addr, val);
+	} else {
+#ifdef _RPCEMU_BIG_ENDIAN
+		*((uint8_t *) ((addr ^ 3) + vwaddrl[addr >> 12])) = val;
+#else
+		*((uint8_t *) (addr + vwaddrl[addr >> 12])) = val;
+#endif
+	}
+}
 
 #endif /* MEM_H */
