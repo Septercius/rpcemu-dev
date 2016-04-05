@@ -45,7 +45,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	mask = 1;
 	for (c = 0; c < 15; c++) {
 		if (opcode & mask) {
-			writememl(addr, arm.reg[c]);
+			mem_write32(addr, arm.reg[c]);
 			addr += 4;
 			break;
 		}
@@ -67,7 +67,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* Store remaining registers up to R14 */
 	for ( ; c < 15; c++) {
 		if (opcode & mask) {
-			writememl(addr, arm.reg[c]);
+			mem_write32(addr, arm.reg[c]);
 			if (armirq & 0x40) {
 				goto data_abort;
 			}
@@ -78,7 +78,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 
 	/* Store R15 (if requested) */
 	if (opcode & (1 << 15)) {
-		writememl(addr, arm.reg[15] + arm.r15_diff);
+		mem_write32(addr, arm.reg[15] + arm.r15_diff);
 		if (armirq & 0x40) {
 			goto data_abort;
 		}
@@ -125,7 +125,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	mask = 1;
 	for (c = 0; c < 15; c++) {
 		if (opcode & mask) {
-			writememl(addr, *usrregs[c]);
+			mem_write32(addr, *usrregs[c]);
 			addr += 4;
 			break;
 		}
@@ -147,7 +147,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* Store remaining registers up to R14 */
 	for ( ; c < 15; c++) {
 		if (opcode & mask) {
-			writememl(addr, *usrregs[c]);
+			mem_write32(addr, *usrregs[c]);
 			if (armirq & 0x40) {
 				goto data_abort;
 			}
@@ -158,7 +158,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 
 	/* Store R15 (if requested) */
 	if (opcode & (1 << 15)) {
-		writememl(addr, arm.reg[15] + arm.r15_diff);
+		mem_write32(addr, arm.reg[15] + arm.r15_diff);
 		if (armirq & 0x40) {
 			goto data_abort;
 		}
@@ -207,7 +207,7 @@ arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	mask = 1;
 	for (c = 0; c < 15; c++) {
 		if (opcode & mask) {
-			temp = readmeml(addr);
+			temp = mem_read32(addr);
 			if (armirq & 0x40) {
 				goto data_abort;
 			}
@@ -219,7 +219,7 @@ arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 
 	/* Load R15 (if requested) */
 	if (opcode & (1 << 15)) {
-		temp = readmeml(addr);
+		temp = mem_read32(addr);
 		if (armirq & 0x40) {
 			goto data_abort;
 		}
@@ -275,7 +275,7 @@ arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 		/* R15 in list - Load registers up to R14 */
 		for (c = 0; c < 15; c++) {
 			if (opcode & mask) {
-				temp = readmeml(addr);
+				temp = mem_read32(addr);
 				if (armirq & 0x40) {
 					goto data_abort;
 				}
@@ -286,7 +286,7 @@ arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 		}
 
 		/* Perform load of R15 and update CPSR/flags */
-		temp = readmeml(addr);
+		temp = mem_read32(addr);
 		if (armirq & 0x40) {
 			goto data_abort;
 		}
@@ -296,7 +296,7 @@ arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 		/* R15 not in list - Perform load into User Bank */
 		for (c = 0; c < 15; c++) {
 			if (opcode & mask) {
-				temp = readmeml(addr);
+				temp = mem_read32(addr);
 				if (armirq & 0x40) {
 					goto data_abort;
 				}
@@ -358,11 +358,11 @@ opSWI(uint32_t opcode)
 	}
 
 	if (mousehack && swinum == SWI_OS_Word && arm.reg[0] == 21) {
-		if (readmemb(arm.reg[1]) == 1) {
+		if (mem_read8(arm.reg[1]) == 1) {
 			/* OS_Word 21, 1 Define Mouse Coordinate bounding box */
 			mouse_hack_osword_21_1(arm.reg[1]);
 			return;
-		} else if (readmemb(arm.reg[1]) == 4) {
+		} else if (mem_read8(arm.reg[1]) == 4) {
 			/* OS_Word 21, 4 Read unbuffered mouse position */
 			mouse_hack_osword_21_4(arm.reg[1]);
 			return;
@@ -393,7 +393,7 @@ opSWI(uint32_t opcode)
 	else {
 realswi:
 		if (mousehack && swinum == SWI_OS_Word && arm.reg[0] == 21 &&
-		    readmemb(arm.reg[1]) == 0)
+		    mem_read8(arm.reg[1]) == 0)
 		{
 			/* OS_Word 21, 0 Define pointer size, shape and active point */
 			mouse_hack_osword_21_0(arm.reg[1]);

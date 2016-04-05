@@ -78,7 +78,7 @@ memcpytohost(void *dest, uint32_t src, uint32_t len)
 	char *dst = dest;
 
 	while (len--) {
-		*dst++ = readmemb(src);
+		*dst++ = mem_read8(src);
 		src++;
 	}
 }
@@ -96,7 +96,7 @@ memcpyfromhost(uint32_t dest, const void *source, uint32_t len)
 	const char *src = source;
 
 	while (len--) {
-		writememb(dest, *src);
+		mem_write8(dest, *src);
 		src++;
 		dest++;
 	}

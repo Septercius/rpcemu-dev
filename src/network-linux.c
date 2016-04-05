@@ -314,7 +314,7 @@ static uint32_t irqstatus = 0;
 
 static void sig_io(int sig) 
 {
-    writememb(irqstatus, 1);
+    mem_write8(irqstatus, 1);
     if (network_poduleinfo != NULL) {
         network_poduleinfo->irq = 1;
     }
