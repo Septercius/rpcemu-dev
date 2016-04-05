@@ -130,16 +130,16 @@ void fpaopcode(uint32_t opcode)
                                 switch (len)
                                 {
                                         case 1:
-                                        temp[0]=readmeml(addr);
+                                        temp[0] = mem_read32(addr);
                                         break;
                                         case 2:
-                                        temp[1]=readmeml(addr);
-                                        temp[0]=readmeml(addr+4);
+                                        temp[1] = mem_read32(addr);
+                                        temp[0] = mem_read32(addr + 4);
                                         break;
                                         case 3:
-                                        temp[0]=readmeml(addr);
-                                        temp[1]=readmeml(addr+4);
-                                        temp[2]=readmeml(addr+8);
+                                        temp[0] = mem_read32(addr);
+                                        temp[1] = mem_read32(addr + 4);
+                                        temp[2] = mem_read32(addr + 8);
                                         break;
                                 }
                                 switch (opcode&0x408000)
@@ -174,16 +174,16 @@ void fpaopcode(uint32_t opcode)
                                 switch (len)
                                 {
                                         case 1:
-                                        writememl(addr,temp[0]);
+                                        mem_write32(addr, temp[0]);
                                         break;
                                         case 2:
-                                        writememl(addr,temp[1]);
-                                        writememl(addr+4,temp[0]);
+                                        mem_write32(addr, temp[1]);
+                                        mem_write32(addr + 4, temp[0]);
                                         break;
                                         case 3:
-                                        writememl(addr,temp[0]);
-                                        writememl(addr+4,temp[1]);
-                                        writememl(addr+8,temp[2]);
+                                        mem_write32(addr, temp[0]);
+                                        mem_write32(addr + 4, temp[1]);
+                                        mem_write32(addr + 8, temp[2]);
                                         break;
                                 }
                         }
@@ -207,51 +207,51 @@ void fpaopcode(uint32_t opcode)
                         switch (opcode&0x408000)
                         {
                                 case 0x000000: /*4 registers*/
-                                temp[0]=readmeml(addr);
-                                temp[1]=readmeml(addr+4);
-                                temp[2]=readmeml(addr+8);
+                                temp[0] = mem_read32(addr);
+                                temp[1] = mem_read32(addr + 4);
+                                temp[2] = mem_read32(addr + 8);
                                 fparegs[FD]=convert80to64(&temp[0]);
-                                temp[0]=readmeml(addr+12);
-                                temp[1]=readmeml(addr+16);
-                                temp[2]=readmeml(addr+20);
+                                temp[0] = mem_read32(addr + 12);
+                                temp[1] = mem_read32(addr + 16);
+                                temp[2] = mem_read32(addr + 20);
                                 fparegs[(FD+1)&7]=convert80to64(&temp[0]);
-                                temp[0]=readmeml(addr+24);
-                                temp[1]=readmeml(addr+28);
-                                temp[2]=readmeml(addr+32);
+                                temp[0] = mem_read32(addr + 24);
+                                temp[1] = mem_read32(addr + 28);
+                                temp[2] = mem_read32(addr + 32);
                                 fparegs[(FD+2)&7]=convert80to64(&temp[0]);
-                                temp[0]=readmeml(addr+36);
-                                temp[1]=readmeml(addr+40);
-                                temp[2]=readmeml(addr+44);
+                                temp[0] = mem_read32(addr + 36);
+                                temp[1] = mem_read32(addr + 40);
+                                temp[2] = mem_read32(addr + 44);
                                 fparegs[(FD+3)&7]=convert80to64(&temp[0]);
                                 break;
                                 case 0x408000: /*3 registers*/
-                                temp[0]=readmeml(addr);
-                                temp[1]=readmeml(addr+4);
-                                temp[2]=readmeml(addr+8);
+                                temp[0] = mem_read32(addr);
+                                temp[1] = mem_read32(addr + 4);
+                                temp[2] = mem_read32(addr + 8);
                                 fparegs[FD]=convert80to64(&temp[0]);
-                                temp[0]=readmeml(addr+12);
-                                temp[1]=readmeml(addr+16);
-                                temp[2]=readmeml(addr+20);
+                                temp[0] = mem_read32(addr + 12);
+                                temp[1] = mem_read32(addr + 16);
+                                temp[2] = mem_read32(addr + 20);
                                 fparegs[(FD+1)&7]=convert80to64(&temp[0]);
-                                temp[0]=readmeml(addr+24);
-                                temp[1]=readmeml(addr+28);
-                                temp[2]=readmeml(addr+32);
+                                temp[0] = mem_read32(addr + 24);
+                                temp[1] = mem_read32(addr + 28);
+                                temp[2] = mem_read32(addr + 32);
                                 fparegs[(FD+2)&7]=convert80to64(&temp[0]);
                                 break;
                                 case 0x400000: /*2 registers*/
-                                temp[0]=readmeml(addr);
-                                temp[1]=readmeml(addr+4);
-                                temp[2]=readmeml(addr+8);
+                                temp[0] = mem_read32(addr);
+                                temp[1] = mem_read32(addr + 4);
+                                temp[2] = mem_read32(addr + 8);
                                 fparegs[FD]=convert80to64(&temp[0]);
-                                temp[0]=readmeml(addr+12);
-                                temp[1]=readmeml(addr+16);
-                                temp[2]=readmeml(addr+20);
+                                temp[0] = mem_read32(addr + 12);
+                                temp[1] = mem_read32(addr + 16);
+                                temp[2] = mem_read32(addr + 20);
                                 fparegs[(FD+1)&7]=convert80to64(&temp[0]);
                                 break;
                                 case 0x008000: /*1 register*/
-                                temp[0]=readmeml(addr);
-                                temp[1]=readmeml(addr+4);
-                                temp[2]=readmeml(addr+8);
+                                temp[0] = mem_read32(addr);
+                                temp[1] = mem_read32(addr + 4);
+                                temp[2] = mem_read32(addr + 8);
                                 fparegs[FD]=convert80to64(&temp[0]);
                                 break;
 
@@ -283,54 +283,54 @@ void fpaopcode(uint32_t opcode)
                                 case 0x000000: /*4 registers*/
                                 temp[2]=0;
                                 convert64to80(&temp[0],fparegs[FD]);
-                                writememl(addr,temp[0]);
-                                writememl(addr+4,temp[1]);
-                                writememl(addr+8,temp[2]);
+                                mem_write32(addr, temp[0]);
+                                mem_write32(addr + 4, temp[1]);
+                                mem_write32(addr + 8, temp[2]);
                                 convert64to80(&temp[0],fparegs[(FD+1)&7]);
-                                writememl(addr+12,temp[0]);
-                                writememl(addr+16,temp[1]);
-                                writememl(addr+20,temp[2]);
+                                mem_write32(addr + 12, temp[0]);
+                                mem_write32(addr + 16, temp[1]);
+                                mem_write32(addr + 20, temp[2]);
                                 convert64to80(&temp[0],fparegs[(FD+2)&7]);
-                                writememl(addr+24,temp[0]);
-                                writememl(addr+28,temp[1]);
-                                writememl(addr+32,temp[2]);
+                                mem_write32(addr + 24, temp[0]);
+                                mem_write32(addr + 28, temp[1]);
+                                mem_write32(addr + 32, temp[2]);
                                 convert64to80(&temp[0],fparegs[(FD+3)&7]);
-                                writememl(addr+36,temp[0]);
-                                writememl(addr+40,temp[1]);
-                                writememl(addr+44,temp[2]);
+                                mem_write32(addr + 36, temp[0]);
+                                mem_write32(addr + 40, temp[1]);
+                                mem_write32(addr + 44, temp[2]);
                                 break;
                                 case 0x408000: /*3 registers*/
                                 temp[2]=0;
                                 convert64to80(&temp[0],fparegs[FD]);
-                                writememl(addr,temp[0]);
-                                writememl(addr+4,temp[1]);
-                                writememl(addr+8,temp[2]);
+                                mem_write32(addr, temp[0]);
+                                mem_write32(addr + 4, temp[1]);
+                                mem_write32(addr + 8, temp[2]);
                                 convert64to80(&temp[0],fparegs[(FD+1)&7]);
-                                writememl(addr+12,temp[0]);
-                                writememl(addr+16,temp[1]);
-                                writememl(addr+20,temp[2]);
+                                mem_write32(addr + 12, temp[0]);
+                                mem_write32(addr + 16, temp[1]);
+                                mem_write32(addr + 20, temp[2]);
                                 convert64to80(&temp[0],fparegs[(FD+2)&7]);
-                                writememl(addr+24,temp[0]);
-                                writememl(addr+28,temp[1]);
-                                writememl(addr+32,temp[2]);
+                                mem_write32(addr + 24, temp[0]);
+                                mem_write32(addr + 28, temp[1]);
+                                mem_write32(addr + 32, temp[2]);
                                 break;
                                 case 0x400000: /*2 registers*/
                                 temp[2]=0;
                                 convert64to80(&temp[0],fparegs[FD]);
-                                writememl(addr,temp[0]);
-                                writememl(addr+4,temp[1]);
-                                writememl(addr+8,temp[2]);
+                                mem_write32(addr, temp[0]);
+                                mem_write32(addr + 4, temp[1]);
+                                mem_write32(addr + 8, temp[2]);
                                 convert64to80(&temp[0],fparegs[(FD+1)&7]);
-                                writememl(addr+12,temp[0]);
-                                writememl(addr+16,temp[1]);
-                                writememl(addr+20,temp[2]);
+                                mem_write32(addr + 12, temp[0]);
+                                mem_write32(addr + 16, temp[1]);
+                                mem_write32(addr + 20, temp[2]);
                                 break;
                                 case 0x008000: /*1 register*/
                                 temp[2]=0;
                                 convert64to80(&temp[0],fparegs[FD]);
-                                writememl(addr,temp[0]);
-                                writememl(addr+4,temp[1]);
-                                writememl(addr+8,temp[2]);
+                                mem_write32(addr, temp[0]);
+                                mem_write32(addr + 4, temp[1]);
+                                mem_write32(addr + 8, temp[2]);
                                 break;
                                 
                                 default:

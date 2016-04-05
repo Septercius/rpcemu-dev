@@ -199,7 +199,7 @@ network_plt_setirqstatus(uint32_t address)
 void sig_io(int sig)
 {
     if (irqstatus) {
-        writememb(irqstatus, 1);
+        mem_write8(irqstatus, 1);
         if (network_poduleinfo) {
             network_poduleinfo->irq = 1;
         }

@@ -344,12 +344,12 @@ opSWPword(uint32_t opcode)
 		if (RD != 15) {
 			addr = GETADDR(RN);
 			templ = GETREG(RM);
-			dest = readmeml(addr & ~3u);
+			dest = mem_read32(addr & ~3u);
 			if (armirq & 0x40) {
 				return 1;
 			}
 			dest = arm_ldr_rotate(dest, addr);
-			writememl(addr & ~3u, templ);
+			mem_write32(addr & ~3u, templ);
 			if (armirq & 0x40) {
 				return 1;
 			}
@@ -420,11 +420,11 @@ opSWPbyte(uint32_t opcode)
 		if (RD != 15) {
 			addr = GETADDR(RN);
 			templ = GETREG(RM);
-			dest = readmemb(addr);
+			dest = mem_read8(addr);
 			if (armirq & 0x40) {
 				return 1;
 			}
-			writememb(addr, templ);
+			mem_write8(addr, templ);
 			if (armirq & 0x40) {
 				return 1;
 			}
@@ -952,7 +952,7 @@ static int opSTRT(uint32_t opcode)
 	/* Temporarily switch to user permissions */
 	templ = memmode;
 	memmode = 0;
-	writememl(addr & ~3, arm.reg[RD]);
+	mem_write32(addr & ~3u, arm.reg[RD]);
 	memmode = templ;
 
 	/* Check for Abort */
@@ -984,7 +984,7 @@ static int opLDRT(uint32_t opcode)
 	/* Temporarily switch to user permissions */
 	templ = memmode;
 	memmode = 0;
-	data = readmeml(addr & ~3);
+	data = mem_read32(addr & ~3u);
 	memmode = templ;
 
 	/* Check for Abort */
@@ -1027,7 +1027,7 @@ static int opSTRBT(uint32_t opcode)
 	/* Temporarily switch to user permissions */
 	templ = memmode;
 	memmode = 0;
-	writememb(addr, arm.reg[RD]);
+	mem_write8(addr, arm.reg[RD]);
 	memmode = templ;
 
 	/* Check for Abort */
@@ -1059,7 +1059,7 @@ static int opLDRBT(uint32_t opcode)
 	/* Temporarily switch to user permissions */
 	templ = memmode;
 	memmode = 0;
-	data = readmemb(addr);
+	data = mem_read8(addr);
 	memmode = templ;
 
 	/* Check for Abort */
@@ -1118,7 +1118,7 @@ static int opSTR(uint32_t opcode)
 
 	/* Store */
 	data = GETREG(RD);
-	writememl(addr & ~3, data);
+	mem_write32(addr & ~3u, data);
 
 	/* Check for Abort */
 	if (arm.abort_base_restored && (armirq & 0x40)) {
@@ -1164,7 +1164,7 @@ static int opLDR(uint32_t opcode)
 	}
 
 	/* Load */
-	data = readmeml(addr & ~3);
+	data = mem_read32(addr & ~3u);
 
 	/* Check for Abort */
 	if (arm.abort_base_restored && (armirq & 0x40)) {
@@ -1222,7 +1222,7 @@ static int opSTRB(uint32_t opcode)
 
 	/* Store */
 	data = GETREG(RD);
-	writememb(addr, data);
+	mem_write8(addr, data);
 
 	/* Check for Abort */
 	if (arm.abort_base_restored && (armirq & 0x40)) {
@@ -1268,7 +1268,7 @@ static int opLDRB(uint32_t opcode)
 	}
 
 	/* Load */
-	data = readmemb(addr);
+	data = mem_read8(addr);
 
 	/* Check for Abort */
 	if (arm.abort_base_restored && (armirq & 0x40)) {

@@ -9,7 +9,7 @@ extern uint32_t readmemfl(uint32_t addr);
 extern uint32_t readmemfb(uint32_t addr);
 extern void writememfb(uint32_t addr, uint8_t val);
 extern void writememfl(uint32_t addr, uint32_t val);
-extern uint32_t readmemfb(uint32_t addr);
+
 extern void clearmemcache(void);
 extern void mem_init(void);
 extern void mem_reset(uint32_t ramsize);
@@ -46,7 +46,7 @@ extern uint32_t mem_rammask;
  * @return 32-bit word read from given virtual address
  */
 static inline uint32_t
-readmeml(uint32_t addr)
+mem_read32(uint32_t addr)
 {
 	if (vraddrl[addr >> 12] & 1) {
 		return readmemfl(addr);
@@ -64,7 +64,7 @@ readmeml(uint32_t addr)
  * @return Byte read from given virtual address
  */
 static inline uint32_t
-readmemb(uint32_t addr)
+mem_read8(uint32_t addr)
 {
 	if (vraddrl[addr >> 12] & 1) {
 		return readmemfb(addr);
@@ -86,7 +86,7 @@ readmemb(uint32_t addr)
  * @param val  32-bit word to write
  */
 static inline void
-writememl(uint32_t addr, uint32_t val)
+mem_write32(uint32_t addr, uint32_t val)
 {
 	if (vwaddrl[addr >> 12] & 3) {
 		writememfl(addr, val);
@@ -104,7 +104,7 @@ writememl(uint32_t addr, uint32_t val)
  * @param val  Byte to write
  */
 static inline void
-writememb(uint32_t addr, uint8_t val)
+mem_write8(uint32_t addr, uint8_t val)
 {
 	if (vwaddrl[addr >> 12] & 3) {
 		writememfb(addr, val);

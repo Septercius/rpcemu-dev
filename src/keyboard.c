@@ -1025,10 +1025,10 @@ mouse_hack_osword_21_4(uint32_t a)
 
         mouse_get_osxy(&x, &y, &osx, &osy);
 
-        writememb(a+1,osy&0xFF);
-        writememb(a+2,(osy>>8)&0xFF);
-        writememb(a+3,osx&0xFF);
-        writememb(a+4,(osx>>8)&0xFF);
+	mem_write8(a + 1, (uint8_t) osy);
+	mem_write8(a + 2, (uint8_t) (osy >> 8));
+	mem_write8(a + 3, (uint8_t) osx);
+	mem_write8(a + 4, (uint8_t) (osx >> 8));
 }
 
 /**
@@ -1070,7 +1070,7 @@ mouse_hack_get_pos(int *x, int *y)
 void
 mouse_hack_osword_21_0(uint32_t a)
 {
-	uint8_t pointer = readmemb(a + 1);
+	uint8_t pointer = mem_read8(a + 1);
 
         assert(mousehack);
 
@@ -1079,8 +1079,8 @@ mouse_hack_osword_21_0(uint32_t a)
 		return;
 	}
 
-	mouse_hack.activex[pointer] = readmemb(a + 4);
-	mouse_hack.activey[pointer] = readmemb(a + 5);
+	mouse_hack.activex[pointer] = mem_read8(a + 4);
+	mouse_hack.activey[pointer] = mem_read8(a + 5);
 }
 
 /**
@@ -1206,10 +1206,10 @@ mouse_hack_osmouse(void)
 void
 mouse_hack_osword_21_1(uint32_t a)
 {
-        assert(mousehack);
+	assert(mousehack);
 
-	mouse_hack.boundbox.left   = readmemb(a + 1) | (readmemb(a + 2) << 8);
-	mouse_hack.boundbox.bottom = readmemb(a + 3) | (readmemb(a + 4) << 8);
-	mouse_hack.boundbox.right  = readmemb(a + 5) | (readmemb(a + 6) << 8);
-	mouse_hack.boundbox.top    = readmemb(a + 7) | (readmemb(a + 8) << 8);
+	mouse_hack.boundbox.left   = mem_read8(a + 1) | (mem_read8(a + 2) << 8);
+	mouse_hack.boundbox.bottom = mem_read8(a + 3) | (mem_read8(a + 4) << 8);
+	mouse_hack.boundbox.right  = mem_read8(a + 5) | (mem_read8(a + 6) << 8);
+	mouse_hack.boundbox.top    = mem_read8(a + 7) | (mem_read8(a + 8) << 8);
 }
