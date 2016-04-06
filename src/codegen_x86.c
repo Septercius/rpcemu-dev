@@ -21,7 +21,7 @@ int linecyc;
 
 unsigned char rcodeblock[BLOCKS][1792+512+64];
 static const void *codeblockaddr[BLOCKS];
-unsigned long codeblockpc[0x8000] = {0};
+uint32_t codeblockpc[0x8000];
 static unsigned char codeblockpresent[0x10000];
 int codeblocknum[0x8000] = {0};
 
@@ -78,21 +78,21 @@ gen_x86_mov_stack_reg32(int x86reg, int offset)
 void
 initcodeblocks(void)
 {
-        int c;
+	int c;
 #if defined __linux__ || defined __MACH__
 	void *start;
 	size_t len;
 	long pagesize = sysconf(_SC_PAGESIZE);
 	long pagemask = ~(pagesize - 1);
 #endif
-        /*Clear all blocks*/
-        memset(codeblockpc,0xFF,4*0x1000);
-//        memset(codeblockcount,0,0x1000);
-        blockpoint=0;
-        for (c=0;c<BLOCKS;c++) blocks[c]=0xFFFFFFFF;
+	/* Clear all blocks */
+	memset(codeblockpc, 0xff, sizeof(codeblockpc));
+	memset(blocks, 0xff, sizeof(blocks));
 	for (c = 0; c < BLOCKS; c++) {
 		codeblockaddr[c] = &rcodeblock[c][0];
 	}
+	blockpoint = 0;
+
         for (c=0;c<256;c++)
         {
                 lahftable[c]=0;
