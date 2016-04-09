@@ -1424,8 +1424,8 @@ static void opB(uint32_t opcode)
 	offset = (opcode << 8);
 	offset = (uint32_t) ((int32_t) offset >> 6);
 
-	arm.reg[15] = ((arm.reg[15] + offset + 4) & r15mask) |
-	              (arm.reg[15] & ~r15mask);
+	arm.reg[15] = ((arm.reg[15] + offset + 4) & arm.r15_mask) |
+	              (arm.reg[15] & ~arm.r15_mask);
 	blockend = 1;
 }
 
@@ -1438,8 +1438,8 @@ static void opBL(uint32_t opcode)
 	offset = (uint32_t) ((int32_t) offset >> 6);
 
 	arm.reg[14] = arm.reg[15] - 4;
-	arm.reg[15] = ((arm.reg[15] + offset + 4) & r15mask) |
-	              (arm.reg[15] & ~r15mask);
+	arm.reg[15] = ((arm.reg[15] + offset + 4) & arm.r15_mask) |
+	              (arm.reg[15] & ~arm.r15_mask);
 	refillpipeline();
 }
 
@@ -1474,8 +1474,12 @@ static void opMRC(uint32_t opcode)
 #endif
         if (MULRS==15 && (opcode&0x10))
         {
-                if (RD==15) arm.reg[RD] = (arm.reg[RD] & r15mask) | (readcp15(RN) & ~r15mask);
-                else        arm.reg[RD] = readcp15(RN);
+                if (RD == 15) {
+                        arm.reg[RD] = (arm.reg[RD] & arm.r15_mask) |
+                                      (readcp15(RN) & ~arm.r15_mask);
+                } else {
+                        arm.reg[RD] = readcp15(RN);
+                }
         }
         else
         {

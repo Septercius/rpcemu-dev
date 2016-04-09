@@ -7,6 +7,7 @@ typedef struct {
 	uint32_t	reg[18];
 	uint32_t	mode;
 	uint32_t	mmask;
+	uint32_t	r15_mask;
 
 	/* Banked registers */
 	uint32_t	user_reg[15];
@@ -40,9 +41,7 @@ extern uint32_t *usrregs[16];
 extern int armirq; //,armfiq;
 extern int cpsr;
 
-#define PC ((arm.reg[15] - 8) & r15mask)
-
-extern uint32_t r15mask;
+#define PC	((arm.reg[15] - 8) & arm.r15_mask)
 
 extern int arm_is_dynarec(void); 
 extern void arm_init(void);

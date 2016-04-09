@@ -314,9 +314,8 @@ generatedataproc(uint32_t opcode, uint8_t op, uint32_t val)
 	else /*Load/modify/store*/
 	{
 		gen_load_reg(RN, EAX);
-		if (RN==15)
-		{
-			addbyte(0x25); addlong(r15mask); /*AND $r15mask,%eax*/
+		if (RN == 15) {
+			addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
 		}
 		addbyte(0x05|op); addlong(val); /*OP $val,%eax*/
 		gen_save_reg(RD, EAX);
@@ -329,7 +328,9 @@ generateregdataproc(uint32_t opcode, uint8_t op, int dirmatters)
 	if (dirmatters || RN==15)
 	{
 		gen_load_reg(RN, EDX);
-		if (RN==15) { addbyte(0x81); addbyte(0xE2); addlong(r15mask); }
+		if (RN == 15) {
+			addbyte(0x81); addbyte(0xe2); addlong(arm.r15_mask); // AND $arm.r15_mask,%edx
+		}
 		addbyte(0x01|op); addbyte(0xC2); /*OP %eax,%edx*/
 		gen_save_reg(RD, EDX);
 	}
@@ -694,7 +695,7 @@ gen_arm_load_multiple(uint32_t opcode, uint32_t offset)
 		if (opcode & mask) {
 			addbyte(0x8b); addbyte(0x46); addbyte(d); // MOV d(%rsi),%eax
 			if (c == 15) {
-				addbyte(0x8b); addbyte(0x0c); addbyte(0x25); addlong(&r15mask); // MOV r15mask,%ecx
+				addbyte(0x8b); addbyte(0x0c); addbyte(0x25); addlong(&arm.r15_mask); // MOV arm.r15_mask,%ecx
 				gen_load_reg(15, EDX);
 				addbyte(0x83); addbyte(0xc0); addbyte(4); // ADD $4,%eax
 				addbyte(0x21); addbyte(0xc8); // AND %ecx,%eax
@@ -982,7 +983,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		}
 		gen_load_reg(RN, EBX);
 		if (RN == 15) {
-			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
+			addbyte(0x81); addbyte(0xe3); addlong(arm.r15_mask); // AND $arm.r15_mask,%ebx
 		}
 		if (opcode & 0x800000) {
 			addbyte(0x01); addbyte(0xc3); /* ADD %eax,%ebx */
@@ -1017,7 +1018,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		}
 		gen_load_reg(RN, EBX);
 		if (RN == 15) {
-			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
+			addbyte(0x81); addbyte(0xe3); addlong(arm.r15_mask); // AND $arm.r15_mask,%ebx
 		}
 		if (opcode & 0x800000) {
 			addbyte(0x01); addbyte(0xc3); /* ADD %eax,%ebx */
@@ -1052,7 +1053,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		}
 		gen_load_reg(RN, EBX);
 		if (RN == 15) {
-			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
+			addbyte(0x81); addbyte(0xe3); addlong(arm.r15_mask); // AND $arm.r15_mask,%ebx
 		}
 		if (opcode & 0x800000) {
 			addbyte(0x01); addbyte(0xc3); /* ADD %eax,%ebx */
@@ -1087,7 +1088,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		}
 		gen_load_reg(RN, EBX);
 		if (RN == 15) {
-			addbyte(0x81); addbyte(0xe3); addlong(r15mask); /* AND $r15mask,%ebx */
+			addbyte(0x81); addbyte(0xe3); addlong(arm.r15_mask); // AND $arm.r15_mask,%ebx
 		}
 		if (opcode & 0x800000) {
 			addbyte(0x01); addbyte(0xc3); /* ADD %eax,%ebx */
@@ -1160,8 +1161,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		templ=(opcode&0xFFFFFF)<<2;
 		if (templ&0x2000000) templ|=0xFC000000;
 		templ+=4;
-		if (!((PC+templ)&0xFC000000) || r15mask==0xFFFFFFFC)
-		{
+		if (((PC + templ) & 0xfc000000) == 0 || arm.r15_mask == 0xfffffffc) {
 			/*ADD $templ,%r12d*/
 			addbyte(0x41); addbyte(0x81); addbyte(0xC4);
 			addlong(templ);
@@ -1188,8 +1188,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		templ+=4;
 		gen_load_reg(15, EAX);
 		addbyte(0x83); addbyte(0xE8); addbyte(0x04); /*SUBL $4,%eax*/
-		if (!((PC+templ)&0xFC000000) || r15mask==0xFFFFFFFC)
-		{
+		if (((PC + templ) & 0xfc000000) == 0 || arm.r15_mask == 0xfffffffc) {
 			/*ADD $templ,%r12d*/
 			addbyte(0x41); addbyte(0x81); addbyte(0xC4);
 			addlong(templ);
@@ -1337,10 +1336,8 @@ endblock(uint32_t opcode, uint32_t *pcpsr)
 	addbyte(0x48); /*MOVQ %rax,%rdx*/
         addbyte(0x89);
         addbyte(0xC2);
-        //if (r15mask!=0xFFFFFFFC)
-        //{
-                addbyte(0x25); /*ANDL $r15mask,%eax*/
-                addlong(r15mask);
+        //if (arm.r15_mask != 0xfffffffc) {
+                addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
         //}
         addbyte(0x81); /*ANDL $0x1FFFC,%edx*/
         addbyte(0xE2);

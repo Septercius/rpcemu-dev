@@ -53,7 +53,6 @@ ARMState arm;
 
 int blockend;
 static int fdci=0;
-uint32_t r15mask;
 static int cycles;
 int prefabort;
 uint32_t inscount;
@@ -72,8 +71,8 @@ int prog32;
 #define CFSET ((arm.reg[cpsr] & CFLAG) ? 1 : 0)
 #define VFSET ((arm.reg[cpsr] & VFLAG) ? 1 : 0)
 
-#define GETADDR(r) ((r == 15) ? (arm.reg[15] & r15mask) : arm.reg[r])
-#define LOADREG(r,v) if (r == 15) { arm.reg[15] = (arm.reg[15] & ~r15mask) | (((v) + 4) & r15mask); } else arm.reg[r] = (v);
+#define GETADDR(r) ((r == 15) ? (arm.reg[15] & arm.r15_mask) : arm.reg[r])
+#define LOADREG(r,v) if (r == 15) { arm.reg[15] = (arm.reg[15] & ~arm.r15_mask) | (((v) + 4) & arm.r15_mask); } else arm.reg[r] = (v);
 #define GETREG(r) ((r == 15) ? (arm.reg[15] + arm.r15_diff) : arm.reg[r])
 
 #include "arm_common.h"
@@ -186,7 +185,7 @@ void updatemode(uint32_t m)
                 arm.mmask = 0x1f;
                 cpsr=16;
                 pcpsr = &arm.reg[16];
-                r15mask=0xFFFFFFFC;
+                arm.r15_mask = 0xfffffffc;
                 if (!ARM_MODE_32(om)) {
 			/* Change from 26-bit to 32-bit mode */
                         arm.reg[16] = (arm.reg[15] & 0xf0000000) | arm.mode;
@@ -199,10 +198,10 @@ void updatemode(uint32_t m)
                 arm.mmask = 3;
                 cpsr=15;
                 pcpsr = &arm.reg[15];
-                r15mask=0x3FFFFFC;
+                arm.r15_mask = 0x3fffffc;
                 arm.reg[16] = (arm.reg[16] & 0xffffffe0) | arm.mode;
                 if (ARM_MODE_32(om)) {
-                        arm.reg[15] &= r15mask;
+                        arm.reg[15] &= arm.r15_mask;
                         arm.reg[15] |= (arm.mode & 3);
                         arm.reg[15] |= (arm.reg[16] & 0xf0000000);
                         arm.reg[15] |= ((arm.reg[16] & 0xc0) << 20);
@@ -273,7 +272,7 @@ resetarm(CPUModel cpu_model)
 
 	memset(&arm, 0, sizeof(arm));
 
-        r15mask=0x3FFFFFC;
+        arm.r15_mask = 0x3fffffc;
         pccache=0xFFFFFFFF;
         updatemode(SUPERVISOR);
         cpsr=15;
@@ -1842,8 +1841,8 @@ void execarm(int cycs)
 					/* Extract offset bits, and sign-extend */
 					offset = (opcode << 8);
 					offset = (uint32_t) ((int32_t) offset >> 6);
-					arm.reg[15] = ((arm.reg[15] + offset + 4) & r15mask) |
-					              (arm.reg[15] & ~r15mask);
+					arm.reg[15] = ((arm.reg[15] + offset + 4) & arm.r15_mask) |
+					              (arm.reg[15] & ~arm.r15_mask);
 					break;
 
 				case 0xb0: case 0xb1: case 0xb2: case 0xb3: /* BL */
@@ -1854,8 +1853,8 @@ void execarm(int cycs)
 					offset = (opcode << 8);
 					offset = (uint32_t) ((int32_t) offset >> 6);
 					arm.reg[14] = arm.reg[15] - 4;
-					arm.reg[15] = ((arm.reg[15] + offset + 4) & r15mask) |
-					              (arm.reg[15] & ~r15mask);
+					arm.reg[15] = ((arm.reg[15] + offset + 4) & arm.r15_mask) |
+					              (arm.reg[15] & ~arm.r15_mask);
 					break;
 
                                         case 0xE0: case 0xE2: case 0xE4: case 0xE6: /*MCR*/
@@ -1888,8 +1887,12 @@ void execarm(int cycs)
 #endif
                                         if (MULRS==15 && (opcode&0x10))
                                         {
-                                                if (RD==15) arm.reg[RD] = (arm.reg[RD] & r15mask) | (readcp15(RN) & ~r15mask);
-                                                else        arm.reg[RD] = readcp15(RN);
+                                                if (RD == 15) {
+                                                        arm.reg[RD] = (arm.reg[RD] & arm.r15_mask) |
+                                                                      (readcp15(RN) & ~arm.r15_mask);
+                                                } else {
+                                                        arm.reg[RD] = readcp15(RN);
+                                                }
                                         }
                                         else
                                         {
