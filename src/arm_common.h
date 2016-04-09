@@ -208,7 +208,7 @@ arm_write_dest(uint32_t opcode, uint32_t dest)
 	uint32_t rd = RD;
 
 	if (rd == 15) {
-		dest = ((dest + 4) & r15mask) | (arm.reg[15] & ~r15mask);
+		dest = ((dest + 4) & arm.r15_mask) | (arm.reg[15] & ~arm.r15_mask);
 	}
 	arm.reg[rd] = dest;
 }

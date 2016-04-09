@@ -224,8 +224,8 @@ arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 			goto data_abort;
 		}
 		/* Only update R15 if no Data Abort occurred */
-		arm.reg[15] = (arm.reg[15] & ~r15mask) |
-		              ((temp + 4) & r15mask);
+		arm.reg[15] = (arm.reg[15] & ~arm.r15_mask) |
+		              ((temp + 4) & arm.r15_mask);
 	}
 
 	/* No Data Abort */
