@@ -2299,92 +2299,72 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 		/* No need if 'always' condition code */
 		return;
 	}
-        switch (opcode>>28)
-        {
-                case 0: /*EQ*/
-                case 1: /*NE*/
-                if (flagsdirty)
-                {
-                        addbyte(0xF6); addbyte(0xC1); addbyte(0x40); /*TESTB $0x40,%cl*/
-                }
-                else
-                {
-                        addbyte(0xF6); /*TESTB (pcpsr>>24),$0x40*/
-                        addbyte(0x05);
-                        addlong(((unsigned long)pcpsr)+3);
-                        addbyte(0x40);
-                }
-                cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
-                break;
-                case 2: /*CS*/
-                case 3: /*CC*/
-                if (flagsdirty)
-                {
-                        addbyte(0xF6); addbyte(0xC1); addbyte(0x20); /*TESTB $0x20,%cl*/
-                }
-                else
-                {
-                        addbyte(0xF6); /*TESTB (pcpsr>>24),$0x20*/
-                        addbyte(0x05);
-                        addlong(((unsigned long)pcpsr)+3);
-                        addbyte(0x20);
-                }
-                cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
-                break;
-                case 4: /*MI*/
-                case 5: /*PL*/
-                if (flagsdirty)
-                {
-                        addbyte(0xF6); addbyte(0xC1); addbyte(0x80); /*TESTB $0x80,%cl*/
-                }
-                else
-                {
-                        addbyte(0xF6); /*TESTB (pcpsr>>24),$0x80*/
-                        addbyte(0x05);
-                        addlong(((unsigned long)pcpsr)+3);
-                        addbyte(0x80);
-                }
-                cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
-                break;
-                case 6: /*VS*/
-                case 7: /*VC*/
-                if (flagsdirty)
-                {
-                        addbyte(0xF6); addbyte(0xC1); addbyte(0x10); /*TESTB $0x10,%cl*/
-                }
-                else
-                {
-                        addbyte(0xF6); /*TESTB (pcpsr>>24),$0x10*/
-                        addbyte(0x05);
-                        addlong(((unsigned long)pcpsr)+3);
-                        addbyte(0x10);
-                }
-                cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
-                break;
-                default:
-                if (flagsdirty)
-                {
-                        addbyte(0x0F); addbyte(0xB6); addbyte(0xC1); /*MOVZBL %cl,%eax*/
-                        addbyte(0xC1);                 /*SHRL $4,%eax*/
-                        addbyte(0xE8);
-                        addbyte(0x4);
-                }
-                else
-                {
-                        addbyte(0xA1);                 /*MOVL (pcpsr),%eax*/
-                        addlong((unsigned long)pcpsr);
-                        addbyte(0xC1);                 /*SHRL $28,%eax*/
-                        addbyte(0xE8);
-                        addbyte(0x1C);
-                }
-                addbyte(0x80);                 /*CMPB $0,flaglookup(%eax)*/
-                addbyte(0xB8);
-                addlong((unsigned long)(&flaglookup[opcode>>28][0]));
-                addbyte(0);
-                cond = CC_E;
-                break;
-        }
-//        flagsdirty=0;
+	switch (opcode >> 28) {
+	case 0: /* EQ */
+	case 1: /* NE */
+		if (flagsdirty) {
+			addbyte(0xf6); addbyte(0xc1); addbyte(0x40); // TEST $0x40,%cl
+		} else {
+			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x40*/
+			addbyte(0x05);
+			addlong(((unsigned long)pcpsr)+3);
+			addbyte(0x40);
+		}
+		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
+		break;
+	case 2: /* CS */
+	case 3: /* CC */
+		if (flagsdirty) {
+			addbyte(0xf6); addbyte(0xc1); addbyte(0x20); // TEST $0x20,%cl
+		} else {
+			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x20*/
+			addbyte(0x05);
+			addlong(((unsigned long)pcpsr)+3);
+			addbyte(0x20);
+		}
+		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
+		break;
+	case 4: /* MI */
+	case 5: /* PL */
+		if (flagsdirty) {
+			addbyte(0xf6); addbyte(0xc1); addbyte(0x80); // TEST $0x80,%cl
+		} else {
+			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x80*/
+			addbyte(0x05);
+			addlong(((unsigned long)pcpsr)+3);
+			addbyte(0x80);
+		}
+		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
+		break;
+	case 6: /* VS */
+	case 7: /* VC */
+		if (flagsdirty) {
+			addbyte(0xf6); addbyte(0xc1); addbyte(0x10); // TEST $0x10,%cl
+		} else {
+			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x10*/
+			addbyte(0x05);
+			addlong(((unsigned long)pcpsr)+3);
+			addbyte(0x10);
+		}
+		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
+		break;
+	default:
+		if (flagsdirty) {
+			addbyte(0x0f); addbyte(0xb6); addbyte(0xc1); // MOVZBL %cl,%eax
+			addbyte(0xc1); addbyte(0xe8); addbyte(4); // SHR $4,%eax
+		} else {
+			addbyte(0xA1);                 /*MOVL (pcpsr),%eax*/
+			addlong((unsigned long)pcpsr);
+			addbyte(0xc1); addbyte(0xe8); addbyte(28); // SHR $28,%eax
+		}
+		addbyte(0x80);                 /*CMPB $0,flaglookup(%eax)*/
+		addbyte(0xB8);
+		addlong((unsigned long)(&flaglookup[opcode>>28][0]));
+		addbyte(0);
+		cond = CC_E;
+		break;
+	}
+	// flagsdirty = 0;
 	lastflagchange = gen_x86_jump_forward_long(cond);
 }
 
