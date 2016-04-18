@@ -43,6 +43,13 @@ static int pcinc = 0;
 static int lastrecompiled = 0;
 static int block_enter;
 
+static inline void
+addptr64(const void *a)
+{
+	*((uint64_t *) &rcodeblock[blockpoint2][codeblockpos]) = (uint64_t) a;
+	codeblockpos += 8;
+}
+
 #include "codegen_x86_common.h"
 
 /* AMD64 registers and aliases */
@@ -229,18 +236,9 @@ initcodeblock(uint32_t l)
 	addbyte(0xec);
 	addbyte(0x08);
 
-	addbyte(0x49); /* MOVQ $arm,%r15 */
-	addbyte(0xBF);
-	addlong(&arm);
-	addlong(((uintptr_t) &arm) >> 32);
-	addbyte(0x49); /*MOVQ vwaddrl,%r14*/
-	addbyte(0xBE);
-	addlong(&vwaddrl[0]);
-	addlong(((uint64_t)(&vwaddrl[0]))>>32);
-	addbyte(0x49); /*MOVQ vwaddrl,%r13*/
-	addbyte(0xBD);
-	addlong(&vraddrl[0]);
-	addlong(((uint64_t)(&vraddrl[0]))>>32);
+	addbyte(0x49); addbyte(0xbf); addptr64(&arm); // MOVABS $(&arm),%r15
+	addbyte(0x49); addbyte(0xbe); addptr64(&vwaddrl[0]); // MOVABS $vwaddrl,%r14
+	addbyte(0x49); addbyte(0xbd); addptr64(&vraddrl[0]); // MOVABS $vraddrl,%r13
 	addbyte(0x45); addbyte(0x8B); addbyte(0x67); addbyte(15<<2); /*MOVL R15,%r12d*/
 	block_enter = codeblockpos;
 }
