@@ -2229,17 +2229,12 @@ generatepcinc(void)
 void
 endblock(uint32_t opcode, uint32_t *pcpsr)
 {
-        int temp;
-
         flagsdirty=0;
 
         generateupdatepc();
         generateupdateinscount();
 
-        temp=codeblockpos;
-        codeblockpos = 9;
-        addlong(&rcodeblock[blockpoint2][temp]-((uint32_t)&rcodeblock[blockpoint2][codeblockpos+4]));
-        codeblockpos=temp;
+	gen_x86_jump_here_long(9);
 
 	addbyte(0xff); /* DECL linecyc */
 	addbyte(0x0d);
