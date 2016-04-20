@@ -35,13 +35,26 @@ static int codeblockpos;
 static int lastjumppos;
 
 #define addbyte(a)         rcodeblock[blockpoint2][codeblockpos]=(unsigned char) (a),codeblockpos++
-#define addlong(a)         *((unsigned long *)&rcodeblock[blockpoint2][codeblockpos])=(unsigned long) (a),codeblockpos+=4
 
 static int blockpoint = 0, blockpoint2;
 static uint32_t blocks[BLOCKS];
 static int pcinc = 0;
 static int lastrecompiled = 0;
 static int block_enter;
+
+static inline void
+addlong(uint32_t a)
+{
+	*((uint32_t *) &rcodeblock[blockpoint2][codeblockpos]) = a;
+	codeblockpos += 4;
+}
+
+static inline void
+addptr(const void *a)
+{
+	*((uint32_t *) &rcodeblock[blockpoint2][codeblockpos]) = (uint32_t) (uintptr_t) a;
+	codeblockpos += 4;
+}
 
 static inline void
 addptr64(const void *a)
@@ -385,7 +398,7 @@ generate_shift(uint32_t opcode)
 static void
 gen_test_armirq(void)
 {
-	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addlong(&armirq); addbyte(0x40); /* TESTB $0x40,armirq */
+	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addptr(&armirq); addbyte(0x40); // TESTB $0x40,armirq
 	gen_x86_jump(CC_NZ, 0);
 }
 
@@ -693,7 +706,7 @@ gen_arm_load_multiple(uint32_t opcode, uint32_t offset)
 		if (opcode & mask) {
 			addbyte(0x8b); addbyte(0x46); addbyte(d); // MOV d(%rsi),%eax
 			if (c == 15) {
-				addbyte(0x8b); addbyte(0x0c); addbyte(0x25); addlong(&arm.r15_mask); // MOV arm.r15_mask,%ecx
+				addbyte(0x8b); addbyte(0x0c); addbyte(0x25); addptr(&arm.r15_mask); // MOV arm.r15_mask,%ecx
 				gen_load_reg(15, EDX);
 				addbyte(0x83); addbyte(0xc0); addbyte(4); // ADD $4,%eax
 				addbyte(0x21); addbyte(0xc8); // AND %ecx,%eax
@@ -1244,18 +1257,6 @@ generatecall(OpFn addr, uint32_t opcode,uint32_t *pcpsr)
 		addbyte(0x83);
 		addbyte(0xC4);
 		addbyte(pcinc);
-//addbyte(0x67);
-		//addbyte(0x41); /*ADD $4,arm.reg[15](%r15)*/
-		//addbyte(0x83);
-		//addbyte(0x47);
-		//addbyte(15<<2); /*arm.reg[15]*/
-		//addbyte(pcinc);
-
-//                addbyte(0x83); /*ADD $4,arm.reg[15]*/
-                //addbyte(0x04);
-		//addbyte(0x25);
-                //addlong(&arm.reg[15]);
-                //addbyte(pcinc);
 //                pcinc=0;
         }
                 gen_x86_jump(CC_ALWAYS, 0);
@@ -1280,9 +1281,9 @@ generateupdateinscount(void)
 {
 	if (tempinscount != 0) {
 		if (tempinscount > 127) {
-			addbyte(0x81); addbyte(0x04); addbyte(0x25); addlong(&inscount); addlong(tempinscount); /* ADDL $tempinscount,inscount */
+			addbyte(0x81); addbyte(0x04); addbyte(0x25); addptr(&inscount); addlong(tempinscount); // ADDL $tempinscount,inscount
 		} else {
-			addbyte(0x83); addbyte(0x04); addbyte(0x25); addlong(&inscount); addbyte(tempinscount); /* ADDL $tempinscount,inscount */
+			addbyte(0x83); addbyte(0x04); addbyte(0x25); addptr(&inscount); addbyte(tempinscount); // ADDL $tempinscount,inscount
 		}
 		tempinscount = 0;
 	}
@@ -1314,17 +1315,10 @@ endblock(uint32_t opcode, uint32_t *pcpsr)
         generateupdatepc();
         generateupdateinscount();
 
-	addbyte(0xff); /* DECL linecyc */
-	addbyte(0x0c);
-	addbyte(0x25);
-	addlong(&linecyc);
+	addbyte(0xff); addbyte(0x0c); addbyte(0x25); addptr(&linecyc); // DECL linecyc
 	gen_x86_jump(CC_S, 0);
 
-	addbyte(0xf6); /* TESTB $0xff,armirq */
-	addbyte(0x04);
-	addbyte(0x25);
-	addlong(&armirq);
-	addbyte(0xff);
+	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addptr(&armirq); addbyte(0xff); // TESTB $0xff,armirq
 	gen_x86_jump(CC_NZ, 0);
 
         gen_load_reg(15, EAX);
@@ -1340,19 +1334,12 @@ endblock(uint32_t opcode, uint32_t *pcpsr)
         addbyte(0x81); /*ANDL $0x1FFFC,%edx*/
         addbyte(0xE2);
         addlong(0x1FFFC);
-	addbyte(0x3b); /* CMP codeblockpc(%rdx),%eax */
-	addbyte(0x82);
-	addlong(codeblockpc);
+	addbyte(0x3b); addbyte(0x82); addptr(codeblockpc); // CMP codeblockpc(%rdx),%eax
 	gen_x86_jump(CC_NE, 0);
 
-        addbyte(0x8B); /*MOVL codeblocknum[%rdx],%eax*/
-        addbyte(0x82);
-        addlong(codeblocknum);
-	addbyte(0x48); /*MOVL codeblockaddr[%rax*8],%rax*/
-        addbyte(0x8B);
-        addbyte(0x04);
-        addbyte(0xC5);
-        addlong(codeblockaddr);
+	addbyte(0x8b); addbyte(0x82); addptr(codeblocknum); // MOV codeblocknum(%rdx),%eax
+	addbyte(0x48); addbyte(0x8b); addbyte(0x04); addbyte(0xc5); addptr(codeblockaddr); // MOV codeblockaddr(,%rax,8),%rax
+
 	/* Jump to next block bypassing function prologue */
 	addbyte(0x48); addbyte(0x83); addbyte(0xc0); addbyte(block_enter); /* ADD $block_enter,%rax */
         addbyte(0xFF); /*JMP *%rax*/
@@ -1377,7 +1364,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x40*/
 			addbyte(0x04);
 			addbyte(0x25);
-			addlong(((char *)pcpsr)+3);
+			addptr(((char *) pcpsr) + 3);
 			addbyte(0x40);
 		}
 		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
@@ -1390,7 +1377,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x20*/
 			addbyte(0x04);
 			addbyte(0x25);
-			addlong(((char *)pcpsr)+3);
+			addptr(((char *) pcpsr) + 3);
 			addbyte(0x20);
 		}
 		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
@@ -1404,7 +1391,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x80*/
 			addbyte(0x04);
 			addbyte(0x25);
-			addlong(((char *)pcpsr)+3);
+			addptr(((char *) pcpsr) + 3);
 			addbyte(0x80);
 			cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
 		}
@@ -1417,7 +1404,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x10*/
 			addbyte(0x04);
 			addbyte(0x25);
-			addlong(((char *)pcpsr)+3);
+			addptr(((char *) pcpsr) + 3);
 			addbyte(0x10);
 		}
 		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
@@ -1426,16 +1413,10 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 		if (pcpsr == &arm.reg[15]) {
 			gen_load_reg(15, EAX);
 		} else {
-			addbyte(0x8B);                 /*MOVL (pcpsr),%eax*/
-			addbyte(0x04);
-			addbyte(0x25);
-			addlong((char *)pcpsr);
+			addbyte(0x8b); addbyte(0x04); addbyte(0x25); addptr(pcpsr); // MOV pcpsr,%eax
 		}
 		addbyte(0xc1); addbyte(0xe8); addbyte(28); // SHR $28,%eax
-		addbyte(0x80);                 /*CMPB $0,flaglookup(%eax)*/
-		addbyte(0xB8);
-		addlong((char *)(&flaglookup[opcode>>28][0]));
-		addbyte(0);
+		addbyte(0x80); addbyte(0xb8); addptr(&flaglookup[opcode >> 28][0]); addbyte(0); // CMPB $0,flaglookup(%rax)
 		cond = CC_E;
 		break;
 	}
