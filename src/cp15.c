@@ -524,7 +524,7 @@ uint32_t *getpccache(uint32_t addr)
                 case 0x00000000: /*ROM*/
                 return &rom[((long)(addr2&0x7FF000)-(long)addr)>>2];
                 case 0x02000000: /*VRAM*/
-                return &vram[((long)(addr2&0x1FF000)-(long)addr)>>2];
+                return &vram[((long) (addr2 & config.vrammask) - (long) addr) >> 2];
                 case 0x10000000: /*SIMM 0 bank 0*/
                 case 0x11000000:
                 case 0x12000000:

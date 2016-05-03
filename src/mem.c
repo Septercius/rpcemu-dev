@@ -578,7 +578,7 @@ readmemfl(uint32_t addr)
 
 		case 0x02000000: /* VRAM */
 			if (config.vrammask != 0) {
-				vradd(addr2, &vram[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
+				vradd(addr2, &vram[((readmemcache2 & config.vrammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
 				return *(const uint32_t *) (vraddrl[addr2 >> 12] + (addr2 & ~3));
 			}
 			break;
@@ -618,7 +618,7 @@ readmemfl(uint32_t addr)
 			break;
 		case 0x02000000: /* VRAM */
 			if (config.vrammask != 0) {
-				vradd(addr, &vram[((addr & 0x7ff000) - (long) (addr & ~0xfff)) >> 2], 0, addr);
+				vradd(addr, &vram[((addr & config.vrammask & ~0xfff) - (long) (addr & ~0xfff)) >> 2], 0, addr);
 			}
 			break;
 		case 0x10000000: /* SIMM 0 bank 0 */
@@ -681,7 +681,7 @@ readmemfb(uint32_t addr)
 
 		case 0x02000000: /* VRAM */
 			if (config.vrammask != 0) {
-				vradd(addr2, &vram[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
+				vradd(addr2, &vram[((readmemcache2 & config.vrammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
 				addr2 ^= 3;
 #endif
@@ -752,7 +752,7 @@ writememfl(uint32_t addr, uint32_t val)
 		switch (writememcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
 			if (config.vrammask != 0) {
-				vwadd(addr2, &vram[((writememcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
+				vwadd(addr2, &vram[((writememcache2 & config.vrammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
 			}
 			break;
 
@@ -809,7 +809,7 @@ writememfb(uint32_t addr, uint8_t val)
 		switch (writemembcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
 			if (config.vrammask != 0) {
-				vwadd(addr2, &vram[((writemembcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
+				vwadd(addr2, &vram[((writemembcache2 & config.vrammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
 			}
 			break;
 
