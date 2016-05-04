@@ -141,139 +141,129 @@ cp15_tlb_add_entry(uint32_t vaddr, uint32_t paddr)
 	tlbcachepos = (tlbcachepos + 1) & (TLBCACHESIZE - 1);
 }
 
-#define CRm (opcode&0xF)
-#define OPC2 ((opcode>>5)&7)
-void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
+void
+cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 {
-        switch (addr&15)
-        {
-        case 1: /* Control */
-                cp15.ctrl=val;
-                if (!icache && (val & CP15_CTRL_ICACHE))
-                       resetcodeblocks();
-                icache = val & CP15_CTRL_ICACHE;
-                dcache = val & CP15_CTRL_CACHE;
+	uint32_t CRm = opcode & 0xf;
+	uint32_t OPC2 = (opcode >> 5) & 7;
 
-                if (mmu != (val & CP15_CTRL_MMU))
-                {
-                        resetcodeblocks();
-                        cp15_vaddr_reset();
-                }
-                mmu    = val & CP15_CTRL_MMU;
-                prog32 = val & CP15_CTRL_PROG32;
-                if (!prog32 && (arm.mode & 0x10)) {
-                        updatemode(arm.mode & 0xf);
-                }
-                return; /*We can probably ignore all other bits*/
+	switch (addr & 0xf) {
+	case 1: /* Control */
+		cp15.ctrl = val;
+		if (!icache && (val & CP15_CTRL_ICACHE)) {
+			resetcodeblocks();
+		}
+		icache = val & CP15_CTRL_ICACHE;
+		dcache = val & CP15_CTRL_CACHE;
 
-        case 2: /* TLB base */
-                cp15.tlbbase=val&~0x3FFF;
-                cp15_vaddr_reset();
-                // resetcodeblocks();
-                switch (cp15.tlbbase&0x1F000000)
-                {
-                case 0x02000000: /*VRAM - yes RISC OS 3.7 does put the TLB in VRAM at one point*/
-                        tlbram = vram;
-                        tlbrammask = config.vrammask >> 2;
-                        break;
-                case 0x10000000: /*SIMM 0 bank 0*/
-                case 0x11000000:
-                case 0x12000000:
-                case 0x13000000:
-                        tlbram = ram00;
-                        tlbrammask = mem_rammask >> 2;
-                        break;
-                case 0x14000000: /*SIMM 0 bank 1*/
-                case 0x15000000:
-                case 0x16000000:
-                case 0x17000000:
-                        tlbram = ram01;
-                        tlbrammask = mem_rammask >> 2;
-                        break;
-                case 0x18000000: /*SIMM 1 bank 0*/
-                case 0x19000000:
-                case 0x1a000000:
-                case 0x1b000000:
-                case 0x1c000000: /*SIMM 1 bank 1*/
-                case 0x1d000000:
-                case 0x1e000000:
-                case 0x1f000000:
-                        tlbram = ram1;
-                        tlbrammask = 0x7ffffff >> 2;
-                        break;
-                }
-                // printf("CP15 tlb base now %08X\n",cp15.tlbbase);
-                return;
+		if ((val & CP15_CTRL_MMU) != mmu) {
+			resetcodeblocks();
+			cp15_vaddr_reset();
+		}
+		mmu = val & CP15_CTRL_MMU;
+		prog32 = val & CP15_CTRL_PROG32;
+		if (!prog32 && (arm.mode & 0x10)) {
+			updatemode(arm.mode & 0xf);
+		}
+		return;
 
-        case 3: /* Domain Access Control */
-                cp15.dacr=val;
-                // printf("CP15 DACR now %08X\n",cp15.dacr);
-                return;
+	case 2: /* Translation Table Base */
+		cp15.tlbbase = val & ~0x3fffu;
+		cp15_vaddr_reset();
+		// resetcodeblocks();
+		switch (cp15.tlbbase & 0x1f000000) {
+		case 0x02000000: /* VRAM */
+			tlbram = vram;
+			tlbrammask = config.vrammask >> 2;
+			break;
+		case 0x10000000: /* SIMM 0 bank 0 */
+		case 0x11000000:
+		case 0x12000000:
+		case 0x13000000:
+			tlbram = ram00;
+			tlbrammask = mem_rammask >> 2;
+			break;
+		case 0x14000000: /* SIMM 0 bank 1 */
+		case 0x15000000:
+		case 0x16000000:
+		case 0x17000000:
+			tlbram = ram01;
+			tlbrammask = mem_rammask >> 2;
+			break;
+		case 0x18000000: /* SIMM 1 bank 0 */
+		case 0x19000000:
+		case 0x1a000000:
+		case 0x1b000000:
+		case 0x1c000000: /* SIMM 1 bank 1 */
+		case 0x1d000000:
+		case 0x1e000000:
+		case 0x1f000000:
+			tlbram = ram1;
+			tlbrammask = 0x7ffffff >> 2;
+			break;
+		}
+		return;
 
-        case 5:
-        case 6:
-        case 8:
-                switch (cp15.cpu_model) {
-                /* ARMv3 Architecture */
-                case CPUModel_ARM610:
-                case CPUModel_ARM710:
-                case CPUModel_ARM7500:
-                case CPUModel_ARM7500FE:
-                        switch (addr & 0xf) {
-                        case 5: /* TLB Flush */
-                        case 6: /* TLB Purge */
-                                cp15_tlb_flush_all();
-                                resetcodeblocks();
-                                break;
+	case 3: /* Domain Access Control */
+		cp15.dacr = val;
+		return;
 
-                        default:
-                                UNIMPLEMENTED("CP15 ARMv3 Write",
-                                   "Unsupported write to reg 8 in ARMv3 mode");
-                        }
-                        return;
+	case 5:
+	case 6:
+	case 8:
+		switch (cp15.cpu_model) {
+		/* ARMv3 Architecture */
+		case CPUModel_ARM610:
+		case CPUModel_ARM710:
+		case CPUModel_ARM7500:
+		case CPUModel_ARM7500FE:
+			switch (addr & 0xf) {
+			case 5: /* TLB Flush */
+			case 6: /* TLB Purge */
+				cp15_tlb_flush_all();
+				resetcodeblocks();
+				break;
 
-                /* ARMv4 Architecture */
-                case CPUModel_SA110:
-                case CPUModel_ARM810:
-                        switch (addr & 0xf) {
-                        case 5: /* Fault Status Register */
-                                cp15.fsr = val;
-                                break;
+			default:
+				UNIMPLEMENTED("CP15 ARMv3 Write",
+				   "Unsupported write to reg 8 in ARMv3 mode");
+			}
+			return;
 
-                        case 6: /* Fault Address Register */
-                                cp15.far = val;
-                                break;
+		/* ARMv4 Architecture */
+		case CPUModel_SA110:
+		case CPUModel_ARM810:
+			switch (addr & 0xf) {
+			case 5: /* Fault Status Register */
+				cp15.fsr = val;
+				break;
 
-                        case 8: /* TLB Operations */
-                                if ((CRm & 1) && !(OPC2)) {
-                                        resetcodeblocks();
-                                }
-                                cp15_tlb_flush_all();
-                                break;
-                        }
-                        return;
+			case 6: /* Fault Address Register */
+				cp15.far = val;
+				break;
 
-                default:
-                        fprintf(stderr, "writecp15(): unknown CPU model %d\n",
-                                cp15.cpu_model);
-                        exit(EXIT_FAILURE);
-                }
-                break;
+			case 8: /* TLB Operations */
+				if ((CRm & 1) && (OPC2 == 0)) {
+					resetcodeblocks();
+				}
+				cp15_tlb_flush_all();
+				break;
+			}
+			return;
 
-        case 7: /* Flush Cache */
-                /* for (c=0;c<1024;c++)
-                {
-                        if (vraddrls[c]!=0xFFFFFFFF)
-                        {
-                                vraddrl[vraddrls[c]]=0xFFFFFFFF;
-                                vraddrls[c]=0xFFFFFFFF;
-                                vraddrphys[c]=0xFFFFFFFF;
-                        }
-                }*/
-                if ((CRm&1) && !(OPC2)) resetcodeblocks();
-                // rpclog("Cache invalidate %08X\n",PC);
-                pccache = 0xFFFFFFFF;
-                return;
+		default:
+			fprintf(stderr, "cp15_write(): unknown CPU model %d\n",
+				cp15.cpu_model);
+			exit(EXIT_FAILURE);
+		}
+		break;
+
+	case 7: /* Flush Cache */
+		if ((CRm & 1) && (OPC2 == 0)) {
+			resetcodeblocks();
+		}
+		pccache = 0xffffffff;
+		return;
 
 	case 15:
 		switch (cp15.cpu_model) {
@@ -294,44 +284,40 @@ void writecp15(uint32_t addr, uint32_t val, uint32_t opcode)
 		}
 		break;
 
-        default:
-                UNIMPLEMENTED("CP15 Write", "Unknown register %u", addr & 15);
-                break;
-        }
-        // fatal("Bad write CP15 %08X %08X %07X\n", addr, val, PC);
+	default:
+		UNIMPLEMENTED("CP15 Write", "Unknown register %u", addr & 0xf);
+		break;
+	}
 }
 
-uint32_t readcp15(uint32_t addr)
+uint32_t
+cp15_read(uint32_t addr)
 {
-        switch (addr&15)
-        {
-                case 0: /*ARM ID*/
-                switch (cp15.cpu_model)
-                {
-                        case CPUModel_ARM7500:   return 0x41027100;
-                        case CPUModel_ARM7500FE: return 0x41077100;
-                        case CPUModel_ARM610:    return 0x41560610;
-                        case CPUModel_ARM710:    return 0x41007100;
-                        case CPUModel_ARM810:    return 0x41018100;
-                        case CPUModel_SA110:     return 0x4401a102;
-                }
-                break;
-                case 1: /*Control*/
-                return cp15.ctrl;
-                case 2: /*???*/
-                return cp15.tlbbase;
-                case 3: /*DACR*/
-                return cp15.dacr;
-                case 5: /*Fault status*/
-//                printf("Fault status read %08X\n",cp15.fsr);
-                return cp15.fsr;
-                case 6: /*Fault address*/
-                //printf("Fault address read %08X\n",cp15.far);
-                return cp15.far;
-                default:
-                UNIMPLEMENTED("CP15 Read", "Unknown register %u", addr & 15);
-        }
-        fatal("Bad read CP15 %08X %07X\n", addr, PC);
+	switch (addr & 0xf) {
+	case 0: /* ID */
+		switch (cp15.cpu_model) {
+		case CPUModel_ARM7500:   return 0x41027100;
+		case CPUModel_ARM7500FE: return 0x41077100;
+		case CPUModel_ARM610:    return 0x41560610;
+		case CPUModel_ARM710:    return 0x41007100;
+		case CPUModel_ARM810:    return 0x41018100;
+		case CPUModel_SA110:     return 0x4401a102;
+		}
+		break;
+	case 1: /* Control */
+		return cp15.ctrl;
+	case 2: /* Translation Table Base */
+		return cp15.tlbbase;
+	case 3: /* Domain Access Control */
+		return cp15.dacr;
+	case 5: /* Fault Status */
+		return cp15.fsr;
+	case 6: /* Fault Address */
+		return cp15.far;
+	default:
+		UNIMPLEMENTED("CP15 Read", "Unknown register %u", addr & 0xf);
+	}
+	fatal("Bad read CP15 %x %08x\n", addr, PC);
 }
 
 /*DOMAIN -
