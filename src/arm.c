@@ -1868,7 +1868,7 @@ void execarm(int cycs)
 #endif
                                         if (MULRS==15 && (opcode&0x10))
                                         {
-                                                writecp15(RN, arm.reg[RD], opcode);
+                                                cp15_write(RN, arm.reg[RD], opcode);
                                         }
                                         else
                                         {
@@ -1889,9 +1889,9 @@ void execarm(int cycs)
                                         {
                                                 if (RD == 15) {
                                                         arm.reg[RD] = (arm.reg[RD] & arm.r15_mask) |
-                                                                      (readcp15(RN) & ~arm.r15_mask);
+                                                                      (cp15_read(RN) & ~arm.r15_mask);
                                                 } else {
-                                                        arm.reg[RD] = readcp15(RN);
+                                                        arm.reg[RD] = cp15_read(RN);
                                                 }
                                         }
                                         else
