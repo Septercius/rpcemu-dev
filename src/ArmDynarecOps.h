@@ -1443,60 +1443,51 @@ static void opBL(uint32_t opcode)
 	refillpipeline();
 }
 
-
-static void opMCR(uint32_t opcode)
+static void
+opcopro(uint32_t opcode)
 {
 #ifdef FPA
-        if (MULRS==1)
-        {
-                fpaopcode(opcode);
-        }
-        else
+	if ((opcode & 0xf00) == 0x100 || (opcode & 0xf00) == 0x200) {
+		fpaopcode(opcode);
+		return;
+	}
 #endif
-        if (MULRS==15 && (opcode&0x10))
-        {
-                cp15_write(RN, arm.reg[RD], opcode);
-        }
-        else
-        {
-                undefined();
-        }
+	undefined();
 }
 
-static void opMRC(uint32_t opcode)
+static void
+opMCR(uint32_t opcode)
 {
 #ifdef FPA
-        if (MULRS==1)
-        {
-                fpaopcode(opcode);
-        }
-        else
+	if ((opcode & 0xf00) == 0x100) {
+		fpaopcode(opcode);
+		return;
+	}
 #endif
-        if (MULRS==15 && (opcode&0x10))
-        {
-                if (RD == 15) {
-                        arm.reg[RD] = (arm.reg[RD] & arm.r15_mask) |
-                                      (cp15_read(RN) & ~arm.r15_mask);
-                } else {
-                        arm.reg[RD] = cp15_read(RN);
-                }
-        }
-        else
-        {
-                undefined();
-        }
+	if ((opcode & 0xf10) == 0xf10) {
+		cp15_write(RN, arm.reg[RD], opcode);
+	} else {
+		undefined();
+	}
 }
 
-static void opcopro(uint32_t opcode)
+static void
+opMRC(uint32_t opcode)
 {
 #ifdef FPA
-        if ((opcode&0xF00)==0x100 || (opcode&0xF00)==0x200)
-           fpaopcode(opcode);
-        else
-        {
-                undefined();
-        }
-#else
-        undefined();
+	if ((opcode & 0xf00) == 0x100) {
+		fpaopcode(opcode);
+		return;
+	}
 #endif
+	if ((opcode & 0xf10) == 0xf10) {
+		if (RD == 15) {
+			arm.reg[RD] = (arm.reg[RD] & arm.r15_mask) |
+				      (cp15_read(RN) & ~arm.r15_mask);
+		} else {
+			arm.reg[RD] = cp15_read(RN);
+		}
+	} else {
+		undefined();
+	}
 }
