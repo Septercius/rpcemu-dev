@@ -1857,75 +1857,62 @@ void execarm(int cycs)
 					              (arm.reg[15] & ~arm.r15_mask);
 					break;
 
-                                        case 0xE0: case 0xE2: case 0xE4: case 0xE6: /*MCR*/
-                                        case 0xE8: case 0xEA: case 0xEC: case 0xEE:
+				case 0xc0: case 0xc1: case 0xc2: case 0xc3: /* Co-pro */
+				case 0xc4: case 0xc5: case 0xc6: case 0xc7:
+				case 0xc8: case 0xc9: case 0xca: case 0xcb:
+				case 0xcc: case 0xcd: case 0xce: case 0xcf:
+				case 0xd0: case 0xd1: case 0xd2: case 0xd3:
+				case 0xd4: case 0xd5: case 0xd6: case 0xd7:
+				case 0xd8: case 0xd9: case 0xda: case 0xdb:
+				case 0xdc: case 0xdd: case 0xde: case 0xdf:
 #ifdef FPA
-                                        if (MULRS==1)
-                                        {
-                                                fpaopcode(opcode);
-                                        }
-                                        else
+					if ((opcode & 0xf00) == 0x100 || (opcode & 0xf00) == 0x200) {
+						fpaopcode(opcode);
+						break;
+					}
 #endif
-                                        if (MULRS==15 && (opcode&0x10))
-                                        {
-                                                cp15_write(RN, arm.reg[RD], opcode);
-                                        }
-                                        else
-                                        {
-                                                undefined();
-                                        }
-                                        break;
+					undefined();
+					break;
 
-                                        case 0xE1: case 0xE3: case 0xE5: case 0xE7: /*MRC*/
-                                        case 0xE9: case 0xEB: case 0xED: case 0xEF:
+				case 0xe0: case 0xe2: case 0xe4: case 0xe6: /* MCR */
+				case 0xe8: case 0xea: case 0xec: case 0xee:
 #ifdef FPA
-                                        if (MULRS==1)
-                                        {
-                                                fpaopcode(opcode);
-                                        }
-                                        else
+					if ((opcode & 0xf00) == 0x100) {
+						fpaopcode(opcode);
+						break;
+					}
 #endif
-                                        if (MULRS==15 && (opcode&0x10))
-                                        {
-                                                if (RD == 15) {
-                                                        arm.reg[RD] = (arm.reg[RD] & arm.r15_mask) |
-                                                                      (cp15_read(RN) & ~arm.r15_mask);
-                                                } else {
-                                                        arm.reg[RD] = cp15_read(RN);
-                                                }
-                                        }
-                                        else
-                                        {
-                                                undefined();
-                                        }
-                                        break;
+					if ((opcode & 0xf10) == 0xf10) {
+						cp15_write(RN, arm.reg[RD], opcode);
+					} else {
+						undefined();
+					}
+					break;
 
-//#if 0
-                                        case 0xC0: case 0xC1: case 0xC2: case 0xC3: /*Co-pro*/
-                                        case 0xC4: case 0xC5: case 0xC6: case 0xC7:
-                                        case 0xC8: case 0xC9: case 0xCA: case 0xCB:
-                                        case 0xCC: case 0xCD: case 0xCE: case 0xCF:
-                                        case 0xD0: case 0xD1: case 0xD2: case 0xD3:
-                                        case 0xD4: case 0xD5: case 0xD6: case 0xD7:
-                                        case 0xD8: case 0xD9: case 0xDA: case 0xDB:
-                                        case 0xDC: case 0xDD: case 0xDE: case 0xDF:
+				case 0xe1: case 0xe3: case 0xe5: case 0xe7: /* MRC */
+				case 0xe9: case 0xeb: case 0xed: case 0xef:
 #ifdef FPA
-                                        if ((opcode&0xF00)==0x100 || (opcode&0xF00)==0x200)
-                                           fpaopcode(opcode);
-                                        else
-                                        {
-                                                undefined();
-                                        }
-#else
-                                        undefined();
+					if ((opcode & 0xf00) == 0x100) {
+						fpaopcode(opcode);
+						break;
+					}
 #endif
-                                        break;
-//#endif
+					if ((opcode & 0xf10) == 0xf10) {
+						if (RD == 15) {
+							arm.reg[RD] = (arm.reg[RD] & arm.r15_mask) |
+							              (cp15_read(RN) & ~arm.r15_mask);
+						} else {
+							arm.reg[RD] = cp15_read(RN);
+						}
+					} else {
+						undefined();
+					}
+					break;
 
-				case 0xF0: case 0xF1: case 0xF2: case 0xF3: /* SWI */
-				case 0xF4: case 0xF5: case 0xF6: case 0xF7:
-				case 0xF8: case 0xF9: case 0xFA: case 0xFB:
-				case 0xFC: case 0xFD: case 0xFE: case 0xFF:
+				case 0xf0: case 0xf1: case 0xf2: case 0xf3: /* SWI */
+				case 0xf4: case 0xf5: case 0xf6: case 0xf7:
+				case 0xf8: case 0xf9: case 0xfa: case 0xfb:
+				case 0xfc: case 0xfd: case 0xfe: case 0xff:
 					opSWI(opcode);
 					break;
 
