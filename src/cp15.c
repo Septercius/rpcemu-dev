@@ -18,12 +18,16 @@ static int tlbcachepos = 0;
 int tlbs = 0, flushes = 0;
 uint32_t pccache = 0;
 
-static struct cp15
-{
-        uint32_t tlbbase,dacr;
-        uint32_t far,fsr,ctrl;
-	CPUModel cpu_model;
+static struct cp15 {
+	uint32_t ctrl;				/**< Control register */
+	uint32_t translation_table;		/**< Translation Table Base register */
+	uint32_t domain_access_control;		/**< Domain Access Control register */
+	uint32_t fault_status;			/**< Fault Status register */
+	uint32_t fault_address;			/**< Fault Address register */
+
+	CPUModel cpu_model;			/**< CPU model emulated */
 } cp15;
+
 static int icache = 0;
 
 /* The bits of the processor's internal coprocessor (MMU) control register */
@@ -77,11 +81,6 @@ cp15_vaddr_reset(void)
 			vwaddrphys[c] = 0xFFFFFFFF;
 		}
 	}
-}
-
-void getcp15fsr(void)
-{
-        rpclog("%08X %08X\n",cp15.far,cp15.fsr);
 }
 
 /**
@@ -168,10 +167,10 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 		return;
 
 	case 2: /* Translation Table Base */
-		cp15.tlbbase = val & ~0x3fffu;
+		cp15.translation_table = val & ~0x3fffu;
 		cp15_vaddr_reset();
 		// resetcodeblocks();
-		switch (cp15.tlbbase & 0x1f000000) {
+		switch (cp15.translation_table & 0x1f000000) {
 		case 0x02000000: /* VRAM */
 			tlbram = vram;
 			tlbrammask = config.vrammask >> 2;
@@ -205,7 +204,7 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 		return;
 
 	case 3: /* Domain Access Control */
-		cp15.dacr = val;
+		cp15.domain_access_control = val;
 		return;
 
 	case 5:
@@ -235,11 +234,11 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 		case CPUModel_ARM810:
 			switch (addr & 0xf) {
 			case 5: /* Fault Status Register */
-				cp15.fsr = val;
+				cp15.fault_status = val;
 				break;
 
 			case 6: /* Fault Address Register */
-				cp15.far = val;
+				cp15.fault_address = val;
 				break;
 
 			case 8: /* TLB Operations */
@@ -307,13 +306,13 @@ cp15_read(uint32_t addr)
 	case 1: /* Control */
 		return cp15.ctrl;
 	case 2: /* Translation Table Base */
-		return cp15.tlbbase;
+		return cp15.translation_table;
 	case 3: /* Domain Access Control */
-		return cp15.dacr;
+		return cp15.domain_access_control;
 	case 5: /* Fault Status */
-		return cp15.fsr;
+		return cp15.fault_status;
 	case 6: /* Fault Address */
-		return cp15.far;
+		return cp15.fault_address;
 	default:
 		UNIMPLEMENTED("CP15 Read", "Unknown register %u", addr & 0xf);
 	}
@@ -365,14 +364,14 @@ static int checkpermissions(int p, int rw)
 
 static int checkdomain(uint32_t domain)
 {
-        int temp=cp15.dacr>>(domain<<1);
+        int temp = cp15.domain_access_control >> (domain << 1);
 
         return temp&3;
 }
 
 uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 {
-        uint32_t vaddr=((addr>>18)&~3)|cp15.tlbbase;
+        uint32_t vaddr = cp15.translation_table | ((addr >> 18) & ~3u);
         uint32_t fld;
         uint32_t sldaddr,sld; //,taddr;
         uint32_t oa=addr;
@@ -466,8 +465,8 @@ uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
 do_fault:
 	armirq |= 0x40;
 	if (!prefetch) {
-		cp15.far = addr;
-		cp15.fsr = (domain << 4) | fault_code;
+		cp15.fault_address = addr;
+		cp15.fault_status = (domain << 4) | fault_code;
 	}
 	return 0;
 }
