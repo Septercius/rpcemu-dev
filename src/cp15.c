@@ -114,7 +114,6 @@ cp15_init(void)
 	vwaddrl = malloc(0x100000 * sizeof(uint32_t *));
 }
 
-static int translations;
 static uint32_t *tlbram;
 static uint32_t tlbrammask;
 
@@ -369,98 +368,101 @@ static int checkdomain(uint32_t domain)
         return temp&3;
 }
 
-uint32_t translateaddress2(uint32_t addr, int rw, int prefetch)
+uint32_t
+translateaddress2(uint32_t addr, int rw, int prefetch)
 {
-        uint32_t vaddr = cp15.translation_table | ((addr >> 18) & ~3u);
-        uint32_t fld;
-        uint32_t sldaddr,sld; //,taddr;
-        uint32_t oa=addr;
-        uint32_t domain, fault_code;
-        uint32_t domain_access;
-        int temp,temp2 = 0;
+	uint32_t fld_addr, fld;
+	uint32_t sld_addr, sld;
+	uint32_t oa = addr;
+	uint32_t domain, fault_code;
+	uint32_t domain_access;
+	uint32_t temp, temp2 = 0;
 
-        armirq&=~0x40;
+	armirq &= ~0x40u;
 
-        translations++;
-        tlbs++;
+	tlbs++;
 
-        fld=tlbram[(vaddr>>2)&tlbrammask];
-        domain = (fld >> 5) & 0xf;
+	/* Fetch first-level descriptor */
+	fld_addr = cp15.translation_table | ((addr >> 18) & ~3u);
+	fld = tlbram[(fld_addr >> 2) & tlbrammask];
+	domain = (fld >> 5) & 0xf;
 
-        switch (fld&3)
-        {
-        case 0: /* Fault (Section Translation) */
-                fault_code = CP15_FAULT_TRANSLATION_SECTION;
-                goto do_fault;
+	switch (fld & 3) {
+	case 0: /* Fault (Section Translation) */
+		fault_code = CP15_FAULT_TRANSLATION_SECTION;
+		goto do_fault;
 
-        case 1: /* Page */
-                domain_access = checkdomain(domain);
-                sldaddr=((addr&0xFF000)>>10)|(fld&0xFFFFFC00);
-                if ((sldaddr&0x1F000000)==0x02000000)
-                   sld = vram[(sldaddr & config.vrammask) >> 2];
-                else if (sldaddr & 0x8000000)
-                   sld = ram1[(sldaddr & 0x7ffffff) >> 2];
-                else if (sldaddr&0x4000000)
-                   sld = ram01[(sldaddr & mem_rammask) >> 2];
-                else
-                   sld = ram00[(sldaddr & mem_rammask) >> 2];
+	case 1: /* Page */
+		/* Fetch second-level descriptor */
+		sld_addr = (fld & 0xfffffc00) | ((addr >> 10) & 0x3fc);
+		if ((sld_addr & 0x1f000000) == 0x02000000) {
+			sld = vram[(sld_addr & config.vrammask) >> 2];
+		} else if (sld_addr & 0x8000000) {
+			sld = ram1[(sld_addr & 0x7ffffff) >> 2];
+		} else if (sld_addr & 0x4000000) {
+			sld = ram01[(sld_addr & mem_rammask) >> 2];
+		} else {
+			sld = ram00[(sld_addr & mem_rammask) >> 2];
+		}
 
-                /* Check for invalid Page Table Entry */
-                if ((sld & 3) == 0 || (sld & 3) == 3) {
-                        /* Fault or Reserved */
-                        fault_code = CP15_FAULT_TRANSLATION_PAGE;
-                        goto do_fault;
-                }
-                if (domain_access == 0 || domain_access == 2) {
-                        fault_code = CP15_FAULT_DOMAIN_PAGE;
-                        goto do_fault;
-                }
-                switch (sld&3)
-                {
-                        case 1: /*64kb - NetBSD*/
-                        temp=(addr&0xC000)>>13;
-                        temp2=sld&(0x30<<temp);
-                        temp2>>=(4+temp);
-                        break;
-                        case 2: /*4kb - RISC OS, Linux*/
-                        temp=(addr&0xC00)>>9;
-                        temp2=sld&(0x30<<temp);
-                        temp2>>=(4+temp);
-                        break;
-                }
-                if (domain_access == 1) {
-                        /* Client Domain - check permissions */
-                        if (checkpermissions(temp2, rw)) {
-                                fault_code = CP15_FAULT_PERMISSION_PAGE;
-                                goto do_fault;
-                        }
-                }
-                if ((sld&3)==1) sld=((sld&0xFFFF0FFF)|(addr&0xF000));
-                addr=(sld&0xFFFFF000)|(addr&0xFFF);
-                cp15_tlb_add_entry(oa, addr);
-                return addr;
+		/* Check for invalid Page Table Entry */
+		if ((sld & 3) == 0 || (sld & 3) == 3) {
+			/* Fault or Reserved */
+			fault_code = CP15_FAULT_TRANSLATION_PAGE;
+			goto do_fault;
+		}
+		domain_access = checkdomain(domain);
+		if (domain_access == 0 || domain_access == 2) {
+			fault_code = CP15_FAULT_DOMAIN_PAGE;
+			goto do_fault;
+		}
+		switch (sld & 3) {
+		case 1: /* Large page (64 KB) */
+			temp = (addr & 0xc000) >> 13;
+			temp2 = sld & (0x30 << temp);
+			temp2 >>= (4 + temp);
+			break;
+		case 2: /* Small page (4 KB) */
+			temp = (addr & 0xc00) >> 9;
+			temp2 = sld & (0x30 << temp);
+			temp2 >>= (4 + temp);
+			break;
+		}
+		if (domain_access == 1) {
+			/* Client Domain - check permissions */
+			if (checkpermissions(temp2, rw)) {
+				fault_code = CP15_FAULT_PERMISSION_PAGE;
+				goto do_fault;
+			}
+		}
+		if ((sld & 3) == 1) {
+			sld = ((sld & 0xffff0fff) | (addr & 0xf000));
+		}
+		addr = (sld & 0xfffff000) | (addr & 0xfff);
+		cp15_tlb_add_entry(oa, addr);
+		return addr;
 
-        case 2: /* Section */
-                domain_access = checkdomain(domain);
-                if (domain_access == 0 || domain_access == 2) {
-                        fault_code = CP15_FAULT_DOMAIN_SECTION;
-                        goto do_fault;
-                }
-                if (domain_access == 1) {
-                        /* Client Domain - check permissions */
-                        if (checkpermissions((fld & 0xc00) >> 10, rw)) {
-                                fault_code = CP15_FAULT_PERMISSION_SECTION;
-                                goto do_fault;
-                        }
-                }
-                addr=(addr&0xFFFFF)|(fld&0xFFF00000);
-                cp15_tlb_add_entry(oa, addr);
-                return addr;
+	case 2: /* Section */
+		domain_access = checkdomain(domain);
+		if (domain_access == 0 || domain_access == 2) {
+			fault_code = CP15_FAULT_DOMAIN_SECTION;
+			goto do_fault;
+		}
+		if (domain_access == 1) {
+			/* Client Domain - check permissions */
+			if (checkpermissions((fld & 0xc00) >> 10, rw)) {
+				fault_code = CP15_FAULT_PERMISSION_SECTION;
+				goto do_fault;
+			}
+		}
+		addr = (fld & 0xfff00000) | (addr & 0xfffff);
+		cp15_tlb_add_entry(oa, addr);
+		return addr;
 
-        default:
-                fatal("Bad descriptor type %i %08X Address %08X\n", fld & 3, fld, addr);
-        }
-        exit(-1);
+	default:
+		fatal("Bad descriptor type %u %08x Address %08x\n", fld & 3, fld, addr);
+	}
+	exit(-1);
 
 do_fault:
 	armirq |= 0x40;
