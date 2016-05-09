@@ -368,15 +368,25 @@ static int checkdomain(uint32_t domain)
         return temp&3;
 }
 
+/**
+ * Translate a virtual address to a physical address.
+ *
+ * The access permissions are checked and an Abort may be generated.
+ *
+ * @param addr     Virtual address
+ * @param rw       Bool of whether this is for write access
+ * @param prefetch Bool of whether this is for instruction fetch
+ * @return Translated physical address (if no Fault occurred)
+ */
 uint32_t
 translateaddress2(uint32_t addr, int rw, int prefetch)
 {
 	uint32_t fld_addr, fld;
 	uint32_t sld_addr, sld;
-	uint32_t oa = addr;
 	uint32_t domain, fault_code;
 	uint32_t domain_access;
 	uint32_t temp, temp2 = 0;
+	uint32_t phys_addr;
 
 	armirq &= ~0x40u;
 
@@ -438,11 +448,11 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 		if ((sld & 3) == 1) {
 			sld = ((sld & 0xffff0fff) | (addr & 0xf000));
 		}
-		addr = (sld & 0xfffff000) | (addr & 0xfff);
-		cp15_tlb_add_entry(oa, addr);
-		return addr;
+		phys_addr = (sld & 0xfffff000) | (addr & 0xfff);
+		cp15_tlb_add_entry(addr, phys_addr);
+		return phys_addr;
 
-	case 2: /* Section */
+	case 2: /* Section (1 MB) */
 		domain_access = checkdomain(domain);
 		if (domain_access == 0 || domain_access == 2) {
 			fault_code = CP15_FAULT_DOMAIN_SECTION;
@@ -455,9 +465,9 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 				goto do_fault;
 			}
 		}
-		addr = (fld & 0xfff00000) | (addr & 0xfffff);
-		cp15_tlb_add_entry(oa, addr);
-		return addr;
+		phys_addr = (fld & 0xfff00000) | (addr & 0xfffff);
+		cp15_tlb_add_entry(addr, phys_addr);
+		return phys_addr;
 
 	default:
 		fatal("Bad descriptor type %u %08x Address %08x\n", fld & 3, fld, addr);
