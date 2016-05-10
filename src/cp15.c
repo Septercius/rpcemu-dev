@@ -385,7 +385,8 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 	uint32_t sld_addr, sld;
 	uint32_t domain, fault_code;
 	uint32_t domain_access;
-	uint32_t temp, temp2 = 0;
+	uint32_t temp;
+	uint32_t access_permissions;
 	uint32_t phys_addr;
 
 	armirq &= ~0x40u;
@@ -415,32 +416,29 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 			sld = ram00[(sld_addr & mem_rammask) >> 2];
 		}
 
-		/* Check for invalid Page Table Entry */
-		if ((sld & 3) == 0 || (sld & 3) == 3) {
-			/* Fault or Reserved */
+		/* Check second-level descriptor */
+		switch (sld & 3) {
+		case 1: /* Large page (64 KB) */
+			temp = (addr & 0xc000) >> 13;
+			break;
+		case 2: /* Small page (4 KB) */
+			temp = (addr & 0xc00) >> 9;
+			break;
+		default: /* 0 (Fault) or 3 (Reserved) */
 			fault_code = CP15_FAULT_TRANSLATION_PAGE;
 			goto do_fault;
 		}
+
+		/* Check Domain */
 		domain_access = checkdomain(domain);
 		if (domain_access == 0 || domain_access == 2) {
 			fault_code = CP15_FAULT_DOMAIN_PAGE;
 			goto do_fault;
 		}
-		switch (sld & 3) {
-		case 1: /* Large page (64 KB) */
-			temp = (addr & 0xc000) >> 13;
-			temp2 = sld & (0x30 << temp);
-			temp2 >>= (4 + temp);
-			break;
-		case 2: /* Small page (4 KB) */
-			temp = (addr & 0xc00) >> 9;
-			temp2 = sld & (0x30 << temp);
-			temp2 >>= (4 + temp);
-			break;
-		}
 		if (domain_access == 1) {
 			/* Client Domain - check permissions */
-			if (checkpermissions(temp2, rw)) {
+			access_permissions = (sld >> (temp + 4)) & 3;
+			if (checkpermissions(access_permissions, rw)) {
 				fault_code = CP15_FAULT_PERMISSION_PAGE;
 				goto do_fault;
 			}
@@ -453,6 +451,7 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 		return phys_addr;
 
 	case 2: /* Section (1 MB) */
+		/* Check Domain */
 		domain_access = checkdomain(domain);
 		if (domain_access == 0 || domain_access == 2) {
 			fault_code = CP15_FAULT_DOMAIN_SECTION;
@@ -460,7 +459,8 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 		}
 		if (domain_access == 1) {
 			/* Client Domain - check permissions */
-			if (checkpermissions((fld & 0xc00) >> 10, rw)) {
+			access_permissions = (fld >> 10) & 3;
+			if (checkpermissions(access_permissions, rw)) {
 				fault_code = CP15_FAULT_PERMISSION_SECTION;
 				goto do_fault;
 			}
