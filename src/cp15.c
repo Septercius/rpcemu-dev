@@ -361,11 +361,18 @@ static int checkpermissions(int p, int rw)
         return 0;
 }
 
-static int checkdomain(uint32_t domain)
+/**
+ * Return the value which encodes the access permitted for a Domain.
+ *
+ * @param domain Domain number
+ * @return Access permitted by Domain
+ */
+static uint32_t
+cp15_domain_access(uint32_t domain)
 {
-        int temp = cp15.domain_access_control >> (domain << 1);
+	uint32_t shift = (domain << 1); /* Shift needed to extract value for this Domain */
 
-        return temp&3;
+	return (cp15.domain_access_control >> shift) & 3;
 }
 
 /**
@@ -420,9 +427,11 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 		switch (sld & 3) {
 		case 1: /* Large page (64 KB) */
 			temp = (addr & 0xc000) >> 13;
+			phys_addr = (sld & 0xffff0000) | (addr & 0xffff);
 			break;
 		case 2: /* Small page (4 KB) */
 			temp = (addr & 0xc00) >> 9;
+			phys_addr = (sld & 0xfffff000) | (addr & 0xfff);
 			break;
 		default: /* 0 (Fault) or 3 (Reserved) */
 			fault_code = CP15_FAULT_TRANSLATION_PAGE;
@@ -430,7 +439,7 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 		}
 
 		/* Check Domain */
-		domain_access = checkdomain(domain);
+		domain_access = cp15_domain_access(domain);
 		if (domain_access == 0 || domain_access == 2) {
 			fault_code = CP15_FAULT_DOMAIN_PAGE;
 			goto do_fault;
@@ -443,16 +452,12 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 				goto do_fault;
 			}
 		}
-		if ((sld & 3) == 1) {
-			sld = ((sld & 0xffff0fff) | (addr & 0xf000));
-		}
-		phys_addr = (sld & 0xfffff000) | (addr & 0xfff);
 		cp15_tlb_add_entry(addr, phys_addr);
 		return phys_addr;
 
 	case 2: /* Section (1 MB) */
 		/* Check Domain */
-		domain_access = checkdomain(domain);
+		domain_access = cp15_domain_access(domain);
 		if (domain_access == 0 || domain_access == 2) {
 			fault_code = CP15_FAULT_DOMAIN_SECTION;
 			goto do_fault;
