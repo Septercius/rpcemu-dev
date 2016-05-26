@@ -7,7 +7,7 @@ extern void cp15_init(void);
 extern void cp15_write(uint32_t addr, uint32_t val, uint32_t opcode);
 extern uint32_t cp15_read(uint32_t addr);
 
-extern uint32_t *getpccache(uint32_t addr);
+extern const uint32_t *getpccache(uint32_t addr);
 extern uint32_t translateaddress2(uint32_t addr, int rw, int prefetch);
 
 extern int flushes;

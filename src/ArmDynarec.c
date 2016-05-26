@@ -59,7 +59,8 @@ int prog32;
 
 #include "arm_common.h"
 
-uint32_t pccache,*pccache2;
+uint32_t pccache;
+static const uint32_t *pccache2;
 
 /**
  * Return true if this ARM core is the dynarec version

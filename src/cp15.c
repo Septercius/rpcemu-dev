@@ -1,8 +1,14 @@
 /*RPCemu v0.6 by Tom Walker
   System coprocessor + MMU emulation*/
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "rpcemu.h"
-#include "mem.h"
 #include "arm.h"
+#include "cp15.h"
+#include "mem.h"
 
 int dcache = 0; /* Data cache on StrongARM, unified cache pre-StrongARM */
 
@@ -499,7 +505,8 @@ do_fault:
 }*/
 
 
-uint32_t *getpccache(uint32_t addr)
+const uint32_t *
+getpccache(uint32_t addr)
 {
         uint32_t addr2;
 
