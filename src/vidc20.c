@@ -1,8 +1,13 @@
 /*RPCemu v0.6 by Tom Walker
   VIDC20 emulation*/
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <allegro.h>
+
 #include "rpcemu.h"
+#include "cp15.h"
 #include "vidc20.h"
 #include "keyboard.h"
 #include "sound.h"
@@ -574,16 +579,10 @@ void drawscr(int needredraw)
         {
                 uint32_t invalidate = thr.iomd_vidinit & 0x1f000000;
 
-                for (c=0;c<1024;c++)
-                {
-//                        rpclog("%03i %08X %08X %08X\n",c,vraddrphys[c],(vraddrphys[c]&0x1F000000),vraddrls[c]<<12);
-                        if ((vwaddrphys[c] & 0x1f000000) == invalidate)
-                        {
-//                                rpclog("Invalidated %08X\n",vraddrls[c]);
-                                vwaddrl[vwaddrls[c]]=0xFFFFFFFF;
-                                vwaddrphys[c]=vwaddrls[c]=0xFFFFFFFF;
-                        }
-                }
+                /* Invalidate Write-TLB entries corresponding to the screen memory,
+                   so that writes to this region will cause the dirtybuffer[] to be modified. */
+                cp15_tlb_invalidate_physical(invalidate);
+
                 thr.threadpending = 1;
         }
 

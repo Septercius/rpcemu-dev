@@ -90,6 +90,26 @@ cp15_vaddr_reset(void)
 }
 
 /**
+ * Invalidate Write-TLB entries corresponding to the given region of physical
+ * addresses.
+ *
+ * @param addr Physical address
+ */
+void
+cp15_tlb_invalidate_physical(uint32_t addr)
+{
+	int c;
+
+	for (c = 0; c < 1024; c++) {
+		if ((vwaddrphys[c] & 0x1f000000) == addr) {
+			vwaddrl[vwaddrls[c]] = 0xffffffff;
+			vwaddrls[c] = 0xffffffff;
+			vwaddrphys[c] = 0xffffffff;
+		}
+	}
+}
+
+/**
  * Called on program startup and emulated machine reset to
  * prepare the cp15 module
  *
