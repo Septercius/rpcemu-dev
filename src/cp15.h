@@ -1,6 +1,8 @@
 #ifndef __CP15__
 #define __CP15__
 
+extern void cp15_tlb_invalidate_physical(uint32_t addr);
+
 extern void cp15_reset(CPUModel cpu_model);
 extern void cp15_init(void);
 
