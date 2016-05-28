@@ -601,11 +601,7 @@ void execarm(int cycs)
         while (cycles>0)
         {
 //                cyccount+=200;
-//                linecyc=200;
-//                while (linecyc>0)
-//                for (linecyc=0;linecyc<200;linecyc++)
-                while (linecyc>=0)
-                {
+                while (linecyc-- >= 0) {
                         armirq&=~0xC0;
                         if (!isblockvalid(PC)) /*Interpret block*/
                         {
@@ -633,10 +629,7 @@ void execarm(int cycs)
                                         if (!((PC)&0xFFC)) blockend=1;
 //                                        if (armirq) blockend=1;
                                         inscount++;
-//                                        linecyc++;
                                 }
-                        linecyc--;
-//                                linecyc+=
                         }
                         else
                         {
@@ -735,10 +728,8 @@ void execarm(int cycs)
                                                 removeblock();
                                         }
                                 }
-                        linecyc--;
                         }
 
-//                        linecyc+=10;
                         if (/*databort|*/armirq&0xC3)//|prefabort)
                         {
                                 if (!ARM_MODE_32(arm.mode)) {
