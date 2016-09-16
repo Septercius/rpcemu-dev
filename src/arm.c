@@ -318,83 +318,111 @@ void dumpregs(void)
 
 #define dumpregs()
 
-static uint32_t shift3(uint32_t opcode)
+static uint32_t
+shift3(uint32_t opcode)
 {
-        uint32_t shiftmode=opcode&0x60;//(opcode>>5)&3;
-        uint32_t shiftamount=(opcode>>7)&31;
-        uint32_t temp;
-        int cflag=CFSET;
-        if (opcode&0x10)
-        {
-                shiftamount = arm.reg[(opcode >> 8) & 0xf] & 0xff;
-        }
-        temp = arm.reg[RM];
-        if (shiftamount) arm.reg[cpsr] &= ~CFLAG;
-        switch (shiftmode)
-        {
-                case 0: /*LSL*/
-                if (!shiftamount) return temp;
-                if (shiftamount==32)
-                {
-                        if (temp&1) arm.reg[cpsr] |= CFLAG;
-                        return 0;
-                }
-                if (shiftamount>32) return 0;
-                if ((temp<<(shiftamount-1))&0x80000000) arm.reg[cpsr] |= CFLAG;
-                return temp<<shiftamount;
+	uint32_t shiftmode = opcode & 0x60;
+	uint32_t shiftamount;
+	uint32_t temp;
+	uint32_t cflag = CFSET;
 
-                case 0x20: /*LSR*/
-                if (!shiftamount && !(opcode&0x10))
-                {
-                        shiftamount=32;
-                }
-                if (!shiftamount) return temp;
-                if (shiftamount==32)
-                {
-                        if (temp&0x80000000) arm.reg[cpsr] |= CFLAG;
-                        else                 arm.reg[cpsr] &= ~CFLAG;
-                        return 0;
-                }
-                if (shiftamount>32) return 0;
-                if ((temp>>(shiftamount-1))&1) arm.reg[cpsr] |= CFLAG;
-                return temp>>shiftamount;
+	if (opcode & 0x10) {
+		shiftamount = arm.reg[(opcode >> 8) & 0xf] & 0xff;
+	} else {
+		shiftamount = (opcode >> 7) & 0x1f;
+	}
+	temp = arm.reg[RM];
+	if (shiftamount != 0) {
+		arm.reg[cpsr] &= ~CFLAG;
+	}
+	switch (shiftmode) {
+	case 0: /* LSL */
+		if (shiftamount == 0) {
+			return temp;
+		}
+		if (shiftamount == 32) {
+			if (temp & 1) {
+				arm.reg[cpsr] |= CFLAG;
+			}
+			return 0;
+		}
+		if (shiftamount > 32) {
+			return 0;
+		}
+		if ((temp << (shiftamount - 1)) & 0x80000000) {
+			arm.reg[cpsr] |= CFLAG;
+		}
+		return temp << shiftamount;
 
-                case 0x40: /*ASR*/
-                if (!shiftamount)
-                {
-                        if (opcode&0x10) return temp;
-                }
-                if (shiftamount>=32 || !shiftamount)
-                {
-                        if (temp&0x80000000) arm.reg[cpsr] |= CFLAG;
-                        else                 arm.reg[cpsr] &= ~CFLAG;
-                        if (temp&0x80000000) return 0xFFFFFFFF;
-                        return 0;
-                }
-                if (((int)temp>>(shiftamount-1))&1) arm.reg[cpsr] |= CFLAG;
-                return (int)temp>>shiftamount;
+	case 0x20: /* LSR */
+		if (shiftamount == 0 && !(opcode & 0x10)) {
+			shiftamount = 32;
+		}
+		if (shiftamount == 0) {
+			return temp;
+		}
+		if (shiftamount == 32) {
+			if (temp & 0x80000000) {
+				arm.reg[cpsr] |= CFLAG;
+			} else {
+				arm.reg[cpsr] &= ~CFLAG;
+			}
+			return 0;
+		}
+		if (shiftamount > 32) {
+			return 0;
+		}
+		if ((temp >> (shiftamount - 1)) & 1) {
+			arm.reg[cpsr] |= CFLAG;
+		}
+		return temp >> shiftamount;
 
-                default: /*ROR*/
-                arm.reg[cpsr] &= ~CFLAG;
-                if (!shiftamount && !(opcode&0x10))
-                {
-                        if (temp&1) arm.reg[cpsr] |= CFLAG;
-                        return (((cflag)?1:0)<<31)|(temp>>1);
-                }
-                if (!shiftamount)
-                {
-                        arm.reg[cpsr] |= (cflag << 29);
-                        return temp;
-                }
-                if (!(shiftamount&0x1F))
-                {
-                        if (temp&0x80000000) arm.reg[cpsr] |= CFLAG;
-                        return temp;
-                }
-                if (((temp>>shiftamount)|(temp<<(32-shiftamount)))&0x80000000) arm.reg[cpsr] |= CFLAG;
-                return (temp>>shiftamount)|(temp<<(32-shiftamount));
-                break;
-        }
+	case 0x40: /* ASR */
+		if (shiftamount == 0) {
+			if (opcode & 0x10) {
+				return temp;
+			}
+		}
+		if (shiftamount >= 32 || shiftamount == 0) {
+			if (temp & 0x80000000) {
+				arm.reg[cpsr] |= CFLAG;
+			} else {
+				arm.reg[cpsr] &= ~CFLAG;
+			}
+			if (temp & 0x80000000) {
+				return 0xffffffff;
+			}
+			return 0;
+		}
+		if (((int32_t) temp >> (shiftamount - 1)) & 1) {
+			arm.reg[cpsr] |= CFLAG;
+		}
+		return (uint32_t) ((int32_t) temp >> shiftamount);
+
+	default: /* ROR */
+		arm.reg[cpsr] &= ~CFLAG;
+		if (shiftamount == 0 && !(opcode & 0x10)) {
+			/* RRX */
+			if (temp & 1) {
+				arm.reg[cpsr] |= CFLAG;
+			}
+			return (cflag << 31) | (temp >> 1);
+		}
+		if (shiftamount == 0) {
+			arm.reg[cpsr] |= (cflag << 29);
+			return temp;
+		}
+		if ((shiftamount & 0x1f) == 0) {
+			if (temp & 0x80000000) {
+				arm.reg[cpsr] |= CFLAG;
+			}
+			return temp;
+		}
+		if (((temp >> shiftamount) | (temp << (32 - shiftamount))) & 0x80000000) {
+			arm.reg[cpsr] |= CFLAG;
+		}
+		return (temp >> shiftamount) | (temp << (32 - shiftamount));
+	}
 }
 
 #define shift(o)  ((o & 0xff0) ? shift3(o) : arm.reg[RM])
