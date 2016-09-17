@@ -400,6 +400,7 @@ shift3(uint32_t opcode)
 			}
 			return temp;
 		}
+		shiftamount &= 0x1f;
 		if (((temp >> shiftamount) | (temp << (32 - shiftamount))) & 0x80000000) {
 			arm.reg[cpsr] |= CFLAG;
 		}
