@@ -246,13 +246,9 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 			case 6: /* TLB Purge */
 				cp15_tlb_flush_all();
 				resetcodeblocks();
-				break;
-
-			default:
-				UNIMPLEMENTED("CP15 ARMv3 Write",
-				   "Unsupported write to reg 8 in ARMv3 mode");
+				return;
 			}
-			return;
+			break;
 
 		/* ARMv4 Architecture */
 		case CPUModel_SA110:
@@ -260,20 +256,20 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 			switch (addr & 0xf) {
 			case 5: /* Fault Status Register */
 				cp15.fault_status = val;
-				break;
+				return;
 
 			case 6: /* Fault Address Register */
 				cp15.fault_address = val;
-				break;
+				return;
 
 			case 8: /* TLB Operations */
 				if ((CRm & 1) && (OPC2 == 0)) {
 					resetcodeblocks();
 				}
 				cp15_tlb_flush_all();
-				break;
+				return;
 			}
-			return;
+			break;
 
 		default:
 			fprintf(stderr, "cp15_write(): unknown CPU model %d\n",
@@ -290,28 +286,17 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 		return;
 
 	case 15:
-		switch (cp15.cpu_model) {
-		case CPUModel_SA110: /* Test, Clock and Idle control */
+		if (cp15.cpu_model == CPUModel_SA110) {
+			/* Test, Clock and Idle control */
 			if (OPC2 == 2 && CRm == 1) {
 				/* Enable clock switching - no need to implement */
-			} else {
-				UNIMPLEMENTED("CP15 Write",
-				  "Write to SA110 Reg 15, OPC2=0x%02x CRm=0x%02x",
-				  OPC2, CRm);
+				return;
 			}
-			break;
-
-		default:
-			UNIMPLEMENTED("CP15 Write",
-			  "Unknown processor '%d' writing to reg 15",
-			  cp15.cpu_model);
 		}
 		break;
-
-	default:
-		UNIMPLEMENTED("CP15 Write", "Unknown register %u", addr & 0xf);
-		break;
 	}
+
+	UNIMPLEMENTED("CP15 Write", "Register %u, opcode %08x", addr & 0xf, opcode);
 }
 
 uint32_t
