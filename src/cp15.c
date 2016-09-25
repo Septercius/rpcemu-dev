@@ -234,7 +234,6 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 
 	case 5:
 	case 6:
-	case 8:
 		switch (cp15.cpu_model) {
 		/* ARMv3 Architecture */
 		case CPUModel_ARM610:
@@ -261,13 +260,6 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 			case 6: /* Fault Address Register */
 				cp15.fault_address = val;
 				return;
-
-			case 8: /* TLB Operations */
-				if ((CRm & 1) && (OPC2 == 0)) {
-					resetcodeblocks();
-				}
-				cp15_tlb_flush_all();
-				return;
 			}
 			break;
 
@@ -284,6 +276,16 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 		}
 		pccache = 0xffffffff;
 		return;
+
+	case 8: /* TLB Operations (ARMv4) */
+		if (cp15.cpu_model == CPUModel_SA110 || cp15.cpu_model == CPUModel_ARM810) {
+			if ((CRm & 1) && (OPC2 == 0)) {
+				resetcodeblocks();
+			}
+			cp15_tlb_flush_all();
+			return;
+		}
+		break;
 
 	case 15:
 		if (cp15.cpu_model == CPUModel_SA110) {
