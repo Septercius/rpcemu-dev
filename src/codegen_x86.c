@@ -547,17 +547,17 @@ genldr(void)
 	int jump_nextbit, jump_notinbuffer;
 
 	addbyte(0x89); addbyte(0xda); /* MOV %ebx,%edx */
-	addbyte(0x89); addbyte(0xdf); /* MOV %ebx,%edi */
+	addbyte(0x89); addbyte(0xd8); // MOV %ebx,%eax
 	addbyte(0xc1); addbyte(0xea); addbyte(12); /* SHR $12,%edx */
-	addbyte(0x83); addbyte(0xe7); addbyte(0xfc); /* AND $0xfffffffc,%edi */
+	addbyte(0x83); addbyte(0xe0); addbyte(0xfc); // AND $0xfffffffc,%eax
 	addbyte(0x8b); addbyte(0x14); addbyte(0x95); addptr(vraddrl); // MOV vraddrl(,%edx,4),%edx
 	addbyte(0xf6); addbyte(0xc2); addbyte(1); /* TEST $1,%dl */
 	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-	addbyte(0x8b); addbyte(0x04); addbyte(0x3a); /* MOV (%edx,%edi),%eax */
+	addbyte(0x8b); addbyte(0x04); addbyte(0x02); // MOV (%edx,%eax),%eax
 	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
-	gen_x86_mov_reg32_stack(EDI, 0);
+	gen_x86_mov_reg32_stack(EAX, 0);
 	gen_x86_call(readmemfl);
 	if (arm.abort_base_restored) {
 		gen_test_armirq();
@@ -599,17 +599,17 @@ genstr(void)
 	int jump_nextbit, jump_notinbuffer;
 
 	addbyte(0x89); addbyte(0xda); /* MOV %ebx,%edx */
-	addbyte(0x89); addbyte(0xdf); /* MOV %ebx,%edi */
+	addbyte(0x89); addbyte(0xd8); // MOV %ebx,%eax
 	addbyte(0xc1); addbyte(0xea); addbyte(12); /* SHR $12,%edx */
-	addbyte(0x83); addbyte(0xe7); addbyte(0xfc); /* AND $0xfffffffc,%edi */
+	addbyte(0x83); addbyte(0xe0); addbyte(0xfc); // AND $0xfffffffc,%eax
 	addbyte(0x8b); addbyte(0x14); addbyte(0x95); addptr(vwaddrl); // MOV vwaddrl(,%edx,4),%edx
 	addbyte(0xf6); addbyte(0xc2); addbyte(3); /* TEST $3,%dl */
 	jump_notinbuffer = gen_x86_jump_forward(CC_NZ);
-	addbyte(0x89); addbyte(0x0c); addbyte(0x3a); /* MOV %ecx,(%edx,%edi) */
+	addbyte(0x89); addbyte(0x0c); addbyte(0x02); // MOV %ecx,(%edx,%eax)
 	jump_nextbit = gen_x86_jump_forward(CC_ALWAYS);
 	/* .notinbuffer */
 	gen_x86_jump_here(jump_notinbuffer);
-	gen_x86_mov_reg32_stack(EDI, 0);
+	gen_x86_mov_reg32_stack(EAX, 0);
 	gen_x86_mov_reg32_stack(ECX, 4);
 	gen_x86_call(writememfl);
 	if (arm.abort_base_restored) {
