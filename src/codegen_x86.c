@@ -1237,10 +1237,10 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
                 /*Shifted val now in %eax*/
                 addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOVB *pcpsr,%cl*/
                 addbyte(0x80); addbyte(0xE1); addbyte(~0xF0); /*AND $ZFLAG+NFLAG+VFLAG+CFLAG,%cl*/
-                gen_load_reg(RN, EDI);
-                addbyte(0x01); addbyte(0xC7); /*ADDL %eax,%edi*/
+                gen_load_reg(RN, EDX);
+                addbyte(0x01); addbyte(0xc2); // ADD %eax,%edx
                 gen_x86_lahf();
-                gen_save_reg(RD, EDI);
+                gen_save_reg(RD, EDX);
                 addbyte(0x71); addbyte(3); /*JNO notoverflow*/
                 addbyte(0x80); addbyte(0xC9); addbyte(0x10); /*OR $VFLAG,%cl*/
                 /*.notoverflow*/
