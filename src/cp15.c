@@ -229,7 +229,11 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 		return;
 
 	case 3: /* Domain Access Control */
-		cp15.domain_access_control = val;
+		if (val != cp15.domain_access_control) {
+			cp15.domain_access_control = val;
+			cp15_tlb_flush_all();
+			resetcodeblocks();
+		}
 		return;
 
 	case 5:
