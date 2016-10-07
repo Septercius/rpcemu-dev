@@ -193,8 +193,6 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 
 	case 2: /* Translation Table Base */
 		cp15.translation_table = val & ~0x3fffu;
-		cp15_vaddr_reset();
-		// resetcodeblocks();
 		switch (cp15.translation_table & 0x1f000000) {
 		case 0x02000000: /* VRAM */
 			tlbram = vram;
@@ -226,6 +224,8 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 			tlbrammask = 0x7ffffff >> 2;
 			break;
 		}
+		cp15_tlb_flush_all();
+		resetcodeblocks();
 		return;
 
 	case 3: /* Domain Access Control */
