@@ -173,19 +173,22 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 
 	switch (addr & 0xf) {
 	case 1: /* Control */
-		cp15.ctrl = val;
 		if (!icache && (val & CP15_CTRL_ICACHE)) {
 			resetcodeblocks();
 		}
-		icache = val & CP15_CTRL_ICACHE;
-		dcache = val & CP15_CTRL_CACHE;
 
-		if ((val & CP15_CTRL_MMU) != mmu) {
+		/* Are any of the MMU, ROM or System bits changing? */
+		if (((cp15.ctrl ^ val) & (CP15_CTRL_MMU | CP15_CTRL_ROM | CP15_CTRL_SYSTEM)) != 0) {
+			cp15_tlb_flush_all();
 			resetcodeblocks();
-			cp15_vaddr_reset();
 		}
+
+		cp15.ctrl = val;
+		dcache = val & CP15_CTRL_CACHE;
+		icache = val & CP15_CTRL_ICACHE;
 		mmu = val & CP15_CTRL_MMU;
 		prog32 = val & CP15_CTRL_PROG32;
+
 		if (!prog32 && (arm.mode & 0x10)) {
 			updatemode(arm.mode & 0xf);
 		}
