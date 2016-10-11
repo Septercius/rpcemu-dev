@@ -43,7 +43,7 @@ static int icache = 0;
 #define CP15_CTRL_WRITE_BUFFER		(1 << 3)
 #define CP15_CTRL_PROG32		(1 << 4)  /* Always enabled in SA */
 #define CP15_CTRL_DATA32		(1 << 5)  /* Always enabled in SA */
-#define CP15_CTRL_LATE_ABORT_TIMING	(1 << 6)  /* Always enabled in 710 & SA */
+#define CP15_CTRL_ABORT_TIMING		(1 << 6)  /* Always enabled in 710 & SA */
 #define CP15_CTRL_BIG_ENDIAN		(1 << 7)
 #define CP15_CTRL_SYSTEM		(1 << 8)
 #define CP15_CTRL_ROM			(1 << 9)  /* 710 & SA */
@@ -118,9 +118,26 @@ cp15_tlb_invalidate_physical(uint32_t addr)
 void
 cp15_reset(CPUModel cpu_model)
 {
-        cp15.cpu_model = cpu_model;
-        prog32=1;
-        mmu=0;
+	cp15.cpu_model = cpu_model;
+	switch (cpu_model) {
+	case CPUModel_ARM610:
+		cp15.ctrl = 0;
+		break;
+	case CPUModel_ARM710:
+	case CPUModel_ARM7500:
+	case CPUModel_ARM7500FE:
+		cp15.ctrl = CP15_CTRL_ABORT_TIMING;
+		break;
+	case CPUModel_SA110:
+	case CPUModel_ARM810:
+		cp15.ctrl = CP15_CTRL_ABORT_TIMING | CP15_CTRL_DATA32 | CP15_CTRL_PROG32;
+		break;
+	}
+	dcache = 0;
+	icache = 0;
+	mmu = 0;
+	prog32 = (cp15.ctrl & CP15_CTRL_PROG32) != 0;
+
         memset(tlbcache, 0xff, 0x100000 * sizeof(uint32_t));
         memset(tlbcache2, 0xff, TLBCACHESIZE * sizeof(uint32_t));
         tlbcachepos=0;
