@@ -266,12 +266,15 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 		case CPUModel_ARM7500FE:
 			switch (addr & 0xf) {
 			case 5: /* TLB Flush */
+				cp15_tlb_flush_all();
+				break;
+
 			case 6: /* TLB Purge */
 				cp15_tlb_flush_all();
-				resetcodeblocks();
-				return;
+				break;
 			}
-			break;
+			resetcodeblocks();
+			return;
 
 		/* ARMv4 Architecture */
 		case CPUModel_SA110:
@@ -303,10 +306,16 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 
 	case 8: /* TLB Operations (ARMv4) */
 		if (cp15.cpu_model == CPUModel_SA110 || cp15.cpu_model == CPUModel_ARM810) {
-			if ((CRm & 1) && (OPC2 == 0)) {
+			if (OPC2 == 0) {
+				/* TLB Flush */
+				cp15_tlb_flush_all();
+			} else {
+				/* TLB Purge */
+				cp15_tlb_flush_all();
+			}
+			if (CRm & 1) {
 				resetcodeblocks();
 			}
-			cp15_tlb_flush_all();
 			return;
 		}
 		break;
