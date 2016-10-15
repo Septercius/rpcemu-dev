@@ -129,7 +129,7 @@ void mem_reset(uint32_t ramsize)
  * @param addr Physical address
  * @return 32-bit word read from given physical address
  */
-static uint32_t
+uint32_t
 mem_phys_read32(uint32_t addr)
 {
 	addr &= phys_space_mask;

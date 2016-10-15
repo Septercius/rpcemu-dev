@@ -459,15 +459,7 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 	case 1: /* Page */
 		/* Fetch second-level descriptor */
 		sld_addr = (fld & 0xfffffc00) | ((addr >> 10) & 0x3fc);
-		if ((sld_addr & 0x1f000000) == 0x02000000) {
-			sld = vram[(sld_addr & config.vrammask) >> 2];
-		} else if (sld_addr & 0x8000000) {
-			sld = ram1[(sld_addr & 0x7ffffff) >> 2];
-		} else if (sld_addr & 0x4000000) {
-			sld = ram01[(sld_addr & mem_rammask) >> 2];
-		} else {
-			sld = ram00[(sld_addr & mem_rammask) >> 2];
-		}
+		sld = mem_phys_read32(sld_addr);
 
 		/* Check second-level descriptor */
 		switch (sld & 3) {
