@@ -364,47 +364,37 @@ cp15_read(uint32_t addr)
 	fatal("Bad read CP15 %x %08x\n", addr, PC);
 }
 
-/*DOMAIN -
-  No access - fault
-  Client - checkpermissions
-  Manager - always allow*/
-//54F13001
-//1010042e
-//databort=1;
-
-static int checkpermissions(int p, int rw)
+/**
+ * @param ap       Access Permissions (from Descriptor)
+ * @param is_write Non-zero if this is for write access
+ * @return Non-zero if the access should be faulted
+ */
+static int
+cp15_check_permissions(uint32_t ap, int is_write)
 {
-        switch (p)
-        {
-        case 0:
-                switch (cp15.ctrl&0x300)
-                {
-                case 0x000: /* No access */
-                case 0x300: /* Unpredictable */
-                        return 1;
+	switch (ap) {
+	case 0:
+		switch (cp15.ctrl & 0x300) {
+		case 0x000: /* No access */
+		case 0x300: /* Unpredictable */
+			return 1;
 
-                case 0x100: /* Supervisor read-only */
-//                        break; /*delibrately broken for Linux*/
-                        /*Linux will crash very early on if this is implemented properly*/
-                        if (!memmode || rw) { return 1; }
-                        break;
+		case 0x100: /* Supervisor read-only */
+			return !memmode || is_write;
 
-                case 0x200: /* Read-only */
-                        if (rw) { return 1; }
-                        break;
-                }
-                break;
+		case 0x200: /* Read-only */
+			return is_write;
+		}
+		break;
 
-        case 1: /* Supervisor read/write */
-//                break;
-                if (!memmode) { return 1; }
-                break;
+	case 1: /* Supervisor read/write */
+		return !memmode;
 
-        case 2: /* Supervisor read/write, User read-only*/
-                if (!memmode && rw) { return 1; }
-                break;
-        }
-        return 0;
+	case 2: /* Supervisor read/write, User read-only*/
+		return !memmode && is_write;
+	}
+	/* Any access permitted */
+	return 0;
 }
 
 /**
@@ -485,7 +475,7 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 		if (domain_access == 1) {
 			/* Client Domain - check permissions */
 			access_permissions = (sld >> (temp + 4)) & 3;
-			if (checkpermissions(access_permissions, rw)) {
+			if (cp15_check_permissions(access_permissions, rw)) {
 				fault_code = CP15_FAULT_PERMISSION_PAGE;
 				goto do_fault;
 			}
@@ -503,7 +493,7 @@ translateaddress2(uint32_t addr, int rw, int prefetch)
 		if (domain_access == 1) {
 			/* Client Domain - check permissions */
 			access_permissions = (fld >> 10) & 3;
-			if (checkpermissions(access_permissions, rw)) {
+			if (cp15_check_permissions(access_permissions, rw)) {
 				fault_code = CP15_FAULT_PERMISSION_SECTION;
 				goto do_fault;
 			}
