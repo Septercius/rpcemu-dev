@@ -530,53 +530,52 @@ do_fault:
 const uint32_t *
 getpccache(uint32_t addr)
 {
-        uint32_t addr2;
+	uint32_t phys_addr;
 
-        addr&=~0xFFF;
-        if (mmu)
-        {
-                armirq&=~0x40;
-                addr2=translateaddress(addr,0,1);
-                if (armirq&0x40)
-                {
-                        armirq&=~0x40;
-                        armirq|=0x80;
-//                        databort=0;
-//                        prefabort=1;
-                        return NULL;
-                }
-        }
-        else     addr2=addr;
-        /*Invalidate write pointer for this page - so we can handle code modification*/
-        vwaddrl[addr>>12]=0xFFFFFFFF;
+	addr &= ~0xfffu;
+	if (mmu) {
+		armirq &= ~0x40u;
+		phys_addr = translateaddress(addr, 0, 1);
+		if (armirq & 0x40) {
+			armirq &= ~0x40u;
+			armirq |= 0x80;
+			// databort = 0;
+			// prefabort = 1;
+			return NULL;
+		}
+	} else {
+		phys_addr = addr;
+	}
 
-        switch (addr2&0x1F000000)
-        {
-                case 0x00000000: /*ROM*/
-                return &rom[((long)(addr2&0x7FF000)-(long)addr)>>2];
-                case 0x02000000: /*VRAM*/
-                return &vram[((long) (addr2 & config.vrammask) - (long) addr) >> 2];
-                case 0x10000000: /*SIMM 0 bank 0*/
-                case 0x11000000:
-                case 0x12000000:
-                case 0x13000000:
-                return &ram00[((long) (addr2 & mem_rammask) - (long) addr) >> 2];
-                case 0x14000000: /*SIMM 0 bank 1*/
-                case 0x15000000:
-                case 0x16000000:
-                case 0x17000000:
-                return &ram01[((long) (addr2 & mem_rammask) - (long) addr) >> 2];
-                case 0x18000000: /*SIMM 1 bank 0*/
-                case 0x19000000:
-                case 0x1a000000:
-                case 0x1b000000:
-                case 0x1c000000: /*SIMM 1 bank 1*/
-                case 0x1d000000:
-                case 0x1e000000:
-                case 0x1f000000:
-                if (ram1 != NULL) {
-                	return &ram1[((long) (addr2 & 0x7ffffff) - (long) addr) >> 2];
-                }
-        }
-        fatal("Bad PC %08X %08X\n", addr, addr2);
+	/* Invalidate write pointer for this page - so we can handle code modification */
+	vwaddrl[addr >> 12] = 0xffffffff;
+
+	switch (phys_addr & 0x1f000000) {
+	case 0x00000000: /* ROM */
+		return &rom[((uintptr_t) (phys_addr & 0x7ff000) - (uintptr_t) addr) >> 2];
+	case 0x02000000: /* VRAM */
+		return &vram[((uintptr_t) (phys_addr & config.vrammask) - (uintptr_t) addr) >> 2];
+	case 0x10000000: /* SIMM 0 bank 0 */
+	case 0x11000000:
+	case 0x12000000:
+	case 0x13000000:
+		return &ram00[((uintptr_t) (phys_addr & mem_rammask) - (uintptr_t) addr) >> 2];
+	case 0x14000000: /* SIMM 0 bank 1 */
+	case 0x15000000:
+	case 0x16000000:
+	case 0x17000000:
+		return &ram01[((uintptr_t) (phys_addr & mem_rammask) - (uintptr_t) addr) >> 2];
+	case 0x18000000: /* SIMM 1 bank 0 */
+	case 0x19000000:
+	case 0x1a000000:
+	case 0x1b000000:
+	case 0x1c000000: /* SIMM 1 bank 1 */
+	case 0x1d000000:
+	case 0x1e000000:
+	case 0x1f000000:
+		if (ram1 != NULL) {
+			return &ram1[((uintptr_t) (phys_addr & 0x7ffffff) - (uintptr_t) addr) >> 2];
+		}
+	}
+	fatal("Bad PC %08x %08x\n", addr, phys_addr);
 }
