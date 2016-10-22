@@ -555,31 +555,30 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 uint32_t
 readmemfl(uint32_t addr)
 {
-	uint32_t addr2;
+	uint32_t phys_addr = addr;
 
 	if (mmu) {
-		addr2 = addr;
 		if ((addr >> 12) == readmemcache) {
-			addr = readmemcache2 + (addr & 0xfff);
+			phys_addr = readmemcache2 + (addr & 0xfff);
 		} else {
 			readmemcache = addr >> 12;
 			armirq &= ~0x40;
-			addr = translateaddress(addr, 0, 0);
+			phys_addr = translateaddress(addr, 0, 0);
 			if (armirq & 0x40) {
-				vraddrl[addr2 >> 12] = readmemcache = 0xffffffff;
+				vraddrl[addr >> 12] = readmemcache = 0xffffffff;
 				return 0;
 			}
-			readmemcache2 = addr & 0xfffff000;
+			readmemcache2 = phys_addr & 0xfffff000;
 		}
 		switch (readmemcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x00000000: /* ROM */
-			vradd(addr2, &rom[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 2, readmemcache2);
-			return *(const uint32_t *) ((vraddrl[addr2 >> 12] & ~3) + (addr2 & ~3));
+			vradd(addr, &rom[((readmemcache2 & 0x7ff000) - (long) (addr & ~0xfffu)) >> 2], 2, readmemcache2);
+			return *(const uint32_t *) ((vraddrl[addr >> 12] & ~3) + (addr & ~3u));
 
 		case 0x02000000: /* VRAM */
 			if (config.vrammask != 0) {
-				vradd(addr2, &vram[((readmemcache2 & config.vrammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
-				return *(const uint32_t *) (vraddrl[addr2 >> 12] + (addr2 & ~3));
+				vradd(addr, &vram[((readmemcache2 & config.vrammask) - (long) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
+				return *(const uint32_t *) (vraddrl[addr >> 12] + (addr & ~3u));
 			}
 			break;
 
@@ -587,15 +586,15 @@ readmemfl(uint32_t addr)
 		case 0x11000000:
 		case 0x12000000:
 		case 0x13000000:
-			vradd(addr2, &ram00[((readmemcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
-			return *(const uint32_t *) (vraddrl[addr2 >> 12] + (addr2 & ~3));
+			vradd(addr, &ram00[((readmemcache2 & mem_rammask) - (long) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
+			return *(const uint32_t *) (vraddrl[addr >> 12] + (addr & ~3u));
 
 		case 0x14000000: /* SIMM 0 bank 1 */
 		case 0x15000000:
 		case 0x16000000:
 		case 0x17000000:
-			vradd(addr2, &ram01[((readmemcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
-			return *(const uint32_t *) (vraddrl[addr2 >> 12] + (addr2 & ~3));
+			vradd(addr, &ram01[((readmemcache2 & mem_rammask) - (long) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
+			return *(const uint32_t *) (vraddrl[addr >> 12] + (addr & ~3u));
 
 		case 0x18000000: /* SIMM 1 bank 0 */
 		case 0x19000000:
@@ -606,32 +605,32 @@ readmemfl(uint32_t addr)
 		case 0x1e000000:
 		case 0x1f000000:
 			if (ram1 != NULL) {
-				vradd(addr2, &ram1[((readmemcache2 & 0x7ffffff) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
-				return *(const uint32_t *) (vraddrl[addr2 >> 12] + (addr2 & ~3));
+				vradd(addr, &ram1[((readmemcache2 & 0x7ffffff) - (long) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
+				return *(const uint32_t *) (vraddrl[addr >> 12] + (addr & ~3u));
 			}
 			break;
 		}
 	} else {
 		switch (addr & (phys_space_mask & 0xff000000)) {
 		case 0x00000000: /* ROM */
-			//vradd(addr, &rom[((addr & 0x7ff000) - (long) (addr & ~0xfff)) >> 2], 2, addr);
+			//vradd(addr, &rom[((addr & 0x7ff000) - (long) (addr & ~0xfffu)) >> 2], 2, addr);
 			break;
 		case 0x02000000: /* VRAM */
 			if (config.vrammask != 0) {
-				vradd(addr, &vram[((addr & config.vrammask & ~0xfff) - (long) (addr & ~0xfff)) >> 2], 0, addr);
+				vradd(addr, &vram[((addr & config.vrammask & ~0xfffu) - (long) (addr & ~0xfffu)) >> 2], 0, addr);
 			}
 			break;
 		case 0x10000000: /* SIMM 0 bank 0 */
 		case 0x11000000:
 		case 0x12000000:
 		case 0x13000000:
-			vradd(addr, &ram00[((addr & mem_rammask & ~0xfff) - (long) (addr & ~0xfff)) >> 2], 0, addr);
+			vradd(addr, &ram00[((addr & mem_rammask & ~0xfffu) - (long) (addr & ~0xfffu)) >> 2], 0, addr);
 			break;
 		case 0x14000000: /* SIMM 0 bank 1 */
 		case 0x15000000:
 		case 0x16000000:
 		case 0x17000000:
-			vradd(addr, &ram01[((addr & mem_rammask & ~0xfff) - (long) (addr & ~0xfff)) >> 2], 0, addr);
+			vradd(addr, &ram01[((addr & mem_rammask & ~0xfffu) - (long) (addr & ~0xfffu)) >> 2], 0, addr);
 			break;
 		case 0x18000000: /* SIMM 1 bank 0 */
 		case 0x19000000:
@@ -642,50 +641,48 @@ readmemfl(uint32_t addr)
 		case 0x1e000000:
 		case 0x1f000000:
 			if (ram1 != NULL) {
-				vradd(addr, &ram1[((addr & 0x7ffffff & ~0xfff) - (long) (addr & ~0xfff)) >> 2], 0, addr);
+				vradd(addr, &ram1[((addr & 0x7ffffff & ~0xfffu) - (long) (addr & ~0xfffu)) >> 2], 0, addr);
 			}
 			break;
 		}
 	}
-	/* At this point 'addr' is a physical address */
-	return mem_phys_read32(addr);
+	return mem_phys_read32(phys_addr);
 }
 
 
 uint32_t
 readmemfb(uint32_t addr)
 {
-	uint32_t addr2;
+	uint32_t phys_addr = addr;
 
 	if (mmu) {
-		addr2 = addr;
 		if ((addr >> 12) == readmemcache) {
-			addr = readmemcache2 + (addr & 0xfff);
+			phys_addr = readmemcache2 + (addr & 0xfff);
 		} else {
 			readmemcache = addr >> 12;
 			armirq &= ~0x40;
-			addr = translateaddress(addr, 0, 0);
+			phys_addr = translateaddress(addr, 0, 0);
 			if (armirq & 0x40) {
 				readmemcache = 0xffffffff;
 				return 0;
 			}
-			readmemcache2 = addr & 0xfffff000;
+			readmemcache2 = phys_addr & 0xfffff000;
 		}
 		switch (readmemcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x00000000: /* ROM */
-			vradd(addr2, &rom[((readmemcache2 & 0x7ff000) - (long) (addr2 & ~0xfff)) >> 2], 2, readmemcache2);
+			vradd(addr, &rom[((readmemcache2 & 0x7ff000) - (long) (addr & ~0xfffu)) >> 2], 2, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
-			addr2 ^= 3;
+			addr ^= 3;
 #endif
-			return *(const uint8_t *) ((vraddrl[addr2 >> 12] & ~3) + addr2);
+			return *(const uint8_t *) ((vraddrl[addr >> 12] & ~3) + addr);
 
 		case 0x02000000: /* VRAM */
 			if (config.vrammask != 0) {
-				vradd(addr2, &vram[((readmemcache2 & config.vrammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
+				vradd(addr, &vram[((readmemcache2 & config.vrammask) - (long) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
-				addr2 ^= 3;
+				addr ^= 3;
 #endif
-				return *(const uint8_t *) (vraddrl[addr2 >> 12] + addr2);
+				return *(const uint8_t *) (vraddrl[addr >> 12] + addr);
 			}
 			break;
 
@@ -693,21 +690,21 @@ readmemfb(uint32_t addr)
 		case 0x11000000:
 		case 0x12000000:
 		case 0x13000000:
-			vradd(addr2, &ram00[((readmemcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
+			vradd(addr, &ram00[((readmemcache2 & mem_rammask) - (long) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
-			addr2 ^= 3;
+			addr ^= 3;
 #endif
-			return *(const uint8_t *) (vraddrl[addr2 >> 12] + addr2);
+			return *(const uint8_t *) (vraddrl[addr >> 12] + addr);
 
 		case 0x14000000: /* SIMM 0 bank 1 */
 		case 0x15000000:
 		case 0x16000000:
 		case 0x17000000:
-			vradd(addr2, &ram01[((readmemcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
+			vradd(addr, &ram01[((readmemcache2 & mem_rammask) - (long) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
-			addr2 ^= 3;
+			addr ^= 3;
 #endif
-			return *(const uint8_t *) (vraddrl[addr2 >> 12] + addr2);
+			return *(const uint8_t *) (vraddrl[addr >> 12] + addr);
 
 		case 0x18000000: /* SIMM 1 bank 0 */
 		case 0x19000000:
@@ -718,41 +715,40 @@ readmemfb(uint32_t addr)
 		case 0x1e000000:
 		case 0x1f000000:
 			if (ram1 != NULL) {
-				vradd(addr2, &ram1[((readmemcache2 & 0x7ffffff) - (long) (addr2 & ~0xfff)) >> 2], 0, readmemcache2);
+				vradd(addr, &ram1[((readmemcache2 & 0x7ffffff) - (long) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
-				addr2 ^= 3;
+				addr ^= 3;
 #endif
-				return *(const uint8_t *) (vraddrl[addr2 >> 12] + addr2);
+				return *(const uint8_t *) (vraddrl[addr >> 12] + addr);
 			}
 			break;
 		}
 	}
-	/* At this point 'addr' is a physical address */
-	return mem_phys_read8(addr);
+	return mem_phys_read8(phys_addr);
 }
 
 void
 writememfl(uint32_t addr, uint32_t val)
 {
-	uint32_t addr2 = addr;
+	uint32_t phys_addr = addr;
 
 	if (mmu) {
 		if ((addr >> 12) == writememcache) {
-			addr = writememcache2 + (addr & 0xfff);
+			phys_addr = writememcache2 + (addr & 0xfff);
 		} else {
 			writememcache = addr >> 12;
 			armirq &= ~0x40;
-			addr = translateaddress(addr, 1, 0);
+			phys_addr = translateaddress(addr, 1, 0);
 			if (armirq & 0x40) {
 				writememcache = 0xffffffff;
 				return;
 			}
-			writememcache2 = addr & 0xfffff000;
+			writememcache2 = phys_addr & 0xfffff000;
 		}
 		switch (writememcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
 			if (config.vrammask != 0) {
-				vwadd(addr2, &vram[((writememcache2 & config.vrammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
+				vwadd(addr, &vram[((writememcache2 & config.vrammask) - (long) (addr & ~0xfffu)) >> 2], 0, writememcache2);
 			}
 			break;
 
@@ -760,14 +756,14 @@ writememfl(uint32_t addr, uint32_t val)
 		case 0x11000000:
 		case 0x12000000:
 		case 0x13000000:
-			vwadd(addr2, &ram00[((writememcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
+			vwadd(addr, &ram00[((writememcache2 & mem_rammask) - (long) (addr & ~0xfffu)) >> 2], 0, writememcache2);
 			break;
 
 		case 0x14000000: /* SIMM 0 bank 1 */
 		case 0x15000000:
 		case 0x16000000:
 		case 0x17000000:
-			vwadd(addr2, &ram01[((writememcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
+			vwadd(addr, &ram01[((writememcache2 & mem_rammask) - (long) (addr & ~0xfffu)) >> 2], 0, writememcache2);
 			break;
 
 		case 0x18000000: /* SIMM 1 bank 0 */
@@ -779,37 +775,36 @@ writememfl(uint32_t addr, uint32_t val)
 		case 0x1e000000:
 		case 0x1f000000:
 			if (ram1 != NULL) {
-				vwadd(addr2, &ram1[((writememcache2 & 0x7ffffff) - (long) (addr2 & ~0xfff)) >> 2], 0, writememcache2);
+				vwadd(addr, &ram1[((writememcache2 & 0x7ffffff) - (long) (addr & ~0xfffu)) >> 2], 0, writememcache2);
 			}
 			break;
 		}
 	}
-	/* At this point 'addr' is a physical address */
-	mem_phys_write32(addr, val);
+	mem_phys_write32(phys_addr, val);
 }
 
 void
 writememfb(uint32_t addr, uint8_t val)
 {
-	uint32_t addr2 = addr;
+	uint32_t phys_addr = addr;
 
 	if (mmu) {
 		if ((addr >> 12) == writemembcache) {
-			addr = writemembcache2 + (addr & 0xfff);
+			phys_addr = writemembcache2 + (addr & 0xfff);
 		} else {
 			writemembcache = addr >> 12;
 			armirq &= ~0x40;
-			addr = translateaddress(addr, 1, 0);
+			phys_addr = translateaddress(addr, 1, 0);
 			if (armirq & 0x40) {
 				writemembcache = 0xffffffff;
 				return;
 			}
-			writemembcache2 = addr & 0xfffff000;
+			writemembcache2 = phys_addr & 0xfffff000;
 		}
 		switch (writemembcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
 			if (config.vrammask != 0) {
-				vwadd(addr2, &vram[((writemembcache2 & config.vrammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
+				vwadd(addr, &vram[((writemembcache2 & config.vrammask) - (long) (addr & ~0xfffu)) >> 2], 0, writemembcache2);
 			}
 			break;
 
@@ -817,14 +812,14 @@ writememfb(uint32_t addr, uint8_t val)
 		case 0x11000000:
 		case 0x12000000:
 		case 0x13000000:
-			vwadd(addr2, &ram00[((writemembcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
+			vwadd(addr, &ram00[((writemembcache2 & mem_rammask) - (long) (addr & ~0xfffu)) >> 2], 0, writemembcache2);
 			break;
 
 		case 0x14000000: /* SIMM 0 bank 1 */
 		case 0x15000000:
 		case 0x16000000:
 		case 0x17000000:
-			vwadd(addr2, &ram01[((writemembcache2 & mem_rammask) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
+			vwadd(addr, &ram01[((writemembcache2 & mem_rammask) - (long) (addr & ~0xfffu)) >> 2], 0, writemembcache2);
 			break;
 
 		case 0x18000000: /* SIMM 1 bank 0 */
@@ -836,11 +831,10 @@ writememfb(uint32_t addr, uint8_t val)
 		case 0x1e000000:
 		case 0x1f000000:
 			if (ram1 != NULL) {
-				vwadd(addr2, &ram1[((writemembcache2 & 0x7ffffff) - (long) (addr2 & ~0xfff)) >> 2], 0, writemembcache2);
+				vwadd(addr, &ram1[((writemembcache2 & 0x7ffffff) - (long) (addr & ~0xfffu)) >> 2], 0, writemembcache2);
 			}
 			break;
 		}
 	}
-	/* At this point 'addr' is a physical address */
-	mem_phys_write8(addr, val);
+	mem_phys_write8(phys_addr, val);
 }
