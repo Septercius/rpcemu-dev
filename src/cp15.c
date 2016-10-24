@@ -16,9 +16,9 @@ int dcache = 0; /* Data cache on StrongARM, unified cache pre-StrongARM */
 
 uint32_t tlbcache[0x100000] = {0};
 static uint32_t tlbcache2[TLBCACHESIZE];
-unsigned long *vraddrl = 0;
+uintptr_t vraddrl[0x100000];
 uint32_t vraddrls[1024] = {0}, vraddrphys[1024] = {0};
-unsigned long *vwaddrl = 0;
+uintptr_t vwaddrl[0x100000];
 uint32_t vwaddrls[1024] = {0}, vwaddrphys[1024] = {0};
 static int tlbcachepos = 0;
 int tlbs = 0, flushes = 0;
@@ -141,10 +141,10 @@ cp15_reset(CPUModel cpu_model)
         memset(tlbcache, 0xff, 0x100000 * sizeof(uint32_t));
         memset(tlbcache2, 0xff, TLBCACHESIZE * sizeof(uint32_t));
         tlbcachepos=0;
-        memset(vraddrl,0xFF,0x100000*sizeof(uint32_t *));
-        memset(vraddrls,0xFF,1024*sizeof(uint32_t));
-        memset(vwaddrl,0xFF,0x100000*sizeof(uint32_t *));
-        memset(vwaddrls,0xFF,1024*sizeof(uint32_t));
+	memset(vraddrl, 0xff, sizeof(vraddrl));
+	memset(vraddrls, 0xff, sizeof(vraddrls));
+	memset(vwaddrl, 0xff, sizeof(vwaddrl));
+	memset(vwaddrls, 0xff, sizeof(vwaddrls));
 }
 
 /**
@@ -153,8 +153,6 @@ cp15_reset(CPUModel cpu_model)
 void
 cp15_init(void)
 {
-	vraddrl = malloc(0x100000 * sizeof(uint32_t *));
-	vwaddrl = malloc(0x100000 * sizeof(uint32_t *));
 }
 
 static uint32_t *tlbram;

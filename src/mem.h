@@ -16,10 +16,10 @@ extern void clearmemcache(void);
 extern void mem_init(void);
 extern void mem_reset(uint32_t ramsize);
 
-extern unsigned long *vraddrl;
+extern uintptr_t vraddrl[0x100000];
 extern uint32_t vraddrls[1024],vraddrphys[1024];
 
-extern unsigned long *vwaddrl;
+extern uintptr_t vwaddrl[0x100000];
 extern uint32_t vwaddrls[1024],vwaddrphys[1024];
 
 //uint8_t pagedirty[0x1000];
