@@ -492,7 +492,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
            0,                   /* Extended possibilites for variation */
            szClassName,         /* Classname */
            "RPCEmu v" VERSION,      /* Title Text */
-           WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX, /* overlapped window with no sizing frame */
+           WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, /* overlapped window with no sizing frame */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
            640 + (GetSystemMetrics(SM_CXFIXEDFRAME) * 2), /* The window width */
