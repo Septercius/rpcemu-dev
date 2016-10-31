@@ -246,7 +246,11 @@ rpcemu_log_information(void)
 	/* Log 32 or 64-bit */
 	rpclog("Build: %lu-bit binary\n", (unsigned long) sizeof(void *) * 8);
 
-#if defined __GNUC__ && defined __VERSION__
+	/* Log Compiler */
+	/* Clang must be tested before GCC because Clang also defines __GNUC__ */
+#if defined __clang__ && defined __VERSION__
+	rpclog("Compiler: Clang version " __VERSION__ "\n");
+#elif defined __GNUC__ && defined __VERSION__
 	rpclog("Compiler: GCC version " __VERSION__ "\n");
 #endif
 
