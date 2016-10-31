@@ -617,238 +617,218 @@ arm_opcode_may_abort(uint32_t opcode)
 	return 0;
 }
 
-void execarm(int cycs)
+void
+execarm(int cycs)
 {
-        int hash;
-        void (*gen_func)(void);
+	int hash;
+	void (*gen_func)(void);
 	uint32_t opcode;
-        uint32_t templ;//,templ2,addr,addr2,mask;
-        //unsigned char temp;
-//        int RD;
-        cycles+=cycs;
-        linecyc=256;
-        while (cycles>0)
-        {
-//                cyccount+=200;
-                while (linecyc-- >= 0) {
-                        armirq&=~0xC0;
-                        if (!isblockvalid(PC)) /*Interpret block*/
-                        {
-                                blockend=0;
-                                if ((PC >> 12) != pccache) {
-                                        pccache2 = getpccache(PC);
-                                        if (pccache2 == NULL) {
-                                                pccache = 0xffffffff;
-                                                armirq |= 0x80;
-                                        } else {
-                                                opcode = pccache2[PC >> 2];
-                                                pccache = PC >> 12;
-                                        }
-                                }
-                                while (!blockend && !(armirq&0xC0))
-                                {
-                                        opcode=pccache2[PC>>2];
-                                        if ((opcode & 0x0E000000) == 0x0A000000) { blockend = 1; } /* Always end block on branches */
-                                        if ((opcode & 0x0c000000) == 0x0c000000) { blockend = 1; } /* And SWIs and copro stuff */
-                                        if (!(opcode & 0xC000000) && (RD == 15)) { blockend = 1; } /* End if R15 can be modified */
-                                        if ((opcode & 0x0E108000) == 0x08108000) { blockend = 1; } /* End if R15 reloaded from LDM */
-                                        if ((opcode & 0x0C100000) == 0x04100000 && (RD==15)) { blockend = 1; } /* End if R15 reloaded from LDR */
-                                        if (flaglookup[opcode>>28][(*pcpsr)>>28])// && !(armirq&0x80))
-                                           opcodes[(opcode>>20)&0xFF](opcode);
-//                                                if ((opcode&0x0E000000)==0x0A000000) blockend=1; /*Always end block on branches*/
-//                                                if ((opcode&0x0C000000)==0x0C000000) blockend=1; /*And SWIs and copro stuff*/
-                                        arm.reg[15] += 4;
-                                        if (!((PC)&0xFFC)) blockend=1;
-//                                        if (armirq) blockend=1;
-                                        inscount++;
-                                }
-                        }
-                        else
-                        {
-                                hash=HASH(PC);
-/*                                if (pagedirty[PC>>9])
-                                {
-                                        pagedirty[PC>>9]=0;
-                                        cacheclearpage(PC>>9);
-                                }
-                                else */if (codeblockpc[hash]==PC)
-                                {
-                                        templ=codeblocknum[hash];
-                                        gen_func=(void *)(&rcodeblock[templ][BLOCKSTART]);
-//                                        gen_func=(void *)(&codeblock[blocks[templ]>>24][blocks[templ]&0xFFF][4]);
-                                        gen_func();
-                                        if (armirq & 0x40) arm.reg[15] += 4;
-                                        if ((arm.reg[cpsr] & arm.mmask) != arm.mode) {
-                                                updatemode(arm.reg[cpsr] & arm.mmask);
-                                        }
-                                }
-                                else
-                                {
-                                        blockend=0;
-                                        /* Initialise 'opcode' to invalid value */
-                                        opcode = 0xffffffff;
-                                        if ((PC >> 12) != pccache) {
-                                                pccache2 = getpccache(PC);
-                                                if (pccache2 == NULL) {
-                                                        pccache = 0xffffffff;
-                                                        armirq |= 0x80;
-                                                } else {
-                                                        opcode = pccache2[PC >> 2];
-                                                        pccache = PC >> 12;
-                                                }
-                                        }
-                                        if (!(armirq&0x80)) 
-					{
+	uint32_t templ;
+
+	cycles += cycs;
+	linecyc = 256;
+	while (cycles > 0) {
+		// cyccount+=200;
+		while (linecyc-- >= 0) {
+			armirq &= ~0xc0u;
+			if (!isblockvalid(PC)) {
+				/* Interpret block */
+				blockend = 0;
+				if ((PC >> 12) != pccache) {
+					pccache2 = getpccache(PC);
+					if (pccache2 == NULL) {
+						pccache = 0xffffffff;
+						armirq |= 0x80;
+					} else {
+						opcode = pccache2[PC >> 2];
+						pccache = PC >> 12;
+					}
+				}
+				while (!blockend && !(armirq & 0xc0)) {
+					opcode = pccache2[PC >> 2];
+					if ((opcode & 0x0e000000) == 0x0a000000) { blockend = 1; } /* Always end block on branches */
+					if ((opcode & 0x0c000000) == 0x0c000000) { blockend = 1; } /* And SWIs and copro stuff */
+					if (!(opcode & 0x0c000000) && (RD == 15)) { blockend = 1; } /* End if R15 can be modified */
+					if ((opcode & 0x0e108000) == 0x08108000) { blockend = 1; } /* End if R15 reloaded from LDM */
+					if ((opcode & 0x0c100000) == 0x04100000 && (RD == 15)) { blockend = 1; } /* End if R15 reloaded from LDR */
+					if (flaglookup[opcode >> 28][(*pcpsr) >> 28]) {// && !(armirq&0x80))
+						opcodes[(opcode >> 20) & 0xff](opcode);
+					}
+					// if ((opcode & 0x0e000000) == 0x0a000000) blockend = 1; /* Always end block on branches */
+					// if ((opcode & 0x0c000000) == 0x0c000000) blockend = 1; /* And SWIs and copro stuff */
+					arm.reg[15] += 4;
+					if ((PC & 0xffc) == 0) {
+						blockend = 1;
+					}
+					// if (armirq) blockend=1;
+					inscount++;
+				}
+			} else {
+				hash = HASH(PC);
+				/* if (pagedirty[PC>>9])
+				{
+					pagedirty[PC>>9]=0;
+					cacheclearpage(PC>>9);
+				}
+				else */ if (codeblockpc[hash] == PC) {
+					templ = codeblocknum[hash];
+					gen_func = (void *) (&rcodeblock[templ][BLOCKSTART]);
+					// gen_func=(void *)(&codeblock[blocks[templ]>>24][blocks[templ]&0xFFF][4]);
+					gen_func();
+					if (armirq & 0x40) {
+						arm.reg[15] += 4;
+					}
+					if ((arm.reg[cpsr] & arm.mmask) != arm.mode) {
+						updatemode(arm.reg[cpsr] & arm.mmask);
+					}
+				} else {
+					blockend = 0;
+					/* Initialise 'opcode' to invalid value */
+					opcode = 0xffffffff;
+					if ((PC >> 12) != pccache) {
+						pccache2 = getpccache(PC);
+						if (pccache2 == NULL) {
+							pccache = 0xffffffff;
+							armirq |= 0x80;
+						} else {
+							opcode = pccache2[PC >> 2];
+							pccache = PC >> 12;
+						}
+					}
+					if (!(armirq & 0x80)) {
 						initcodeblock(PC);
 						//printf("New block %08X %04X %08X\n",PC,hash,codeblockpc[hash]);
-//codeblockpc[hash]=PC;
+						//codeblockpc[hash]=PC;
+					}
+					while (!blockend && !(armirq & 0xc0)) {
+						opcode = pccache2[PC >> 2];
+						if ((opcode >> 28) == 0xf) {
+							/* NV */
+							generatepcinc();
+						} else {
+#ifdef ABORTCHECKING
+							generateupdatepc();
+#else
+							if ((opcode & 0x0e000000) == 0x00000000/* && (RN==15 || RD==15 || RM==15 || !validforskip[(opcode>>20)&63])*/) generateupdatepc();
+							if ((opcode & 0x0e000000) == 0x02000000/* && (RN==15 || RD==15 ||           !validforskip[(opcode>>20)&63])*/) generateupdatepc();
+							if ((opcode & 0x0c000000) == 0x04000000 && (RN == 15 || RD == 15 || RM == 15)) generateupdatepc();
+							if ((opcode & 0x0e000000) == 0x08000000 && ((opcode & 0x8000) || (RN == 15))) generateupdatepc();
+							if ((opcode & 0x0f000000) >= 0x0a000000) generateupdatepc();
+#endif
+							// if (((opcode + 0x06000000) & 0x0f000000) >= 0x0a000000) generateupdatepc();
+							// generateupdatepc();
+							generatepcinc();
+							if ((opcode & 0x0e000000) == 0x0a000000) {
+								generateupdateinscount();
+							}
+							if ((opcode >> 28) != 0xe) {
+								generateflagtestandbranch(opcode, pcpsr);//,flaglookup);
+							} else {
+								lastflagchange = 0;
+							}
+							generatecall(opcodes[(opcode >> 20) & 0xff], opcode, pcpsr);
+#ifdef ABORTCHECKING
+							if (arm_opcode_may_abort(opcode)) {
+								generateirqtest();
+							}
+#endif
+							// if ((opcode & 0x0e000000) == 0x0a000000) blockend = 1; /* Always end block on branches */
+							if ((opcode & 0x0c000000) == 0x0c000000) blockend = 1; /* And SWIs and copro stuff */
+							if (!(opcode & 0x0c000000) && (RD == 15)) blockend = 1; /* End if R15 can be modified */
+							if ((opcode & 0x0e108000) == 0x08108000) blockend = 1; /* End if R15 reloaded from LDM */
+							if ((opcode & 0x0c100000) == 0x04100000 && (RD == 15)) blockend=1; /* End if R15 reloaded from LDR */
+							if (flaglookup[opcode >> 28][(*pcpsr) >> 28]) { // && !(armirq&0x80))
+								opcodes[(opcode >> 20) & 0xff](opcode);
+							}
+						}
+						arm.reg[15] += 4;
+						if ((PC & 0xffc) == 0) {
+							blockend = 1;
+						}
+						// blockend = 1;
+						// inscount++;
+					}
+					if (!(armirq & 0x80)) {
+						endblock(opcode, pcpsr);
+					} else {
+						removeblock();
+					}
+				}
+			}
+
+			if (/*databort|*/armirq & 0xc3)//|prefabort)
+			{
+				if (!ARM_MODE_32(arm.mode)) {
+					arm.reg[16] &= ~0xc0;
+					arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
+				}
+
+				if (armirq & 0xc0) {
+					if (armirq & 0x80) { //prefabort)
+						/* Prefetch Abort */
+						arm.reg[15] -= 4;
+						exception(ABORT, 0x10, 4);
+						arm.reg[15] += 4;
+						armirq &= ~0xc0u;
+					} else if (armirq & 0x40) { //databort==1)
+						/* Data Abort */
+						arm.reg[15] -= 4;
+						exception(ABORT, 0x14, 0);
+						arm.reg[15] += 4;
+						armirq &= ~0xc0u;
+					}
+				} else if ((armirq & 2) && !(arm.reg[16] & 0x40)) {
+					/* FIQ */
+					arm.reg[15] -= 4;
+					exception(FIQ, 0x20, 0);
+					arm.reg[15] += 4;
+				} else if ((armirq & 1) && !(arm.reg[16] & 0x80)) {
+					/* IRQ */
+					arm.reg[15] -= 4;
+					exception(IRQ, 0x1c, 0);
+					arm.reg[15] += 4;
+				}
+			}
+			// armirq=(armirq&0xCC)|((armirq>>2)&3);
+		}
+		linecyc += 256;
+
+		if (kcallback) {
+			kcallback--;
+			if (kcallback <= 0) {
+				kcallback = 0;
+				keyboard_callback_rpcemu();
+			}
+		}
+		if (mcallback) {
+			mcallback -= 10;
+			if (mcallback <= 0) {
+				mcallback = 0;
+				mouse_ps2_callback();
+			}
+		}
+		if (fdccallback) {
+			fdccallback -= 100;
+			if (fdccallback <= 0) {
+				fdccallback = 0;
+				fdc_callback();
+			}
+		}
+		if (idecallback) {
+			idecallback -= 10;
+			if (idecallback <= 0) {
+				idecallback = 0;
+				callbackide();
+			}
+		}
+		if (motoron) {
+			fdci--;
+			if (fdci <= 0) {
+				fdci = 20000;
+				iomd.irqa.status |= IOMD_IRQA_FLOPPY_INDEX;
+				updateirqs();
+			}
+		}
+		cycles -= 1000;
+	}
 }
-                                        while (!blockend && !(armirq&0xC0))
-                                        {
-                                                opcode=pccache2[PC>>2];
-                                                if ((opcode>>28)==0xF) /*NV*/
-                                                {
-                                                        generatepcinc();
-                                                }
-                                                else
-                                                {
-                                                        #ifdef ABORTCHECKING
-                                                        generateupdatepc();
-                                                        #else
-                                                        if ((opcode&0xE000000)==0x0000000/* && (RN==15 || RD==15 || RM==15 || !validforskip[(opcode>>20)&63])*/) generateupdatepc();
-                                                        if ((opcode&0xE000000)==0x2000000/* && (RN==15 || RD==15 ||           !validforskip[(opcode>>20)&63])*/) generateupdatepc();
-                                                        if ((opcode&0xC000000)==0x4000000 && (RN==15 || RD==15 || RM==15)) generateupdatepc();
-                                                        if ((opcode&0xE000000)==0x8000000 && ((opcode&0x8000) || (RN==15))) generateupdatepc();
-                                                        if ((opcode&0xF000000)>=0xA000000) generateupdatepc();
-                                                        #endif
-//                                                        if (((opcode+0x6000000)&0xF000000)>=0xA000000) generateupdatepc();
-//                                                        generateupdatepc();
-                                                        generatepcinc();
-                                                        if ((opcode&0xE000000)==0xA000000) generateupdateinscount();
-                                                        if ((opcode>>28)!=0xE) generateflagtestandbranch(opcode,pcpsr);//,flaglookup);
-                                                        else                   lastflagchange=0;
-                                                        generatecall(opcodes[(opcode>>20)&0xFF],opcode,pcpsr);
-                                                        #ifdef ABORTCHECKING
-                                                        if (arm_opcode_may_abort(opcode)) {
-                                                                generateirqtest();
-                                                        }
-                                                        #endif
-//                                                        if ((opcode&0x0E000000)==0x0A000000) blockend=1; /*Always end block on branches*/
-                                                        if ((opcode&0x0C000000)==0x0C000000) blockend=1; /*And SWIs and copro stuff*/
-                                                        if (!(opcode&0xC000000) && (RD==15)) blockend=1; /*End if R15 can be modified*/
-                                                        if ((opcode&0x0E108000)==0x08108000) blockend=1; /*End if R15 reloaded from LDM*/
-                                                        if ((opcode&0x0C100000)==0x04100000 && (RD==15)) blockend=1; /*End if R15 reloaded from LDR*/
-                                                        if (flaglookup[opcode>>28][(*pcpsr)>>28])// && !(armirq&0x80))
-                                                           opcodes[(opcode>>20)&0xFF](opcode);
-                                                }
-                                                arm.reg[15] += 4;
-                                                if (!((PC)&0xFFC))
-                                                {
-                                                        blockend=1;
-                                                }
-                                                //blockend=1;
-//                                                inscount++;
-                                        }
-                                        if (!(armirq & 0x80)) {
-                                                endblock(opcode, pcpsr);
-                                        } else {
-                                                removeblock();
-                                        }
-                                }
-                        }
-
-                        if (/*databort|*/armirq&0xC3)//|prefabort)
-                        {
-                                if (!ARM_MODE_32(arm.mode)) {
-                                        arm.reg[16] &= ~0xc0;
-                                        arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
-                                }
-
-                                if (armirq&0xC0)
-                                {
-//                                        if (armirq&0xC0) rpclog("Will abort\n");
-//                                        exception(ABORT,(armirq&0x80)?0x10:0x14,0);
-//                                        armirq&=~0xC0;
-//                                        #if 0
-                                        if (armirq&0x80)//prefabort)       /*Prefetch abort*/
-                                        {
-                                                arm.reg[15] -= 4;
-                                                exception(ABORT, 0x10, 4);
-                                                arm.reg[15] += 4;
-                                                armirq&=~0xC0;
-                                        }
-                                        else if (armirq&0x40)//databort==1)     /*Data abort*/
-                                        {
-                                                arm.reg[15] -= 4;
-                                                exception(ABORT, 0x14, 0);
-                                                arm.reg[15] += 4;
-                                                armirq&=~0xC0;
-                                        }
-                                }
-                                else if ((armirq & 2) && !(arm.reg[16] & 0x40)) /*FIQ*/
-                                {
-                                        arm.reg[15] -= 4;
-                                        exception(FIQ,0x20,0);
-                                        arm.reg[15] += 4;
-                                }
-                                else if ((armirq & 1) && !(arm.reg[16] & 0x80)) /*IRQ*/
-                                {
-                                        arm.reg[15] -= 4;
-                                        exception(IRQ, 0x1c, 0);
-                                        arm.reg[15] += 4;
-                                }
-                        }
-//                        armirq=(armirq&0xCC)|((armirq>>2)&3);
-                }
-                linecyc+=256;
-
-                if (kcallback)
-                {
-                        kcallback--;
-                        if (kcallback<=0)
-                        {
-                                kcallback=0;
-                                keyboard_callback_rpcemu();
-                        }
-                }
-                if (mcallback)
-                {
-                        mcallback-=10;
-                        if (mcallback<=0)
-                        {
-                                mcallback=0;
-                                mouse_ps2_callback();
-                        }
-                }
-                if (fdccallback)
-                {
-                        fdccallback -= 100;
-                        if (fdccallback<=0)
-                        {
-                                fdccallback=0;
-                                fdc_callback();
-                        }
-                }
-                if (idecallback)
-                {
-                        idecallback-=10;
-                        if (idecallback<=0)
-                        {
-                                idecallback=0;
-                                callbackide();
-                        }
-                }
-                if (motoron)
-                {
-                        fdci--;
-                        if (fdci<=0)
-                        {
-                                fdci=20000;
-                                iomd.irqa.status |= IOMD_IRQA_FLOPPY_INDEX;
-                                updateirqs();
-                        }
-                }
-                cycles-=1000;
-        }
-}
-
