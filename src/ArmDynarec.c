@@ -635,12 +635,15 @@ void execarm(int cycs)
                         if (!isblockvalid(PC)) /*Interpret block*/
                         {
                                 blockend=0;
-                                if ((PC>>12)!=pccache)
-                                {
-                                        pccache=PC>>12;
-                                        pccache2=getpccache(PC);
-                                        if (pccache2==NULL) { opcode=pccache=0xFFFFFFFF; armirq|=0x80; }
-                                        else                  opcode=pccache2[PC>>2];
+                                if ((PC >> 12) != pccache) {
+                                        pccache2 = getpccache(PC);
+                                        if (pccache2 == NULL) {
+                                                pccache = 0xffffffff;
+                                                armirq |= 0x80;
+                                        } else {
+                                                opcode = pccache2[PC >> 2];
+                                                pccache = PC >> 12;
+                                        }
                                 }
                                 while (!blockend && !(armirq&0xC0))
                                 {
@@ -684,15 +687,14 @@ void execarm(int cycs)
                                         blockend=0;
                                         /* Initialise 'opcode' to invalid value */
                                         opcode = 0xffffffff;
-                                        if ((PC>>12)!=pccache)
-                                        {
-                                                pccache=PC>>12;
-                                                pccache2=getpccache(PC);
+                                        if ((PC >> 12) != pccache) {
+                                                pccache2 = getpccache(PC);
                                                 if (pccache2 == NULL) {
                                                         pccache = 0xffffffff;
                                                         armirq |= 0x80;
                                                 } else {
                                                         opcode = pccache2[PC >> 2];
+                                                        pccache = PC >> 12;
                                                 }
                                         }
                                         if (!(armirq&0x80)) 
@@ -743,10 +745,6 @@ void execarm(int cycs)
                                                 if (!((PC)&0xFFC))
                                                 {
                                                         blockend=1;
-/*                                                        pccache=PC>>12;
-                                                        pccache2=getpccache(PC);
-                                                        if (pccache2==NULL) { opcode=pccache=0xFFFFFFFF; armirq|=0x80; blockend=1; rpclog("Abort!\n"); }
-                                                        else                  opcode=pccache2[PC>>2];*/
                                                 }
                                                 //blockend=1;
 //                                                inscount++;
