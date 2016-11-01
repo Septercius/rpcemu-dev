@@ -544,351 +544,312 @@ void exception(int mmode, uint32_t address, int diff)
         }
 }
 
-void execarm(int cycs)
+void
+execarm(int cycs)
 {
-        int linecyc;
+	int linecyc;
 	uint32_t opcode;
 	uint32_t lhs, rhs, dest;
 	uint32_t templ, addr, data, offset, writeback;
 
-        cycles+=cycs;
-        while (cycles>0)
-        {
-//                cyccount+=200;
-//                linecyc=200;
-//                while (linecyc>0)
-                for (linecyc=0;linecyc<200;linecyc++)
-                {
-                        if ((PC>>12)!=pccache)
-                        {
-                                pccache=PC>>12;
-                                pccache2=getpccache(PC);
-                                if (pccache2==NULL) opcode=pccache=0xFFFFFFFF;
-                                else                      opcode=pccache2[PC>>2];
-                        }
-                        else
-                           opcode=pccache2[PC>>2];
+	cycles += cycs;
+	while (cycles > 0) {
+		// cyccount+=200;
+		// linecyc=200;
+		// while (linecyc>0)
+		for (linecyc = 0; linecyc < 200; linecyc++) {
+			if ((PC >> 12) != pccache) {
+				pccache = PC >> 12;
+				pccache2 = getpccache(PC);
+				if (pccache2 == NULL) {
+					opcode = pccache = 0xffffffff;
+				} else {
+					opcode = pccache2[PC >> 2];
+				}
+			} else {
+				opcode = pccache2[PC >> 2];
+			}
 
-                        if (flaglookup[opcode>>28][(*pcpsr)>>28] && !(armirq&0x80))//prefabort)
-                        {
+			if (flaglookup[opcode >> 28][(*pcpsr) >> 28] && !(armirq & 0x80)) //prefabort)
+			{
 #ifdef STRONGARM
-//                                if ((opcode&0xE000090)==0x90)
-//                                {
-                                if ((opcode&0xE0000F0)==0xB0) /*LDRH/STRH*/
-                                {
-                                        fatal("Bad LDRH/STRH opcode %08X\n", opcode);
-                                }
-                                else if ((opcode&0xE1000D0)==0x1000D0) /*LDRS*/
-                                {
-                                        fatal("Bad LDRH/STRH opcode %08X\n", opcode);
-//                                }
-//                                goto domain;
-                                }
-                                else
-                                {
-//                                        domain:
-//                                        GETRD;
+				if ((opcode & 0xe0000f0) == 0xb0) {
+					/* LDRH/STRH */
+					fatal("Bad LDRH/STRH opcode %08X\n", opcode);
+				} else if ((opcode & 0xe1000d0) == 0x1000d0) {
+					/* LDRS */
+					fatal("Bad LDRH/STRH opcode %08X\n", opcode);
+				} else {
 #endif
-                                switch ((opcode >> 20) & 0xff) {
+
+				switch ((opcode >> 20) & 0xff) {
 				case 0x00: /* AND reg */
-					if ((opcode & 0xf0) == 0x90) /* MUL */
-					{
+					if ((opcode & 0xf0) == 0x90) {
+						/* MUL */
 						arm.reg[MULRD] = (MULRD == MULRM) ? 0 :
 						    (arm.reg[MULRM] * arm.reg[MULRS]);
-					}
-					else
-					{
+					} else {
 						dest = GETADDR(RN) & shift2(opcode);
 						arm_write_dest(opcode, dest);
 					}
 					break;
 
 				case 0x01: /* ANDS reg */
-					if ((opcode & 0xf0) == 0x90) /* MULS */
-					{
+					if ((opcode & 0xf0) == 0x90) {
+						/* MULS */
 						arm.reg[MULRD] = (MULRD == MULRM) ? 0 :
 						    (arm.reg[MULRM] * arm.reg[MULRS]);
 						setzn(arm.reg[MULRD]);
-					}
-					else
-					{
-					       lhs = GETADDR(RN);
-					       if (RD==15)
-					       {
-					               arm_write_r15(opcode, lhs & shift2(opcode));
-					       }
-					       else
-					       {
-						       dest = lhs & shift(opcode);
-						       arm.reg[RD] = dest;
-						       setzn(dest);
-					       }
+					} else {
+						lhs = GETADDR(RN);
+						if (RD == 15) {
+							arm_write_r15(opcode, lhs & shift2(opcode));
+						} else {
+							dest = lhs & shift(opcode);
+							arm.reg[RD] = dest;
+							setzn(dest);
+						}
 					}
 					break;
 
 				case 0x02: /* EOR reg */
-					if ((opcode & 0xf0) == 0x90) /* MLA */
-					{
+					if ((opcode & 0xf0) == 0x90) {
+						/* MLA */
 						arm.reg[MULRD] = (MULRD == MULRM) ? 0 :
 						    (arm.reg[MULRM] * arm.reg[MULRS]) + arm.reg[MULRN];
-					}
-					else
-					{
+					} else {
 						dest = GETADDR(RN) ^ shift2(opcode);
 						arm_write_dest(opcode, dest);
-                                        }
-                                        break;
+					}
+					break;
 
-                                case 0x03: /* EORS reg */
-                                        if ((opcode & 0xf0) == 0x90) /* MLAS */
-                                        {
+				case 0x03: /* EORS reg */
+					if ((opcode & 0xf0) == 0x90) {
+						/* MLAS */
 						arm.reg[MULRD] = (MULRD == MULRM) ? 0 :
 						    (arm.reg[MULRM] * arm.reg[MULRS]) + arm.reg[MULRN];
 						setzn(arm.reg[MULRD]);
-                                        }
-                                        else
-                                        {
-                                                lhs = GETADDR(RN);
-                                                if (RD==15)
-                                                {
-                                                        arm_write_r15(opcode, lhs ^ shift2(opcode));
-                                                }
-                                                else
-                                                {
-                                                        dest = lhs ^ shift(opcode);
-                                                        arm.reg[RD] = dest;
-                                                        setzn(dest);
-                                                }
-                                        }
-                                        break;
+					} else {
+						lhs = GETADDR(RN);
+						if (RD == 15) {
+							arm_write_r15(opcode, lhs ^ shift2(opcode));
+						} else {
+							dest = lhs ^ shift(opcode);
+							arm.reg[RD] = dest;
+							setzn(dest);
+						}
+					}
+					break;
 
-                                case 0x04: /* SUB reg */
-                                        dest = GETADDR(RN) - shift2(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x04: /* SUB reg */
+					dest = GETADDR(RN) - shift2(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x05: /* SUBS reg */
-                                        lhs = GETADDR(RN);
-                                        rhs = shift2(opcode);
-                                        dest = lhs - rhs;
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setsub(lhs, rhs, dest);
-                                                arm.reg[RD] = dest;
-                                        }
-                                        break;
+				case 0x05: /* SUBS reg */
+					lhs = GETADDR(RN);
+					rhs = shift2(opcode);
+					dest = lhs - rhs;
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						setsub(lhs, rhs, dest);
+						arm.reg[RD] = dest;
+					}
+					break;
 
-                                case 0x06: /* RSB reg */
-                                        dest = shift2(opcode) - GETADDR(RN);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x06: /* RSB reg */
+					dest = shift2(opcode) - GETADDR(RN);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x07: /* RSBS reg */
-                                        lhs = GETADDR(RN);
-                                        rhs = shift2(opcode);
-                                        dest = rhs - lhs;
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setsub(rhs, lhs, dest);
-                                                arm.reg[RD] = dest;
-                                        }
-                                        break;
+				case 0x07: /* RSBS reg */
+					lhs = GETADDR(RN);
+					rhs = shift2(opcode);
+					dest = rhs - lhs;
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						setsub(rhs, lhs, dest);
+						arm.reg[RD] = dest;
+					}
+					break;
 
-                                case 0x08: /* ADD reg */
+				case 0x08: /* ADD reg */
 #ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) /* UMULL */
-					{
-                                                uint64_t mula = (uint64_t) arm.reg[MULRS];
-                                                uint64_t mulb = (uint64_t) arm.reg[MULRM];
-                                                uint64_t mulres = mula * mulb;
+					if ((opcode & 0xf0) == 0x90) {
+						/* UMULL */
+						uint64_t mula = (uint64_t) arm.reg[MULRS];
+						uint64_t mulb = (uint64_t) arm.reg[MULRM];
+						uint64_t mulres = mula * mulb;
 
-                                                arm.reg[MULRN] = (uint32_t) mulres;
-                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-                                                break;
-                                        }
+						arm.reg[MULRN] = (uint32_t) mulres;
+						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
+						break;
+					}
 #endif
-                                        dest = GETADDR(RN) + shift2(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+					dest = GETADDR(RN) + shift2(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x09: /* ADDS reg */
+				case 0x09: /* ADDS reg */
 #ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) /* UMULLS */
-					{
-                                                uint64_t mula = (uint64_t) arm.reg[MULRS];
-                                                uint64_t mulb = (uint64_t) arm.reg[MULRM];
-                                                uint64_t mulres = mula * mulb;
+					if ((opcode & 0xf0) == 0x90) {
+						/* UMULLS */
+						uint64_t mula = (uint64_t) arm.reg[MULRS];
+						uint64_t mulb = (uint64_t) arm.reg[MULRM];
+						uint64_t mulres = mula * mulb;
 
-                                                arm.reg[MULRN] = (uint32_t) mulres;
-                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-                                                arm_flags_long_multiply(mulres);
-                                                break;
-                                        }
+						arm.reg[MULRN] = (uint32_t) mulres;
+						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
+						arm_flags_long_multiply(mulres);
+						break;
+					}
 #endif
-                                        lhs = GETADDR(RN);
-                                        rhs = shift2(opcode);
-                                        dest = lhs + rhs;
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setadd(lhs, rhs, dest);
-                                                arm.reg[RD] = dest;
-                                        }
-                                        break;
-                                
-                                case 0x0A: /* ADC reg */
+					lhs = GETADDR(RN);
+					rhs = shift2(opcode);
+					dest = lhs + rhs;
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						setadd(lhs, rhs, dest);
+						arm.reg[RD] = dest;
+					}
+					break;
+
+				case 0x0a: /* ADC reg */
 #ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) /* UMLAL */
-					{
-                                                uint64_t mula = (uint64_t) arm.reg[MULRS];
-                                                uint64_t mulb = (uint64_t) arm.reg[MULRM];
-                                                uint64_t current = ((uint64_t) arm.reg[MULRD] << 32) |
-                                                                   arm.reg[MULRN];
-                                                uint64_t mulres = (mula * mulb) + current;
+					if ((opcode & 0xf0) == 0x90) {
+						/* UMLAL */
+						uint64_t mula = (uint64_t) arm.reg[MULRS];
+						uint64_t mulb = (uint64_t) arm.reg[MULRM];
+						uint64_t current = ((uint64_t) arm.reg[MULRD] << 32) |
+						                   arm.reg[MULRN];
+						uint64_t mulres = (mula * mulb) + current;
 
-                                                arm.reg[MULRN] = (uint32_t) mulres;
-                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-                                                break;
-                                        }
+						arm.reg[MULRN] = (uint32_t) mulres;
+						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
+						break;
+					}
 #endif
-                                        dest = GETADDR(RN) + shift2(opcode) + CFSET;
-                                        arm_write_dest(opcode, dest);
-                                        break;
+					dest = GETADDR(RN) + shift2(opcode) + CFSET;
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x0B: /* ADCS reg */
+				case 0x0b: /* ADCS reg */
 #ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) /* UMLALS */
-					{
-                                                uint64_t mula = (uint64_t) arm.reg[MULRS];
-                                                uint64_t mulb = (uint64_t) arm.reg[MULRM];
-                                                uint64_t current = ((uint64_t) arm.reg[MULRD] << 32) |
-                                                                   arm.reg[MULRN];
-                                                uint64_t mulres = (mula * mulb) + current;
+					if ((opcode & 0xf0) == 0x90) {
+						/* UMLALS */
+						uint64_t mula = (uint64_t) arm.reg[MULRS];
+						uint64_t mulb = (uint64_t) arm.reg[MULRM];
+						uint64_t current = ((uint64_t) arm.reg[MULRD] << 32) |
+						                   arm.reg[MULRN];
+						uint64_t mulres = (mula * mulb) + current;
 
-                                                arm.reg[MULRN] = (uint32_t) mulres;
-                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-                                                arm_flags_long_multiply(mulres);
-                                                break;
-                                        }
+						arm.reg[MULRN] = (uint32_t) mulres;
+						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
+						arm_flags_long_multiply(mulres);
+						break;
+					}
 #endif
-                                        lhs = GETADDR(RN);
-                                        rhs = shift2(opcode);
-                                        dest = lhs + rhs + CFSET;
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setadc(lhs, rhs, dest);
-                                                arm.reg[RD] = dest;
-                                        }
-                                        break;
+					lhs = GETADDR(RN);
+					rhs = shift2(opcode);
+					dest = lhs + rhs + CFSET;
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						setadc(lhs, rhs, dest);
+						arm.reg[RD] = dest;
+					}
+					break;
 
-                                case 0x0C: /* SBC reg */
+				case 0x0c: /* SBC reg */
 #ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) /* SMULL */
-					{
-                                                int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
-                                                int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
-                                                int64_t mulres = mula * mulb;
+					if ((opcode & 0xf0) == 0x90) {
+						/* SMULL */
+						int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
+						int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
+						int64_t mulres = mula * mulb;
 
-                                                arm.reg[MULRN] = (uint32_t) mulres;
-                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-                                                break;
-                                        }
+						arm.reg[MULRN] = (uint32_t) mulres;
+						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
+						break;
+					}
 #endif
-                                        dest = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+					dest = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x0D: /* SBCS reg */
+				case 0x0d: /* SBCS reg */
 #ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) /* SMULLS */
-					{
-                                                int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
-                                                int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
-                                                int64_t mulres = mula * mulb;
+					if ((opcode & 0xf0) == 0x90) {
+						/* SMULLS */
+						int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
+						int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
+						int64_t mulres = mula * mulb;
 
-                                                arm.reg[MULRN] = (uint32_t) mulres;
-                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-                                                arm_flags_long_multiply(mulres);
-                                                break;
-                                        }
+						arm.reg[MULRN] = (uint32_t) mulres;
+						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
+						arm_flags_long_multiply(mulres);
+						break;
+					}
 #endif
-                                        lhs = GETADDR(RN);
-                                        rhs = shift2(opcode);
-                                        dest = lhs - rhs - (CFSET ? 0 : 1);
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setsbc(lhs, rhs, dest);
-                                                arm.reg[RD] = dest;
-                                        }
-                                        break;
+					lhs = GETADDR(RN);
+					rhs = shift2(opcode);
+					dest = lhs - rhs - (CFSET ? 0 : 1);
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						setsbc(lhs, rhs, dest);
+						arm.reg[RD] = dest;
+					}
+					break;
 
-                                case 0x0E: /* RSC reg */
+				case 0x0e: /* RSC reg */
 #ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) /* SMLAL */
-					{
-                                                int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
-                                                int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
-                                                int64_t current = ((int64_t) arm.reg[MULRD] << 32) |
-                                                                   arm.reg[MULRN];
-                                                int64_t mulres = (mula * mulb) + current;
+					if ((opcode & 0xf0) == 0x90) {
+						/* SMLAL */
+						int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
+						int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
+						int64_t current = ((int64_t) arm.reg[MULRD] << 32) |
+						                  arm.reg[MULRN];
+						int64_t mulres = (mula * mulb) + current;
 
-                                                arm.reg[MULRN] = (uint32_t) mulres;
-                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-                                                break;
-                                        }
+						arm.reg[MULRN] = (uint32_t) mulres;
+						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
+						break;
+					}
 #endif
-                                        dest = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+					dest = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x0F: /* RSCS reg */
+				case 0x0f: /* RSCS reg */
 #ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) /* SMLALS */
-					{
-                                                int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
-                                                int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
-                                                int64_t current = ((int64_t) arm.reg[MULRD] << 32) |
-                                                                   arm.reg[MULRN];
-                                                int64_t mulres = (mula * mulb) + current;
+					if ((opcode & 0xf0) == 0x90) {
+						/* SMLALS */
+						int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
+						int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
+						int64_t current = ((int64_t) arm.reg[MULRD] << 32) |
+						                  arm.reg[MULRN];
+						int64_t mulres = (mula * mulb) + current;
 
-                                                arm.reg[MULRN] = (uint32_t) mulres;
-                                                arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-                                                arm_flags_long_multiply(mulres);
-                                                break;
-                                        }
+						arm.reg[MULRN] = (uint32_t) mulres;
+						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
+						arm_flags_long_multiply(mulres);
+						break;
+					}
 #endif
-                                        lhs = GETADDR(RN);
-                                        rhs = shift2(opcode);
-                                        dest = rhs - lhs - (CFSET ? 0 : 1);
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setsbc(rhs, lhs, dest);
-                                                arm.reg[RD] = dest;
-                                        }
-                                        break;
+					lhs = GETADDR(RN);
+					rhs = shift2(opcode);
+					dest = rhs - lhs - (CFSET ? 0 : 1);
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						setsbc(rhs, lhs, dest);
+						arm.reg[RD] = dest;
+					}
+					break;
 
 				case 0x10: /* MRS reg,CPSR and SWP */
 					if ((opcode & 0xf0) == 0x90) {
@@ -907,55 +868,46 @@ void execarm(int cycs)
 							}
 							LOADREG(RD, dest);
 						}
-                                        }
-                                        else if (!(opcode&0xFFF)) /*MRS CPSR*/
-                                        {
-                                                if (!ARM_MODE_32(arm.mode)) {
-                                                        arm.reg[16] = (arm.reg[15] & 0xf0000000) | (arm.reg[15] & 3);
-                                                        arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
-                                                }
-                                                arm.reg[RD] = arm.reg[16];
-                                        }
-                                        else
-                                        {
-                                                undefined();
-//					        bad_opcode(opcode);
-                                        }
-                                        break;
-                                        
-                                case 0x11: /* TST reg */
-                                        lhs = GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                /* TSTP reg */
-                                                arm_compare_rd15(opcode, lhs & shift2(opcode));
-                                        }
-                                        else
-                                        {
-                                                setzn(lhs & shift(opcode));
-                                        }
-                                        break;
+					} else if ((opcode & 0xfff) == 0) {
+						/* MRS reg,CPSR */
+						if (!ARM_MODE_32(arm.mode)) {
+							arm.reg[16] = (arm.reg[15] & 0xf0000000) | (arm.reg[15] & 3);
+							arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
+						}
+						arm.reg[RD] = arm.reg[16];
+					} else {
+						undefined();
+						// bad_opcode(opcode);
+					}
+					break;
 
-				case 0x12: /* MSR CPSR, reg */
+				case 0x11: /* TST reg */
+					lhs = GETADDR(RN);
+					if (RD == 15) {
+						/* TSTP reg */
+						arm_compare_rd15(opcode, lhs & shift2(opcode));
+					} else {
+						setzn(lhs & shift(opcode));
+					}
+					break;
+
+				case 0x12: /* MSR CPSR,reg */
 					if ((RD == 15) && ((opcode & 0xff0) == 0)) {
 						arm_write_cpsr(opcode, arm.reg[RM]);
 					} else {
 						bad_opcode(opcode);
 					}
 					break;
-                                        
-                                case 0x13: /* TEQ reg */
-                                        lhs = GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                /* TEQP reg */
-                                                arm_compare_rd15(opcode, lhs ^ shift2(opcode));
-                                        }
-                                        else
-                                        {
-                                                setzn(lhs ^ shift(opcode));
-                                        }
-                                        break;
+
+				case 0x13: /* TEQ reg */
+					lhs = GETADDR(RN);
+					if (RD == 15) {
+						/* TEQP reg */
+						arm_compare_rd15(opcode, lhs ^ shift2(opcode));
+					} else {
+						setzn(lhs ^ shift(opcode));
+					}
+					break;
 
 				case 0x14: /* MRS reg,SPSR and SWPB */
 					if ((opcode & 0xf0) == 0x90) {
@@ -973,32 +925,27 @@ void execarm(int cycs)
 							}
 							LOADREG(RD, dest);
 						}
-                                        } else if (!(opcode&0xFFF)) /* MRS SPSR */
-                                        {
-                                                arm.reg[RD] = arm.spsr[arm.mode & 0xf];
-                                        }
-                                        else
-                                        {
+					} else if ((opcode & 0xfff) == 0) {
+						/* MRS reg,SPSR */
+						arm.reg[RD] = arm.spsr[arm.mode & 0xf];
+					} else {
 						bad_opcode(opcode);
-                                        }
-                                        break;
-                                        
-                                case 0x15: /* CMP reg */
-                                        lhs = GETADDR(RN);
-                                        rhs = shift2(opcode);
-                                        dest = lhs - rhs;
-                                        if (RD==15)
-                                        {
-                                                /* CMPP reg */
-                                                arm_compare_rd15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setsub(lhs, rhs, dest);
-                                        }
-                                        break;
+					}
+					break;
 
-                                case 0x16: /* MSR SPSR, reg */
+				case 0x15: /* CMP reg */
+					lhs = GETADDR(RN);
+					rhs = shift2(opcode);
+					dest = lhs - rhs;
+					if (RD == 15) {
+						/* CMPP reg */
+						arm_compare_rd15(opcode, dest);
+					} else {
+						setsub(lhs, rhs, dest);
+					}
+					break;
+
+				case 0x16: /* MSR SPSR,reg */
 					if ((RD == 15) && ((opcode & 0xff0) == 0)) {
 						arm_write_spsr(opcode, arm.reg[RM]);
 					} else {
@@ -1006,263 +953,223 @@ void execarm(int cycs)
 					}
 					break;
 
-                                case 0x17: /* CMN reg */
-                                        lhs = GETADDR(RN);
-                                        rhs = shift2(opcode);
-                                        dest = lhs + rhs;
-                                        if (RD==15)
-                                        {
-                                                /* CMNP reg */
-                                                arm_compare_rd15(opcode, dest);
-                                        } else {
-                                                setadd(lhs, rhs, dest);
-                                        }
-                                        break;
+				case 0x17: /* CMN reg */
+					lhs = GETADDR(RN);
+					rhs = shift2(opcode);
+					dest = lhs + rhs;
+					if (RD == 15) {
+						/* CMNP reg */
+						arm_compare_rd15(opcode, dest);
+					} else {
+						setadd(lhs, rhs, dest);
+					}
+					break;
 
-                                case 0x18: /* ORR reg */
-                                        dest = GETADDR(RN) | shift2(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x18: /* ORR reg */
+					dest = GETADDR(RN) | shift2(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x19: /* ORRS reg */
-                                        lhs = GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, lhs | shift2(opcode));
-                                        }
-                                        else
-                                        {
-                                                dest = lhs | shift(opcode);
-                                                arm.reg[RD] = dest;
-                                                setzn(dest);
-                                        }
-                                        break;
+				case 0x19: /* ORRS reg */
+					lhs = GETADDR(RN);
+					if (RD == 15) {
+						arm_write_r15(opcode, lhs | shift2(opcode));
+					} else {
+						dest = lhs | shift(opcode);
+						arm.reg[RD] = dest;
+						setzn(dest);
+					}
+					break;
 
-                                case 0x1A: /* MOV reg */
-                                        dest = shift2(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x1a: /* MOV reg */
+					dest = shift2(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x1B: /* MOVS reg */
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, shift2(opcode));
-                                        }
-                                        else
-                                        {
-                                                arm.reg[RD] = shift(opcode);
-                                                setzn(arm.reg[RD]);
-                                        }
-                                        break;
+				case 0x1b: /* MOVS reg */
+					if (RD == 15) {
+						arm_write_r15(opcode, shift2(opcode));
+					} else {
+						arm.reg[RD] = shift(opcode);
+						setzn(arm.reg[RD]);
+					}
+					break;
 
-                                case 0x1C: /* BIC reg */
-                                        dest = GETADDR(RN) & ~shift2(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x1c: /* BIC reg */
+					dest = GETADDR(RN) & ~shift2(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x1D: /* BICS reg */
-                                        lhs = GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, lhs & ~shift2(opcode));
-                                        }
-                                        else
-                                        {
-                                                dest = lhs & ~shift(opcode);
-                                                arm.reg[RD] = dest;
-                                                setzn(dest);
-                                        }
-                                        break;
+				case 0x1d: /* BICS reg */
+					lhs = GETADDR(RN);
+					if (RD == 15) {
+						arm_write_r15(opcode, lhs & ~shift2(opcode));
+					} else {
+						dest = lhs & ~shift(opcode);
+						arm.reg[RD] = dest;
+						setzn(dest);
+					}
+					break;
 
-                                case 0x1E: /* MVN reg */
-                                        dest = ~shift2(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x1e: /* MVN reg */
+					dest = ~shift2(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x1F: /* MVNS reg */
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, ~shift2(opcode));
-                                        }
-                                        else
-                                        {
-                                                arm.reg[RD] = ~shift(opcode);
-                                                setzn(arm.reg[RD]);
-                                        }
-                                        break;
+				case 0x1f: /* MVNS reg */
+					if (RD == 15) {
+						arm_write_r15(opcode, ~shift2(opcode));
+					} else {
+						arm.reg[RD] = ~shift(opcode);
+						setzn(arm.reg[RD]);
+					}
+					break;
 
-                                case 0x20: /* AND imm */
-                                        dest = GETADDR(RN) & arm_imm(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x20: /* AND imm */
+					dest = GETADDR(RN) & arm_imm(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x21: /* ANDS imm */
-                                        lhs = GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, lhs & arm_imm(opcode));
-                                        }
-                                        else
-                                        {
-                                                dest = lhs & arm_imm_cflag(opcode);
-                                                arm.reg[RD] = dest;
-                                                setzn(dest);
-                                        }
-                                        break;
+				case 0x21: /* ANDS imm */
+					lhs = GETADDR(RN);
+					if (RD == 15) {
+						arm_write_r15(opcode, lhs & arm_imm(opcode));
+					} else {
+						dest = lhs & arm_imm_cflag(opcode);
+						arm.reg[RD] = dest;
+						setzn(dest);
+					}
+					break;
 
-                                case 0x22: /* EOR imm */
-                                        dest = GETADDR(RN) ^ arm_imm(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x22: /* EOR imm */
+					dest = GETADDR(RN) ^ arm_imm(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x23: /* EORS imm */
-                                        lhs = GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, lhs ^ arm_imm(opcode));
-                                        }
-                                        else
-                                        {
-                                                dest = lhs ^ arm_imm_cflag(opcode);
-                                                arm.reg[RD] = dest;
-                                                setzn(dest);
-                                        }
-                                        break;
+				case 0x23: /* EORS imm */
+					lhs = GETADDR(RN);
+					if (RD == 15) {
+						arm_write_r15(opcode, lhs ^ arm_imm(opcode));
+					} else {
+						dest = lhs ^ arm_imm_cflag(opcode);
+						arm.reg[RD] = dest;
+						setzn(dest);
+					}
+					break;
 
-                                case 0x24: /* SUB imm */
-                                        dest = GETADDR(RN) - arm_imm(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x24: /* SUB imm */
+					dest = GETADDR(RN) - arm_imm(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x25: /* SUBS imm */
-                                        lhs = GETADDR(RN);
-                                        rhs = arm_imm(opcode);
-                                        dest = lhs - rhs;
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                arm.reg[RD] = dest;
-                                                setsub(lhs, rhs, dest);
-                                        }
-                                        break;
+				case 0x25: /* SUBS imm */
+					lhs = GETADDR(RN);
+					rhs = arm_imm(opcode);
+					dest = lhs - rhs;
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						arm.reg[RD] = dest;
+						setsub(lhs, rhs, dest);
+					}
+					break;
 
-                                case 0x26: /* RSB imm */
-                                        dest = arm_imm(opcode) - GETADDR(RN);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x26: /* RSB imm */
+					dest = arm_imm(opcode) - GETADDR(RN);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x27: /* RSBS imm */
-                                        lhs = GETADDR(RN);
-                                        rhs = arm_imm(opcode);
-                                        dest = rhs - lhs;
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setsub(rhs, lhs, dest);
-                                                arm.reg[RD] = dest;
-                                        }
-                                        break;
+				case 0x27: /* RSBS imm */
+					lhs = GETADDR(RN);
+					rhs = arm_imm(opcode);
+					dest = rhs - lhs;
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						setsub(rhs, lhs, dest);
+						arm.reg[RD] = dest;
+					}
+					break;
 
-                                case 0x28: /* ADD imm */
-                                        dest = GETADDR(RN) + arm_imm(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x28: /* ADD imm */
+					dest = GETADDR(RN) + arm_imm(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x29: /* ADDS imm */
-                                        lhs = GETADDR(RN);
-                                        rhs = arm_imm(opcode);
-                                        dest = lhs + rhs;
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setadd(lhs, rhs, dest);
-                                                arm.reg[RD] = dest;
-                                        }
-                                        break;
+				case 0x29: /* ADDS imm */
+					lhs = GETADDR(RN);
+					rhs = arm_imm(opcode);
+					dest = lhs + rhs;
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						setadd(lhs, rhs, dest);
+						arm.reg[RD] = dest;
+					}
+					break;
 
-                                case 0x2A: /* ADC imm */
-                                        dest = GETADDR(RN) + arm_imm(opcode) + CFSET;
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x2a: /* ADC imm */
+					dest = GETADDR(RN) + arm_imm(opcode) + CFSET;
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x2B: /* ADCS imm */
-                                        lhs = GETADDR(RN);
-                                        rhs = arm_imm(opcode);
-                                        dest = lhs + rhs + CFSET;
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setadc(lhs, rhs, dest);
-                                                arm.reg[RD] = dest;
-                                        }
-                                        break;
+				case 0x2b: /* ADCS imm */
+					lhs = GETADDR(RN);
+					rhs = arm_imm(opcode);
+					dest = lhs + rhs + CFSET;
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						setadc(lhs, rhs, dest);
+						arm.reg[RD] = dest;
+					}
+					break;
 
-                                case 0x2C: /* SBC imm */
-                                        dest = GETADDR(RN) - arm_imm(opcode) - ((CFSET) ? 0 : 1);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x2c: /* SBC imm */
+					dest = GETADDR(RN) - arm_imm(opcode) - ((CFSET) ? 0 : 1);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x2D: /* SBCS imm */
-                                        lhs = GETADDR(RN);
-                                        rhs = arm_imm(opcode);
-                                        dest = lhs - rhs - (CFSET ? 0 : 1);
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setsbc(lhs, rhs, dest);
-                                                arm.reg[RD] = dest;
-                                        }
-                                        break;
+				case 0x2d: /* SBCS imm */
+					lhs = GETADDR(RN);
+					rhs = arm_imm(opcode);
+					dest = lhs - rhs - (CFSET ? 0 : 1);
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						setsbc(lhs, rhs, dest);
+						arm.reg[RD] = dest;
+					}
+					break;
 
-                                case 0x2E: /* RSC imm */
-                                        dest = arm_imm(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x2e: /* RSC imm */
+					dest = arm_imm(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x2F: /* RSCS imm */
-                                        lhs = GETADDR(RN);
-                                        rhs = arm_imm(opcode);
-                                        dest = rhs - lhs - (CFSET ? 0 : 1);
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setsbc(rhs, lhs, dest);
-                                                arm.reg[RD] = dest;
-                                        }
-                                        break;
+				case 0x2f: /* RSCS imm */
+					lhs = GETADDR(RN);
+					rhs = arm_imm(opcode);
+					dest = rhs - lhs - (CFSET ? 0 : 1);
+					if (RD == 15) {
+						arm_write_r15(opcode, dest);
+					} else {
+						setsbc(rhs, lhs, dest);
+						arm.reg[RD] = dest;
+					}
+					break;
 
-                                case 0x31: /* TST imm */
-                                        lhs = GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                /* TSTP imm */
-                                                arm_compare_rd15(opcode, lhs & arm_imm(opcode));
-                                        }
-                                        else
-                                        {
-                                                setzn(lhs & arm_imm_cflag(opcode));
-                                        }
-                                        break;
+				case 0x31: /* TST imm */
+					lhs = GETADDR(RN);
+					if (RD == 15) {
+						/* TSTP imm */
+						arm_compare_rd15(opcode, lhs & arm_imm(opcode));
+					} else {
+						setzn(lhs & arm_imm_cflag(opcode));
+					}
+					break;
 
-				case 0x32: /* MSR CPSR, imm */
+				case 0x32: /* MSR CPSR,imm */
 					if (RD == 15) {
 						arm_write_cpsr(opcode, arm_imm(opcode));
 					} else {
@@ -1270,119 +1177,99 @@ void execarm(int cycs)
 					}
 					break;
 
-                                case 0x33: /* TEQ imm */
-                                        lhs = GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                /* TEQP imm */
-                                                arm_compare_rd15(opcode, lhs ^ arm_imm(opcode));
-                                        }
-                                        else
-                                        {
-                                                setzn(lhs ^ arm_imm_cflag(opcode));
-                                        }
-                                        break;
+				case 0x33: /* TEQ imm */
+					lhs = GETADDR(RN);
+					if (RD == 15) {
+						/* TEQP imm */
+						arm_compare_rd15(opcode, lhs ^ arm_imm(opcode));
+					} else {
+						setzn(lhs ^ arm_imm_cflag(opcode));
+					}
+					break;
 
-                                case 0x35: /* CMP imm */
-                                        lhs = GETADDR(RN);
-                                        rhs = arm_imm(opcode);
-                                        dest = lhs - rhs;
-                                        if (RD==15)
-                                        {
-                                                /* CMPP imm */
-                                                arm_compare_rd15(opcode, dest);
-                                        }
-                                        else
-                                        {
-                                                setsub(lhs, rhs, dest);
-                                        }
-                                        break;
+				case 0x35: /* CMP imm */
+					lhs = GETADDR(RN);
+					rhs = arm_imm(opcode);
+					dest = lhs - rhs;
+					if (RD == 15) {
+						/* CMPP imm */
+						arm_compare_rd15(opcode, dest);
+					} else {
+						setsub(lhs, rhs, dest);
+					}
+					break;
 
-                                case 0x37: /* CMN imm */
-                                        lhs = GETADDR(RN);
-                                        rhs = arm_imm(opcode);
-                                        dest = lhs + rhs;
-                                        if (RD==15)
-                                        {
-                                                /* CMNP imm */
-                                                arm_compare_rd15(opcode, dest);
-                                        } else {
-                                                setadd(lhs, rhs, dest);
-                                        }
-                                        break;
+				case 0x37: /* CMN imm */
+					lhs = GETADDR(RN);
+					rhs = arm_imm(opcode);
+					dest = lhs + rhs;
+					if (RD == 15) {
+						/* CMNP imm */
+						arm_compare_rd15(opcode, dest);
+					} else {
+						setadd(lhs, rhs, dest);
+					}
+					break;
 
-                                case 0x38: /* ORR imm */
-                                        dest = GETADDR(RN) | arm_imm(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x38: /* ORR imm */
+					dest = GETADDR(RN) | arm_imm(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x39: /* ORRS imm */
-                                        lhs = GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, lhs | arm_imm(opcode));
-                                        }
-                                        else
-                                        {
-                                                dest = lhs | arm_imm_cflag(opcode);
-                                                arm.reg[RD] = dest;
-                                                setzn(dest);
-                                        }
-                                        break;
+				case 0x39: /* ORRS imm */
+					lhs = GETADDR(RN);
+					if (RD == 15) {
+						arm_write_r15(opcode, lhs | arm_imm(opcode));
+					} else {
+						dest = lhs | arm_imm_cflag(opcode);
+						arm.reg[RD] = dest;
+						setzn(dest);
+					}
+					break;
 
-                                case 0x3A: /* MOV imm */
-                                        dest = arm_imm(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x3a: /* MOV imm */
+					dest = arm_imm(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x3B: /* MOVS imm */
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, arm_imm(opcode));
-                                        }
-                                        else
-                                        {
-                                                arm.reg[RD] = arm_imm_cflag(opcode);
-                                                setzn(arm.reg[RD]);
-                                        }
-                                        break;
+				case 0x3b: /* MOVS imm */
+					if (RD == 15) {
+						arm_write_r15(opcode, arm_imm(opcode));
+					} else {
+						arm.reg[RD] = arm_imm_cflag(opcode);
+						setzn(arm.reg[RD]);
+					}
+					break;
 
-                                case 0x3C: /* BIC imm */
-                                        dest = GETADDR(RN) & ~arm_imm(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x3c: /* BIC imm */
+					dest = GETADDR(RN) & ~arm_imm(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x3D: /* BICS imm */
-                                        lhs = GETADDR(RN);
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, lhs & ~arm_imm(opcode));
-                                        }
-                                        else
-                                        {
-                                                dest = lhs & ~arm_imm_cflag(opcode);
-                                                arm.reg[RD] = dest;
-                                                setzn(dest);
-                                        }
-                                        break;
+				case 0x3d: /* BICS imm */
+					lhs = GETADDR(RN);
+					if (RD == 15) {
+						arm_write_r15(opcode, lhs & ~arm_imm(opcode));
+					} else {
+						dest = lhs & ~arm_imm_cflag(opcode);
+						arm.reg[RD] = dest;
+						setzn(dest);
+					}
+					break;
 
-                                case 0x3E: /* MVN imm */
-                                        dest = ~arm_imm(opcode);
-                                        arm_write_dest(opcode, dest);
-                                        break;
+				case 0x3e: /* MVN imm */
+					dest = ~arm_imm(opcode);
+					arm_write_dest(opcode, dest);
+					break;
 
-                                case 0x3F: /* MVNS imm */
-                                        if (RD==15)
-                                        {
-                                                arm_write_r15(opcode, ~arm_imm(opcode));
-                                        }
-                                        else
-                                        {
-                                                arm.reg[RD] = ~arm_imm_cflag(opcode);
-                                                setzn(arm.reg[RD]);
-                                        }
-                                        break;
-//#endif
+				case 0x3f: /* MVNS imm */
+					if (RD == 15) {
+						arm_write_r15(opcode, ~arm_imm(opcode));
+					} else {
+						arm.reg[RD] = ~arm_imm_cflag(opcode);
+						setzn(arm.reg[RD]);
+					}
+					break;
 
 				case 0x42: /* STRT Rd, [Rn], #-imm   */
 				case 0x4a: /* STRT Rd, [Rn], #+imm   */
@@ -1949,115 +1836,94 @@ void execarm(int cycs)
 				default:
 					bad_opcode(opcode);
 					break;
-                                }
-                        }
+				}
+			}
 #ifdef STRONGARM
-                        }
+			}
 #endif
-                        if (/*databort|*/armirq)//|prefabort)
-                        {
-                                if (!ARM_MODE_32(arm.mode)) {
-                                        arm.reg[16] &= ~0xc0;
-                                        arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
-                                }
 
-                                if (armirq&0xC0)
-                                {
-//                                        exception(ABORT,(armirq&0x80)?0x10:0x14,0);
-//                                        armirq&=~0xC0;
-//                                        #if 0
-                                if (armirq&0x80)//prefabort)       /*Prefetch abort*/
-                                {
-                                        armirq&=~0xC0;
-                                        exception(ABORT, 0x10, 4);
-                                }
-                                else if (armirq&0x40)//databort==1)     /*Data abort*/
-                                {
-                                        armirq&=~0xC0;
-                                        exception(ABORT, 0x14, 0);
-                                }
-                                else if (databort==2) /*Address Exception*/
-                                {
-                                        fatal("Exception %i %i %i\n", databort, armirq, prefabort);
+			if (/*databort|*/armirq)//|prefabort)
+			{
+				if (!ARM_MODE_32(arm.mode)) {
+					arm.reg[16] &= ~0xc0;
+					arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
+				}
 
-                                        templ = arm.reg[15];
-                                        arm.reg[15] |= 3;
-                                        updatemode(SUPERVISOR);
-                                        arm.reg[14] = templ;
-                                        arm.reg[15] &= 0xfc000003;
-                                        arm.reg[15] |= 0x08000018;
-                                        databort=0;
-                                }
-//                                #endif
-                                }
-                                else if ((armirq & 2) && !(arm.reg[16] & 0x40)) /*FIQ*/
-                                {
-                                        exception(FIQ,0x20,0);
-                                }
-                                else if ((armirq & 1) && !(arm.reg[16] & 0x80)) /*IRQ*/
-                                {
-                                        exception(IRQ, 0x1c, 0);
-                                }
-//                                if ((arm.reg[cpsr]&arm.mmask)!=arm.mode) updatemode(arm.reg[cpsr]&arm.mmask);
-                        }
+				if (armirq & 0xc0) {
+					if (armirq & 0x80) { //prefabort)
+						/* Prefetch Abort */
+						exception(ABORT, 0x10, 4);
+						armirq &= ~0xc0u;
+					} else if (armirq & 0x40) { //databort==1)
+						/* Data Abort */
+						exception(ABORT, 0x14, 0);
+						armirq &= ~0xc0u;
+					} else if (databort == 2) {
+						/* Address Exception */
+						fatal("Exception %i %i %i\n", databort, armirq, prefabort);
 
-                        arm.reg[15] += 4;
+						templ = arm.reg[15];
+						arm.reg[15] |= 3;
+						updatemode(SUPERVISOR);
+						arm.reg[14] = templ;
+						arm.reg[15] &= 0xfc000003;
+						arm.reg[15] |= 0x08000018;
+						databort = 0;
+					}
+				} else if ((armirq & 2) && !(arm.reg[16] & 0x40)) {
+					/* FIQ */
+					exception(FIQ, 0x20, 0);
+				} else if ((armirq & 1) && !(arm.reg[16] & 0x80)) {
+					/* IRQ */
+					exception(IRQ, 0x1c, 0);
+				}
+			}
 
-//                        if ((arm.reg[cpsr]&arm.mmask)!=arm.mode) updatemode(arm.reg[cpsr]&arm.mmask);
+			arm.reg[15] += 4;
 
-//                        linecyc--;
-//                        inscount++;
-                }
-                inscount+=200;
+			// if ((arm.reg[cpsr]&arm.mmask)!=arm.mode) updatemode(arm.reg[cpsr]&arm.mmask);
 
-                if (kcallback)
-                {
-                        kcallback--;
-                        if (kcallback<=0)
-                        {
-                                kcallback=0;
-                                keyboard_callback_rpcemu();
-                        }
-                }
-                if (mcallback)
-                {
-                        mcallback-=10;
-                        if (mcallback<=0)
-                        {
-                                mcallback=0;
-                                mouse_ps2_callback();
-                        }
-                }
-                if (fdccallback)
-                {
-                        fdccallback-=10;
-                        if (fdccallback<=0)
-                        {
-                                fdccallback=0;
-                                fdc_callback();
-                        }
-                }
-                if (idecallback)
-                {
-                        idecallback-=10;
-                        if (idecallback<=0)
-                        {
-                                idecallback=0;
-                                callbackide();
-                        }
-                }
-                if (motoron)
-                {
-                        fdci--;
-                        if (fdci<=0)
-                        {
-                                fdci=20000;
-                                iomd.irqa.status |= IOMD_IRQA_FLOPPY_INDEX;
-                                updateirqs();
-                        }
-                }
-//                cyc=(oldcyc-cycles);
-                cycles-=200;
-        }
+			// linecyc--;
+		}
+		inscount += 200;
+
+		if (kcallback) {
+			kcallback--;
+			if (kcallback <= 0) {
+				kcallback = 0;
+				keyboard_callback_rpcemu();
+			}
+		}
+		if (mcallback) {
+			mcallback -= 10;
+			if (mcallback <= 0) {
+				mcallback = 0;
+				mouse_ps2_callback();
+			}
+		}
+		if (fdccallback) {
+			fdccallback -= 10;
+			if (fdccallback <= 0) {
+				fdccallback = 0;
+				fdc_callback();
+			}
+		}
+		if (idecallback) {
+			idecallback -= 10;
+			if (idecallback <= 0) {
+				idecallback = 0;
+				callbackide();
+			}
+		}
+		if (motoron) {
+			fdci--;
+			if (fdci <= 0) {
+				fdci = 20000;
+				iomd.irqa.status |= IOMD_IRQA_FLOPPY_INDEX;
+				updateirqs();
+			}
+		}
+		// cyc=(oldcyc-cycles);
+		cycles -= 200;
+	}
 }
-
