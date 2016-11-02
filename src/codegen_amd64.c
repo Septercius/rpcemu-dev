@@ -850,15 +850,15 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				addbyte(0x41); addbyte(0x29); addbyte(0x47); addbyte(RN<<2); /* SUB %eax,Rn */
 			}
 		} else {
-			templ = opcode & 0xfff;
-			if (templ != 0) {
-				addbyte(0x41); addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+			offset = opcode & 0xfff;
+			if (offset != 0) {
+				addbyte(0x41); addbyte(0x81); // ADDL/SUBL $offset,Rn
 				if (opcode & 0x800000) {
 					addbyte(0x47); /* ADD */
 				} else {
 					addbyte(0x6f); /* SUB */
 				}
-				addbyte(RN<<2); addlong(templ);
+				addbyte(RN<<2); addlong(offset);
 			}
 		}
 		if (!arm.abort_base_restored) {
@@ -887,15 +887,15 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				addbyte(0x41); addbyte(0x29); addbyte(0x47); addbyte(RN<<2); /* SUB %eax,Rn */
 			}
 		} else {
-			templ = opcode & 0xfff;
-			if (templ != 0) {
-				addbyte(0x41); addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+			offset = opcode & 0xfff;
+			if (offset != 0) {
+				addbyte(0x41); addbyte(0x81); // ADDL/SUBL $offset,Rn
 				if (opcode & 0x800000) {
 					addbyte(0x47); /* ADD */
 				} else {
 					addbyte(0x6f); /* SUB */
 				}
-				addbyte(RN<<2); addlong(templ);
+				addbyte(RN<<2); addlong(offset);
 			}
 		}
 		if (!arm.abort_base_restored) {
@@ -923,15 +923,15 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				addbyte(0x41); addbyte(0x29); addbyte(0x57); addbyte(RN<<2); /* SUB %edx,Rn */
 			}
 		} else {
-			templ = opcode & 0xfff;
-			if (templ != 0) {
-				addbyte(0x41); addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+			offset = opcode & 0xfff;
+			if (offset != 0) {
+				addbyte(0x41); addbyte(0x81); // ADDL/SUBL $offset,Rn
 				if (opcode & 0x800000) {
 					addbyte(0x47); /* ADD */
 				} else {
 					addbyte(0x6f); /* SUB */
 				}
-				addbyte(RN<<2); addlong(templ);
+				addbyte(RN<<2); addlong(offset);
 			}
 		}
 		if (!arm.abort_base_restored) {
@@ -960,15 +960,15 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 				addbyte(0x41); addbyte(0x29); addbyte(0x57); addbyte(RN<<2); /* SUB %edx,Rn */
 			}
 		} else {
-			templ = opcode & 0xfff;
-			if (templ != 0) {
-				addbyte(0x41); addbyte(0x81); /* ADDL/SUBL $templ,Rn */
+			offset = opcode & 0xfff;
+			if (offset != 0) {
+				addbyte(0x41); addbyte(0x81); // ADDL/SUBL $offset,Rn
 				if (opcode & 0x800000) {
 					addbyte(0x47); /* ADD */
 				} else {
 					addbyte(0x6f); /* SUB */
 				}
-				addbyte(RN<<2); addlong(templ);
+				addbyte(RN<<2); addlong(offset);
 			}
 		}
 		if (!arm.abort_base_restored) {
