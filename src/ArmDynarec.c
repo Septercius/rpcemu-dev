@@ -46,10 +46,10 @@ uint32_t *usrregs[16];
 int databort;
 int prog32;
 
-#define NFSET ((arm.reg[cpsr] & NFLAG) ? 1 : 0)
-#define ZFSET ((arm.reg[cpsr] & ZFLAG) ? 1 : 0)
-#define CFSET ((arm.reg[cpsr] & CFLAG) ? 1 : 0)
-#define VFSET ((arm.reg[cpsr] & VFLAG) ? 1 : 0)
+#define NFSET	((arm.reg[cpsr] & NFLAG) ? 1u : 0)
+#define ZFSET	((arm.reg[cpsr] & ZFLAG) ? 1u : 0)
+#define CFSET	((arm.reg[cpsr] & CFLAG) ? 1u : 0)
+#define VFSET	((arm.reg[cpsr] & VFLAG) ? 1u : 0)
 
 #define GETADDR(r) ((r == 15) ? (arm.reg[15] & arm.r15_mask) : arm.reg[r])
 #define LOADREG(r,v) if (r == 15) { arm.reg[15] = (arm.reg[15] & ~arm.r15_mask) | (((v) + 4) & arm.r15_mask); refillpipeline(); } else arm.reg[r] = (v);
@@ -412,64 +412,71 @@ shift3(uint32_t opcode)
 #define shift2(o) ((o & 0xff0) ? shift4(o) : arm.reg[RM])
 #define shift_ldrstr(o) shift2(o)
 
-static unsigned
-shift5(unsigned opcode, unsigned shiftmode, unsigned shiftamount, uint32_t rm)
+static uint32_t
+shift5(uint32_t opcode, uint32_t shiftmode, uint32_t shiftamount, uint32_t rm)
 {
 	switch (shiftmode) {
 	case 0: /* LSL */
-		if (shiftamount == 0)
+		if (shiftamount == 0) {
 			return rm;
+		}
 		return 0; /* shiftamount >= 32 */
 
 	case 0x20: /* LSR */
-		if (shiftamount == 0 && (opcode & 0x10))
+		if (shiftamount == 0 && (opcode & 0x10)) {
 			return rm;
+		}
 		return 0; /* shiftamount >= 32 */
 
 	case 0x40: /* ASR */
-		if (shiftamount == 0 && !(opcode & 0x10))
+		if (shiftamount == 0 && !(opcode & 0x10)) {
 			shiftamount = 32;
+		}
 		if (shiftamount >= 32) {
-			if (rm & 0x80000000)
+			if (rm & 0x80000000) {
 				return 0xffffffff;
+			}
 			return 0;
 		}
-		return (int) rm >> shiftamount;
+		return (uint32_t) ((int32_t) rm >> shiftamount);
 
 	default: /* ROR */
 		if (!(opcode & 0x10)) {
 			/* RRX */
-			return (((CFSET) ? 1 : 0) << 31) | (rm >> 1);
+			return (CFSET << 31) | (rm >> 1);
 		}
 		shiftamount &= 0x1f;
 		return (rm >> shiftamount) | (rm << (32 - shiftamount));
 	}
 }
 
-static inline unsigned shift4(unsigned opcode)
+static inline uint32_t
+shift4(uint32_t opcode)
 {
-        unsigned shiftmode=opcode&0x60;
-        unsigned shiftamount=(opcode&0x10)?(arm.reg[(opcode>>8)&15]&0xFF):((opcode>>7)&31);
-        uint32_t rm = arm.reg[RM];
+	uint32_t shiftmode = opcode & 0x60;
+	uint32_t shiftamount;
+	uint32_t rm = arm.reg[RM];
 
-        if ((shiftamount-1)>=31)
-        {
-                return shift5(opcode,shiftmode,shiftamount,rm);
-        }
-        else
-        {
-                switch (shiftmode)
-                {
-                        case 0: /*LSL*/
-                        return rm<<shiftamount;
-                        case 0x20: /*LSR*/
-                        return rm>>shiftamount;
-                        case 0x40: /*ASR*/
-                        return (int)rm>>shiftamount;
-                        default: /*ROR*/
-                        return (rm>>shiftamount)|(rm<<(32-shiftamount));
-                }
-        }
+	if (opcode & 0x10) {
+		shiftamount = arm.reg[(opcode >> 8) & 0xf] & 0xff;
+	} else {
+		shiftamount = (opcode >> 7) & 0x1f;
+	}
+
+	if ((shiftamount - 1) >= 31) {
+		return shift5(opcode, shiftmode, shiftamount, rm);
+	}
+
+	switch (shiftmode) {
+	case 0: /* LSL */
+		return rm << shiftamount;
+	case 0x20: /* LSR */
+		return rm >> shiftamount;
+	case 0x40: /* ASR */
+		return (uint32_t) ((int32_t) rm >> shiftamount);
+	default: /* ROR */
+		return (rm >> shiftamount) | (rm << (32 - shiftamount));
+	}
 }
 
 #define undefined() exception(UNDEFINED,8,4)
