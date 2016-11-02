@@ -333,19 +333,19 @@ opRSCregS(uint32_t opcode)
 static int
 opSWPword(uint32_t opcode)
 {
-	uint32_t addr, dest, templ;
+	uint32_t addr, dest, data;
 
 	if ((opcode & 0xf0) == 0x90) {
 		/* SWP */
 		if (RD != 15) {
 			addr = GETADDR(RN);
-			templ = GETREG(RM);
+			data = GETREG(RM);
 			dest = mem_read32(addr & ~3u);
 			if (armirq & 0x40) {
 				return 1;
 			}
 			dest = arm_ldr_rotate(dest, addr);
-			mem_write32(addr & ~3u, templ);
+			mem_write32(addr & ~3u, data);
 			if (armirq & 0x40) {
 				return 1;
 			}
@@ -406,18 +406,18 @@ opTEQreg(uint32_t opcode)
 static int
 opSWPbyte(uint32_t opcode)
 {
-	uint32_t addr, dest, templ;
+	uint32_t addr, dest, data;
 
 	if ((opcode & 0xf0) == 0x90) {
 		/* SWPB */
 		if (RD != 15) {
 			addr = GETADDR(RN);
-			templ = GETREG(RM);
+			data = GETREG(RM);
 			dest = mem_read8(addr);
 			if (armirq & 0x40) {
 				return 1;
 			}
-			mem_write8(addr, templ);
+			mem_write8(addr, data);
 			if (armirq & 0x40) {
 				return 1;
 			}
