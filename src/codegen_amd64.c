@@ -1169,54 +1169,50 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	case 0xa4: case 0xa5: case 0xa6: case 0xa7:
 	case 0xa8: case 0xa9: case 0xaa: case 0xab:
 	case 0xac: case 0xad: case 0xae: case 0xaf:
-		templ=(opcode&0xFFFFFF)<<2;
-		if (templ&0x2000000) templ|=0xFC000000;
-		templ+=4;
-		if (((PC + templ) & 0xfc000000) == 0 || arm.r15_mask == 0xfffffffc) {
-			/*ADD $templ,%r12d*/
-			addbyte(0x41); addbyte(0x81); addbyte(0xC4);
-			addlong(templ);
+		templ = (opcode & 0xffffff) << 2;
+		if (templ & 0x2000000) {
+			templ |= 0xfc000000;
 		}
-		else
-		{
+		templ += 4;
+		if (((PC + templ) & 0xfc000000) == 0 || arm.r15_mask == 0xfffffffc) {
+			addbyte(0x41); addbyte(0x81); addbyte(0xc4); addlong(templ); // ADD $templ,%r12d
+		} else {
 			gen_load_reg(15, EAX);
-			addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-			addbyte(0x81); addbyte(0xC0); addlong(templ); /*ADDL $templ,%eax*/
-                        addbyte(0x81); addbyte(0xE2); addlong(0xFC000003); /*ANDL $templ,%edx*/
-                        addbyte(0x81); addbyte(0xE0); addlong(0x03FFFFFC); /*ANDL $templ,%eax*/
-                        addbyte(0x09); addbyte(0xD0); /*ORL %edx,%eax*/
+			addbyte(0x89); addbyte(0xc2); // MOV %eax,%edx
+			addbyte(0x81); addbyte(0xc0); addlong(templ); // ADD $templ,%eax
+			addbyte(0x81); addbyte(0xe2); addlong(0xfc000003); // AND $0xfc000003,%edx
+			addbyte(0x81); addbyte(0xe0); addlong(0x03fffffc); // AND $0x03fffffc,%eax
+			addbyte(0x09); addbyte(0xd0); // OR %edx,%eax
 			gen_save_reg(15, EAX);
 		}
-		blockend=1;
+		blockend = 1;
 		break;
 
 	case 0xb0: case 0xb1: case 0xb2: case 0xb3: /* BL */
 	case 0xb4: case 0xb5: case 0xb6: case 0xb7:
 	case 0xb8: case 0xb9: case 0xba: case 0xbb:
 	case 0xbc: case 0xbd: case 0xbe: case 0xbf:
-		templ=(opcode&0xFFFFFF)<<2;
-		if (templ&0x2000000) templ|=0xFC000000;
-		templ+=4;
-		gen_load_reg(15, EAX);
-		addbyte(0x83); addbyte(0xE8); addbyte(0x04); /*SUBL $4,%eax*/
-		if (((PC + templ) & 0xfc000000) == 0 || arm.r15_mask == 0xfffffffc) {
-			/*ADD $templ,%r12d*/
-			addbyte(0x41); addbyte(0x81); addbyte(0xC4);
-			addlong(templ);
-			gen_save_reg(14, EAX);
+		templ = (opcode & 0xffffff) << 2;
+		if (templ & 0x2000000) {
+			templ |= 0xfc000000;
 		}
-		else
-		{
+		templ += 4;
+		gen_load_reg(15, EAX);
+		addbyte(0x83); addbyte(0xe8); addbyte(0x04); // SUB $4,%eax
+		if (((PC + templ) & 0xfc000000) == 0 || arm.r15_mask == 0xfffffffc) {
+			addbyte(0x41); addbyte(0x81); addbyte(0xc4); addlong(templ); // ADD $templ,%r12d
 			gen_save_reg(14, EAX);
-			addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-			addbyte(0x83); addbyte(0xC0); addbyte(0x04); /*ADDL $4,%eax*/
-			addbyte(0x81); addbyte(0xE2); addlong(0xFC000003); /*ANDL $templ,%edx*/
-			addbyte(0x81); addbyte(0xC0); addlong(templ); /*ADDL $templ,%eax*/
-                        addbyte(0x81); addbyte(0xE0); addlong(0x03FFFFFC); /*ANDL $templ,%eax*/
-                        addbyte(0x09); addbyte(0xD0); /*ORL %edx,%eax*/
+		} else {
+			gen_save_reg(14, EAX);
+			addbyte(0x89); addbyte(0xc2); // MOV %eax,%edx
+			addbyte(0x83); addbyte(0xc0); addbyte(4); // ADD $4,%eax
+			addbyte(0x81); addbyte(0xe2); addlong(0xfc000003); // AND $0xfc000003,%edx
+			addbyte(0x81); addbyte(0xc0); addlong(templ); // ADD $templ,%eax
+			addbyte(0x81); addbyte(0xe0); addlong(0x03fffffc); // AND $0x03fffffc,%eax
+			addbyte(0x09); addbyte(0xd0); // OR %edx,%eax
 			gen_save_reg(15, EAX);
 		}
-		blockend=1;
+		blockend = 1;
 		break;
 
 	default:
