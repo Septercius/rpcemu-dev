@@ -2047,122 +2047,98 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		gen_arm_load_multiple_s(opcode, offset);
 		break;
 
-        case 0xa0: case 0xa1: case 0xa2: case 0xa3: /* B */
-        case 0xa4: case 0xa5: case 0xa6: case 0xa7:
-        case 0xa8: case 0xa9: case 0xaa: case 0xab:
-        case 0xac: case 0xad: case 0xae: case 0xaf:
-                flagsdirty=0;
-                templ=(opcode&0xFFFFFF)<<2;
-                if (templ&0x2000000) templ|=0xFC000000;
-                templ+=4;
-                if (!flaglookup[opcode>>28][(*pcpsr)>>28] && pcinc)
-                   templ+=pcinc;
-                if (!((PC+templ)&0xFC000000))
-                {
-                        if (templ<0x80)
-                        {
-                                addbyte(0x83); /* ADDL $templ,R15 */
-                                addbyte(0x46);
-                                addbyte(15<<2);
-                                addbyte(templ);
-                        }
-                        else
-                        {
-                                addbyte(0x81); /* ADDL $templ,R15 */
-                                addbyte(0x46);
-                                addbyte(15<<2);
-                                addlong(templ);
-                        }
-                }
-                else
-                {
-                        gen_load_reg(15, EAX);
-                        if (arm.r15_mask != 0xfffffffc) {
-                                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                        }
-                        addbyte(0x81); addbyte(0xC0); addlong(templ); /*ADDL $templ,%eax*/
-                        if (arm.r15_mask != 0xfffffffc) {
-                                addbyte(0x81); addbyte(0xE2); addlong(0xFC000003); /*ANDL $templ,%edx*/
-                                addbyte(0x81); addbyte(0xE0); addlong(0x03FFFFFC); /*ANDL $templ,%eax*/
-                                addbyte(0x09); addbyte(0xD0); /*ORL %edx,%eax*/
-                        }
-                        gen_save_reg(15, EAX);
-                }
-                #if 0
-                if ((PC+templ+4)==currentblockpc2 && flaglookup[opcode>>28][(*pcpsr)>>28])
-                {
-//                        rpclog("Possible %07X %07X %08X\n",PC,currentblockpc,&rcodeblock[blockpoint2][codeblockpos]);
-                        addbyte(0xFF); /*DECL linecyc*/
-                        addbyte(0x0D);
-                        addptr(&linecyc);
-                        addbyte(0x78); addbyte(12); /*JS endit*/
+	case 0xa0: case 0xa1: case 0xa2: case 0xa3: /* B */
+	case 0xa4: case 0xa5: case 0xa6: case 0xa7:
+	case 0xa8: case 0xa9: case 0xaa: case 0xab:
+	case 0xac: case 0xad: case 0xae: case 0xaf:
+		flagsdirty = 0;
+		templ = (opcode & 0xffffff) << 2;
+		if (templ & 0x2000000) {
+			templ |= 0xfc000000;
+		}
+		templ += 4;
+		if (!flaglookup[opcode >> 28][(*pcpsr) >> 28] && pcinc != 0) {
+			templ += pcinc;
+		}
+		if (((PC + templ) & 0xfc000000) == 0) {
+			if (templ < 0x80) {
+				addbyte(0x83); addbyte(0x46); addbyte(15<<2); addbyte(templ); // ADDL $templ,R15
+			} else {
+				addbyte(0x81); addbyte(0x46); addbyte(15<<2); addlong(templ); // ADDL $templ,R15
+			}
+		} else {
+			gen_load_reg(15, EAX);
+			if (arm.r15_mask != 0xfffffffc) {
+				addbyte(0x89); addbyte(0xc2); // MOV %eax,%edx
+			}
+			addbyte(0x81); addbyte(0xc0); addlong(templ); // ADD $templ,%eax
+			if (arm.r15_mask != 0xfffffffc) {
+				addbyte(0x81); addbyte(0xe2); addlong(0xfc000003); // AND $0xfc000003,%edx
+				addbyte(0x81); addbyte(0xe0); addlong(0x03fffffc); // AND $0x03fffffc,%eax
+				addbyte(0x09); addbyte(0xd0); // OR %edx,%eax
+			}
+			gen_save_reg(15, EAX);
+		}
+#if 0
+		if ((PC+templ+4)==currentblockpc2 && flaglookup[opcode>>28][(*pcpsr)>>28])
+		{
+			// rpclog("Possible %07X %07X %08X\n",PC,currentblockpc,&rcodeblock[blockpoint2][codeblockpos]);
+			addbyte(0xff); addbyte(0x0d); addptr(&linecyc); // DECL linecyc
+			addbyte(0x78); addbyte(12); /*JS endit*/
 
-                        addbyte(0x83); /*ADD $4,arm.reg[15]*/
-                        addbyte(0x05);
-                        addptr(&arm.reg[15]);
-                        addbyte(4);
-                        gen_x86_jump(CC_ALWAYS, block_enter); /*JMP start*/
-                        /*.endit*/
-                }
-                #endif
-                if (!flaglookup[opcode>>28][(*pcpsr)>>28])
-                {
-                        gen_x86_jump(CC_ALWAYS, 8);
-                }
-   //     addbyte(0xA3); /*MOVL %eax,arm.reg[RN]*/
-//        addlong(0);
-                break;
+			addbyte(0x83); /*ADD $4,arm.reg[15]*/
+			addbyte(0x05);
+			addptr(&arm.reg[15]);
+			addbyte(4);
+			gen_x86_jump(CC_ALWAYS, block_enter); /*JMP start*/
+			/*.endit*/
+		}
+#endif
+		if (!flaglookup[opcode >> 28][(*pcpsr) >> 28]) {
+			gen_x86_jump(CC_ALWAYS, 8);
+		}
+		break;
 
-        case 0xb0: case 0xb1: case 0xb2: case 0xb3: /* BL */
-        case 0xb4: case 0xb5: case 0xb6: case 0xb7:
-        case 0xb8: case 0xb9: case 0xba: case 0xbb:
-        case 0xbc: case 0xbd: case 0xbe: case 0xbf:
-                flagsdirty=0;
-                templ=(opcode&0xFFFFFF)<<2;
-                if (templ&0x2000000) templ|=0xFC000000;
-                templ+=4;
-                if (!flaglookup[opcode>>28][(*pcpsr)>>28] && pcinc)
-                   templ+=pcinc;
-                gen_load_reg(15, EAX);
-                addbyte(0x83); addbyte(0xE8); addbyte(0x04); /*SUBL $4,%eax*/
-                if (!((PC+templ)&0xFC000000))
-                {
-                        if (templ<0x80)
-                        {
-                                addbyte(0x83); /* ADDL $templ,R15 */
-                                addbyte(0x46);
-                                addbyte(15<<2);
-                                addbyte(templ);
-                        }
-                        else
-                        {
-                                addbyte(0x81); /* ADDL $templ,R15 */
-                                addbyte(0x46);
-                                addbyte(15<<2);
-                                addlong(templ);
-                        }
-                        gen_save_reg(14, EAX);
-                }
-                else
-                {
-                        gen_save_reg(14, EAX);
-                        gen_load_reg(15, EAX);
-                        if (arm.r15_mask != 0xfffffffc) {
-                                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                        }
-                        addbyte(0x81); addbyte(0xC0); addlong(templ); /*ADDL $templ,%eax*/
-                        if (arm.r15_mask != 0xfffffffc) {
-                                addbyte(0x81); addbyte(0xE2); addlong(0xFC000003); /*ANDL $templ,%edx*/
-                                addbyte(0x81); addbyte(0xE0); addlong(0x03FFFFFC); /*ANDL $templ,%eax*/
-                                addbyte(0x09); addbyte(0xD0); /*ORL %edx,%eax*/
-                        }
-                        gen_save_reg(15, EAX);
-                }
-                if (!flaglookup[opcode>>28][(*pcpsr)>>28])
-                {
-                        gen_x86_jump(CC_ALWAYS, 8);
-                }
-                break;
+	case 0xb0: case 0xb1: case 0xb2: case 0xb3: /* BL */
+	case 0xb4: case 0xb5: case 0xb6: case 0xb7:
+	case 0xb8: case 0xb9: case 0xba: case 0xbb:
+	case 0xbc: case 0xbd: case 0xbe: case 0xbf:
+		flagsdirty = 0;
+		templ = (opcode & 0xffffff) << 2;
+		if (templ & 0x2000000) {
+			templ |= 0xfc000000;
+		}
+		templ += 4;
+		if (!flaglookup[opcode >> 28][(*pcpsr) >> 28] && pcinc != 0) {
+			templ += pcinc;
+		}
+		gen_load_reg(15, EAX);
+		addbyte(0x83); addbyte(0xe8); addbyte(4); // SUB $4,%eax
+		if (((PC + templ) & 0xfc000000) == 0) {
+			if (templ < 0x80) {
+				addbyte(0x83); addbyte(0x46); addbyte(15<<2); addbyte(templ); // ADDL $templ,R15
+			} else {
+				addbyte(0x81); addbyte(0x46); addbyte(15<<2); addlong(templ); // ADDL $templ,R15
+			}
+			gen_save_reg(14, EAX);
+		} else {
+			gen_save_reg(14, EAX);
+			gen_load_reg(15, EAX);
+			if (arm.r15_mask != 0xfffffffc) {
+				addbyte(0x89); addbyte(0xc2); // MOV %eax,%edx
+			}
+			addbyte(0x81); addbyte(0xc0); addlong(templ); // ADD $templ,%eax
+			if (arm.r15_mask != 0xfffffffc) {
+				addbyte(0x81); addbyte(0xe2); addlong(0xfc000003); // AND $0xfc000003,%edx
+				addbyte(0x81); addbyte(0xe0); addlong(0x03fffffc); // AND $0x03fffffc,%eax
+				addbyte(0x09); addbyte(0xd0); // OR %edx,%eax
+			}
+			gen_save_reg(15, EAX);
+		}
+		if (!flaglookup[opcode >> 28][(*pcpsr) >> 28]) {
+			gen_x86_jump(CC_ALWAYS, 8);
+		}
+		break;
 
         default:
                 return 0;
