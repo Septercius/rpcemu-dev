@@ -285,10 +285,10 @@ install_sigchld_handler(void)
 	}
 }
 
-int main (int argc, char ** argv) 
-{ 
-	if (argc != 1)
-	{
+int
+main(int argc, char *argv[])
+{
+	if (argc != 1) {
 		fprintf(stderr, "No command line options supported.\n");
 		return 1;
 	}
@@ -298,47 +298,51 @@ int main (int argc, char ** argv)
 	/* Setup X11 icon */
 	allegro_icon = rpcemu_xpm;
 
-        infocus=1;
-        allegro_init();
+	infocus = 1;
+	allegro_init();
 
-        set_window_title("RPCEmu v" VERSION);
+	set_window_title("RPCEmu v" VERSION);
 
 	LOCK_FUNCTION(close_button_handler);
 	set_close_button_callback(close_button_handler);
 
-        if (startrpcemu())
-           return -1;
+	if (startrpcemu()) {
+		return -1;
+	}
 
-        install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
+	install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
 
-        infocus=1;
+	infocus = 1;
 
-        while (!quited)
-        {
-                if (infocus)
-                        execrpcemu();
-                        if (updatemips)
-                        {                           
-                                char title[128];
+	while (!quited) {
+		if (infocus) {
+			execrpcemu();
+		}
 
-                                sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f",
-                                        perf.mips, perf.mips_total / perf.mips_count);
-                                set_window_title(title);
-                                updatemips=0;
-                        }
-                if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END]) entergui();
-                if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && mousecapture)
-                {
-                        mousecapture=0;
-                        updatemips=1;
-                }
-        }
-        if (mousecapture)
-        {
-                mousecapture=0;
-        }
-        endrpcemu();
-        return 0;
+		if (updatemips) {
+			char title[128];
+
+			sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f",
+			        perf.mips, perf.mips_total / perf.mips_count);
+			set_window_title(title);
+			updatemips = 0;
+		}
+		if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END]) {
+			entergui();
+		}
+		if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && mousecapture) {
+			mousecapture = 0;
+			updatemips = 1;
+		}
+	}
+
+	if (mousecapture) {
+		mousecapture = 0;
+	}
+
+	endrpcemu();
+
+	return EXIT_SUCCESS;
 }
 
 END_OF_MAIN();
