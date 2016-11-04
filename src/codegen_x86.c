@@ -1043,609 +1043,603 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	uint32_t templ;
 	uint32_t offset;
 
-        switch ((opcode>>20)&0xFF)
-        {
-        case 0x00: /* AND reg */
-                if ((opcode & 0xf0) == 0x90) /* MUL */
-                {
-                        if (MULRD==MULRM)
-                        {
-                                addbyte(0x31); addbyte(0xC0); /*XOR %eax,%eax*/
-                        }
-                        else
-                        {
-                                gen_load_reg(MULRM, EAX);
-                                addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
-                                gen_save_reg(MULRD, EAX);
-                        }
-                        break;
-                }
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x23); addbyte(0x46); addbyte(RN<<2); /* AND Rn,%eax */
-                gen_save_reg(RD, EAX);
-                break;
+	switch ((opcode >> 20) & 0xff) {
+	case 0x00: /* AND reg */
+		if ((opcode & 0xf0) == 0x90) {
+			/* MUL */
+			if (MULRD == MULRM) {
+				addbyte(0x31); addbyte(0xc0); // XOR %eax,%eax
+			} else {
+				gen_load_reg(MULRM, EAX);
+				addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); // MULL Rs
+				gen_save_reg(MULRD, EAX);
+			}
+			break;
+		}
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x23); addbyte(0x46); addbyte(RN<<2); // AND Rn,%eax
+		gen_save_reg(RD, EAX);
+		break;
 
-        case 0x01: /* ANDS reg */
-                if ((opcode & 0xf0) == 0x90) /* MULS */
-                {
-                        if (!flagsdirty) {
-                                addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOVB *pcpsr,%cl*/
-                        }
-                        addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $ZFLAG+NFLAG+CFLAG,%cl*/
-                        if (MULRD==MULRM)
-                        {
-                                addbyte(0x31); addbyte(0xC0); /*XOR %eax,%eax*/
-                        }
-                        else
-                        {
-                                gen_load_reg(MULRM, EAX);
-                                addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
-                                gen_save_reg(MULRD, EAX);
-                        }
-                        addbyte(0x85); addbyte(0xC0); /*TEST %eax,%eax*/
-                        generatesetzn(opcode, pcpsr);
-                        break;
-                }
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generateshiftflags(opcode,pcpsr)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x23); addbyte(0x46); addbyte(RN<<2); /* AND Rn,%eax */
-                gen_save_reg(RD, EAX);
-                generatesetzn(opcode, pcpsr);
-                break;
+	case 0x01: /* ANDS reg */
+		if ((opcode & 0xf0) == 0x90) {
+			/* MULS */
+			if (!flagsdirty) {
+				addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV pcpsr,%cl
+			}
+			addbyte(0x80); addbyte(0xe1); addbyte(0x3f); // AND $~(NFLAG|ZFLAG),%cl
+			if (MULRD == MULRM) {
+				addbyte(0x31); addbyte(0xc0); // XOR %eax,%eax
+			} else {
+				gen_load_reg(MULRM, EAX);
+				addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); // MULL Rs
+				gen_save_reg(MULRD, EAX);
+			}
+			addbyte(0x85); addbyte(0xc0); // TEST %eax,%eax
+			generatesetzn(opcode, pcpsr);
+			break;
+		}
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generateshiftflags(opcode, pcpsr)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x23); addbyte(0x46); addbyte(RN<<2); // AND Rn,%eax
+		gen_save_reg(RD, EAX);
+		generatesetzn(opcode, pcpsr);
+		break;
 
-        case 0x02: /* EOR reg */
-                if ((opcode & 0xf0) == 0x90) /* MLA */
-                {
-                        if (MULRD==MULRM)
-                        {
-                                addbyte(0x31); addbyte(0xC0); /*XOR %eax,%eax*/
-                        }
-                        else
-                        {
-                                gen_load_reg(MULRM, EAX);
-                                addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
-                                addbyte(0x03); addbyte(0x46); addbyte(MULRN<<2); /* ADD Rn,%eax */
-                                gen_save_reg(MULRD, EAX);
-                        }
-                        break;
-                }
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x33); addbyte(0x46); addbyte(RN<<2); /* XOR Rn,%eax */
-                gen_save_reg(RD, EAX);
-                break;
+	case 0x02: /* EOR reg */
+		if ((opcode & 0xf0) == 0x90) {
+			/* MLA */
+			if (MULRD == MULRM) {
+				addbyte(0x31); addbyte(0xc0); // XOR %eax,%eax
+			} else {
+				gen_load_reg(MULRM, EAX);
+				addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); // MULL Rs
+				addbyte(0x03); addbyte(0x46); addbyte(MULRN<<2); // ADD Rn,%eax
+				gen_save_reg(MULRD, EAX);
+			}
+			break;
+		}
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x33); addbyte(0x46); addbyte(RN<<2); // XOR Rn,%eax
+		gen_save_reg(RD, EAX);
+		break;
 
-        case 0x03: /* EORS reg */
-                if ((opcode & 0xf0) == 0x90) /* MLAS */
-                {
-                        if (!flagsdirty) {
-                                addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOVB *pcpsr,%cl*/
-                        }
-                        addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $ZFLAG+NFLAG+CFLAG,%cl*/
-                        if (MULRD==MULRM)
-                        {
-                                addbyte(0x31); addbyte(0xC0); /*XOR %eax,%eax*/
-                        }
-                        else
-                        {
-                                gen_load_reg(MULRM, EAX);
-                                addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
-                                addbyte(0x03); addbyte(0x46); addbyte(MULRN<<2); /* ADD Rn,%eax */
-                                gen_save_reg(MULRD, EAX);
-                        }
-                        addbyte(0x85); addbyte(0xC0); /*TEST %eax,%eax*/
-                        generatesetzn(opcode, pcpsr);
-                        break;
-                }
-                if (RD==15 || RN==15) return 0;
-                if (!generateshiftflags(opcode,pcpsr)) return 0;
-                flagsdirty=0;
-                /*Shifted val now in %eax*/
-                addbyte(0x33); addbyte(0x46); addbyte(RN<<2); /* XOR Rn,%eax */
-                gen_save_reg(RD, EAX);
-                generatesetzn(opcode, pcpsr);
-                break;
+	case 0x03: /* EORS reg */
+		if ((opcode & 0xf0) == 0x90) {
+			/* MLAS */
+			if (!flagsdirty) {
+				addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV pcpsr,%cl
+			}
+			addbyte(0x80); addbyte(0xe1); addbyte(0x3f); // AND $~(NFLAG|ZFLAG),%cl
+			if (MULRD == MULRM) {
+				addbyte(0x31); addbyte(0xc0); // XOR %eax,%eax
+			} else {
+				gen_load_reg(MULRM, EAX);
+				addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); // MULL Rs
+				addbyte(0x03); addbyte(0x46); addbyte(MULRN<<2); // ADD Rn,%eax
+				gen_save_reg(MULRD, EAX);
+			}
+			addbyte(0x85); addbyte(0xc0); // TEST %eax,%eax
+			generatesetzn(opcode, pcpsr);
+			break;
+		}
+		if (RD==15 || RN==15) return 0;
+		if (!generateshiftflags(opcode, pcpsr)) return 0;
+		/* Shifted val now in %eax */
+		flagsdirty = 0;
+		addbyte(0x33); addbyte(0x46); addbyte(RN<<2); // XOR Rn,%eax
+		gen_save_reg(RD, EAX);
+		generatesetzn(opcode, pcpsr);
+		break;
 
-        case 0x04: /* SUB reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-//                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                gen_load_reg(RN, EDX);
-//                addbyte(0x29); addbyte(0xD0); /*SUBL %edx,%eax*/
-                addbyte(0x29); addbyte(0xC2); /*SUBL %eax,%edx*/
-                gen_save_reg(RD, EDX);
-                break;
+	case 0x04: /* SUB reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		gen_load_reg(RN, EDX);
+		addbyte(0x29); addbyte(0xc2); // SUB %eax,%edx
+		gen_save_reg(RD, EDX);
+		break;
 
-        case 0x05: /* SUBS reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOVB *pcpsr,%cl*/
-                addbyte(0x80); addbyte(0xE1); addbyte(~0xF0); /*AND $ZFLAG+NFLAG+VFLAG+CFLAG,%cl*/
-                gen_load_reg(RN, EDX);
-                addbyte(0x29); addbyte(0xC2); /*SUBL %eax,%edx*/
-                gen_x86_lahf();
-                gen_save_reg(RD, EDX);
-                addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
-                addbyte(0x71); addbyte(3); /*JNO notoverflow*/
-                addbyte(0x80); addbyte(0xC9); addbyte(0x10); /*OR $VFLAG,%cl*/
-                /*.notoverflow*/
-                addbyte(0x0a); addbyte(0x8a); addptr(lahftablesub); // OR lahftablesub(%edx),%cl
-                addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOV %cl,pcpsr*/
-                break;
+	case 0x05: /* SUBS reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV pcpsr,%cl
+		addbyte(0x80); addbyte(0xe1); addbyte(0x0f); // AND $~(NFLAG|ZFLAG|CFLAG|VFLAG),%cl
+		gen_load_reg(RN, EDX);
+		addbyte(0x29); addbyte(0xc2); // SUB %eax,%edx
+		gen_x86_lahf();
+		gen_save_reg(RD, EDX);
+		addbyte(0x0f); addbyte(0xb6); addbyte(0xd4); // MOVZBL %ah,%edx
+		addbyte(0x71); addbyte(3); // JNO notoverflow
+		addbyte(0x80); addbyte(0xc9); addbyte(0x10); // OR $VFLAG,%cl
+		// .notoverflow
+		addbyte(0x0a); addbyte(0x8a); addptr(lahftablesub); // OR lahftablesub(%edx),%cl
+		addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV %cl,pcpsr
+		break;
 
-        case 0x06: /* RSB reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x2b); addbyte(0x46); addbyte(RN<<2); /* SUB Rn,%eax */
-                gen_save_reg(RD, EAX);
-                break;
+	case 0x06: /* RSB reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x2b); addbyte(0x46); addbyte(RN<<2); // SUB Rn,%eax
+		gen_save_reg(RD, EAX);
+		break;
 
-        case 0x08: /* ADD reg */
-                if ((opcode & 0xf0) == 0x90) /* UMULL */
-                {
-                        gen_load_reg(MULRM, EAX);
-                        addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
-                        gen_save_reg(MULRN, EAX);
-                        gen_save_reg(MULRD, EDX);
-                        break;
-                }
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x03); addbyte(0x46); addbyte(RN<<2); /* ADD Rn,%eax */
-                gen_save_reg(RD, EAX);
-                break;
+	case 0x08: /* ADD reg */
+		if ((opcode & 0xf0) == 0x90) {
+			/* UMULL */
+			gen_load_reg(MULRM, EAX);
+			addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); // MULL Rs
+			gen_save_reg(MULRN, EAX);
+			gen_save_reg(MULRD, EDX);
+			break;
+		}
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x03); addbyte(0x46); addbyte(RN<<2); // ADD Rn,%eax
+		gen_save_reg(RD, EAX);
+		break;
 
-        case 0x09: /* ADDS reg */
-                if ((opcode & 0xf0) == 0x90) /* UMULLS */
-                {
-                        if (!flagsdirty) {
-                                addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOVB *pcpsr,%cl*/
-                        }
-                        addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $ZFLAG+NFLAG+CFLAG,%cl*/
-                        gen_load_reg(MULRM, EAX);
-                        addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); /* MULL Rs */
-                        gen_save_reg(MULRN, EAX);
-                        gen_save_reg(MULRD, EDX);
-                        addbyte(0x85); addbyte(0xD2); /*TEST %edx,%edx*/
-                        addbyte(0x79); addbyte(3); /*JNS notn*/
-                        addbyte(0x80); addbyte(0xC9); addbyte(0x80); /*OR $NFLAG,%cl*/
-                        addbyte(0x09); addbyte(0xD0); /*OR %edx,%eax*/
-                        addbyte(0x75); addbyte(3); /*JNZ testn*/
-                        addbyte(0x80); addbyte(0xC9); addbyte(0x40); /*OR $ZFLAG,%cl*/
-                        addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOV %cl,pcpsr*/
-                        flagsdirty=1;
-                        break;
-                }
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                flagsdirty=0;
-                /*Shifted val now in %eax*/
-                addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOVB *pcpsr,%cl*/
-                addbyte(0x80); addbyte(0xE1); addbyte(~0xF0); /*AND $ZFLAG+NFLAG+VFLAG+CFLAG,%cl*/
-                gen_load_reg(RN, EDX);
-                addbyte(0x01); addbyte(0xc2); // ADD %eax,%edx
-                gen_x86_lahf();
-                gen_save_reg(RD, EDX);
-                addbyte(0x71); addbyte(3); /*JNO notoverflow*/
-                addbyte(0x80); addbyte(0xC9); addbyte(0x10); /*OR $VFLAG,%cl*/
-                /*.notoverflow*/
-                addbyte(0xF6); addbyte(0xC4); addbyte(1); /*TEST cflag,%ah*/
-                addbyte(0x74); addbyte(3); /*JZ notc*/
-                addbyte(0x80); addbyte(0xC9); addbyte(0x20); /*OR $CFLAG,%cl*/
-                /*.notc*/
-                /*Convenient trick here - Z & V flags are in the same place on x86 and ARM*/
-                addbyte(0x80); addbyte(0xE4); addbyte(0xC0); /*AND $ZFLAG+NFLAG,%ah*/
-                addbyte(0x08); addbyte(0xE1); /*OR %ah,%cl*/
-                addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOV %cl,pcpsr*/
-                break;
+	case 0x09: /* ADDS reg */
+		if ((opcode & 0xf0) == 0x90) {
+			/* UMULLS */
+			if (!flagsdirty) {
+				addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV pcpsr,%cl
+			}
+			addbyte(0x80); addbyte(0xe1); addbyte(0x3f); // AND $~(NFLAG|ZFLAG),%cl
+			gen_load_reg(MULRM, EAX);
+			addbyte(0xf7); addbyte(0x66); addbyte(MULRS<<2); // MULL Rs
+			gen_save_reg(MULRN, EAX);
+			gen_save_reg(MULRD, EDX);
+			addbyte(0x85); addbyte(0xd2); // TEST %edx,%edx
+			addbyte(0x79); addbyte(3); // JNS notn
+			addbyte(0x80); addbyte(0xc9); addbyte(0x80); // OR $NFLAG,%cl
+			addbyte(0x09); addbyte(0xd0); // OR %edx,%eax
+			addbyte(0x75); addbyte(3); // JNZ testn
+			addbyte(0x80); addbyte(0xc9); addbyte(0x40); // OR $ZFLAG,%cl
+			addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV %cl,pcpsr
+			flagsdirty = 1;
+			break;
+		}
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		flagsdirty = 0;
+		addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV pcpsr,%cl
+		addbyte(0x80); addbyte(0xe1); addbyte(0x0f); // AND $~(NFLAG|ZFLAG|CFLAG|VFLAG),%cl
+		gen_load_reg(RN, EDX);
+		addbyte(0x01); addbyte(0xc2); // ADD %eax,%edx
+		gen_x86_lahf();
+		gen_save_reg(RD, EDX);
+		addbyte(0x71); addbyte(3); // JNO notoverflow
+		addbyte(0x80); addbyte(0xc9); addbyte(0x10); // OR $VFLAG,%cl
+		// .notoverflow
+		addbyte(0xf6); addbyte(0xc4); addbyte(1); // TEST $1,%ah
+		addbyte(0x74); addbyte(3); // JZ notc
+		addbyte(0x80); addbyte(0xc9); addbyte(0x20); // OR $CFLAG,%cl
+		// .notc
+		/* Convenient trick here - Z & V flags are in the same place on x86 and ARM */
+		addbyte(0x80); addbyte(0xe4); addbyte(0xc0); // AND $(NFLAG|ZFLAG),%ah
+		addbyte(0x08); addbyte(0xe1); // OR %ah,%cl
+		addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV %cl,pcpsr
+		break;
 
-        case 0x0a: /* ADC reg */
-                flagsdirty=0;
-                if ((opcode & 0xf0) == 0x90) return 0; /* UMLAL */
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0xf6); addbyte(0x05); addptr(((char *) pcpsr) + 3); addbyte(0x20); /*TESTB (pcpsr>>24),$0x20*/
-                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                gen_load_reg(RN, EAX);
-                addbyte(0x74); addbyte(1); /*JZ +1*/
-                addbyte(0x42); /*INC %edx*/
-                addbyte(0x01); addbyte(0xD0); /*ADDL %edx,%eax*/
-                gen_save_reg(RD, EAX);
-                break;
+	case 0x0a: /* ADC reg */
+		flagsdirty = 0;
+		if ((opcode & 0xf0) == 0x90) return 0; /* UMLAL */
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0xf6); addbyte(0x05); addptr(((char *) pcpsr) + 3); addbyte(0x20); // TESTB $0x20,(pcpsr>>24)
+		addbyte(0x89); addbyte(0xc2); // MOV %eax,%edx
+		gen_load_reg(RN, EAX);
+		addbyte(0x74); addbyte(1); // JZ +1
+		addbyte(0x42); // INC %edx
+		addbyte(0x01); addbyte(0xd0); // ADD %edx,%eax
+		gen_save_reg(RD, EAX);
+		break;
 
-        case 0x0b: /* ADCS reg */
-                flagsdirty=0;
-                if ((opcode & 0xf0) == 0x90) return 0; /* UMLALS */
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOVB *pcpsr,%cl*/
-                addbyte(0x88); addbyte(0xCD);                   /*MOVB %cl,%ch*/
-                addbyte(0x80); addbyte(0xE1); addbyte(~0xF0);   /*AND $ZFLAG+NFLAG+CFLAG,%cl*/
-                gen_load_reg(RN, EDX);
-                addbyte(0xC0); addbyte(0xE5); addbyte(3);       /*SHL $3,%ch - put ARM carry into x86 carry*/
-                addbyte(0x11); addbyte(0xC2); /*ADCL %eax,%edx*/
-                gen_x86_lahf();
-                gen_save_reg(RD, EDX);
-                addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
-                addbyte(0x71); addbyte(3); /*JNO notoverflow*/
-                addbyte(0x80); addbyte(0xC9); addbyte(0x10); /*OR $VFLAG,%cl*/
-                /*.notoverflow*/
-                addbyte(0x0a); addbyte(0x8a); addptr(lahftable); // OR lahftable(%edx),%cl
-                addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOV %cl,pcpsr*/
-                break;
+	case 0x0b: /* ADCS reg */
+		flagsdirty = 0;
+		if ((opcode & 0xf0) == 0x90) return 0; /* UMLALS */
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV pcpsr,%cl
+		addbyte(0x88); addbyte(0xcd); // MOV %cl,%ch
+		addbyte(0x80); addbyte(0xe1); addbyte(0x0f); // AND $~(NFLAG|ZFLAG|CFLAG|VFLAG),%cl
+		gen_load_reg(RN, EDX);
+		addbyte(0xc0); addbyte(0xe5); addbyte(3); // SHL $3,%ch - put ARM carry into x86 carry
+		addbyte(0x11); addbyte(0xc2); // ADC %eax,%edx
+		gen_x86_lahf();
+		gen_save_reg(RD, EDX);
+		addbyte(0x0f); addbyte(0xb6); addbyte(0xd4); // MOVZBL %ah,%edx
+		addbyte(0x71); addbyte(3); // JNO notoverflow
+		addbyte(0x80); addbyte(0xc9); addbyte(0x10); // OR $VFLAG,%cl
+		// .notoverflow
+		addbyte(0x0a); addbyte(0x8a); addptr(lahftable); // OR lahftable(%edx),%cl
+		addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV %cl,pcpsr
+		break;
 
-        case 0x0c: /* SBC reg */
-                if ((opcode & 0xf0) == 0x90) /* SMULL */
-                {
-                        gen_load_reg(MULRM, EAX);
-                        addbyte(0xf7); addbyte(0x6e); addbyte(MULRS<<2); /* IMULL Rs */
-                        gen_save_reg(MULRN, EAX);
-                        gen_save_reg(MULRD, EDX);
-                        break;
-                }
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                flagsdirty=0;
-                /*Shifted val now in %eax*/
-                addbyte(0xf6); addbyte(0x05); addptr(((char *) pcpsr) + 3); addbyte(0x20); /*TESTB (pcpsr>>24),$0x20*/
-                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                gen_load_reg(RN, EAX);
-                addbyte(0x75); addbyte(1); /*JNZ +1*/
-                addbyte(0x42); /*INC %edx*/
-                addbyte(0x29); addbyte(0xD0); /*SUBL %edx,%eax*/
-                gen_save_reg(RD, EAX);
-                break;
+	case 0x0c: /* SBC reg */
+		if ((opcode & 0xf0) == 0x90) {
+			/* SMULL */
+			gen_load_reg(MULRM, EAX);
+			addbyte(0xf7); addbyte(0x6e); addbyte(MULRS<<2); // IMULL Rs
+			gen_save_reg(MULRN, EAX);
+			gen_save_reg(MULRD, EDX);
+			break;
+		}
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		flagsdirty = 0;
+		addbyte(0xf6); addbyte(0x05); addptr(((char *) pcpsr) + 3); addbyte(0x20); // TESTB $0x20,(pcpsr>>24)
+		addbyte(0x89); addbyte(0xc2); // MOV %eax,%edx
+		gen_load_reg(RN, EAX);
+		addbyte(0x75); addbyte(1); // JNZ +1
+		addbyte(0x42); // INC %edx
+		addbyte(0x29); addbyte(0xd0); // SUB %edx,%eax
+		gen_save_reg(RD, EAX);
+		break;
 
-        case 0x0e: /* RSC reg */
-                flagsdirty=0;
-                if ((opcode & 0xf0) == 0x90) /* SMLAL */
-                {
-                        gen_load_reg(MULRM, EAX);
-                        gen_load_reg(MULRN, EBX);
-                        gen_load_reg(MULRD, ECX);
-                        addbyte(0xf7); addbyte(0x6e); addbyte(MULRS<<2); /* IMULL Rs */
-                        addbyte(0x01); addbyte(0xD8); /*ADDL %ebx,%eax*/
-                        addbyte(0x11); addbyte(0xCA); /* ADC %ecx,%edx */
-                        gen_save_reg(MULRN, EAX);
-                        gen_save_reg(MULRD, EDX);
-                        break;
-                }
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x31); addbyte(0xC9); /*XOR %ecx,%ecx*/
-                addbyte(0xf6); addbyte(0x05); addptr(((char *) pcpsr) + 3); addbyte(0x20); /*TESTB (pcpsr>>24),$0x20*/
-                addbyte(0x89); addbyte(0xC2); /*MOVL %eax,%edx*/
-                addbyte(0x0F); addbyte(0x94); addbyte(0xC1); /*SETZ %cl*/
-                gen_load_reg(RN, EAX);
-                addbyte(0x29); addbyte(0xCA); /*SUBL %ecx,%edx*/
-                addbyte(0x29); addbyte(0xC2); /*SUBL %eax,%edx*/
-                gen_save_reg(RD, EDX);
-                break;
+	case 0x0e: /* RSC reg */
+		flagsdirty = 0;
+		if ((opcode & 0xf0) == 0x90) {
+			/* SMLAL */
+			gen_load_reg(MULRM, EAX);
+			gen_load_reg(MULRN, EBX);
+			gen_load_reg(MULRD, ECX);
+			addbyte(0xf7); addbyte(0x6e); addbyte(MULRS<<2); // IMULL Rs
+			addbyte(0x01); addbyte(0xd8); // ADD %ebx,%eax
+			addbyte(0x11); addbyte(0xca); // ADC %ecx,%edx
+			gen_save_reg(MULRN, EAX);
+			gen_save_reg(MULRD, EDX);
+			break;
+		}
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x31); addbyte(0xc9); // XOR %ecx,%ecx
+		addbyte(0xf6); addbyte(0x05); addptr(((char *) pcpsr) + 3); addbyte(0x20); // TESTB $0x20,(pcpsr>>24)
+		addbyte(0x89); addbyte(0xc2); // MOV %eax,%edx
+		addbyte(0x0f); addbyte(0x94); addbyte(0xc1); // SETZ %cl
+		gen_load_reg(RN, EAX);
+		addbyte(0x29); addbyte(0xca); // SUB %ecx,%edx
+		addbyte(0x29); addbyte(0xc2); // SUB %eax,%edx
+		gen_save_reg(RD, EDX);
+		break;
 
-        case 0x18: /* ORR reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x0b); addbyte(0x46); addbyte(RN<<2); /* OR Rn,%eax */
-                gen_save_reg(RD, EAX);
-                break;
+	case 0x11: /* TST reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generateshiftflags(opcode, pcpsr)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x85); addbyte(0x46); addbyte(RN<<2); // TEST %eax,Rn
+		generatesetzn(opcode, pcpsr);
+		break;
 
-        case 0x19: /* ORRS reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generateshiftflags(opcode,pcpsr)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x0b); addbyte(0x46); addbyte(RN<<2); /* OR Rn,%eax */
-                gen_save_reg(RD, EAX);
-                generatesetzn(opcode, pcpsr);
-                break;
+	case 0x13: /* TEQ reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generateshiftflags(opcode, pcpsr)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x33); addbyte(0x46); addbyte(RN<<2); // XOR Rn,%eax
+		generatesetzn(opcode, pcpsr);
+		break;
 
-        case 0x1a: /* MOV reg */
-                flagsdirty=0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                if (RD == 15) {
-                        gen_load_reg(15, EDX);
-                        addbyte(0x83); addbyte(0xc0); addbyte(4); /* ADD $4,%eax */
-                        addbyte(0x81); addbyte(0xe2); addlong(~arm.r15_mask); // AND $(~arm.r15_mask),%edx
-                        addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
-                        addbyte(0x09); addbyte(0xd0); /* OR %edx,%eax */
-                }
-                gen_save_reg(RD, EAX);
-                break;
+	case 0x15: /* CMP reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV pcpsr,%cl
+		addbyte(0x80); addbyte(0xe1); addbyte(0x0f); // AND $~(NFLAG|ZFLAG|CFLAG|VFLAG),%cl
+		gen_load_reg(RN, EDX);
+		addbyte(0x29); addbyte(0xc2); // SUB %eax,%edx
+		gen_x86_lahf();
+		addbyte(0x0f); addbyte(0xb6); addbyte(0xd4); // MOVZBL %ah,%edx
+		addbyte(0x71); addbyte(3); // JNO notoverflow
+		addbyte(0x80); addbyte(0xc9); addbyte(0x10); // OR $VFLAG,%cl
+		// .notoverflow
+		addbyte(0x0a); addbyte(0x8a); addptr(lahftablesub); // OR lahftablesub(%edx),%cl
+		addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV %cl,pcpsr
+		flagsdirty = 1;
+		break;
 
-        case 0x1b: /* MOVS reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generateshiftflags(opcode,pcpsr)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x85); addbyte(0xC0); /*TEST %eax,%eax*/
-                gen_save_reg(RD, EAX);
-                generatesetzn2(opcode, pcpsr);
-                break;
+	case 0x18: /* ORR reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x0b); addbyte(0x46); addbyte(RN<<2); // OR Rn,%eax
+		gen_save_reg(RD, EAX);
+		break;
 
-        case 0x1c: /* BIC reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0xF7); addbyte(0xD0); /*NOT %eax*/
-                addbyte(0x23); addbyte(0x46); addbyte(RN<<2); /* AND Rn,%eax */
-                gen_save_reg(RD, EAX);
-                break;
+	case 0x19: /* ORRS reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generateshiftflags(opcode, pcpsr)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x0b); addbyte(0x46); addbyte(RN<<2); // OR Rn,%eax
+		gen_save_reg(RD, EAX);
+		generatesetzn(opcode, pcpsr);
+		break;
 
-        case 0x1d: /* BICS reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generateshiftflags(opcode,pcpsr)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0xF7); addbyte(0xD0); /*NOT %eax*/
-                addbyte(0x23); addbyte(0x46); addbyte(RN<<2); /* AND Rn,%eax */
-                gen_save_reg(RD, EAX);
-                generatesetzn(opcode, pcpsr);
-                break;
+	case 0x1a: /* MOV reg */
+		flagsdirty = 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		if (RD == 15) {
+			gen_load_reg(15, EDX);
+			addbyte(0x83); addbyte(0xc0); addbyte(4); // ADD $4,%eax
+			addbyte(0x81); addbyte(0xe2); addlong(~arm.r15_mask); // AND $(~arm.r15_mask),%edx
+			addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
+			addbyte(0x09); addbyte(0xd0); // OR %edx,%eax
+		}
+		gen_save_reg(RD, EAX);
+		break;
 
-        case 0x1e: /* MVN reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                addbyte(0xF7); addbyte(0xD0); /*NOT %eax*/
-                /*Shifted val now in %eax*/
-                gen_save_reg(RD, EAX);
-                break;
+	case 0x1b: /* MOVS reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generateshiftflags(opcode, pcpsr)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0x85); addbyte(0xc0); // TEST %eax,%eax
+		gen_save_reg(RD, EAX);
+		generatesetzn2(opcode, pcpsr);
+		break;
 
-        case 0x1f: /* MVNS reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generateshiftflags(opcode,pcpsr)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0xF7); addbyte(0xD0); /*NOT %eax*/
-                addbyte(0x85); addbyte(0xC0); /*TEST %eax,%eax*/
-                gen_save_reg(RD, EAX);
-                generatesetzn(opcode, pcpsr);
-                break;
+	case 0x1c: /* BIC reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0xf7); addbyte(0xd0); // NOT %eax
+		addbyte(0x23); addbyte(0x46); addbyte(RN<<2); // AND Rn,%eax
+		gen_save_reg(RD, EAX);
+		break;
 
-        case 0x11: /* TST reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generateshiftflags(opcode,pcpsr)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x85); addbyte(0x46); addbyte(RN<<2); /* TEST %eax,Rn */
-                generatesetzn(opcode, pcpsr);
-                break;
+	case 0x1d: /* BICS reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generateshiftflags(opcode, pcpsr)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0xf7); addbyte(0xd0); // NOT %eax
+		addbyte(0x23); addbyte(0x46); addbyte(RN<<2); // AND Rn,%eax
+		gen_save_reg(RD, EAX);
+		generatesetzn(opcode, pcpsr);
+		break;
 
-        case 0x13: /* TEQ reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generateshiftflags(opcode,pcpsr)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x33); addbyte(0x46); addbyte(RN<<2); /* XOR Rn,%eax */
-                generatesetzn(opcode, pcpsr);
-                break;
+	case 0x1e: /* MVN reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generate_shift(opcode)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0xf7); addbyte(0xd0); // NOT %eax
+		gen_save_reg(RD, EAX);
+		break;
 
-        case 0x15: /* CMP reg */
-                flagsdirty=0;
-                if (RD==15 || RN==15) return 0;
-                if (!generate_shift(opcode)) return 0;
-                /*Shifted val now in %eax*/
-                addbyte(0x8a); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOVB *pcpsr,%cl*/
-                addbyte(0x80); addbyte(0xE1); addbyte(~0xF0); /*AND $ZFLAG+NFLAG+VFLAG+CFLAG,%cl*/
-                gen_load_reg(RN, EDX);
-                addbyte(0x29); addbyte(0xC2); /*SUBL %eax,%edx*/
-                gen_x86_lahf();
-                addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
-                addbyte(0x71); addbyte(3); /*JNO notoverflow*/
-                addbyte(0x80); addbyte(0xC9); addbyte(0x10); /*OR $VFLAG,%cl*/
-                /*.notoverflow*/
-                addbyte(0x0a); addbyte(0x8a); addptr(lahftablesub); // OR lahftablesub(%edx),%cl
-                addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOV %cl,pcpsr*/
-                flagsdirty=1;
-                break;
+	case 0x1f: /* MVNS reg */
+		flagsdirty = 0;
+		if (RD==15 || RN==15) return 0;
+		if (!generateshiftflags(opcode, pcpsr)) return 0;
+		/* Shifted val now in %eax */
+		addbyte(0xf7); addbyte(0xd0); // NOT %eax
+		addbyte(0x85); addbyte(0xc0); // TEST %eax,%eax
+		gen_save_reg(RD, EAX);
+		generatesetzn(opcode, pcpsr);
+		break;
 
-        case 0x20: /* AND imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_AND, templ);
-                break;
+	case 0x20: /* AND imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_AND, templ);
+		break;
 
-        case 0x21: /* ANDS imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ=generaterotate(opcode,pcpsr,0xC0);
-//                addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $~(ZFLAG|NFLAG),%cl*/
-                generatedataprocS(opcode, X86_OP_AND, templ);
-                generatesetznS(opcode, pcpsr);
-                break;
+	case 0x21: /* ANDS imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = generaterotate(opcode, pcpsr, 0xc0);
+		// addbyte(0x80); addbyte(0xe1); addbyte(0x3f); // AND $~(NFLAG|ZFLAG),%cl
+		generatedataprocS(opcode, X86_OP_AND, templ);
+		generatesetznS(opcode, pcpsr);
+		break;
 
-        case 0x22: /* EOR imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_XOR, templ);
-                break;
+	case 0x22: /* EOR imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_XOR, templ);
+		break;
 
-        case 0x23: /* EORS imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ=generaterotate(opcode,pcpsr,0xC0);
-//                addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $~(ZFLAG|NFLAG),%cl*/
-                generatedataprocS(opcode, X86_OP_XOR, templ);
-                generatesetznS(opcode, pcpsr);
-                break;
+	case 0x23: /* EORS imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = generaterotate(opcode, pcpsr, 0xc0);
+		// addbyte(0x80); addbyte(0xe1); addbyte(0x3f); // AND $~(NFLAG|ZFLAG),%cl
+		generatedataprocS(opcode, X86_OP_XOR, templ);
+		generatesetznS(opcode, pcpsr);
+		break;
 
-        case 0x24: /* SUB imm */
-  //              flagsdirty=0;
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_SUB, templ);
-                break;
+	case 0x24: /* SUB imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_SUB, templ);
+		break;
 
-        case 0x25: /* SUBS imm */
-                flagsdirty=0;
-                if (RD==15) return 0;
-                addbyte(0x80); addbyte(0x25); addptr(((char *) pcpsr) + 3); addbyte(0xf); /* ANDB $0xf,pcpsr */
-                templ = arm_imm(opcode);
-                generatedataprocS(opcode, X86_OP_SUB, templ);
-                //gen_x86_lahf();
-                addbyte(0x0F); addbyte(0x90); addbyte(0xC1); /*SETO %cl*/
-                addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
-                addbyte(0xC0); addbyte(0xE1); addbyte(4); /*SHL $4,%cl*/
-                addbyte(0x0a); addbyte(0x8a); addptr(lahftablesub); // OR lahftablesub(%edx),%cl
-                addbyte(0x08); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /* OR %cl,pcpsr */
-//                flagsdirty=1;
-                break;
+	case 0x25: /* SUBS imm */
+		flagsdirty = 0;
+		if (RD==15) return 0;
+		addbyte(0x80); addbyte(0x25); addptr(((char *) pcpsr) + 3); addbyte(0xf); // ANDB $0xf,pcpsr
+		templ = arm_imm(opcode);
+		generatedataprocS(opcode, X86_OP_SUB, templ);
+		//gen_x86_lahf();
+		addbyte(0x0f); addbyte(0x90); addbyte(0xc1); // SETO %cl
+		addbyte(0x0f); addbyte(0xb6); addbyte(0xd4); // MOVZBL %ah,%edx
+		addbyte(0xc0); addbyte(0xe1); addbyte(4); // SHL $4,%cl
+		addbyte(0x0a); addbyte(0x8a); addptr(lahftablesub); // OR lahftablesub(%edx),%cl
+		addbyte(0x08); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // OR %cl,pcpsr
+		// flagsdirty = 1;
+		break;
 
-        case 0x28: /* ADD imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_ADD, templ);
-                break;
+	case 0x28: /* ADD imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_ADD, templ);
+		break;
 
-        case 0x29: /* ADDS imm */
-                flagsdirty=0;
-                if (RD==15) return 0;
-                addbyte(0x80); addbyte(0x25); addptr(((char *) pcpsr) + 3); addbyte(0xf); /* ANDB $0xf,pcpsr */
-                templ = arm_imm(opcode);
-                generatedataprocS(opcode, X86_OP_ADD, templ);
-                
-                addbyte(0x0F); addbyte(0x90); addbyte(0xC1); /*SETO %cl*/
-                addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
-                addbyte(0xC0); addbyte(0xE1); addbyte(4); /*SHL $4,%cl*/
-                addbyte(0x0a); addbyte(0x8a); addptr(lahftable); // OR lahftable(%edx),%cl
-                addbyte(0x08); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /* OR %cl,pcpsr */
-//                flagsdirty=1;
-                break;
+	case 0x29: /* ADDS imm */
+		flagsdirty = 0;
+		if (RD==15) return 0;
+		addbyte(0x80); addbyte(0x25); addptr(((char *) pcpsr) + 3); addbyte(0xf); // ANDB $0xf,pcpsr
+		templ = arm_imm(opcode);
+		generatedataprocS(opcode, X86_OP_ADD, templ);
+		addbyte(0x0f); addbyte(0x90); addbyte(0xc1); // SETO %cl
+		addbyte(0x0f); addbyte(0xb6); addbyte(0xd4); // MOVZBL %ah,%edx
+		addbyte(0xc0); addbyte(0xe1); addbyte(4); // SHL $4,%cl
+		addbyte(0x0a); addbyte(0x8a); addptr(lahftable); // OR lahftable(%edx),%cl
+		addbyte(0x08); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // OR %cl,pcpsr
+		// flagsdirty = 1;
+		break;
 
-        case 0x38: /* ORR imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_OR, templ);
-                break;
+	case 0x31: /* TST imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = generaterotate(opcode, pcpsr, 0xc0);
+		gen_load_reg(RN, EAX);
+		addbyte(0x80); addbyte(0xe1); addbyte(0x3f); // AND $~(NFLAG|ZFLAG),%cl
+		if (RN == 15 && arm.r15_mask != 0xfffffffc) {
+			addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
+		}
+		addbyte(0xa9); addlong(templ); // TEST $templ,%eax
+		generatesetzn(opcode, pcpsr);
+		break;
 
-        case 0x39: /* ORRS imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ=generaterotate(opcode,pcpsr,0xC0);
-                generatedataprocS(opcode, X86_OP_OR, templ);
-                generatesetznS(opcode, pcpsr);
-                break;
+	case 0x33: /* TEQ imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = generaterotate(opcode, pcpsr, 0xc0);
+		gen_load_reg(RN, EAX);
+		addbyte(0x80); addbyte(0xe1); addbyte(0x3f); // AND $~(NFLAG|ZFLAG),%cl
+		if (RN == 15 && arm.r15_mask != 0xfffffffc) {
+			addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
+		}
+		addbyte(0x35); addlong(templ); // XOR $templ,%eax
+		generatesetzn(opcode, pcpsr);
+		break;
 
-        case 0x3a: /* MOV imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-                addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); /* MOVL $templ,Rd */
-                break;
+	case 0x35: /* CMP imm */
+		flagsdirty = 0;
+		if (RD==15) return 0;
+		addbyte(0x80); addbyte(0x25); addptr(((char *) pcpsr) + 3); addbyte(0xf); // ANDB $0xf,pcpsr
+		templ = arm_imm(opcode);
+		gen_load_reg(RN, EAX);
+		addbyte(0x3d); addlong(templ); // CMP $templ,%eax
+		gen_x86_lahf();
+		addbyte(0x0f); addbyte(0x90); addbyte(0xc1); // SETO %cl
+		addbyte(0x0f); addbyte(0xb6); addbyte(0xd4); // MOVZBL %ah,%edx
+		addbyte(0xc0); addbyte(0xe1); addbyte(4); // SHL $4,%cl
+		addbyte(0x0a); addbyte(0x8a); addptr(lahftablesub); // OR lahftablesub(%edx),%cl
+		addbyte(0x08); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // OR %cl,pcpsr
+		break;
 
-        case 0x3b: /* MOVS imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ=generaterotate(opcode,pcpsr,0xC0);
-//                addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $~(ZFLAG|NFLAG),%cl*/
-                if (!templ)                { addbyte(0x80); addbyte(0xC9); addbyte(0x40); } /*OR $ZFLAG,%cl*/
-                else if (templ&0x80000000) { addbyte(0x80); addbyte(0xC9); addbyte(0x80); } /*OR $NFLAG,%cl*/
-                addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); /* MOVL $templ,Rd */
-                addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOV %cl,pcpsr*/
-                if ((opcode>>28)==0xE) flagsdirty=1;
-                break;
+	case 0x38: /* ORR imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_OR, templ);
+		break;
 
-        case 0x3c: /* BIC imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ = ~arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_AND, templ);
-                break;
+	case 0x39: /* ORRS imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = generaterotate(opcode, pcpsr, 0xc0);
+		generatedataprocS(opcode, X86_OP_OR, templ);
+		generatesetznS(opcode, pcpsr);
+		break;
 
-        case 0x3d: /* BICS imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ=~generaterotate(opcode,pcpsr,0xC0);
-//                addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $~(ZFLAG|NFLAG),%cl*/
-                generatedataprocS(opcode, X86_OP_AND, templ);
-                generatesetznS(opcode, pcpsr);
-                break;
+	case 0x3a: /* MOV imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); // MOVL $templ,Rd
+		break;
 
-        case 0x3e: /* MVN imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ = ~arm_imm(opcode);
-                addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); /* MOVL $templ,Rd */
-                break;
+	case 0x3b: /* MOVS imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = generaterotate(opcode, pcpsr, 0xc0);
+		// addbyte(0x80); addbyte(0xe1); addbyte(0x3f); // AND $~(NFLAG|ZFLAG),%cl
+		if (templ == 0) {
+			addbyte(0x80); addbyte(0xc9); addbyte(0x40); // OR $ZFLAG,%cl
+		} else if (templ & 0x80000000) {
+			addbyte(0x80); addbyte(0xc9); addbyte(0x80); // OR $NFLAG,%cl
+		}
+		addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); // MOVL $templ,Rd
+		addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV %cl,pcpsr
+		if ((opcode >> 28) == 0xe) {
+			flagsdirty = 1;
+		}
+		break;
 
-        case 0x3f: /* MVNS imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ=~generaterotate(opcode,pcpsr,0xC0);
-//                addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $~(ZFLAG|NFLAG),%cl*/
-                if (!templ)                { addbyte(0x80); addbyte(0xC9); addbyte(0x40); } /*OR $ZFLAG,%cl*/
-                else if (templ&0x80000000) { addbyte(0x80); addbyte(0xC9); addbyte(0x80); } /*OR $NFLAG,%cl*/
-                addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); /* MOVL $templ,Rd */
-                addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /*MOV %cl,pcpsr*/
-                if ((opcode>>28)==0xE) flagsdirty=1;
-                break;
+	case 0x3c: /* BIC imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = ~arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_AND, templ);
+		break;
 
-        case 0x31: /* TST imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ=generaterotate(opcode,pcpsr,0xC0);
-                gen_load_reg(RN, EAX);
-                addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $~(ZFLAG|NFLAG),%cl*/
-                if (RN == 15 && arm.r15_mask != 0xfffffffc) {
-                        addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
-                }
-                addbyte(0xA9); addlong(templ); /*TEST $templ,%eax*/
-                generatesetzn(opcode, pcpsr);
-                break;
+	case 0x3d: /* BICS imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = ~generaterotate(opcode, pcpsr, 0xc0);
+		// addbyte(0x80); addbyte(0xe1); addbyte(0x3f); // AND $~(NFLAG|ZFLAG),%cl
+		generatedataprocS(opcode, X86_OP_AND, templ);
+		generatesetznS(opcode, pcpsr);
+		break;
 
-        case 0x33: /* TEQ imm */
-//                flagsdirty=0;
-                if (RD==15) return 0;
-                templ=generaterotate(opcode,pcpsr,0xC0);
-                gen_load_reg(RN, EAX);
-                addbyte(0x80); addbyte(0xE1); addbyte(~0xC0); /*AND $~(ZFLAG|NFLAG),%cl*/
-                if (RN == 15 && arm.r15_mask != 0xfffffffc) {
-                        addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
-                }
-                addbyte(0x35); addlong(templ); /*XOR $templ,%eax*/
-                generatesetzn(opcode, pcpsr);
-                break;
+	case 0x3e: /* MVN imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = ~arm_imm(opcode);
+		addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); // MOVL $templ,Rd
+		break;
 
-        case 0x35: /* CMP imm */
-                flagsdirty=0;
-                if (RD==15) return 0;
-                addbyte(0x80); addbyte(0x25); addptr(((char *) pcpsr) + 3); addbyte(0xf); /* ANDB $0xf,pcpsr */
-                templ = arm_imm(opcode);
-                gen_load_reg(RN, EAX);
-                addbyte(0x3D); addlong(templ); /*CMP $templ,%eax*/
-                gen_x86_lahf();
-                addbyte(0x0F); addbyte(0x90); addbyte(0xC1); /*SETO %cl*/
-                addbyte(0x0F); addbyte(0xB6); addbyte(0xD4); /*MOVZBL %ah,%edx*/
-                addbyte(0xC0); addbyte(0xE1); addbyte(4); /*SHL $4,%cl*/
-                addbyte(0x0a); addbyte(0x8a); addptr(lahftablesub); // OR lahftablesub(%edx),%cl
-                addbyte(0x08); addbyte(0x0d); addptr(((char *) pcpsr) + 3); /* OR %cl,pcpsr */
-                break;
+	case 0x3f: /* MVNS imm */
+		// flagsdirty = 0;
+		if (RD==15) return 0;
+		templ = ~generaterotate(opcode, pcpsr, 0xc0);
+		// addbyte(0x80); addbyte(0xe1); addbyte(0x3f); // AND $~(NFLAG|ZFLAG),%cl
+		if (templ == 0) {
+			addbyte(0x80); addbyte(0xc9); addbyte(0x40); // OR $ZFLAG,%cl
+		} else if (templ & 0x80000000) {
+			addbyte(0x80); addbyte(0xc9); addbyte(0x80); // OR $NFLAG,%cl
+		}
+		addbyte(0xc7); addbyte(0x46); addbyte(RD<<2); addlong(templ); // MOVL $templ,Rd
+		addbyte(0x88); addbyte(0x0d); addptr(((char *) pcpsr) + 3); // MOV %cl,pcpsr
+		if ((opcode >> 28) == 0xe) {
+			flagsdirty = 1;
+		}
+		break;
 
 	case 0x40: /* STR Rd, [Rn], #-imm   */
 	case 0x48: /* STR Rd, [Rn], #+imm   */
@@ -2140,15 +2134,17 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		}
 		break;
 
-        default:
-                return 0;
-        }
-        lastrecompiled=1;
+	default:
+		return 0;
+	}
+	lastrecompiled = 1;
 	if (lastflagchange != 0) {
 		gen_x86_jump_here_long(lastflagchange);
 	}
-        if ((opcode>>28)!=0xF) flagsdirty=0;
-        return 1;
+	if ((opcode >> 28) != 0xf) {
+		flagsdirty = 0;
+	}
+	return 1;
 }
 
 void
