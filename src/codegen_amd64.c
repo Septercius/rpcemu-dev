@@ -737,8 +737,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	uint32_t templ;
 	uint32_t offset;
 
-	switch ((opcode>>20)&0xFF)
-	{
+	switch ((opcode >> 20) & 0xff) {
 	case 0x00: /* AND reg */
 		if (RD==15) return 0;
 		if (!generate_shift(opcode)) return 0;
@@ -765,12 +764,12 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 
 	case 0x0a: /* ADC reg */
 		/* Currently not used */
-                if (RD==15) return 0;
+		if (RD==15) return 0;
 		if (!generate_shift(opcode)) return 0;
 		gen_load_reg(15, ECX);
-		addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx - puts ARM carry into x64 carry*/
-                generateregdataproc(opcode, X86_OP_ADC, 0);
-                break;
+		addbyte(0xc1); addbyte(0xe1); addbyte(3); // SHL $3,%ecx - puts ARM carry into x64 carry
+		generateregdataproc(opcode, X86_OP_ADC, 0);
+		break;
 
 	case 0x18: /* ORR reg */
 		if (RD==15) return 0;
@@ -785,48 +784,48 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 		break;
 
 	case 0x20: /* AND imm */
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_AND, templ);
-                break;
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_AND, templ);
+		break;
 
 	case 0x22: /* EOR imm */
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_XOR, templ);
-                break;
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_XOR, templ);
+		break;
 
 	case 0x24: /* SUB imm */
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_SUB, templ);
-                break;
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_SUB, templ);
+		break;
 
 	case 0x28: /* ADD imm */
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_ADD, templ);
-                break;
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_ADD, templ);
+		break;
 
 	case 0x2a: /* ADC imm */
 		/* Currently not used */
-                if (RD==15) return 0;
+		if (RD==15) return 0;
 		gen_load_reg(15, ECX);
-		addbyte(0xC1); addbyte(0xE1); addbyte(3); /*SHL $3,%ecx - puts ARM carry into x64 carry*/
-                templ = arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_ADC, templ);
-                break;
+		addbyte(0xc1); addbyte(0xe1); addbyte(3); // SHL $3,%ecx - puts ARM carry into x64 carry
+		templ = arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_ADC, templ);
+		break;
 
 	case 0x38: /* ORR imm */
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-                generatedataproc(opcode, X86_OP_OR, templ);
-                break;
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		generatedataproc(opcode, X86_OP_OR, templ);
+		break;
 
 	case 0x3a: /* MOV imm */
-                if (RD==15) return 0;
-                templ = arm_imm(opcode);
-		genstoreimm(RD,templ);
+		if (RD==15) return 0;
+		templ = arm_imm(opcode);
+		genstoreimm(RD, templ);
 		break;
 
 	case 0x40: /* STR Rd, [Rn], #-imm   */
@@ -1218,7 +1217,7 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	default:
 		return 0;
 	}
-	lastrecompiled=1;
+	lastrecompiled = 1;
 	if (lastjumppos != 0) {
 		gen_x86_jump_here_long(lastjumppos);
 	}
