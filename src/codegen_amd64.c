@@ -706,7 +706,7 @@ gen_arm_load_multiple(uint32_t opcode, uint32_t offset)
 		if (opcode & mask) {
 			addbyte(0x8b); addbyte(0x46); addbyte(d); // MOV d(%rsi),%eax
 			if (c == 15) {
-				addbyte(0x8b); addbyte(0x0c); addbyte(0x25); addptr(&arm.r15_mask); // MOV arm.r15_mask,%ecx
+				addbyte(0x41); addbyte(0x8b); addbyte(0x4f); addbyte(offsetof(ARMState, r15_mask)); // MOV arm.r15_mask,%ecx
 				gen_load_reg(15, EDX);
 				addbyte(0x83); addbyte(0xc0); addbyte(4); // ADD $4,%eax
 				addbyte(0x21); addbyte(0xc8); // AND %ecx,%eax
