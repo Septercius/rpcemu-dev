@@ -48,7 +48,7 @@ extern void arm_init(void);
 extern void resetarm(CPUModel cpu_model);
 extern void execarm(int cycles);
 extern void dumpregs(void);
-extern void exception(int mmode, uint32_t address, int diff);
+extern void exception(uint32_t mmode, uint32_t address, uint32_t diff);
 
 extern ARMState arm;
 
