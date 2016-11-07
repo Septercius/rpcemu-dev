@@ -488,10 +488,11 @@ static void bad_opcode(uint32_t opcode)
      exit(EXIT_FAILURE);
 }
 
-void exception(int mmode, uint32_t address, int diff)
+void
+exception(uint32_t mmode, uint32_t address, uint32_t diff)
 {
-        uint32_t templ;
-        unsigned char irq_disable;
+	uint32_t link;
+	uint32_t irq_disable;
 
 	/* If FIQ exception, disable FIQ and IRQ, otherwise disable just IRQ */
 	if (mmode == FIQ) {
@@ -500,39 +501,32 @@ void exception(int mmode, uint32_t address, int diff)
 		irq_disable = 0x80;
 	}
 
-        if (ARM_MODE_32(arm.mode)) {
-                templ = arm.reg[15] - diff;
-                arm.spsr[mmode] = arm.reg[16];
-                updatemode(mmode|16);
-                arm.reg[14] = templ;
-                arm.reg[16] &= ~0x1f;
-                arm.reg[16] |= 0x10 | mmode | irq_disable;
-                arm.reg[15] = address;
-                refillpipeline();
-        }
-        else if (prog32)
-        {
-                templ = arm.reg[15] - diff;
-                updatemode(mmode|16);
-                arm.reg[14] = templ & 0x3fffffc;
-                arm.spsr[mmode] = (arm.reg[16] & ~0x1f) | (templ & 3);
-                arm.spsr[mmode] &= ~0x10;
-                arm.reg[16] |= irq_disable;
-                arm.reg[15] = address;
-                refillpipeline();
-        }
-        else
-        {
-                templ = arm.reg[15] - diff;
-                arm.reg[15] |= 3;
-                /* When in 26-bit config, Abort and Undefined exceptions enter
-                   mode SVC_26 */
-                updatemode(mmode >= SUPERVISOR ? SUPERVISOR : mmode);
-                arm.reg[14] = templ;
-                arm.reg[15] &= 0xfc000003;
-                arm.reg[15] |= ((irq_disable << 20) | address);
-                refillpipeline();
-        }
+	link = arm.reg[15] - diff;
+
+	if (ARM_MODE_32(arm.mode)) {
+		arm.spsr[mmode] = arm.reg[16];
+		updatemode(0x10 | mmode);
+		arm.reg[14] = link;
+		arm.reg[16] &= ~0x1fu;
+		arm.reg[16] |= 0x10 | mmode | irq_disable;
+		arm.reg[15] = address;
+	} else if (prog32) {
+		updatemode(0x10 | mmode);
+		arm.reg[14] = link & 0x3fffffc;
+		arm.spsr[mmode] = (arm.reg[16] & ~0x1fu) | (link & 3);
+		arm.spsr[mmode] &= ~0x10u;
+		arm.reg[16] |= irq_disable;
+		arm.reg[15] = address;
+	} else {
+		arm.reg[15] |= 3;
+		/* When in 26-bit config, Abort and Undefined exceptions enter
+		   mode SVC_26 */
+		updatemode(mmode >= SUPERVISOR ? SUPERVISOR : mmode);
+		arm.reg[14] = link;
+		arm.reg[15] &= 0xfc000003;
+		arm.reg[15] |= ((irq_disable << 20) | address);
+	}
+	refillpipeline();
 }
 
 #include "ArmDynarecOps.h"
