@@ -13,10 +13,10 @@ AC_MSG_CHECKING([whether to enable debugging])
 AC_ARG_ENABLE(debug,
 	      AC_HELP_STRING([--enable-debug], [build debug executable]))
 if test "$enable_debug" = "yes"; then
-   CFLAGS="$CFLAGS -Wall -O0 -g -D_DEBUG"
+   CFLAGS="$CFLAGS -Wall -Wunused-parameter -O0 -g -D_DEBUG"
    AC_MSG_RESULT([yes])
 else
-   CFLAGS="$CFLAGS -Wall -O2"
+   CFLAGS="$CFLAGS -Wall -Wunused-parameter -O2"
    AC_MSG_RESULT([no])
 fi
 

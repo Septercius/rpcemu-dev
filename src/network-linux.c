@@ -312,8 +312,11 @@ network_plt_rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dataava
 // Pointer to a word in RMA, used as the IRQ status register
 static uint32_t irqstatus = 0;
 
-static void sig_io(int sig) 
+static void
+sig_io(int sig)
 {
+    NOT_USED(sig);
+
     mem_write8(irqstatus, 1);
     if (network_poduleinfo != NULL) {
         network_poduleinfo->irq = 1;

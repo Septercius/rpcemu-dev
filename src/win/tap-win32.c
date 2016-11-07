@@ -701,6 +701,8 @@ static int tap_win32_open(tap_win32_overlapped_t **phandle,
 
 static int tap_win32_close(tap_win32_overlapped_t *overlapped)
 {
+    NOT_USED(overlapped);
+
     /* FIXME: need to kill thread and close file handle: */
     return 0;
 }

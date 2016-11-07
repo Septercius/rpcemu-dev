@@ -149,7 +149,7 @@ static char *cache_names = NULL;
 static HostFSState hostfs_state = HOSTFS_STATE_UNREGISTERED;
 
 #ifdef NDEBUG
-static inline void dbug_hostfs(const char *format, ...) {}
+static inline void dbug_hostfs(const char *format, ...) { NOT_USED(format); }
 #else
 static void
 dbug_hostfs(const char *format, ...)

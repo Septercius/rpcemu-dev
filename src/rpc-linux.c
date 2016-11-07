@@ -33,9 +33,15 @@ static pthread_mutex_t sound_mutex = PTHREAD_MUTEX_INITIALIZER;
  * Function called in sound thread to block
  * on waiting for sound data and trigger copying
  * it to Allegro's sound output buffer
+ *
+ * @param p Thread metadata, set to NULL
+ * @return
  */
-static void *sound_thread_function(void *p)
+static void *
+sound_thread_function(void *p)
 {
+	NOT_USED(p);
+
 	if (pthread_mutex_lock(&sound_mutex))
 	{
 		fatal("Cannot lock mutex");
@@ -192,8 +198,12 @@ static void vblupdate(void)
         if (infocus) drawscre++;
 }
 
-void updatewindowsize(uint32_t x, uint32_t y)
+void
+updatewindowsize(uint32_t x, uint32_t y)
 {
+	/* No need to do anything special on change window size on Linux */
+	NOT_USED(x);
+	NOT_USED(y);
 }
 
 void releasemousecapture(void)
@@ -204,8 +214,11 @@ static pthread_t thread;
 static pthread_cond_t vidccond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t vidcmutex = PTHREAD_MUTEX_INITIALIZER;
 
-static void *vidcthreadrunner(void *threadid)
+static void *
+vidcthreadrunner(void *threadid)
 {
+	NOT_USED(threadid);
+
         if (pthread_mutex_lock(&vidcmutex)) fatal("Cannot lock mutex");
 	while (!quited)
 	{
@@ -262,6 +275,8 @@ END_OF_FUNCTION(close_button_handler)
 static void
 sigchld_handler(int signum)
 {
+	NOT_USED(signum);
+
 	(void) wait(NULL);
 }
 
@@ -288,6 +303,8 @@ install_sigchld_handler(void)
 int
 main(int argc, char *argv[])
 {
+	NOT_USED(argv);
+
 	if (argc != 1) {
 		fprintf(stderr, "No command line options supported.\n");
 		return 1;

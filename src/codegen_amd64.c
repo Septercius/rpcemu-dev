@@ -737,6 +737,8 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	uint32_t templ;
 	uint32_t offset;
 
+	NOT_USED(pcpsr);
+
 	switch ((opcode >> 20) & 0xff) {
 	case 0x00: /* AND reg */
 		if (RD==15) return 0;
@@ -1301,8 +1303,10 @@ removeblock(void)
 int linecyc;
 
 void
-endblock(uint32_t opcode, uint32_t *pcpsr)
+endblock(uint32_t opcode)
 {
+	NOT_USED(opcode);
+
         generateupdatepc();
         generateupdateinscount();
 

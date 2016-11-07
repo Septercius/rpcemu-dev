@@ -196,8 +196,11 @@ network_plt_setirqstatus(uint32_t address)
     irqstatus = address;
 }
 
-void sig_io(int sig)
+void
+sig_io(int sig)
 {
+    NOT_USED(sig);
+
     if (irqstatus) {
         mem_write8(irqstatus, 1);
         if (network_poduleinfo) {

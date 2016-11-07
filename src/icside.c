@@ -10,6 +10,9 @@ int icspage;
 
 uint8_t icsreadb(podule *p, int easi, uint32_t addr)
 {
+	NOT_USED(p);
+	NOT_USED(easi);
+	NOT_USED(addr);
 /*        int temp;
 //        rpclog("Read ICSB %04X\n",addr);
         switch (addr&0x3000)
@@ -25,6 +28,9 @@ uint8_t icsreadb(podule *p, int easi, uint32_t addr)
 
 uint16_t icsreadw(podule *p, int easi, uint32_t addr)
 {
+	NOT_USED(p);
+	NOT_USED(easi);
+	NOT_USED(addr);
 /*        if ((addr&0x3000)==0x3000)
         {
 //                rpclog("Read IDEW\n");
@@ -36,6 +42,10 @@ uint16_t icsreadw(podule *p, int easi, uint32_t addr)
 
 void icswriteb(podule *p, int easi, uint32_t addr, uint8_t val)
 {
+	NOT_USED(p);
+	NOT_USED(easi);
+	NOT_USED(addr);
+	NOT_USED(val);
 //        rpclog("Write ICSB %04X %02X\n",addr,val);
 /*        switch (addr&0x3000)
         {
@@ -48,6 +58,10 @@ void icswriteb(podule *p, int easi, uint32_t addr, uint8_t val)
 
 void icswritew(podule *p, int easi, uint32_t addr, uint16_t val)
 {
+	NOT_USED(p);
+	NOT_USED(easi);
+	NOT_USED(addr);
+	NOT_USED(val);
 /*        if ((addr&0x3000)==0x3000)
         {
 //                rpclog("WRITEIDEW\n");

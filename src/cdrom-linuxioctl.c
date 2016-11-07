@@ -80,16 +80,25 @@ static int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
 
 static uint8_t ioctl_getcurrentsubchannel(uint8_t *b, int msf)
 {
+	NOT_USED(msf);
+
         memset(b,0,2048);
         return 0;
 }
 
 static void ioctl_playaudio(uint32_t pos, uint32_t len)
 {
+	NOT_USED(pos);
+	NOT_USED(len);
+
+	UNIMPLEMENTED("Linux CDROM", "ioctl_playaudio");
 }
 
 static void ioctl_seek(uint32_t pos)
 {
+	NOT_USED(pos);
+
+	UNIMPLEMENTED("Linux CDROM", "ioctl_seek");
 }
 
 static void ioctl_null(void)

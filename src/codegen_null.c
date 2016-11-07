@@ -11,5 +11,6 @@ void resetcodeblocks(void)
 
 void cacheclearpage(uint32_t a)
 {
+	NOT_USED(a);
 }
 
