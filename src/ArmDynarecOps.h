@@ -1446,6 +1446,8 @@ opcopro(uint32_t opcode)
 		return;
 	}
 #endif
+	NOT_USED(opcode);
+
 	undefined();
 }
 

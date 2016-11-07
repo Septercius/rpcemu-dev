@@ -333,8 +333,11 @@ static void releasemousecapture(void)
         }
 }
 
-void vidcthreadrunner(PVOID pvoid)
+void
+vidcthreadrunner(PVOID pvoid)
 {
+	NOT_USED(pvoid);
+
         blitrunning=1;
         while (!quitblitter)
         {
@@ -364,8 +367,11 @@ void vidcendthread(void)
  * on waiting for sound data and trigger copying
  * it to Allegro's sound output buffer
  */
-static void sound_thread_function(PVOID pvoid)
+static void
+sound_thread_function(PVOID pvoid)
 {
+	NOT_USED(pvoid);
+
         soundrunning=1;
         while (!quitblitter)
         {
@@ -457,6 +463,9 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
         static const char szClassName[] = "WindowsApp";
         MSG messages = {0};     /**< Here messages to the application are saved */
         WNDCLASSEX wincl;       /**< Data structure for the windowclass */
+
+	NOT_USED(hPrevInstance);
+	NOT_USED(lpszArgument);
 
         hinstance=hThisInstance;
 
@@ -709,11 +718,15 @@ static int selectiso(HWND hwnd)
  * @param lParam  message specific data
  * @return
  */
-static BOOL CALLBACK configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+static BOOL CALLBACK
+configdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
         HWND h;
         int c;
         char s[10];
+
+	NOT_USED(lParam);
+
         switch (message)
         {
         case WM_INITDIALOG:
@@ -915,6 +928,8 @@ networkdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	char default_bridgename[] = "rpcemu";
 
+	NOT_USED(lParam);
+
 	switch (message) {
 	case WM_INITDIALOG:
 		/* Network Type */
@@ -1008,6 +1023,8 @@ networkdlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 static BOOL CALLBACK
 about_dlg_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	NOT_USED(lParam);
+
 	switch (message) {
 	case WM_INITDIALOG:
 		{

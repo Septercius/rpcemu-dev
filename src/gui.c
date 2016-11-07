@@ -626,6 +626,8 @@ menu_help_about(void)
 static int
 hzcallback(void *dp3, int d2)
 {
+	NOT_USED(dp3);
+
         sprintf(hzstring, "%iHz", (d2 * 5) + 20);
         configuregui[CONF_HZ_TEXT].dp = hzstring;
         rectfill(screen,

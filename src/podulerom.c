@@ -54,6 +54,8 @@ makechunk(uint8_t type, uint32_t filebase, uint32_t size)
 static uint8_t
 readpodulerom(podule *p, int easi, uint32_t addr)
 {
+	NOT_USED(p);
+
         if (easi && (poduleromsize>0))
         {
                 addr=(addr&0x00FFFFFF)>>2;

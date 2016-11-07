@@ -2214,7 +2214,7 @@ generatepcinc(void)
 }
 
 void
-endblock(uint32_t opcode, uint32_t *pcpsr)
+endblock(uint32_t opcode)
 {
         flagsdirty=0;
 

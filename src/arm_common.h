@@ -224,6 +224,8 @@ arm_write_r15(uint32_t opcode, uint32_t dest)
 {
 	uint32_t mask;
 
+	NOT_USED(opcode);
+
 	if (ARM_MODE_32(arm.mode)) {
 		/* In 32-bit mode, update all bits in R15 except 0 and 1 */
 		mask = 0xfffffffc;
@@ -262,6 +264,8 @@ static inline void
 arm_compare_rd15(uint32_t opcode, uint32_t dest)
 {
 	uint32_t mask;
+
+	NOT_USED(opcode);
 
 	if (ARM_MODE_32(arm.mode)) {
 		/* In 32-bit mode */

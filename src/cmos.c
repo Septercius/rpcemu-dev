@@ -289,6 +289,9 @@ pcf8583_start(void *dev, int i2c_addr, int operation)
 {
 	PCF8583 *pcf = dev;
 
+	NOT_USED(i2c_addr);
+	NOT_USED(operation);
+
 	dbgprintf("pcf8583 start\n");
 	pcf->state = PCF_STATE_ADDR;
 
@@ -391,6 +394,10 @@ spd_read(void *dev, uint8_t *data)
 static int
 spd_start(void *dev, int i2c_addr, int operation)
 {
+	NOT_USED(dev);
+	NOT_USED(i2c_addr);
+	NOT_USED(operation);
+
 	rpclog("spd start\n");
 
 	return I2C_ACK;
@@ -405,6 +412,8 @@ spd_start(void *dev, int i2c_addr, int operation)
 static void
 spd_stop(void *dev)
 {
+	NOT_USED(dev);
+
 	rpclog("spd stop\n");
 }
 

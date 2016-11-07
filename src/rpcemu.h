@@ -238,6 +238,10 @@ extern Perf perf;
 
 #endif
 
+/* Acknowledge and prevent -Wunused-parameter warnings on functions
+ * where the parameter is part of more generic API */
+#define NOT_USED(arg)	(void) arg
+
 /*Generic*/
 extern int infocus;
 

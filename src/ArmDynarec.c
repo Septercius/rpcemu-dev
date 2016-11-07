@@ -750,7 +750,7 @@ execarm(int cycs)
 						// inscount++;
 					}
 					if (!(armirq & 0x80)) {
-						endblock(opcode, pcpsr);
+						endblock(opcode);
 					} else {
 						removeblock();
 					}
