@@ -194,7 +194,7 @@ network_plt_tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uin
 {
     unsigned char *buf = buffer;
     struct mbuf txb;
-    int packetlength;
+    size_t packetlength;
     int ret;
     int i;
 
@@ -292,7 +292,7 @@ network_plt_rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dataava
         
         memcpytohost(&rxb, mbuf, sizeof(rxb));
 
-        if (packetlength > rxb.m_inilen) {
+        if ((size_t) packetlength > rxb.m_inilen) {
             strcpyfromhost(errbuf, "RPCEmu: Mbuf too small for received packet");
             return errbuf;
         } else {

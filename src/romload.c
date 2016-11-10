@@ -52,7 +52,7 @@ static void
 romload_patch(void)
 {
 	const rom_patch_t *p;
-	int i;
+	size_t i;
 
 	for (i = 0, p = rom_patch; i < sizeof(rom_patch) / sizeof(rom_patch[0]); i++, p++) {
 		uint32_t addr = p->addr_data;
