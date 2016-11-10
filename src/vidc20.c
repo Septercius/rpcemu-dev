@@ -43,7 +43,7 @@ static struct vidc_state {
         uint32_t hdsr,hcsr,hder;
         uint32_t vdsr,vcsr,vcer,vder;
         uint32_t b0,b1;
-        int bit8;
+        uint32_t bit8;
         int palchange;
 } vidc;
 
@@ -70,7 +70,7 @@ static struct cached_state {
         int cursorheight;
         int lastblock;
         int doublesize;
-        int bpp;
+        uint32_t bpp;
         uint8_t *dirtybuffer;
         int needvsync;
         int threadpending;
