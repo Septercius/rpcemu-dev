@@ -56,7 +56,7 @@ static int fdci=0;
 static int cycles;
 int prefabort;
 uint32_t inscount;
-int armirq=0;
+uint32_t armirq = 0;
 int cpsr;
 static uint32_t *pcpsr;
 
@@ -1863,7 +1863,7 @@ execarm(int cycs)
 						armirq &= ~0xc0u;
 					} else if (databort == 2) {
 						/* Address Exception */
-						fatal("Exception %i %i %i\n", databort, armirq, prefabort);
+						fatal("Exception %i 0x%x %i\n", databort, armirq, prefabort);
 
 						templ = arm.reg[15];
 						arm.reg[15] |= 3;
