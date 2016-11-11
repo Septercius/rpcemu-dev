@@ -38,7 +38,7 @@ extern void endblock(uint32_t opcode);
 extern void initcodeblock(uint32_t l);
 
 extern uint32_t *usrregs[16];
-extern int armirq; //,armfiq;
+extern uint32_t armirq;
 extern int cpsr;
 
 #define PC	((arm.reg[15] - 8) & arm.r15_mask)

@@ -198,12 +198,12 @@ void updateirqs(void)
         {
                 armirq |= 1;
         } else {
-                armirq &= ~1;
+                armirq &= ~1u;
         }
         if (iomd.fiq.status & iomd.fiq.mask) {
                 armirq |= 2;
         } else {
-                armirq &= ~2;
+                armirq &= ~2u;
         }
 }
 

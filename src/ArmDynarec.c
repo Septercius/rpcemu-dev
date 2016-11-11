@@ -36,7 +36,7 @@ static int fdci=0;
 static int cycles;
 int prefabort;
 uint32_t inscount;
-int armirq=0;
+uint32_t armirq = 0;
 int cpsr;
 uint32_t *pcpsr;
 
