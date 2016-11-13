@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <dirent.h>
 #include <unistd.h>
@@ -129,7 +130,7 @@ initpodulerom(void)
 	poduleromsize = filebase + ((sizeof(description) + 3) & ~3u); /* Word align description string */
 	podulerom = malloc(poduleromsize);
 	if (podulerom == NULL) {
-		fatal("Out of Memory");
+		fatal("initpodulerom: Out of Memory");
 	}
 
 	memset(podulerom, 0, poduleromsize);
@@ -150,27 +151,30 @@ initpodulerom(void)
 	for (i = 0; i < file; i++) {
 		FILE *f;
 		char filepath[512];
-		int len;
+		long len;
 
 		snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, romfns[i]);
 
 		f = fopen(filepath, "rb");
 		if (f == NULL) {
-			fatal("Can't open podulerom file\n");
+			fatal("initpodulerom: Can't open podulerom file '%s': '%s'", romfns[i], strerror(errno));
 		}
-		fseek(f, -1, SEEK_END);
-		len = ftell(f) + 1;
-		poduleromsize += (len + 3) & ~3u;
+		fseek(f, 0, SEEK_END);
+		len = ftell(f);
+		if (len > 4096 * 1024) {
+			fatal("initpodulerom: Cannot have files larger than 4MB in podule ROM: '%s'", romfns[i]);
+		}
+		poduleromsize += ((uint32_t) len + 3) & ~3u;
 		if (poduleromsize > 4096 * 1024) {
-			fatal("Cannot have more than 4MB of podule ROM");
+			fatal("initpodulerom: Cannot have more than 4MB of podule ROM files");
 		}
 		podulerom = realloc(podulerom, poduleromsize);
 		if (podulerom == NULL) {
-			fatal("Out of Memory");
+			fatal("initpodulerom: Out of Memory");
 		}
 
 		fseek(f, 0, SEEK_SET);
-		if (fread(podulerom + filebase, 1, len, f) != len) {
+		if (fread(podulerom + filebase, 1, (size_t) len, f) != (size_t) len) {
 			fatal("initpodulerom: Failed to read file '%s': %s",
 			      romfns[i], strerror(errno));
 		}
@@ -178,7 +182,7 @@ initpodulerom(void)
 		rpclog("initpodulerom: Successfully loaded '%s' into podulerom\n",
 		       romfns[i]);
 		makechunk(0x81, filebase, len); /* 8 = Mandatory, Acorn Operating System #0 (RISC OS), 1 = BBC ROM */
-		filebase += (len + 3) & ~3u;
+		filebase += ((uint32_t) len + 3) & ~3u;
 	}
 
 	addpodule(NULL, NULL, NULL, NULL, NULL, readpodulerom, NULL, NULL, 0);
