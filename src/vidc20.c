@@ -613,20 +613,22 @@ vidcthread(void)
 {
 	const uint32_t vidstart = thr.iomd_vidstart & 0x7ffff0;
 	uint32_t vidend;
-        uint32_t *vidp = NULL;
-        uint16_t *vidp16 = NULL;
-        int drawit=0;
-        int x, y;
-        const uint8_t *ramp;
-        const uint16_t *ramw;
-        int addr;
-        int yl=-1,yh=-1;
-        static int oldcursorheight;
-        static int oldcursory;
+	uint32_t *vidp = NULL;
+	uint16_t *vidp16 = NULL;
+	int drawit = 0;
+	int x, y;
+	const uint8_t *ramp;
+	const uint16_t *ramw;
+	int addr;
+	int yl = -1, yh = -1;
+	static int oldcursorheight;
+	static int oldcursory;
 
-        thr.threadpending = 0;
+	thr.threadpending = 0;
 
-        if (b == NULL) abort();
+	if (b == NULL) {
+		abort();
+	}
 
 	if (thr.iomd_vidinit & 0x10000000) {
 		/* Using DRAM for video */
@@ -638,776 +640,803 @@ vidcthread(void)
 		ramp = (const uint8_t *) vram;
 		vidend = (thr.iomd_vidend + 2048) & 0x7ffff0;
 	}
-        ramw = (const uint16_t *) ramp;
+	ramw = (const uint16_t *) ramp;
 
-        addr=thr.iomd_vidinit&0x7FFFFF;
+	addr = thr.iomd_vidinit & 0x7fffff;
 
-        drawit=thr.dirtybuffer[addr>>12];
-        if (drawit) yl=0;
+	drawit = thr.dirtybuffer[addr >> 12];
+	if (drawit) {
+		yl = 0;
+	}
 
-        switch (host_bpp) {
-                case 16:
-                switch (thr.bpp)
-                {
-                        case 0: /*1 bpp*/
-                        thr.vidc_xsize >>= 1;
-                        for (y = 0; y < thr.vidc_ysize; y++) {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
-                                {
-                                        drawit=1;
-//                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit) 
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y);
-                                        yh=y+1;
-                                }
-                                for (x = 0; x < thr.vidc_xsize; x += 4) {
-                                        if (drawit)
-                                        {
-                                                int xx;
-                                                for (xx=0;xx<4;xx+=4)
-                                                {
+	switch (host_bpp) {
+	case 16:
+		switch (thr.bpp) {
+		case 0: /* 1 bpp on 16 bpp */
+			thr.vidc_xsize >>= 1;
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+					drawit = 1;
+					// yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp = (uint32_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 4) {
+					if (drawit) {
+						int xx;
+						for (xx = 0; xx < 4; xx += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        addr ^= 3;
-                                                        vidp[x+xx]  =(thr.vpal[ramp[addr]&1]<<16)     |thr.vpal[(ramp[addr]>>1)&1];
-                                                        vidp[x+xx+1]=(thr.vpal[(ramp[addr]>>2)&1]<<16)|thr.vpal[(ramp[addr]>>3)&1];
-                                                        vidp[x+xx+2]=(thr.vpal[(ramp[addr]>>4)&1]<<16)|thr.vpal[(ramp[addr]>>5)&1];
-                                                        vidp[x+xx+3]=(thr.vpal[(ramp[addr]>>6)&1]<<16)|thr.vpal[(ramp[addr]>>7)&1];
-                                                        addr ^= 3;
+							addr ^= 3;
+							vidp[x + xx]     = (thr.vpal[ramp[addr] & 1] << 16)        | thr.vpal[(ramp[addr] >> 1) & 1];
+							vidp[x + xx + 1] = (thr.vpal[(ramp[addr] >> 2) & 1] << 16) | thr.vpal[(ramp[addr] >> 3) & 1];
+							vidp[x + xx + 2] = (thr.vpal[(ramp[addr] >> 4) & 1] << 16) | thr.vpal[(ramp[addr] >> 5) & 1];
+							vidp[x + xx + 3] = (thr.vpal[(ramp[addr] >> 6) & 1] << 16) | thr.vpal[(ramp[addr] >> 7) & 1];
+							addr ^= 3;
 #else
-                                                        vidp[x+xx]=  thr.vpal[ramp[addr]&1]     |(thr.vpal[(ramp[addr]>>1)&1]<<16);
-                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr]>>2)&1]|(thr.vpal[(ramp[addr]>>3)&1]<<16);
-                                                        vidp[x+xx+2]=thr.vpal[(ramp[addr]>>4)&1]|(thr.vpal[(ramp[addr]>>5)&1]<<16);
-                                                        vidp[x+xx+3]=thr.vpal[(ramp[addr]>>6)&1]|(thr.vpal[(ramp[addr]>>7)&1]<<16);
+							vidp[x + xx]     = thr.vpal[ramp[addr] & 1]        | (thr.vpal[(ramp[addr] >> 1) & 1] << 16);
+							vidp[x + xx + 1] = thr.vpal[(ramp[addr] >> 2) & 1] | (thr.vpal[(ramp[addr] >> 3) & 1] << 16);
+							vidp[x + xx + 2] = thr.vpal[(ramp[addr] >> 4) & 1] | (thr.vpal[(ramp[addr] >> 5) & 1] << 16);
+							vidp[x + xx + 3] = thr.vpal[(ramp[addr] >> 6) & 1] | (thr.vpal[(ramp[addr] >> 7) & 1] << 16);
 #endif
-                                                        addr++;
-                                                }
-                                        }
-                                        else
-                                           addr+=1;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
-                                        }
-                                }
-                        }
-                        thr.vidc_xsize <<= 1;
-                        break;
-                        case 1: /*2 bpp*/
-                        thr.vidc_xsize >>= 1;
-                        for (y = 0; y < thr.vidc_ysize; y++) {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
-                                {
-                                        drawit=1;
-//                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit) 
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y);
-                                        yh=y+1;
-                                }
-                                for (x = 0; x < thr.vidc_xsize; x += 2) {
-                                        if (drawit)
-                                        {
-                                                int xx;
-                                                for (xx=0;xx<2;xx+=2)
-                                                {
+							addr++;
+						}
+					} else {
+						addr += 1;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+							vidp = (uint32_t *) bmp_write_line(b, y);
+						}
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+							drawit = 1;
+						}
+						if (drawit) {
+							yh = y + 8;
+						}
+						if (yl == -1 && drawit) {
+							yl = y;
+						}
+					}
+				}
+			}
+			thr.vidc_xsize <<= 1;
+			break;
+		case 1: /* 2 bpp on 16 bpp */
+			thr.vidc_xsize >>= 1;
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+					drawit = 1;
+					// yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp = (uint32_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 2) {
+					if (drawit) {
+						int xx;
+						for (xx = 0; xx < 2; xx += 2) {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        addr ^= 3;
-                                                        vidp[x+xx]=(thr.vpal[ramp[addr]&3]<<16)|thr.vpal[(ramp[addr]>>2)&3];
-                                                        vidp[x+xx+1]=(thr.vpal[(ramp[addr]>>4)&3]<<16)|thr.vpal[(ramp[addr]>>6)&3];
-                                                        addr ^= 3;
+							addr ^= 3;
+							vidp[x + xx]     = (thr.vpal[ramp[addr] & 3] << 16)        | thr.vpal[(ramp[addr] >> 2) & 3];
+							vidp[x + xx + 1] = (thr.vpal[(ramp[addr] >> 4) & 3] << 16) | thr.vpal[(ramp[addr] >> 6) & 3];
+							addr ^= 3;
 #else
-                                                        vidp[x+xx]=thr.vpal[ramp[addr]&3]|(thr.vpal[(ramp[addr]>>2)&3]<<16);
-                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr]>>4)&3]|(thr.vpal[(ramp[addr]>>6)&3]<<16);
+							vidp[x + xx]     = thr.vpal[ramp[addr] & 3]        | (thr.vpal[(ramp[addr] >> 2) & 3] << 16);
+							vidp[x + xx + 1] = thr.vpal[(ramp[addr] >> 4) & 3] | (thr.vpal[(ramp[addr] >> 6) & 3] << 16);
 #endif
-                                                        addr++;
-                                                }
-                                        }
-                                        else
-                                           addr+=1;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
-                                        }
-                                }
-                        }
-                        thr.vidc_xsize <<= 1;
-                        break;
-                        case 2: /*4 bpp*/
-                        thr.vidc_xsize >>= 1;
-                        for (y = 0; y < thr.vidc_ysize; y++) {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))                                
-                                {
-                                        drawit=1;
-//                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit) 
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y);
-                                        yh=y+1;
-                                }
-//                                rpclog("Line %i drawit %i addr %06X\n",y,drawit,addr);
-                                for (x = 0; x < thr.vidc_xsize; x += 16) {
-                                        if (drawit)
-                                        {
-                                                int xx;
-                                                for (xx=0;xx<16;xx+=4)
-                                                {
+							addr++;
+						}
+					} else {
+						addr += 1;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+							vidp = (uint32_t *) bmp_write_line(b, y);
+						}
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+							drawit = 1;
+						}
+						if (drawit) {
+							yh = y + 8;
+						}
+						if (yl == -1 && drawit) {
+							yl = y;
+						}
+					}
+				}
+			}
+			thr.vidc_xsize <<= 1;
+			break;
+		case 2: /* 4 bpp on 16 bpp */
+			thr.vidc_xsize >>= 1;
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+					drawit = 1;
+					// yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp = (uint32_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 16) {
+					if (drawit) {
+						int xx;
+						for (xx = 0; xx < 16; xx += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        vidp[x+xx+3]=thr.vpal[ramp[addr]>>4]|(thr.vpal[ramp[addr]&0xF]<<16);
-                                                        vidp[x+xx+2]=thr.vpal[ramp[addr+1]>>4]|(thr.vpal[ramp[addr+1]&0xF]<<16);
-                                                        vidp[x+xx+1]=thr.vpal[ramp[addr+2]>>4]|(thr.vpal[ramp[addr+2]&0xF]<<16);
-                                                        vidp[x+xx]=thr.vpal[ramp[addr+3]>>4]|(thr.vpal[ramp[addr+3]&0xF]<<16);
+							vidp[x + xx + 3] = thr.vpal[ramp[addr] >> 4]     | (thr.vpal[ramp[addr] & 0xf] << 16);
+							vidp[x + xx + 2] = thr.vpal[ramp[addr + 1] >> 4] | (thr.vpal[ramp[addr + 1] & 0xf] << 16);
+							vidp[x + xx + 1] = thr.vpal[ramp[addr + 2] >> 4] | (thr.vpal[ramp[addr + 2] & 0xf] << 16);
+							vidp[x + xx]     = thr.vpal[ramp[addr + 3] >> 4] | (thr.vpal[ramp[addr + 3] & 0xf] << 16);
 #else
-                                                        vidp[x+xx]=thr.vpal[ramp[addr]&0xF]|(thr.vpal[ramp[addr]>>4]<<16);
-                                                        vidp[x+xx+1]=thr.vpal[ramp[addr+1]&0xF]|(thr.vpal[ramp[addr+1]>>4]<<16);
-                                                        vidp[x+xx+2]=thr.vpal[ramp[addr+2]&0xF]|(thr.vpal[ramp[addr+2]>>4]<<16);
-                                                        vidp[x+xx+3]=thr.vpal[ramp[addr+3]&0xF]|(thr.vpal[ramp[addr+3]>>4]<<16);                                                                                                                                                                       
+							vidp[x + xx]     = thr.vpal[ramp[addr] & 0xf]     | (thr.vpal[ramp[addr] >> 4] << 16);
+							vidp[x + xx + 1] = thr.vpal[ramp[addr + 1] & 0xf] | (thr.vpal[ramp[addr + 1] >> 4] << 16);
+							vidp[x + xx + 2] = thr.vpal[ramp[addr + 2] & 0xf] | (thr.vpal[ramp[addr + 2] >> 4] << 16);
+							vidp[x + xx + 3] = thr.vpal[ramp[addr + 3] & 0xf] | (thr.vpal[ramp[addr + 3] >> 4] << 16);
 #endif
-                                                        addr+=4;
-                                                }
-                                        }
-                                        else
-                                           addr+=16;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-//                                                rpclog("Hit 4k boundary %06X %i,%i %i\n",addr,x,y,drawit);
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
-                                        }
-                                }
-                        }
-                        thr.vidc_xsize <<= 1;
-                        break;
-                        case 3: /*8 bpp*/
-                        thr.vidc_xsize >>= 1;
-                        for (y = 0; y < thr.vidc_ysize; y++) {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1)))
-                                {
-                                        drawit=1;
-//                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit)
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y);
-                                        yh=y+1;
-                                }
-                                for (x = 0; x < thr.vidc_xsize; x += 8) {
-                                        if (drawit)
-                                        {
-                                                int xx;
-                                                for (xx=0;xx<8;xx+=2)
-                                                {
+							addr += 4;
+						}
+					} else {
+						addr += 16;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+							vidp = (uint32_t *) bmp_write_line(b, y);
+						}
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+							drawit = 1;
+						}
+						if (drawit) {
+							yh = y + 8;
+						}
+						if (yl == -1 && drawit) {
+							yl = y;
+						}
+					}
+				}
+			}
+			thr.vidc_xsize <<= 1;
+			break;
+		case 3: /* 8 bpp on 16 bpp */
+			thr.vidc_xsize >>= 1;
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 1))) {
+					drawit = 1;
+					// yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp = (uint32_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 8) {
+					if (drawit) {
+						int xx;
+						for (xx = 0; xx < 8; xx += 2) {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        vidp[x+xx+1]=thr.vpal[ramp[addr]&0xFF]|(thr.vpal[ramp[addr+1]&0xFF]<<16);
-                                                        vidp[x+xx]=thr.vpal[ramp[addr+2]&0xFF]|(thr.vpal[ramp[addr+3]&0xFF]<<16);
+							vidp[x + xx + 1] = thr.vpal[ramp[addr] & 0xff]     | (thr.vpal[ramp[addr + 1] & 0xff] << 16);
+							vidp[x + xx]     = thr.vpal[ramp[addr + 2] & 0xff] | (thr.vpal[ramp[addr + 3] & 0xff] << 16);
 #else
-                                                        vidp[x+xx]=thr.vpal[ramp[addr]&0xFF]|(thr.vpal[ramp[addr+1]&0xFF]<<16);
-                                                        vidp[x+xx+1]=thr.vpal[ramp[addr+2]&0xFF]|(thr.vpal[ramp[addr+3]&0xFF]<<16);
+							vidp[x + xx]     = thr.vpal[ramp[addr] & 0xff]     | (thr.vpal[ramp[addr + 1] & 0xff] << 16);
+							vidp[x + xx + 1] = thr.vpal[ramp[addr + 2] & 0xff] | (thr.vpal[ramp[addr + 3] & 0xff] << 16);
 #endif
-                                                        addr+=4;
-                                                }
-                                        }
-                                        else
-                                           addr+=16;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                int olddrawit=drawit;
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-                                                if (drawit)
-                                                {
-                                                        yh=y+1;
-                                                        if (yl==-1) yl=y;
-                                                }
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1))) drawit=1;
-                                                if (drawit && !olddrawit) vidp=(uint32_t *)bmp_write_line(b,y);
-                                        }
-                                }
-                        }
-                        thr.vidc_xsize <<= 1;
-  //                      rpclog("Yl %i Yh %i\n",yl,yh);
-                        break;
-                        case 4: /*16 bpp*/
-                        thr.vidc_xsize >>= 1;
-                        for (y = 0; y < thr.vidc_ysize; y++) {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1)))
-                                {
-                                        drawit=1;
-//                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit) 
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y);
-                                        yh=y+1;
-                                }
-                                for (x = 0; x < thr.vidc_xsize; x += 4) {
-                                        if (drawit)
-                                        {
-                                                addr>>=1;
-                                                vidp[x]=thr.pal16lookup[ramw[addr]]|(thr.pal16lookup[ramw[addr+1]]<<16);
-                                                vidp[x+1]=thr.pal16lookup[ramw[addr+2]]|(thr.pal16lookup[ramw[addr+3]]<<16);
-                                                vidp[x+2]=thr.pal16lookup[ramw[addr+4]]|(thr.pal16lookup[ramw[addr+5]]<<16);
-                                                vidp[x+3]=thr.pal16lookup[ramw[addr+6]]|(thr.pal16lookup[ramw[addr+7]]<<16);
-                                                addr<<=1;
-                                                addr+=16;
-                                        }
-                                        else
-                                           addr+=16;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                int olddrawit=drawit;
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-                                                if (drawit) 
-                                                {
-                                                        yh=y+1;
-                                                        if (yl==-1) yl=y;
-                                                }
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-1))) drawit=1;                                                
-                                                if (drawit && !olddrawit) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                if ((addr >> 12) == thr.lastblock && y > (oldcursorheight + oldcursory)) {
-                                                        y = x = 65536; /* break out of x and y loops */
-                                                }
-                                        }
-                                }
-                        }
-                        thr.vidc_xsize <<= 1;
-                        break;
-                        case 6: /*32 bpp*/
-//                        textprintf(b,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,thr.xsize,thr.ysize);
-//                        textprintf(screen,font,0,8,makecol(255,255,255),"%i %i %i %i  ",drawit,addr>>10,thr.xsize,thr.ysize);
-                        for (y = 0; y < thr.vidc_ysize; y++) {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
-                                {
-                                        drawit=1;
-//                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit) 
-                                {
-                                        vidp16 = (uint16_t *) bmp_write_line(b, y);
-                                        yh=y+1;
-                                }
-                                for (x = 0; x < thr.vidc_xsize; x += 4) {
-                                        if (drawit)
-                                        {
-                                                int xx;
-                                                for (xx=0;xx<4;xx++)
-                                                {
-                                                        //VIDC20 pixel format is  xxxx xxxx BBBB BBBB GGGG GGGG RRRR RRRR
-                                                        //Windows pixel format is                     RRRR RGGG GGGB BBBB
+							addr += 4;
+						}
+					} else {
+						addr += 16;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						int olddrawit = drawit;
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (drawit) {
+							yh = y + 1;
+							if (yl == -1) {
+								yl = y;
+							}
+						}
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 1))) {
+							drawit = 1;
+						}
+						if (drawit && !olddrawit) {
+							vidp = (uint32_t *) bmp_write_line(b, y);
+						}
+					}
+				}
+			}
+			thr.vidc_xsize <<= 1;
+			break;
+		case 4: /* 16 bpp on 16 bpp */
+			thr.vidc_xsize >>= 1;
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 1))) {
+					drawit = 1;
+					// yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp = (uint32_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 4) {
+					if (drawit) {
+						addr >>= 1;
+						vidp[x]     = thr.pal16lookup[ramw[addr]]     | (thr.pal16lookup[ramw[addr + 1]] << 16);
+						vidp[x + 1] = thr.pal16lookup[ramw[addr + 2]] | (thr.pal16lookup[ramw[addr + 3]] << 16);
+						vidp[x + 2] = thr.pal16lookup[ramw[addr + 4]] | (thr.pal16lookup[ramw[addr + 5]] << 16);
+						vidp[x + 3] = thr.pal16lookup[ramw[addr + 6]] | (thr.pal16lookup[ramw[addr + 7]] << 16);
+						addr <<= 1;
+						addr += 16;
+					} else {
+						addr += 16;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						int olddrawit = drawit;
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (drawit) {
+							yh = y + 1;
+							if (yl == -1) {
+								yl = y;
+							}
+						}
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 1))) {
+							drawit = 1;
+						}
+						if (drawit && !olddrawit) {
+							vidp = (uint32_t *) bmp_write_line(b, y);
+						}
+						if ((addr >> 12) == thr.lastblock && y > (oldcursorheight + oldcursory)) {
+							y = x = 65536; /* break out of x and y loops */
+						}
+					}
+				}
+			}
+			thr.vidc_xsize <<= 1;
+			break;
+		case 6: /* 32 bpp on 16 bpp */
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+					drawit = 1;
+					// yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp16 = (uint16_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 4) {
+					if (drawit) {
+						int xx;
+						for (xx = 0; xx < 4; xx++) {
+							// VIDC20 pixel format is  xxxx xxxx BBBB BBBB GGGG GGGG RRRR RRRR
+							// Windows pixel format is                     RRRR RGGG GGGB BBBB
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        uint32_t temp=ramp[addr+3]|(ramp[addr+2]<<8)|(ramp[addr+1]<<16)|(ramp[addr]<<24);
+							uint32_t temp = ramp[addr + 3] | (ramp[addr + 2] << 8) | (ramp[addr + 1] << 16) | (ramp[addr] << 24);
 #else
-                                                        uint32_t temp=ramp[addr]|(ramp[addr+1]<<8)|(ramp[addr+2]<<16)|(ramp[addr+3]<<24);
+							uint32_t temp = ramp[addr] | (ramp[addr + 1] << 8) | (ramp[addr + 2] << 16) | (ramp[addr + 3] << 24);
 #endif
-                                                        vidp16[x+xx]=thr.pal[temp&0xFF].r|thr.pal[(temp>>8)&0xFF].g|thr.pal[(temp>>16)&0xFF].b;
-                                                        addr+=4;
-                                                }
-                                        }
-                                        else
-                                           addr+=16;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                if (!drawit && thr.dirtybuffer[addr >> 12]) {
-                                                        vidp16 = (uint16_t *) bmp_write_line(b, y);
-                                                }
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-//                                                drawit=1;
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
-                                        }
-                                }
-                        }
-//                        textprintf(b,font,0,16,makecol(255,255,255),"%i %i   ",yl,yh);
-//                        textprintf(screen,font,0,16,makecol(255,255,255),"%i %i   ",yl,yh);
-                        break;
-                        default:
-                        fatal("Bad BPP %i\n", thr.bpp);
-                }
-                break;
-                case 32:
-                switch (thr.bpp)
-                {
-                        case 0: /*1 bpp*/
-                        for (y = 0; y < thr.vidc_ysize; y++)
-                        {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
-                                {
-                                        drawit=1;
-                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit) 
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y);
-                                        yh=y+1;
-                                }
-                                for (x = 0; x < thr.vidc_xsize; x += 8) {
-                                        if (drawit)
-                                        {
-                                                int xx;
-                                                for (xx=0;xx<8;xx+=8)
-                                                {
+							vidp16[x + xx] = thr.pal[temp & 0xff].r | thr.pal[(temp >> 8) & 0xff].g | thr.pal[(temp >> 16) & 0xff].b;
+							addr += 4;
+						}
+					} else {
+						addr += 16;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+							vidp16 = (uint16_t *) bmp_write_line(b, y);
+						}
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+							drawit = 1;
+						}
+						if (drawit) {
+							yh = y + 8;
+						}
+						if (yl == -1 && drawit) {
+							yl = y;
+						}
+					}
+				}
+			}
+			break;
+		default:
+			fatal("Bad BPP %i\n", thr.bpp);
+		}
+		break;
+	case 32:
+		switch (thr.bpp) {
+		case 0: /* 1 bpp on 32 bpp */
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+					drawit = 1;
+					yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp = (uint32_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 8) {
+					if (drawit) {
+						int xx;
+						for (xx = 0; xx < 8; xx += 8) {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        addr ^= 3;
+							addr ^= 3;
 #endif
-                                                        vidp[x+xx]=thr.vpal[ramp[addr]&1];
-                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr]>>1)&1];
-                                                        vidp[x+xx+2]=thr.vpal[(ramp[addr]>>2)&1];
-                                                        vidp[x+xx+3]=thr.vpal[(ramp[addr]>>3)&1];
-                                                        vidp[x+xx+4]=thr.vpal[(ramp[addr]>>4)&1];
-                                                        vidp[x+xx+5]=thr.vpal[(ramp[addr]>>5)&1];
-                                                        vidp[x+xx+6]=thr.vpal[(ramp[addr]>>6)&1];
-                                                        vidp[x+xx+7]=thr.vpal[(ramp[addr]>>7)&1];
+							vidp[x + xx]     = thr.vpal[ramp[addr] & 1];
+							vidp[x + xx + 1] = thr.vpal[(ramp[addr] >> 1) & 1];
+							vidp[x + xx + 2] = thr.vpal[(ramp[addr] >> 2) & 1];
+							vidp[x + xx + 3] = thr.vpal[(ramp[addr] >> 3) & 1];
+							vidp[x + xx + 4] = thr.vpal[(ramp[addr] >> 4) & 1];
+							vidp[x + xx + 5] = thr.vpal[(ramp[addr] >> 5) & 1];
+							vidp[x + xx + 6] = thr.vpal[(ramp[addr] >> 6) & 1];
+							vidp[x + xx + 7] = thr.vpal[(ramp[addr] >> 7) & 1];
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        addr ^= 3;
+							addr ^= 3;
 #endif
-                                                        addr++;
-                                                }
-                                        }
-                                        else
-                                           addr+=1;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
-                                        }
-                                }
-                        }
-                        break;
-                        case 1: /*2 bpp*/
-                        for (y = 0; y < thr.vidc_ysize; y++) {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
-                                {
-                                        drawit=1;
-                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit) 
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y);
-                                        yh=y+1;
-                                }
-                                for (x = 0; x < thr.vidc_xsize; x += 4) {
-                                        if (drawit)
-                                        {
-                                                int xx;
-                                                for (xx=0;xx<4;xx+=4)
-                                                {
+							addr++;
+						}
+					} else {
+						addr += 1;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+							vidp = (uint32_t *) bmp_write_line(b, y);
+						}
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+							drawit = 1;
+						}
+						if (drawit) {
+							yh = y + 8;
+						}
+						if (yl == -1 && drawit) {
+							yl = y;
+						}
+					}
+				}
+			}
+			break;
+		case 1: /* 2 bpp on 32 bpp */
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+					drawit = 1;
+					yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp = (uint32_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 4) {
+					if (drawit) {
+						int xx;
+						for (xx = 0; xx < 4; xx += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        addr ^= 3;
+							addr ^= 3;
 #endif
-                                                        vidp[x+xx]=thr.vpal[ramp[addr]&3];
-                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr]>>2)&3];
-                                                        vidp[x+xx+2]=thr.vpal[(ramp[addr]>>4)&3];
-                                                        vidp[x+xx+3]=thr.vpal[(ramp[addr]>>6)&3];
+							vidp[x + xx]     = thr.vpal[ramp[addr] & 3];
+							vidp[x + xx + 1] = thr.vpal[(ramp[addr] >> 2) & 3];
+							vidp[x + xx + 2] = thr.vpal[(ramp[addr] >> 4) & 3];
+							vidp[x + xx + 3] = thr.vpal[(ramp[addr] >> 6) & 3];
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        addr ^= 3;
+							addr ^= 3;
 #endif
-                                                        addr++;
-                                                }
-                                        }
-                                        else
-                                           addr+=1;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
-                                        }
-                                }
-                        }
-                        break;
-                        case 2: /*4 bpp*/
-                        for (y = 0; y < thr.vidc_ysize; y++) {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
-                                {
-                                        drawit=1;
-                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit) 
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y);
-                                        yh=y+1;
-                                }
-                                for (x = 0; x < thr.vidc_xsize; x += 32) {
-                                        if (drawit)
-                                        {
-                                                int xx;
-                                                for (xx=0;xx<32;xx+=8)
-                                                {
+							addr++;
+						}
+					} else {
+						addr += 1;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+							vidp = (uint32_t *) bmp_write_line(b, y);
+						}
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+							drawit = 1;
+						}
+						if (drawit) {
+							yh = y + 8;
+						}
+						if (yl == -1 && drawit) {
+							yl = y;
+						}
+					}
+				}
+			}
+			break;
+		case 2: /* 4 bpp on 32 bpp */
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+					drawit = 1;
+					yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp = (uint32_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 32) {
+					if (drawit) {
+						int xx;
+						for (xx = 0; xx < 32; xx += 8) {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        vidp[x+xx]=thr.vpal[ramp[addr+3]&0xF];
-                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr+3]>>4)&0xF];
-                                                        vidp[x+xx+2]=thr.vpal[ramp[addr+2]&0xF];
-                                                        vidp[x+xx+3]=thr.vpal[(ramp[addr+2]>>4)&0xF];
-                                                        vidp[x+xx+4]=thr.vpal[ramp[addr+1]&0xF];
-                                                        vidp[x+xx+5]=thr.vpal[(ramp[addr+1]>>4)&0xF];
-                                                        vidp[x+xx+6]=thr.vpal[ramp[addr]&0xF];
-                                                        vidp[x+xx+7]=thr.vpal[(ramp[addr]>>4)&0xF];
+							vidp[x + xx]     = thr.vpal[ramp[addr + 3] & 0xf];
+							vidp[x + xx + 1] = thr.vpal[(ramp[addr + 3] >> 4) & 0xf];
+							vidp[x + xx + 2] = thr.vpal[ramp[addr + 2] & 0xf];
+							vidp[x + xx + 3] = thr.vpal[(ramp[addr + 2] >> 4) & 0xf];
+							vidp[x + xx + 4] = thr.vpal[ramp[addr + 1] & 0xf];
+							vidp[x + xx + 5] = thr.vpal[(ramp[addr + 1] >> 4) & 0xf];
+							vidp[x + xx + 6] = thr.vpal[ramp[addr] & 0xf];
+							vidp[x + xx + 7] = thr.vpal[(ramp[addr] >> 4) & 0xf];
 #else
-                                                        vidp[x+xx]=thr.vpal[ramp[addr]&0xF];
-                                                        vidp[x+xx+1]=thr.vpal[(ramp[addr]>>4)&0xF];
-                                                        vidp[x+xx+2]=thr.vpal[ramp[addr+1]&0xF];
-                                                        vidp[x+xx+3]=thr.vpal[(ramp[addr+1]>>4)&0xF];
-                                                        vidp[x+xx+4]=thr.vpal[ramp[addr+2]&0xF];
-                                                        vidp[x+xx+5]=thr.vpal[(ramp[addr+2]>>4)&0xF];
-                                                        vidp[x+xx+6]=thr.vpal[ramp[addr+3]&0xF];
-                                                        vidp[x+xx+7]=thr.vpal[(ramp[addr+3]>>4)&0xF];
+							vidp[x + xx]     = thr.vpal[ramp[addr] & 0xf];
+							vidp[x + xx + 1] = thr.vpal[(ramp[addr] >> 4) & 0xf];
+							vidp[x + xx + 2] = thr.vpal[ramp[addr + 1] & 0xf];
+							vidp[x + xx + 3] = thr.vpal[(ramp[addr + 1] >> 4) & 0xf];
+							vidp[x + xx + 4] = thr.vpal[ramp[addr + 2] & 0xf];
+							vidp[x + xx + 5] = thr.vpal[(ramp[addr + 2] >> 4) & 0xf];
+							vidp[x + xx + 6] = thr.vpal[ramp[addr + 3] & 0xf];
+							vidp[x + xx + 7] = thr.vpal[(ramp[addr + 3] >> 4) & 0xf];
 #endif
-                                                        addr+=4;
-                                                }
-                                        }
-                                        else
-                                           addr+=16;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
-                                        }
-                                }
-                        }
-                        break;
-                        case 3: /*8 bpp*/
-                        for (y = 0; y < thr.vidc_ysize; y++) {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
-                                {
-                                        drawit=1;
-                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit) 
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y);
-                                        yh=y+1;
-                                }
-                                for (x = 0; x < thr.vidc_xsize; x += 16) {
-                                        if (drawit)
-                                        {
-                                                int xx;
-                                                for (xx=0;xx<16;xx+=4)
-                                                {
+							addr += 4;
+						}
+					} else {
+						addr += 16;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+							vidp = (uint32_t *) bmp_write_line(b, y);
+						}
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+							drawit = 1;
+						}
+						if (drawit) {
+							yh = y + 8;
+						}
+						if (yl == -1 && drawit) {
+							yl = y;
+						}
+					}
+				}
+			}
+			break;
+		case 3: /* 8 bpp on 32 bpp */
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+					drawit = 1;
+					yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp = (uint32_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 16) {
+					if (drawit) {
+						int xx;
+						for (xx = 0; xx < 16; xx += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        vidp[x+xx]  =thr.vpal[ramp[addr+3]];
-                                                        vidp[x+xx+1]=thr.vpal[ramp[addr+2]];
-                                                        vidp[x+xx+2]=thr.vpal[ramp[addr+1]];
-                                                        vidp[x+xx+3]=thr.vpal[ramp[addr]];
+							vidp[x + xx]     = thr.vpal[ramp[addr + 3]];
+							vidp[x + xx + 1] = thr.vpal[ramp[addr + 2]];
+							vidp[x + xx + 2] = thr.vpal[ramp[addr + 1]];
+							vidp[x + xx + 3] = thr.vpal[ramp[addr]];
 #else
-                                                        vidp[x+xx]  =thr.vpal[ramp[addr]];
-                                                        vidp[x+xx+1]=thr.vpal[ramp[addr+1]];
-                                                        vidp[x+xx+2]=thr.vpal[ramp[addr+2]];
-                                                        vidp[x+xx+3]=thr.vpal[ramp[addr+3]];
+							vidp[x + xx]     = thr.vpal[ramp[addr]];
+							vidp[x + xx + 1] = thr.vpal[ramp[addr + 1]];
+							vidp[x + xx + 2] = thr.vpal[ramp[addr + 2]];
+							vidp[x + xx + 3] = thr.vpal[ramp[addr + 3]];
 #endif
-                                                        addr+=4;
-                                                }
-                                        }
-                                        else
-                                           addr+=16;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
-                                        }
-                                }
-                        }
-                        break;
-                        case 4: /*16 bpp*/
-                        for (y = 0; y < thr.vidc_ysize; y++) {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
-                                {
-                                        drawit=1;
-                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit) 
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y);
-                                        yh=y+1;
-                                }
-                                for (x = 0; x < thr.vidc_xsize; x += 8) {
-                                        if (drawit)
-                                        {
-                                                int xx;
-                                                for (xx=0;xx<8;xx+=2)
-                                                {
-                                                        uint16_t temp16;
-                                                        /*VIDC20 format :                      xBBB BBGG GGGR RRRR
-                                                          Windows format : xxxx xxxx RRRR RRRR GGGG GGGG BBBB BBBB*/
+							addr += 4;
+						}
+					} else {
+						addr += 16;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+							vidp = (uint32_t *) bmp_write_line(b, y);
+						}
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+							drawit = 1;
+						}
+						if (drawit) {
+							yh = y + 8;
+						}
+						if (yl == -1 && drawit) {
+							yl = y;
+						}
+					}
+				}
+			}
+			break;
+		case 4: /* 16 bpp on 32 bpp */
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+					drawit = 1;
+					yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp = (uint32_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 8) {
+					if (drawit) {
+						int xx;
+						for (xx = 0; xx < 8; xx += 2) {
+							uint16_t temp16;
+							/* VIDC20 format :                      xBBB BBGG GGGR RRRR
+							   Windows format : xxxx xxxx RRRR RRRR GGGG GGGG BBBB BBBB */
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        temp16=ramp[addr+3]|(ramp[addr+2]<<8);
+							temp16 = ramp[addr + 3] | (ramp[addr + 2] << 8);
 #else
-                                                        temp16=ramp[addr]|(ramp[addr+1]<<8);
+							temp16 = ramp[addr] | (ramp[addr + 1] << 8);
 #endif
-                                                        vidp[x+xx]=thr.pal[temp16&0xFF].r|thr.pal[(temp16>>4)&0xFF].g|thr.pal[(temp16>>8)&0xFF].b;
+							vidp[x + xx] = thr.pal[temp16 & 0xff].r | thr.pal[(temp16 >> 4) & 0xff].g | thr.pal[(temp16 >> 8) & 0xff].b;
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        temp16=ramp[addr+1]|(ramp[addr]<<8);
+							temp16 = ramp[addr + 1] | (ramp[addr] << 8);
 #else
-                                                        temp16=ramp[addr+2]|(ramp[addr+3]<<8);
+							temp16 = ramp[addr + 2] | (ramp[addr + 3] << 8);
 #endif
-                                                        vidp[x+xx+1]=thr.pal[temp16&0xFF].r|thr.pal[(temp16>>4)&0xFF].g|thr.pal[(temp16>>8)&0xFF].b;
-                                                        addr+=4;
-                                                }
-                                        }
-                                        else
-                                           addr+=16;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
-                                        }
-                                }
-                        }
-                        break;
-                        case 6: /*32 bpp*/
-                        for (y = 0; y < thr.vidc_ysize; y++) {
-                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2)))
-                                {
-                                        drawit=1;
-                                        yh=y+8;
-                                        if (yl==-1)
-                                           yl=y;
-                                }
-                                if (drawit) 
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y);
-                                        yh=y+1;
-                                }
-                                for (x = 0; x < thr.vidc_xsize; x += 4) {
-                                        if (drawit)
-                                        {
-                                                int xx;
-                                                for (xx=0;xx<4;xx++)
-                                                {
+							vidp[x + xx + 1] = thr.pal[temp16 & 0xff].r | thr.pal[(temp16 >> 4) & 0xff].g | thr.pal[(temp16 >> 8) & 0xff].b;
+							addr += 4;
+						}
+					} else {
+						addr += 16;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+							vidp = (uint32_t *) bmp_write_line(b, y);
+						}
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+							drawit = 1;
+						}
+						if (drawit) {
+							yh = y + 8;
+						}
+						if (yl == -1 && drawit) {
+							yl = y;
+						}
+					}
+				}
+			}
+			break;
+		case 6: /* 32 bpp on 32 bpp */
+			for (y = 0; y < thr.vidc_ysize; y++) {
+				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+					drawit = 1;
+					yh = y + 8;
+					if (yl == -1) {
+						yl = y;
+					}
+				}
+				if (drawit) {
+					vidp = (uint32_t *) bmp_write_line(b, y);
+					yh = y + 1;
+				}
+				for (x = 0; x < thr.vidc_xsize; x += 4) {
+					if (drawit) {
+						int xx;
+						for (xx = 0; xx < 4; xx++) {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                        vidp[x+xx]=thr.pal[ramp[addr+3]].r|thr.pal[ramp[addr+2]].g|thr.pal[ramp[addr+1]].b;
+							vidp[x + xx] = thr.pal[ramp[addr + 3]].r | thr.pal[ramp[addr + 2]].g | thr.pal[ramp[addr + 1]].b;
 #else
-                                                        vidp[x+xx]=thr.pal[ramp[addr]].r|thr.pal[ramp[addr+1]].g|thr.pal[ramp[addr+2]].b;
+							vidp[x + xx] = thr.pal[ramp[addr]].r | thr.pal[ramp[addr + 1]].g | thr.pal[ramp[addr + 2]].b;
 #endif
-                                                        addr+=4;
-                                                }
-                                        }
-                                        else
-                                           addr+=16;
-                                        if (addr == (int) vidend) {
-                                                addr = vidstart;
-                                        }
-                                        if (!(addr&0xFFF))
-                                        {
-                                                if (!drawit && thr.dirtybuffer[(addr>>12)]) vidp=(uint32_t *)bmp_write_line(b,y);
-                                                drawit=thr.dirtybuffer[(addr>>12)];
-                                                if (y<(oldcursorheight+oldcursory) && (y>=(oldcursory-2))) drawit=1;
-                                                if (drawit) yh=y+8;
-                                                if (yl==-1 && drawit)
-                                                   yl=y;
-                                        }
-                                }
-                        }
-                        break;
-                        default:
-                        fatal("Bad BPP %i\n", thr.bpp);
-                }
-        }
+							addr += 4;
+						}
+					} else {
+						addr += 16;
+					}
+					if (addr == (int) vidend) {
+						addr = vidstart;
+					}
+					if ((addr & 0xfff) == 0) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+							vidp = (uint32_t *) bmp_write_line(b, y);
+						}
+						drawit = thr.dirtybuffer[addr >> 12];
+						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+							drawit = 1;
+						}
+						if (drawit) {
+							yh = y + 8;
+						}
+						if (yl == -1 && drawit) {
+							yl = y;
+						}
+					}
+				}
+			}
+			break;
+		default:
+			fatal("Bad BPP %i\n", thr.bpp);
+		}
+	}
 
-        /* Cursor layer is plotted over regular display */
-        if (thr.cursorheight > 1) {
-                /* Calculate host address of cursor data from physical address.
-                   This assumes that cursor data is always in DRAM, not VRAM,
-                   which is currently true for RISC OS */
-                if (cinit & 0x8000000) {
-                        ramp = (const uint8_t *) ram1;
-                } else if (cinit & 0x4000000) {
-                        ramp = (const uint8_t *) ram01;
-                } else {
-                        ramp = (const uint8_t *) ram00;
-                }
-                addr = cinit & mem_rammask;
-//                printf("Mouse now at %i,%i\n",thr.cursorx,thr.cursory);
-                switch (host_bpp) {
-                        case 16:
-                        for (y=0;y<thr.cursorheight;y++)
-                        {
-                                if ((y + thr.cursory) >= thr.vidc_ysize) {
-                                        break;
-                                }
-                                if ((y+thr.cursory)>=0)
-                                {
-                                        vidp16 = (uint16_t *) bmp_write_line(b, y + thr.cursory);
-                                        for (x=0;x<32;x+=4)
-                                        {
+	/* Cursor layer is plotted over regular display */
+	if (thr.cursorheight > 1) {
+		/* Calculate host address of cursor data from physical address.
+		   This assumes that cursor data is always in DRAM, not VRAM,
+		   which is currently true for RISC OS */
+		if (cinit & 0x8000000) {
+			ramp = (const uint8_t *) ram1;
+		} else if (cinit & 0x4000000) {
+			ramp = (const uint8_t *) ram01;
+		} else {
+			ramp = (const uint8_t *) ram00;
+		}
+		addr = cinit & mem_rammask;
+		// printf("Mouse now at %i,%i\n", thr.cursorx, thr.cursory);
+		switch (host_bpp) {
+		case 16:
+			for (y = 0; y < thr.cursorheight; y++) {
+				if ((y + thr.cursory) >= thr.vidc_ysize) {
+					break;
+				}
+				if ((y + thr.cursory) >= 0) {
+					vidp16 = (uint16_t *) bmp_write_line(b, y + thr.cursory);
+					for (x = 0; x < 32; x += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                addr^=3;
+						addr ^= 3;
 #endif
-                                                if ((x + thr.cursorx)     >= 0 && (x + thr.cursorx)     < thr.vidc_xsize && ramp[addr]        & 3) {
-                                                    vidp16[x+thr.cursorx]=thr.vpal[(ramp[addr]&3)|0x100];
-                                                }
-                                                if ((x + thr.cursorx + 1) >= 0 && (x + thr.cursorx + 1) < thr.vidc_xsize && (ramp[addr] >> 2) & 3) {
-                                                    vidp16[x+thr.cursorx+1]=thr.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                }
-                                                if ((x + thr.cursorx + 2) >= 0 && (x + thr.cursorx + 2) < thr.vidc_xsize && (ramp[addr] >> 4) & 3) {
-                                                    vidp16[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                }
-                                                if ((x + thr.cursorx + 3) >= 0 && (x + thr.cursorx + 3) < thr.vidc_xsize && (ramp[addr] >> 6) & 3) {
-                                                    vidp16[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
-                                                }
+						if ((x + thr.cursorx)     >= 0 && (x + thr.cursorx)     < thr.vidc_xsize && ramp[addr]        & 3) {
+							vidp16[x + thr.cursorx] = thr.vpal[(ramp[addr] & 3) | 0x100];
+						}
+						if ((x + thr.cursorx + 1) >= 0 && (x + thr.cursorx + 1) < thr.vidc_xsize && (ramp[addr] >> 2) & 3) {
+							vidp16[x + thr.cursorx + 1] = thr.vpal[((ramp[addr] >> 2) & 3) | 0x100];
+						}
+						if ((x + thr.cursorx + 2) >= 0 && (x + thr.cursorx + 2) < thr.vidc_xsize && (ramp[addr] >> 4) & 3) {
+							vidp16[x + thr.cursorx + 2] = thr.vpal[((ramp[addr] >> 4) & 3) | 0x100];
+						}
+						if ((x + thr.cursorx + 3) >= 0 && (x + thr.cursorx + 3) < thr.vidc_xsize && (ramp[addr] >> 6) & 3) {
+							vidp16[x + thr.cursorx + 3] = thr.vpal[((ramp[addr] >> 6) & 3) | 0x100];
+						}
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                addr^=3;
+						addr ^= 3;
 #endif
-                                                addr++;
-                                        }
-                                }
-                        }
-                        break;
-                        case 32:
-                        for (y=0;y<thr.cursorheight;y++)
-                        {
-                                if ((y + thr.cursory) >= thr.vidc_ysize) {
-                                        break;
-                                }
-                                if ((y+thr.cursory)>=0)
-                                {
-                                        vidp=(uint32_t *)bmp_write_line(b,y+thr.cursory);
-                                        for (x=0;x<32;x+=4)
-                                        {
+						addr++;
+					}
+				}
+			}
+			break;
+		case 32:
+			for (y = 0; y < thr.cursorheight; y++) {
+				if ((y + thr.cursory) >= thr.vidc_ysize) {
+					break;
+				}
+				if ((y + thr.cursory) >= 0) {
+					vidp = (uint32_t *) bmp_write_line(b, y + thr.cursory);
+					for (x = 0; x < 32; x += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                addr^=3;
+						addr ^= 3;
 #endif
-                                                if ((x + thr.cursorx)     >= 0 && (x + thr.cursorx)     < thr.vidc_xsize && ramp[addr]        & 3) {
-                                                    vidp[x+thr.cursorx]=thr.vpal[(ramp[addr]&3)|0x100];
-                                                }
-                                                if ((x + thr.cursorx + 1) >= 0 && (x + thr.cursorx + 1) < thr.vidc_xsize && (ramp[addr] >> 2) & 3) {
-                                                    vidp[x+thr.cursorx+1]=thr.vpal[((ramp[addr]>>2)&3)|0x100];
-                                                }
-                                                if ((x + thr.cursorx + 2) >= 0 && (x + thr.cursorx + 2) < thr.vidc_xsize && (ramp[addr] >> 4) & 3) {
-                                                    vidp[x+thr.cursorx+2]=thr.vpal[((ramp[addr]>>4)&3)|0x100];
-                                                }
-                                                if ((x + thr.cursorx + 3) >= 0 && (x + thr.cursorx + 3) < thr.vidc_xsize && (ramp[addr] >> 6) & 3) {
-                                                    vidp[x+thr.cursorx+3]=thr.vpal[((ramp[addr]>>6)&3)|0x100];
-                                                }
+						if ((x + thr.cursorx)     >= 0 && (x + thr.cursorx)     < thr.vidc_xsize && ramp[addr]        & 3) {
+							vidp[x + thr.cursorx] = thr.vpal[(ramp[addr] & 3) | 0x100];
+						}
+						if ((x + thr.cursorx + 1) >= 0 && (x + thr.cursorx + 1) < thr.vidc_xsize && (ramp[addr] >> 2) & 3) {
+							vidp[x + thr.cursorx + 1] = thr.vpal[((ramp[addr] >> 2) & 3) | 0x100];
+						}
+						if ((x + thr.cursorx + 2) >= 0 && (x + thr.cursorx + 2) < thr.vidc_xsize && (ramp[addr] >> 4) & 3) {
+							vidp[x + thr.cursorx + 2] = thr.vpal[((ramp[addr] >> 4) & 3) | 0x100];
+						}
+						if ((x + thr.cursorx + 3) >= 0 && (x + thr.cursorx + 3) < thr.vidc_xsize && (ramp[addr] >> 6) & 3) {
+							vidp[x + thr.cursorx + 3] = thr.vpal[((ramp[addr] >> 6) & 3) | 0x100];
+						}
 #ifdef _RPCEMU_BIG_ENDIAN
-                                                addr^=3;
+						addr ^= 3;
 #endif
-                                                addr++;
-                                        }
-                                }
-                        }
-                        break;
-                }
-                if (yl>thr.cursory) yl=thr.cursory;
-                if (yl==-1) yl=thr.cursory;
-                if (thr.cursory<0) yl=0;
-                if (yh<(thr.cursorheight+thr.cursory)) yh=thr.cursorheight+thr.cursory;
-        }
-        oldcursorheight=thr.cursorheight;
-        oldcursory=thr.cursory;
+						addr++;
+					}
+				}
+			}
+			break;
+		}
+		if (yl > thr.cursory) {
+			yl = thr.cursory;
+		}
+		if (yl == -1) {
+			yl = thr.cursory;
+		}
+		if (thr.cursory < 0) {
+			yl = 0;
+		}
+		if (yh < (thr.cursorheight + thr.cursory)) {
+			yh = thr.cursorheight + thr.cursory;
+		}
+	}
+	oldcursorheight = thr.cursorheight;
+	oldcursory = thr.cursory;
 
 
-        bmp_unwrite_line(b); 
-        
-        /* Clean the dirtybuffer now we have updated eveything in it */
-        memset(thr.dirtybuffer,0,512*4);
-        thr.needvsync = 1;
-//        rpclog("YL %i YH %i\n",yl,yh);
+	bmp_unwrite_line(b);
+
+	/* Clean the dirtybuffer now we have updated eveything in it */
+	memset(thr.dirtybuffer, 0, 512 * 4);
+	thr.needvsync = 1;
+
 	if (yh > thr.vidc_ysize) {
 		yh = thr.vidc_ysize;
 	}
-        if (yl==-1 && yh==-1) return;
-        if (yl==-1) yl=0;
-//        printf("Cursor %i %i %i\n",thr.cursorx,thr.cursory,thr.cursorheight);
-//        rpclog("%i %02X\n",drawcode,bit8);        
-//        rpclog("Blitting from 0,%i size %i,%i\n",yl,thr.xsize,thr.ysize);
+	if (yl == -1 && yh == -1) {
+		return;
+	}
+	if (yl == -1) {
+		yl = 0;
+	}
+
+	// printf("Cursor %i %i %i\n", thr.cursorx, thr.cursory, thr.cursorheight);
+	// rpclog("%i %02X\n", drawcode, bit8);
+	// rpclog("Blitting from 0,%i size %i,%i\n", yl, thr.xsize, thr.ysize);
 
 	/* Copy backbuffer to screen */
 	blitterthread(thr.vidc_xsize, thr.vidc_ysize, yl, yh, thr.doublesize);
 }
-
-
 
 void writevidc20(uint32_t val)
 {
