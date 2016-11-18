@@ -56,8 +56,7 @@ addlong(uint32_t a)
 static inline void
 addptr(const void *a)
 {
-	*((uint32_t *) &rcodeblock[blockpoint2][codeblockpos]) = (uint32_t) a;
-	codeblockpos += 4;
+	addlong((uint32_t) a);
 }
 
 #include "codegen_x86_common.h"
