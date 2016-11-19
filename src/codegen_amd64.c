@@ -1306,8 +1306,8 @@ endblock(uint32_t opcode)
 {
 	NOT_USED(opcode);
 
-        generateupdatepc();
-        generateupdateinscount();
+	generateupdatepc();
+	generateupdateinscount();
 
 	addbyte(0xff); addbyte(0x0c); addbyte(0x25); addptr(&linecyc); // DECL linecyc
 	gen_x86_jump(CC_S, 0);
@@ -1315,19 +1315,13 @@ endblock(uint32_t opcode)
 	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addptr(&armirq); addbyte(0xff); // TESTB $0xff,armirq
 	gen_x86_jump(CC_NZ, 0);
 
-        gen_load_reg(15, EAX);
-        addbyte(0x83); /*SUBL $8,%eax*/
-        addbyte(0xE8);
-        addbyte(0x08);
-	addbyte(0x48); /*MOVQ %rax,%rdx*/
-        addbyte(0x89);
-        addbyte(0xC2);
-        //if (arm.r15_mask != 0xfffffffc) {
-                addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
-        //}
-        addbyte(0x81); /*ANDL $0x1FFFC,%edx*/
-        addbyte(0xE2);
-        addlong(0x1FFFC);
+	gen_load_reg(15, EAX);
+	addbyte(0x83); addbyte(0xe8); addbyte(8); // SUB $8,%eax
+	addbyte(0x89); addbyte(0xc2); // MOV %eax,%edx
+	//if (arm.r15_mask != 0xfffffffc) {
+		addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
+	//}
+	addbyte(0x81); addbyte(0xe2); addlong(0x1fffc); // AND $0x1fffc,%edx
 	addbyte(0x3b); addbyte(0x82); addptr(codeblockpc); // CMP codeblockpc(%rdx),%eax
 	gen_x86_jump(CC_NE, 0);
 
@@ -1335,9 +1329,8 @@ endblock(uint32_t opcode)
 	addbyte(0x48); addbyte(0x8b); addbyte(0x04); addbyte(0xc5); addptr(codeblockaddr); // MOV codeblockaddr(,%rax,8),%rax
 
 	/* Jump to next block bypassing function prologue */
-	addbyte(0x48); addbyte(0x83); addbyte(0xc0); addbyte(block_enter); /* ADD $block_enter,%rax */
-        addbyte(0xFF); /*JMP *%rax*/
-        addbyte(0xE0);
+	addbyte(0x48); addbyte(0x83); addbyte(0xc0); addbyte(block_enter); // ADD $block_enter,%rax
+	addbyte(0xff); addbyte(0xe0); // JMP *%rax
 }
 
 void
