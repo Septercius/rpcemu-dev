@@ -2215,10 +2215,10 @@ generatepcinc(void)
 void
 endblock(uint32_t opcode)
 {
-        flagsdirty=0;
+	flagsdirty = 0;
 
-        generateupdatepc();
-        generateupdateinscount();
+	generateupdatepc();
+	generateupdateinscount();
 
 	gen_x86_jump_here_long(9);
 
@@ -2228,24 +2228,19 @@ endblock(uint32_t opcode)
 	addbyte(0xf6); addbyte(0x05); addptr(&armirq); addbyte(0xff); // TESTB $0xff,armirq
 	gen_x86_jump(CC_NZ, 0);
 
-        gen_load_reg(15, EAX);
-        if (arm.r15_mask != 0xfffffffc) {
-                addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
-        }
+	gen_load_reg(15, EAX);
+	if (arm.r15_mask != 0xfffffffc) {
+		addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
+	}
 
 	if (((opcode >> 20) & 0xff) == 0xaf) {
-		addbyte(0x3d); addlong(currentblockpc); /* CMP $currentblockpc,%eax */
+		addbyte(0x3d); addlong(currentblockpc); // CMP $currentblockpc,%eax
 		gen_x86_jump(CC_E, block_enter);
 	}
 
-        addbyte(0x83); /*SUBL $8,%eax*/
-        addbyte(0xE8);
-        addbyte(0x08);
-        addbyte(0x89); /*MOVL %eax,%edx*/
-        addbyte(0xC2);
-        addbyte(0x81); /*ANDL $0x1FFFC,%edx*/
-        addbyte(0xE2);
-        addlong(0x1FFFC);
+	addbyte(0x83); addbyte(0xe8); addbyte(8); // SUB $8,%eax
+	addbyte(0x89); addbyte(0xc2); // MOV %eax,%edx
+	addbyte(0x81); addbyte(0xe2); addlong(0x1fffc); // AND $0x1fffc,%edx
 	addbyte(0x3b); addbyte(0x82); addptr(codeblockpc); // CMP codeblockpc(%edx),%eax
 	gen_x86_jump(CC_NE, 0);
 
@@ -2253,10 +2248,8 @@ endblock(uint32_t opcode)
 	addbyte(0x8b); addbyte(0x04); addbyte(0x85); addptr(codeblockaddr); // MOV codeblockaddr(,%eax,4),%eax
 
 	/* Jump to next block bypassing function prologue */
-	addbyte(0x83); addbyte(0xc0); addbyte(block_enter); /* ADD $block_enter,%eax */
-
-        addbyte(0xFF); /*JMP *%eax*/
-        addbyte(0xE0);
+	addbyte(0x83); addbyte(0xc0); addbyte(block_enter); // ADD $block_enter,%eax
+	addbyte(0xff); addbyte(0xe0); // JMP *%eax
 }
 
 void
