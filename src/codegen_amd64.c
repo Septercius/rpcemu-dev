@@ -6,6 +6,7 @@
 #include "rpcemu.h"
 
 #include <assert.h>
+#include <stddef.h>
 #include <stdint.h>
 #include "codegen_amd64.h"
 #include "mem.h"
@@ -60,6 +61,32 @@ addptr64(const void *a)
 {
 	*((uint64_t *) &rcodeblock[blockpoint2][codeblockpos]) = (uint64_t) a;
 	codeblockpos += 8;
+}
+
+static inline void
+addrip(const void *addr)
+{
+	ptrdiff_t rel = ((const char *) addr) -
+	                ((const char *) &rcodeblock[blockpoint2][codeblockpos]);
+	addlong((uint32_t) (rel - 4));
+}
+
+static inline void
+addrip_byte(const void *addr, uint8_t x)
+{
+	ptrdiff_t rel = ((const char *) addr) -
+	                ((const char *) &rcodeblock[blockpoint2][codeblockpos]);
+	addlong((uint32_t) (rel - 5));
+	addbyte(x);
+}
+
+static inline void
+addrip_long(const void *addr, uint32_t x)
+{
+	ptrdiff_t rel = ((const char *) addr) -
+	                ((const char *) &rcodeblock[blockpoint2][codeblockpos]);
+	addlong((uint32_t) (rel - 8));
+	addlong(x);
 }
 
 #include "codegen_x86_common.h"
@@ -397,7 +424,7 @@ generate_shift(uint32_t opcode)
 static void
 gen_test_armirq(void)
 {
-	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addptr(&armirq); addbyte(0x40); // TESTB $0x40,armirq
+	addbyte(0xf6); addbyte(0x05); addrip_byte(&armirq, 0x40); // TESTB $0x40,armirq(%rip)
 	gen_x86_jump(CC_NZ, 0);
 }
 
@@ -1273,9 +1300,9 @@ generateupdateinscount(void)
 {
 	if (tempinscount != 0) {
 		if (tempinscount > 127) {
-			addbyte(0x81); addbyte(0x04); addbyte(0x25); addptr(&inscount); addlong(tempinscount); // ADDL $tempinscount,inscount
+			addbyte(0x81); addbyte(0x05); addrip_long(&inscount, tempinscount); // ADDL $tempinscount,inscount(%rip)
 		} else {
-			addbyte(0x83); addbyte(0x04); addbyte(0x25); addptr(&inscount); addbyte(tempinscount); // ADDL $tempinscount,inscount
+			addbyte(0x83); addbyte(0x05); addrip_byte(&inscount, (uint8_t) tempinscount); // ADDL $tempinscount,inscount(%rip)
 		}
 		tempinscount = 0;
 	}
@@ -1309,10 +1336,10 @@ endblock(uint32_t opcode)
 	generateupdatepc();
 	generateupdateinscount();
 
-	addbyte(0xff); addbyte(0x0c); addbyte(0x25); addptr(&linecyc); // DECL linecyc
+	addbyte(0x83); addbyte(0x2d); addrip_byte(&linecyc, 1); // SUBL $1,linecyc(%rip)
 	gen_x86_jump(CC_S, 0);
 
-	addbyte(0xf6); addbyte(0x04); addbyte(0x25); addptr(&armirq); addbyte(0xff); // TESTB $0xff,armirq
+	addbyte(0xf6); addbyte(0x05); addrip_byte(&armirq, 0xff); // TESTB $0xff,armirq(%rip)
 	gen_x86_jump(CC_NZ, 0);
 
 	gen_load_reg(15, EAX);
@@ -1348,11 +1375,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 		if (pcpsr == &arm.reg[15]) {
 			addbyte(0x41); addbyte(0xf7); addbyte(0xc4); addlong(0x40000000); // TEST $ZFLAG,%r12d
 		} else {
-			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x40*/
-			addbyte(0x04);
-			addbyte(0x25);
-			addptr(((char *) pcpsr) + 3);
-			addbyte(0x40);
+			addbyte(0xf6); addbyte(0x05); addrip_byte(((char *) pcpsr) + 3, 0x40); // TESTB $0x40,(pcpsr+3)(%rip)
 		}
 		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
 		break;
@@ -1361,11 +1384,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 		if (pcpsr == &arm.reg[15]) {
 			addbyte(0x41); addbyte(0xf7); addbyte(0xc4); addlong(0x20000000); // TEST $CFLAG,%r12d
 		} else {
-			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x20*/
-			addbyte(0x04);
-			addbyte(0x25);
-			addptr(((char *) pcpsr) + 3);
-			addbyte(0x20);
+			addbyte(0xf6); addbyte(0x05); addrip_byte(((char *) pcpsr) + 3, 0x20); // TESTB $0x20,(pcpsr+3)(%rip)
 		}
 		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
 		break;
@@ -1375,11 +1394,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 			addbyte(0x45); addbyte(0x09); addbyte(0xe4); // OR %r12d,%r12d
 			cond = ((opcode >> 28) & 1) ? CC_S : CC_NS;
 		} else {
-			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x80*/
-			addbyte(0x04);
-			addbyte(0x25);
-			addptr(((char *) pcpsr) + 3);
-			addbyte(0x80);
+			addbyte(0xf6); addbyte(0x05); addrip_byte(((char *) pcpsr) + 3, 0x80); // TESTB $0x80,(pcpsr+3)(%rip)
 			cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
 		}
 		break;
@@ -1388,11 +1403,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 		if (pcpsr == &arm.reg[15]) {
 			addbyte(0x41); addbyte(0xf7); addbyte(0xc4); addlong(0x10000000); // TEST $VFLAG,%r12d
 		} else {
-			addbyte(0xF6); /*TESTB (pcpsr>>24),$0x10*/
-			addbyte(0x04);
-			addbyte(0x25);
-			addptr(((char *) pcpsr) + 3);
-			addbyte(0x10);
+			addbyte(0xf6); addbyte(0x05); addrip_byte(((char *) pcpsr) + 3, 0x10); // TESTB $0x10,(pcpsr+3)(%rip)
 		}
 		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
 		break;
@@ -1400,7 +1411,7 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 		if (pcpsr == &arm.reg[15]) {
 			gen_load_reg(15, EAX);
 		} else {
-			addbyte(0x8b); addbyte(0x04); addbyte(0x25); addptr(pcpsr); // MOV pcpsr,%eax
+			addbyte(0x8b); addbyte(0x05); addrip(pcpsr); // MOV pcpsr(%rip),%eax
 		}
 		addbyte(0xc1); addbyte(0xe8); addbyte(28); // SHR $28,%eax
 		addbyte(0x80); addbyte(0xb8); addptr(&flaglookup[opcode >> 28][0]); addbyte(0); // CMPB $0,flaglookup(%rax)
