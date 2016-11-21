@@ -51,12 +51,6 @@ addlong(uint32_t a)
 }
 
 static inline void
-addptr(const void *a)
-{
-	addlong((uint32_t) (uintptr_t) a);
-}
-
-static inline void
 addptr64(const void *a)
 {
 	*((uint64_t *) &rcodeblock[blockpoint2][codeblockpos]) = (uint64_t) a;
@@ -1342,18 +1336,21 @@ endblock(uint32_t opcode)
 	addbyte(0xf6); addbyte(0x05); addrip_byte(&armirq, 0xff); // TESTB $0xff,armirq(%rip)
 	gen_x86_jump(CC_NZ, 0);
 
+	addbyte(0x48); addbyte(0x8d); addbyte(0x0d); addrip(codeblockpc); // LEA codeblockpc(%rip),%rcx
 	gen_load_reg(15, EAX);
 	addbyte(0x83); addbyte(0xe8); addbyte(8); // SUB $8,%eax
+	addbyte(0x48); addbyte(0x8d); addbyte(0x1d); addrip(codeblocknum); // LEA codeblocknum(%rip),%rbx
 	addbyte(0x89); addbyte(0xc2); // MOV %eax,%edx
 	//if (arm.r15_mask != 0xfffffffc) {
 		addbyte(0x25); addlong(arm.r15_mask); // AND $arm.r15_mask,%eax
 	//}
+	addbyte(0x4c); addbyte(0x8d); addbyte(0x05); addrip(codeblockaddr); // LEA codeblockaddr(%rip),%r8
 	addbyte(0x81); addbyte(0xe2); addlong(0x1fffc); // AND $0x1fffc,%edx
-	addbyte(0x3b); addbyte(0x82); addptr(codeblockpc); // CMP codeblockpc(%rdx),%eax
+	addbyte(0x3b); addbyte(0x04); addbyte(0x11); // CMP (%rcx,%rdx),%eax
 	gen_x86_jump(CC_NE, 0);
 
-	addbyte(0x8b); addbyte(0x82); addptr(codeblocknum); // MOV codeblocknum(%rdx),%eax
-	addbyte(0x48); addbyte(0x8b); addbyte(0x04); addbyte(0xc5); addptr(codeblockaddr); // MOV codeblockaddr(,%rax,8),%rax
+	addbyte(0x8b); addbyte(0x04); addbyte(0x13); // MOV (%rbx,%rdx),%eax
+	addbyte(0x49); addbyte(0x8b); addbyte(0x04); addbyte(0xc0); // MOV (%r8,%rax,8),%rax
 
 	/* Jump to next block bypassing function prologue */
 	addbyte(0x48); addbyte(0x83); addbyte(0xc0); addbyte(block_enter); // ADD $block_enter,%rax
@@ -1408,13 +1405,14 @@ generateflagtestandbranch(uint32_t opcode, uint32_t *pcpsr)
 		cond = ((opcode >> 28) & 1) ? CC_NE : CC_E;
 		break;
 	default:
+		addbyte(0x48); addbyte(0x8d); addbyte(0x1d); addrip(&flaglookup[opcode >> 28][0]); // LEA flaglookup(%rip),%rbx
 		if (pcpsr == &arm.reg[15]) {
 			gen_load_reg(15, EAX);
 		} else {
 			addbyte(0x8b); addbyte(0x05); addrip(pcpsr); // MOV pcpsr(%rip),%eax
 		}
 		addbyte(0xc1); addbyte(0xe8); addbyte(28); // SHR $28,%eax
-		addbyte(0x80); addbyte(0xb8); addptr(&flaglookup[opcode >> 28][0]); addbyte(0); // CMPB $0,flaglookup(%rax)
+		addbyte(0x80); addbyte(0x3c); addbyte(0x03); addbyte(0); // CMPB $0,(%rbx,%rax)
 		cond = CC_E;
 		break;
 	}
