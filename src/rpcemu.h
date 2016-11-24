@@ -47,15 +47,6 @@
 	#define _RPCEMU_BIG_ENDIAN
 #endif
 
-/*This determines whether RPCemu can use hardware to blit and scale the display.
-  If this is disabled then modes lower than 640x480 can look odd, and the system
-  is slower. However, this must be commented out on some ports (Linux)*/
-#ifndef __unix
-#ifndef __MACH__
-#define HARDWAREBLIT
-#endif
-#endif
-
 /* Does this platform support one or more of our networking types? */
 /* Note that networking is currently supported on Mac OS X with the Cocoa GUI
    version but not with the Allegro GUI. */
