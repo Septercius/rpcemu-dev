@@ -35,13 +35,18 @@ static int tempinscount;
 static int codeblockpos;
 static int lastjumppos;
 
-#define addbyte(a)         rcodeblock[blockpoint2][codeblockpos]=(unsigned char) (a),codeblockpos++
-
 static int blockpoint = 0, blockpoint2;
 static uint32_t blocks[BLOCKS];
 static int pcinc = 0;
 static int lastrecompiled = 0;
 static int block_enter;
+
+static inline void
+addbyte(uint32_t a)
+{
+	rcodeblock[blockpoint2][codeblockpos] = (uint8_t) a;
+	codeblockpos++;
+}
 
 static inline void
 addlong(uint32_t a)

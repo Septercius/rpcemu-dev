@@ -34,8 +34,6 @@ static int tempinscount;
 
 static int codeblockpos = 0;
 
-#define addbyte(a)         rcodeblock[blockpoint2][codeblockpos]=(uint8_t)(a),codeblockpos++
-
 static unsigned char lahftable[256], lahftablesub[256];
 
 static void gen_load_reg(int reg, int x86reg);
@@ -45,6 +43,13 @@ static int blockpoint = 0, blockpoint2 = 0;
 static uint32_t blocks[BLOCKS];
 static int pcinc = 0;
 static int block_enter;
+
+static inline void
+addbyte(uint32_t a)
+{
+	rcodeblock[blockpoint2][codeblockpos] = (uint8_t) a;
+	codeblockpos++;
+}
 
 static inline void
 addlong(uint32_t a)
