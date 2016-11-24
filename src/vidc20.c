@@ -15,10 +15,7 @@
 #include "iomd.h"
 
 int fullscreen = 0; /**< Bool of whether in host fullscreen mode or not */ 
-static BITMAP *b = NULL, *bs2 = NULL, *bs3 = NULL, *bs4 = NULL;
-#ifdef HARDWAREBLIT                
-static int currentbuffer=1;
-#endif
+static BITMAP *b = NULL;
 static int current_sizex = -1; /**< Size of the host screen, including any doublesize doubling, -1 on invalid and in fullscreen */
 static int current_sizey = -1; /**< Size of the host screen, including any doublesize doubling, -1 on invalid and in fullscreen */
 static int host_bpp = 0; /**< Which drawing code to use, 16 or 32bpp */
@@ -99,22 +96,6 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 	BITMAP *backbuf = screen;
 	int lfullscreen = fullscreen; /* Take a local copy of the fullscreen var, as other threads can change it mid blit */
 
-#ifdef HARDWAREBLIT
-	if (lfullscreen) {
-		switch (currentbuffer) {
-		case 0:
-			backbuf = bs4;
-			break;
-		case 1:
-			backbuf = bs2;
-			break;
-		case 2:
-			backbuf = bs3;
-			break;
-		}
-	}
-#endif
-
 	switch (doublesize) {
 	case VIDC_DOUBLE_NONE:
 		if (lfullscreen) {
@@ -161,25 +142,6 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 		}
 		break;
 	}
-
-#ifdef HARDWAREBLIT
-	if (lfullscreen) {
-		switch (currentbuffer) {
-		case 0:
-			request_video_bitmap(bs4);
-			currentbuffer = 1;
-			break;
-		case 1:
-			request_video_bitmap(bs2);
-			currentbuffer = 2;
-			break;
-		case 2:
-			request_video_bitmap(bs3);
-			currentbuffer = 0;
-			break;
-		}
-	}
-#endif
 }
 
 #define DEFAULT_W 640
@@ -256,16 +218,13 @@ vidc_get_doublesize(int *double_x, int *double_y)
 	*double_y = doublesize & VIDC_DOUBLE_Y;
 }
 
-static void freebitmaps(void)
+static void
+freebitmaps(void)
 {
-        if (b) destroy_bitmap(b);
-        if (bs2) destroy_bitmap(bs2);
-        if (bs3) destroy_bitmap(bs3);
-        if (bs4) destroy_bitmap(bs4);
-        b = NULL;
-        bs2 = NULL;
-        bs3 = NULL;
-        bs4 = NULL;
+	if (b != NULL) {
+		destroy_bitmap(b);
+		b = NULL;
+	}
 }
 
 static const int fullresolutions[][2]=
@@ -311,19 +270,11 @@ resizedisplay(int x, int y)
         freebitmaps();
         if (fullscreen)
         {
-#ifdef HARDWAREBLIT
-                int full_x, full_y; /* resolution we're going to try to use for full screen */
-#endif
                 c=0;
 
                 /* First try setting the host screen to the exact size of the emulated screen */
                 if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN, x, y, 0, 0) == 0)
                 {
-#ifdef HARDWAREBLIT
-                        /* Successfully set the screen size to the emulated mode size */
-                        full_x = x;
-                        full_y = y;
-#endif
                 }
                 else
                 {
@@ -352,10 +303,6 @@ tryagain:
                                 {
                                         /* Ran out of possible host modes to try - falling back on 640x480 */
                                         set_gfx_mode(GFX_AUTODETECT_FULLSCREEN,640,480,0,0);
-#ifdef HARDWAREBLIT
-                                        full_x = fullresolutions[c][0];
-                                        full_y = fullresolutions[c][1];
-#endif
                                 }
                                 else
                                 {
@@ -364,26 +311,7 @@ tryagain:
                                         goto tryagain;
                                 }
                         }
-#ifdef HARDWAREBLIT
-                        else
-                        {
-                                /* Successfully set mode */
-                                full_x = fullresolutions[c][0];
-                                full_y = fullresolutions[c][1];
-                        }
-#endif
                 }
-#ifdef HARDWAREBLIT                
-//                rpclog("Mode set\n");
-                bs2 = create_video_bitmap(full_x, full_y);
-                bs3 = create_video_bitmap(full_x, full_y);
-                bs4 = create_video_bitmap(full_x, full_y);
-                clear(bs2);
-                clear(bs3);
-                clear(bs4);
-                show_video_bitmap(bs4);
-                currentbuffer=1;
-#endif
                 b = create_bitmap(x + 16, y + 16);
         }
         else
