@@ -345,44 +345,49 @@ generatedataprocS(uint32_t opcode, unsigned char dataop, uint32_t templ)
 static int
 generate_shift(uint32_t opcode)
 {
-        unsigned int temp;
-        if (opcode&0x10) return 0; /*Can't do shift by register ATM*/
-        if (!(opcode&0xFF0)) /*No shift*/
-        {
-                gen_load_reg(RM, EAX);
-                return 1;
-        }
-        temp=(opcode>>7)&31;
-//        if ((temp-1)>=31) return 0;
-        switch (opcode&0x60)
-        {
-                case 0x00: /*LSL*/
-                gen_load_reg(RM, EAX);
-                if (temp) addbyte(0xC1); addbyte(0xE0); addbyte(temp); /*SHL $temp,%eax*/
-                return 1;
-                case 0x20: /*LSR*/
-                if (temp)
-                {
-                        gen_load_reg(RM, EAX);
-                        addbyte(0xC1); addbyte(0xE8); addbyte(temp); /*SHR $temp,%eax*/
-                }
-                else
-                {
-                        addbyte(0x31); addbyte(0xC0); /*XOR %eax,%eax*/
-                }
-                return 1;
-                case 0x40: /*ASR*/
-                if (!temp) temp=31;
-                gen_load_reg(RM, EAX);
-                addbyte(0xC1); addbyte(0xF8); addbyte(temp); /*SAR $temp,%eax*/
-                return 1;
-                case 0x60: /*ROR*/
-                if (!temp) break;
-                gen_load_reg(RM, EAX);
-                addbyte(0xC1); addbyte(0xC8); addbyte(temp); /*ROR $temp,%eax*/
-                return 1;
-        }
-        return 0;
+	uint32_t shift_amount;
+
+	if (opcode & 0x10) {
+		return 0; /* Can't do register shifts or multiplies */
+	}
+	if ((opcode & 0xff0) == 0) {
+		/* No shift */
+		gen_load_reg(RM, EAX);
+		return 1;
+	}
+	shift_amount = (opcode >> 7) & 0x1f;
+	switch (opcode & 0x60) {
+	case 0x00: /* LSL */
+		gen_load_reg(RM, EAX);
+		if (shift_amount != 0) {
+			addbyte(0xc1); addbyte(0xe0); addbyte(shift_amount); // SHL $shift_amount,%eax
+		}
+		return 1;
+	case 0x20: /* LSR */
+		if (shift_amount != 0) {
+			gen_load_reg(RM, EAX);
+			addbyte(0xc1); addbyte(0xe8); addbyte(shift_amount); // SHR $shift_amount,%eax
+		} else {
+			addbyte(0x31); addbyte(0xc0); // XOR %eax,%eax
+		}
+		return 1;
+	case 0x40: /* ASR */
+		if (shift_amount == 0) {
+			shift_amount = 31;
+		}
+		gen_load_reg(RM, EAX);
+		addbyte(0xc1); addbyte(0xf8); addbyte(shift_amount); // SAR $shift_amount,%eax
+		return 1;
+	default: /* ROR */
+		if (shift_amount == 0) {
+			/* RRX */
+			break;
+		}
+		gen_load_reg(RM, EAX);
+		addbyte(0xc1); addbyte(0xc8); addbyte(shift_amount); // ROR $shift_amount,%eax
+		return 1;
+	}
+	return 0;
 }
 
 static int
