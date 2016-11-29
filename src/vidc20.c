@@ -93,13 +93,12 @@ uint8_t *dirtybuffer = dirtybuffer1;
 static void
 blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 {
-	BITMAP *backbuf = screen;
 	int lfullscreen = fullscreen; /* Take a local copy of the fullscreen var, as other threads can change it mid blit */
 
 	switch (doublesize) {
 	case VIDC_DOUBLE_NONE:
 		if (lfullscreen) {
-			blit(b, backbuf, 0, 0, (SCREEN_W - xs) >> 1, ((SCREEN_H - current_sizey) >> 1), xs, ys);
+			blit(b, screen, 0, 0, (SCREEN_W - xs) >> 1, ((SCREEN_H - current_sizey) >> 1), xs, ys);
 		} else {
 			blit(b, screen, 0, yl, 0, yl, xs, yh - yl);
 		}
@@ -108,7 +107,7 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 	case VIDC_DOUBLE_X:
 		ys = yh - yl;
 		if (lfullscreen) {
-			stretch_blit(b, backbuf, 0, yl, xs, ys,
+			stretch_blit(b, screen, 0, yl, xs, ys,
 				     (SCREEN_W - (xs << 1)) >> 1,
 				     yl + ((SCREEN_H - current_sizey) >> 1),
 				     xs << 1, ys);
@@ -122,7 +121,7 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 
 	case VIDC_DOUBLE_Y:
 		if (lfullscreen) {
-			stretch_blit(b, backbuf, 0, 0, xs, ys, 0, 0, xs, (ys << 1) - 1);
+			stretch_blit(b, screen, 0, 0, xs, ys, 0, 0, xs, (ys << 1) - 1);
 		} else {
 			stretch_blit(b, screen, 0, 0, xs, ys, 0, 0, xs, (ys << 1) - 1);
 		}
@@ -130,7 +129,7 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 
 	case VIDC_DOUBLE_BOTH:
 		if (lfullscreen) {
-			stretch_blit(b, backbuf, 0, 0, xs, ys,
+			stretch_blit(b, screen, 0, 0, xs, ys,
 				     (SCREEN_W - (xs << 1)) >> 1,
 				     ((SCREEN_H - current_sizey) >> 1),
 				     xs << 1, (ys << 1) - 1);
@@ -272,15 +271,12 @@ resizedisplay(int x, int y)
         {
                 c=0;
 
-                /* First try setting the host screen to the exact size of the emulated screen */
-                if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN, x, y, 0, 0) == 0)
-                {
-                }
-                else
-                {
-                        /* Try looping through a series of progressively larger 'common'
-                           modes to find one that the host OS accepts and that the emulated
-                           mode will fit inside */
+		/* First try setting the host screen to the exact size of the emulated screen */
+		if (set_gfx_mode(GFX_AUTODETECT_FULLSCREEN, x, y, 0, 0) != 0)
+		{
+			/* We failed setting the exact size so try looping through a series
+			   of progressively larger 'common' modes to find one that the host
+			   OS accepts and that the emulated mode will fit inside */
 tryagain:
                         while (fullresolutions[c][0]!=-1)
                         {
@@ -312,7 +308,6 @@ tryagain:
                                 }
                         }
                 }
-                b = create_bitmap(x + 16, y + 16);
         }
         else
         {
@@ -320,8 +315,8 @@ tryagain:
 		if (x < MIN_X_SIZE) x = MIN_X_SIZE;
 		if (y < MIN_Y_SIZE) y = MIN_Y_SIZE;
                 updatewindowsize(x,y);
-                b = create_bitmap(x, y);
         }
+	b = create_bitmap(x, y);
 
 #ifdef RPCEMU_WIN
 	/* On Windows, we need to reset the BACKGROUND mode on every screen
