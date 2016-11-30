@@ -110,18 +110,36 @@ void mem_reset(uint32_t ramsize)
 	}
 }
 
-#define vradd(a,v,f,p) if (vraddrls[vraddrlpos]!=0xFFFFFFFF) vraddrl[vraddrls[vraddrlpos]]=0xFFFFFFFF; \
-                       vraddrls[vraddrlpos]=a>>12; \
-                       vraddrl[a >> 12] = (uintptr_t) (v); /*|(f);*/ \
-                       vraddrphys[vraddrlpos]=p; \
-                       vraddrlpos=(vraddrlpos+1)&1023;
-                       
-#define vwadd(a,v,f,p) cacheclearpage(a>>12); /*Invalidate all code blocks on this page, so that any blocks on this page are forced to be recompiled*/ \
-                       if (vwaddrls[vwaddrlpos]!=0xFFFFFFFF) vwaddrl[vwaddrls[vwaddrlpos]]=0xFFFFFFFF; \
-                       vwaddrls[vwaddrlpos]=a>>12; \
-                       vwaddrl[a >> 12] = (uintptr_t) (v); /*|(f);*/ \
-                       vwaddrphys[vwaddrlpos]=p; \
-                       vwaddrlpos=(vwaddrlpos+1)&1023;
+static inline void
+vradd(uint32_t a, const void *v, uint32_t f, uint32_t p)
+{
+	NOT_USED(f);
+
+	if (vraddrls[vraddrlpos] != 0xffffffff) {
+		vraddrl[vraddrls[vraddrlpos]] = 0xffffffff;
+	}
+	vraddrls[vraddrlpos] = a >> 12;
+	vraddrl[a >> 12] = (uintptr_t) v; /* | f; */
+	vraddrphys[vraddrlpos] = p;
+	vraddrlpos = (vraddrlpos + 1) & 0x3ff;
+}
+
+static inline void
+vwadd(uint32_t a, const void *v, uint32_t f, uint32_t p)
+{
+	NOT_USED(f);
+
+	/* Invalidate all code blocks on this page, so that any blocks on this
+	   page are forced to be recompiled */
+	cacheclearpage(a >> 12);
+	if (vwaddrls[vwaddrlpos] != 0xffffffff) {
+		vwaddrl[vwaddrls[vwaddrlpos]] = 0xffffffff;
+	}
+	vwaddrls[vwaddrlpos] = a >> 12;
+	vwaddrl[a >> 12] = (uintptr_t) v; /* | f; */
+	vwaddrphys[vwaddrlpos] = p;
+	vwaddrlpos = (vwaddrlpos + 1) & 0x3ff;
+}
 
 /**
  * Read a 32-bit word from a physical address.
