@@ -837,7 +837,7 @@ findextkey(int c)
 }
 
 static void
-ps2_queue_break(void)
+keyboard_queue_break(void)
 {
 	/* Break has 8-byte key-down code, and no key-up */
 	ps2_queue(&kbd.queue, 0xe1);
@@ -870,7 +870,7 @@ keyboard_poll(void)
 		if (c == KEY_F12 && kbd.keys2[KEY_F12] && (key_shifts & KB_COMMAND_FLAG)) {
 			/* Cmd-F12 - Translate to break */
 			kbd.f12transtobreak = 1;
-			ps2_queue_break();
+			keyboard_queue_break();
 		} else if (c == KEY_F12 && !kbd.keys2[KEY_F12] && kbd.f12transtobreak) {
 			/* F12 key down corresponding to this key up was
 			   translated to break - eat the key up event
@@ -904,7 +904,7 @@ keyboard_poll(void)
 			ps2_queue(&kbd.queue, extendedkeys[idx][2]);
 
 		} else if (c == KEY_PAUSE) {
-			ps2_queue_break();
+			keyboard_queue_break();
 		} else {
 			/* unhandled key */
 			continue;
