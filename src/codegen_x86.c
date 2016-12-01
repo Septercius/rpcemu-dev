@@ -878,6 +878,9 @@ gen_arm_store_multiple_s(uint32_t opcode, uint32_t offset)
 		if (opcode & mask) {
 			addbyte(0x8b); addbyte(0x0d); addptr(&usrregs[c]); // MOV usrregs[c],%ecx
 			addbyte(0x8b); addbyte(0x01); // MOV (%ecx),%eax
+			if ((c == 15) && (arm.r15_diff != 0)) {
+				addbyte(0x83); addbyte(0xc0); addbyte(arm.r15_diff); // ADD $arm.r15_diff,%eax
+			}
 			addbyte(0x89); addbyte(0x43); addbyte(d); // MOV %eax,d(%ebx)
 			d += 4;
 		}
