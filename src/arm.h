@@ -4,7 +4,7 @@
 #include "rpcemu.h"
 
 typedef struct {
-	uint32_t	reg[18];
+	uint32_t	reg[17];
 	uint32_t	mode;
 	uint32_t	mmask;
 	uint32_t	r15_mask;
