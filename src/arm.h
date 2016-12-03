@@ -40,6 +40,7 @@ extern void initcodeblock(uint32_t l);
 extern uint32_t *usrregs[16];
 extern uint32_t armirq;
 extern int cpsr;
+extern uint32_t pccache;
 
 #define PC	((arm.reg[15] - 8) & arm.r15_mask)
 
