@@ -121,9 +121,13 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 
 	case VIDC_DOUBLE_Y:
 		if (lfullscreen) {
-			stretch_blit(b, screen, 0, 0, xs, ys, 0, 0, xs, (ys << 1) - 1);
+			stretch_blit(b, screen, 0, 0, xs, ys,
+			             0, 0,
+			             xs, ys << 1);
 		} else {
-			stretch_blit(b, screen, 0, 0, xs, ys, 0, 0, xs, (ys << 1) - 1);
+			stretch_blit(b, screen, 0, 0, xs, ys,
+			             0, 0,
+			             xs, ys << 1);
 		}
 		break;
 
@@ -132,12 +136,11 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 			stretch_blit(b, screen, 0, 0, xs, ys,
 				     (SCREEN_W - (xs << 1)) >> 1,
 				     ((SCREEN_H - current_sizey) >> 1),
-				     xs << 1, (ys << 1) - 1);
+				     xs << 1, ys << 1);
 		} else {
-			stretch_blit(b,  screen, 0, 0, xs, ys,
-				     0,
-				     0,
-				     xs << 1, (ys << 1) - 1);
+			stretch_blit(b, screen, 0, 0, xs, ys,
+			             0, 0,
+			             xs << 1, ys << 1);
 		}
 		break;
 	}
