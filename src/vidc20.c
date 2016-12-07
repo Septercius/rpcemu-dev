@@ -1,5 +1,14 @@
 /*RPCemu v0.6 by Tom Walker
   VIDC20 emulation*/
+/*
+ References:
+   ARM VIDC20 Datasheet - ARM DDI 0030E
+   Acorn Risc PC Technical Reference Manual - ISBN 1 85250 144 8
+   VIDC Datasheet - ISBN 1 85250 027 1 (VIDC 1 Datasheet)
+   ARM 7500 Datasheet - ARM DDI 0050C
+   ARM 7500FE Datasheet - ARM DDI 0077B
+   Cirrus Logic CL-PS7500FE Advance Data Book
+*/
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,8 +44,10 @@ static int doublesize = VIDC_DOUBLE_NONE; /**< Current state of doubling X/Y val
 
 /* This state is written by the main thread. The display thread should not read it. */
 static struct vidc_state {
-        uint32_t vidcpal[0x104];
-        int palindex;
+        uint32_t palette[256];		/**< Video Palette */
+        int palindex;			/**< index into the palette[] array to write to */
+        uint32_t border_colour;		/**< Border Colour */
+        uint32_t cursor_palette[3];	/**< Cursor Palette */
         uint32_t hdsr,hcsr,hder;
         uint32_t vdsr,vcsr,vcer,vder;
         uint32_t b0,b1;
@@ -53,7 +64,9 @@ static struct cached_state {
                 uint32_t r,g,b;
         } pal[256];
         uint16_t pal16lookup[65536];
-        uint32_t vpal[260];
+        uint32_t palette[256];		/**< Video Palette */
+        uint32_t border_colour;		/**< Border Colour */
+        uint32_t cursor_palette[3];	/**< Cursor Palette */
         uint32_t iomd_vidstart;
         uint32_t iomd_vidend;
         uint32_t iomd_vidinit;
@@ -358,16 +371,24 @@ vidc_palette_update(void)
 {
 	int i;
 
-	for (i = 0; i < 0x100; i++) {
-		thr.pal[i].r = makecol(vidc.vidcpal[i] & 0xff, 0, 0);
-		thr.pal[i].g = makecol(0, (vidc.vidcpal[i] >> 8) & 0xff, 0);
-		thr.pal[i].b = makecol(0, 0, (vidc.vidcpal[i] >> 16) & 0xff);
+	for (i = 0; i < 256; i++) {
+		thr.pal[i].r = makecol(vidc.palette[i] & 0xff, 0, 0);
+		thr.pal[i].g = makecol(0, (vidc.palette[i] >> 8) & 0xff, 0);
+		thr.pal[i].b = makecol(0, 0, (vidc.palette[i] >> 16) & 0xff);
+
+		thr.palette[i] = makecol(vidc.palette[i] & 0xff,
+		                         (vidc.palette[i] >> 8) & 0xff,
+		                         (vidc.palette[i] >> 16) & 0xff);
 	}
-	for (i = 0; i < 0x104; i++) {
-		thr.vpal[i] = makecol(vidc.vidcpal[i] & 0xff,
-		                      (vidc.vidcpal[i] >> 8) & 0xff,
-		                      (vidc.vidcpal[i] >> 16) & 0xff);
+	for (i = 0; i < 3; i++) {
+		thr.cursor_palette[i] = makecol(vidc.cursor_palette[i] & 0xff,
+		                                (vidc.cursor_palette[i] >> 8) & 0xff,
+		                                (vidc.cursor_palette[i] >> 16) & 0xff);
 	}
+	thr.border_colour = makecol(vidc.border_colour & 0xff,
+	                            (vidc.border_colour >> 8) & 0xff,
+	                            (vidc.border_colour >> 16) & 0xff);
+
 	if ((vidc.bit8 == 4) && (host_bpp == 16)) {
 		for (i = 0; i < 65536; i++) {
 			thr.pal16lookup[i] = thr.pal[i & 0xff].r |
@@ -457,7 +478,7 @@ void drawscr(int needredraw)
                         {
                                 dirtybuffer[0]=0;
                                 vidc.palchange=0;
-                                rectfill(b, 0, 0, thr.host_xsize, thr.host_ysize, thr.vpal[0x100]);
+                                rectfill(b, 0, 0, thr.host_xsize, thr.host_ysize, thr.border_colour);
 //                                      printf("%i %i\n", thr.vidc_xsize, thr.vidc_ysize);
                                 blit(b, screen, 0, 0, 0, 0, thr.host_xsize, thr.host_ysize);
                         }
@@ -598,16 +619,16 @@ vidcthread(void)
 						for (xx = 0; xx < 4; xx += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
 							addr ^= 3;
-							vidp[x + xx]     = (thr.vpal[ramp[addr] & 1] << 16)        | thr.vpal[(ramp[addr] >> 1) & 1];
-							vidp[x + xx + 1] = (thr.vpal[(ramp[addr] >> 2) & 1] << 16) | thr.vpal[(ramp[addr] >> 3) & 1];
-							vidp[x + xx + 2] = (thr.vpal[(ramp[addr] >> 4) & 1] << 16) | thr.vpal[(ramp[addr] >> 5) & 1];
-							vidp[x + xx + 3] = (thr.vpal[(ramp[addr] >> 6) & 1] << 16) | thr.vpal[(ramp[addr] >> 7) & 1];
+							vidp[x + xx]     = (thr.palette[ramp[addr] & 1] << 16)        | thr.palette[(ramp[addr] >> 1) & 1];
+							vidp[x + xx + 1] = (thr.palette[(ramp[addr] >> 2) & 1] << 16) | thr.palette[(ramp[addr] >> 3) & 1];
+							vidp[x + xx + 2] = (thr.palette[(ramp[addr] >> 4) & 1] << 16) | thr.palette[(ramp[addr] >> 5) & 1];
+							vidp[x + xx + 3] = (thr.palette[(ramp[addr] >> 6) & 1] << 16) | thr.palette[(ramp[addr] >> 7) & 1];
 							addr ^= 3;
 #else
-							vidp[x + xx]     = thr.vpal[ramp[addr] & 1]        | (thr.vpal[(ramp[addr] >> 1) & 1] << 16);
-							vidp[x + xx + 1] = thr.vpal[(ramp[addr] >> 2) & 1] | (thr.vpal[(ramp[addr] >> 3) & 1] << 16);
-							vidp[x + xx + 2] = thr.vpal[(ramp[addr] >> 4) & 1] | (thr.vpal[(ramp[addr] >> 5) & 1] << 16);
-							vidp[x + xx + 3] = thr.vpal[(ramp[addr] >> 6) & 1] | (thr.vpal[(ramp[addr] >> 7) & 1] << 16);
+							vidp[x + xx]     = thr.palette[ramp[addr] & 1]        | (thr.palette[(ramp[addr] >> 1) & 1] << 16);
+							vidp[x + xx + 1] = thr.palette[(ramp[addr] >> 2) & 1] | (thr.palette[(ramp[addr] >> 3) & 1] << 16);
+							vidp[x + xx + 2] = thr.palette[(ramp[addr] >> 4) & 1] | (thr.palette[(ramp[addr] >> 5) & 1] << 16);
+							vidp[x + xx + 3] = thr.palette[(ramp[addr] >> 6) & 1] | (thr.palette[(ramp[addr] >> 7) & 1] << 16);
 #endif
 							addr++;
 						}
@@ -656,12 +677,12 @@ vidcthread(void)
 						for (xx = 0; xx < 2; xx += 2) {
 #ifdef _RPCEMU_BIG_ENDIAN
 							addr ^= 3;
-							vidp[x + xx]     = (thr.vpal[ramp[addr] & 3] << 16)        | thr.vpal[(ramp[addr] >> 2) & 3];
-							vidp[x + xx + 1] = (thr.vpal[(ramp[addr] >> 4) & 3] << 16) | thr.vpal[(ramp[addr] >> 6) & 3];
+							vidp[x + xx]     = (thr.palette[ramp[addr] & 3] << 16)        | thr.palette[(ramp[addr] >> 2) & 3];
+							vidp[x + xx + 1] = (thr.palette[(ramp[addr] >> 4) & 3] << 16) | thr.palette[(ramp[addr] >> 6) & 3];
 							addr ^= 3;
 #else
-							vidp[x + xx]     = thr.vpal[ramp[addr] & 3]        | (thr.vpal[(ramp[addr] >> 2) & 3] << 16);
-							vidp[x + xx + 1] = thr.vpal[(ramp[addr] >> 4) & 3] | (thr.vpal[(ramp[addr] >> 6) & 3] << 16);
+							vidp[x + xx]     = thr.palette[ramp[addr] & 3]        | (thr.palette[(ramp[addr] >> 2) & 3] << 16);
+							vidp[x + xx + 1] = thr.palette[(ramp[addr] >> 4) & 3] | (thr.palette[(ramp[addr] >> 6) & 3] << 16);
 #endif
 							addr++;
 						}
@@ -709,15 +730,15 @@ vidcthread(void)
 						int xx;
 						for (xx = 0; xx < 16; xx += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
-							vidp[x + xx + 3] = thr.vpal[ramp[addr] >> 4]     | (thr.vpal[ramp[addr] & 0xf] << 16);
-							vidp[x + xx + 2] = thr.vpal[ramp[addr + 1] >> 4] | (thr.vpal[ramp[addr + 1] & 0xf] << 16);
-							vidp[x + xx + 1] = thr.vpal[ramp[addr + 2] >> 4] | (thr.vpal[ramp[addr + 2] & 0xf] << 16);
-							vidp[x + xx]     = thr.vpal[ramp[addr + 3] >> 4] | (thr.vpal[ramp[addr + 3] & 0xf] << 16);
+							vidp[x + xx + 3] = thr.palette[ramp[addr] >> 4]     | (thr.palette[ramp[addr] & 0xf] << 16);
+							vidp[x + xx + 2] = thr.palette[ramp[addr + 1] >> 4] | (thr.palette[ramp[addr + 1] & 0xf] << 16);
+							vidp[x + xx + 1] = thr.palette[ramp[addr + 2] >> 4] | (thr.palette[ramp[addr + 2] & 0xf] << 16);
+							vidp[x + xx]     = thr.palette[ramp[addr + 3] >> 4] | (thr.palette[ramp[addr + 3] & 0xf] << 16);
 #else
-							vidp[x + xx]     = thr.vpal[ramp[addr] & 0xf]     | (thr.vpal[ramp[addr] >> 4] << 16);
-							vidp[x + xx + 1] = thr.vpal[ramp[addr + 1] & 0xf] | (thr.vpal[ramp[addr + 1] >> 4] << 16);
-							vidp[x + xx + 2] = thr.vpal[ramp[addr + 2] & 0xf] | (thr.vpal[ramp[addr + 2] >> 4] << 16);
-							vidp[x + xx + 3] = thr.vpal[ramp[addr + 3] & 0xf] | (thr.vpal[ramp[addr + 3] >> 4] << 16);
+							vidp[x + xx]     = thr.palette[ramp[addr] & 0xf]     | (thr.palette[ramp[addr] >> 4] << 16);
+							vidp[x + xx + 1] = thr.palette[ramp[addr + 1] & 0xf] | (thr.palette[ramp[addr + 1] >> 4] << 16);
+							vidp[x + xx + 2] = thr.palette[ramp[addr + 2] & 0xf] | (thr.palette[ramp[addr + 2] >> 4] << 16);
+							vidp[x + xx + 3] = thr.palette[ramp[addr + 3] & 0xf] | (thr.palette[ramp[addr + 3] >> 4] << 16);
 #endif
 							addr += 4;
 						}
@@ -765,11 +786,11 @@ vidcthread(void)
 						int xx;
 						for (xx = 0; xx < 8; xx += 2) {
 #ifdef _RPCEMU_BIG_ENDIAN
-							vidp[x + xx + 1] = thr.vpal[ramp[addr] & 0xff]     | (thr.vpal[ramp[addr + 1] & 0xff] << 16);
-							vidp[x + xx]     = thr.vpal[ramp[addr + 2] & 0xff] | (thr.vpal[ramp[addr + 3] & 0xff] << 16);
+							vidp[x + xx + 1] = thr.palette[ramp[addr] & 0xff]     | (thr.palette[ramp[addr + 1] & 0xff] << 16);
+							vidp[x + xx]     = thr.palette[ramp[addr + 2] & 0xff] | (thr.palette[ramp[addr + 3] & 0xff] << 16);
 #else
-							vidp[x + xx]     = thr.vpal[ramp[addr] & 0xff]     | (thr.vpal[ramp[addr + 1] & 0xff] << 16);
-							vidp[x + xx + 1] = thr.vpal[ramp[addr + 2] & 0xff] | (thr.vpal[ramp[addr + 3] & 0xff] << 16);
+							vidp[x + xx]     = thr.palette[ramp[addr] & 0xff]     | (thr.palette[ramp[addr + 1] & 0xff] << 16);
+							vidp[x + xx + 1] = thr.palette[ramp[addr + 2] & 0xff] | (thr.palette[ramp[addr + 3] & 0xff] << 16);
 #endif
 							addr += 4;
 						}
@@ -928,14 +949,14 @@ vidcthread(void)
 #ifdef _RPCEMU_BIG_ENDIAN
 							addr ^= 3;
 #endif
-							vidp[x + xx]     = thr.vpal[ramp[addr] & 1];
-							vidp[x + xx + 1] = thr.vpal[(ramp[addr] >> 1) & 1];
-							vidp[x + xx + 2] = thr.vpal[(ramp[addr] >> 2) & 1];
-							vidp[x + xx + 3] = thr.vpal[(ramp[addr] >> 3) & 1];
-							vidp[x + xx + 4] = thr.vpal[(ramp[addr] >> 4) & 1];
-							vidp[x + xx + 5] = thr.vpal[(ramp[addr] >> 5) & 1];
-							vidp[x + xx + 6] = thr.vpal[(ramp[addr] >> 6) & 1];
-							vidp[x + xx + 7] = thr.vpal[(ramp[addr] >> 7) & 1];
+							vidp[x + xx]     = thr.palette[ramp[addr] & 1];
+							vidp[x + xx + 1] = thr.palette[(ramp[addr] >> 1) & 1];
+							vidp[x + xx + 2] = thr.palette[(ramp[addr] >> 2) & 1];
+							vidp[x + xx + 3] = thr.palette[(ramp[addr] >> 3) & 1];
+							vidp[x + xx + 4] = thr.palette[(ramp[addr] >> 4) & 1];
+							vidp[x + xx + 5] = thr.palette[(ramp[addr] >> 5) & 1];
+							vidp[x + xx + 6] = thr.palette[(ramp[addr] >> 6) & 1];
+							vidp[x + xx + 7] = thr.palette[(ramp[addr] >> 7) & 1];
 #ifdef _RPCEMU_BIG_ENDIAN
 							addr ^= 3;
 #endif
@@ -985,10 +1006,10 @@ vidcthread(void)
 #ifdef _RPCEMU_BIG_ENDIAN
 							addr ^= 3;
 #endif
-							vidp[x + xx]     = thr.vpal[ramp[addr] & 3];
-							vidp[x + xx + 1] = thr.vpal[(ramp[addr] >> 2) & 3];
-							vidp[x + xx + 2] = thr.vpal[(ramp[addr] >> 4) & 3];
-							vidp[x + xx + 3] = thr.vpal[(ramp[addr] >> 6) & 3];
+							vidp[x + xx]     = thr.palette[ramp[addr] & 3];
+							vidp[x + xx + 1] = thr.palette[(ramp[addr] >> 2) & 3];
+							vidp[x + xx + 2] = thr.palette[(ramp[addr] >> 4) & 3];
+							vidp[x + xx + 3] = thr.palette[(ramp[addr] >> 6) & 3];
 #ifdef _RPCEMU_BIG_ENDIAN
 							addr ^= 3;
 #endif
@@ -1036,23 +1057,23 @@ vidcthread(void)
 						int xx;
 						for (xx = 0; xx < 32; xx += 8) {
 #ifdef _RPCEMU_BIG_ENDIAN
-							vidp[x + xx]     = thr.vpal[ramp[addr + 3] & 0xf];
-							vidp[x + xx + 1] = thr.vpal[(ramp[addr + 3] >> 4) & 0xf];
-							vidp[x + xx + 2] = thr.vpal[ramp[addr + 2] & 0xf];
-							vidp[x + xx + 3] = thr.vpal[(ramp[addr + 2] >> 4) & 0xf];
-							vidp[x + xx + 4] = thr.vpal[ramp[addr + 1] & 0xf];
-							vidp[x + xx + 5] = thr.vpal[(ramp[addr + 1] >> 4) & 0xf];
-							vidp[x + xx + 6] = thr.vpal[ramp[addr] & 0xf];
-							vidp[x + xx + 7] = thr.vpal[(ramp[addr] >> 4) & 0xf];
+							vidp[x + xx]     = thr.palette[ramp[addr + 3] & 0xf];
+							vidp[x + xx + 1] = thr.palette[(ramp[addr + 3] >> 4) & 0xf];
+							vidp[x + xx + 2] = thr.palette[ramp[addr + 2] & 0xf];
+							vidp[x + xx + 3] = thr.palette[(ramp[addr + 2] >> 4) & 0xf];
+							vidp[x + xx + 4] = thr.palette[ramp[addr + 1] & 0xf];
+							vidp[x + xx + 5] = thr.palette[(ramp[addr + 1] >> 4) & 0xf];
+							vidp[x + xx + 6] = thr.palette[ramp[addr] & 0xf];
+							vidp[x + xx + 7] = thr.palette[(ramp[addr] >> 4) & 0xf];
 #else
-							vidp[x + xx]     = thr.vpal[ramp[addr] & 0xf];
-							vidp[x + xx + 1] = thr.vpal[(ramp[addr] >> 4) & 0xf];
-							vidp[x + xx + 2] = thr.vpal[ramp[addr + 1] & 0xf];
-							vidp[x + xx + 3] = thr.vpal[(ramp[addr + 1] >> 4) & 0xf];
-							vidp[x + xx + 4] = thr.vpal[ramp[addr + 2] & 0xf];
-							vidp[x + xx + 5] = thr.vpal[(ramp[addr + 2] >> 4) & 0xf];
-							vidp[x + xx + 6] = thr.vpal[ramp[addr + 3] & 0xf];
-							vidp[x + xx + 7] = thr.vpal[(ramp[addr + 3] >> 4) & 0xf];
+							vidp[x + xx]     = thr.palette[ramp[addr] & 0xf];
+							vidp[x + xx + 1] = thr.palette[(ramp[addr] >> 4) & 0xf];
+							vidp[x + xx + 2] = thr.palette[ramp[addr + 1] & 0xf];
+							vidp[x + xx + 3] = thr.palette[(ramp[addr + 1] >> 4) & 0xf];
+							vidp[x + xx + 4] = thr.palette[ramp[addr + 2] & 0xf];
+							vidp[x + xx + 5] = thr.palette[(ramp[addr + 2] >> 4) & 0xf];
+							vidp[x + xx + 6] = thr.palette[ramp[addr + 3] & 0xf];
+							vidp[x + xx + 7] = thr.palette[(ramp[addr + 3] >> 4) & 0xf];
 #endif
 							addr += 4;
 						}
@@ -1098,15 +1119,15 @@ vidcthread(void)
 						int xx;
 						for (xx = 0; xx < 16; xx += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
-							vidp[x + xx]     = thr.vpal[ramp[addr + 3]];
-							vidp[x + xx + 1] = thr.vpal[ramp[addr + 2]];
-							vidp[x + xx + 2] = thr.vpal[ramp[addr + 1]];
-							vidp[x + xx + 3] = thr.vpal[ramp[addr]];
+							vidp[x + xx]     = thr.palette[ramp[addr + 3]];
+							vidp[x + xx + 1] = thr.palette[ramp[addr + 2]];
+							vidp[x + xx + 2] = thr.palette[ramp[addr + 1]];
+							vidp[x + xx + 3] = thr.palette[ramp[addr]];
 #else
-							vidp[x + xx]     = thr.vpal[ramp[addr]];
-							vidp[x + xx + 1] = thr.vpal[ramp[addr + 1]];
-							vidp[x + xx + 2] = thr.vpal[ramp[addr + 2]];
-							vidp[x + xx + 3] = thr.vpal[ramp[addr + 3]];
+							vidp[x + xx]     = thr.palette[ramp[addr]];
+							vidp[x + xx + 1] = thr.palette[ramp[addr + 1]];
+							vidp[x + xx + 2] = thr.palette[ramp[addr + 2]];
+							vidp[x + xx + 3] = thr.palette[ramp[addr + 3]];
 #endif
 							addr += 4;
 						}
@@ -1272,16 +1293,16 @@ vidcthread(void)
 						addr ^= 3;
 #endif
 						if ((x + thr.cursorx)     >= 0 && (x + thr.cursorx)     < thr.vidc_xsize && ramp[addr]        & 3) {
-							vidp16[x + thr.cursorx] = thr.vpal[(ramp[addr] & 3) | 0x100];
+							vidp16[x + thr.cursorx]     = thr.cursor_palette[(ramp[addr] & 3) - 1];
 						}
 						if ((x + thr.cursorx + 1) >= 0 && (x + thr.cursorx + 1) < thr.vidc_xsize && (ramp[addr] >> 2) & 3) {
-							vidp16[x + thr.cursorx + 1] = thr.vpal[((ramp[addr] >> 2) & 3) | 0x100];
+							vidp16[x + thr.cursorx + 1] = thr.cursor_palette[((ramp[addr] >> 2) & 3) - 1];
 						}
 						if ((x + thr.cursorx + 2) >= 0 && (x + thr.cursorx + 2) < thr.vidc_xsize && (ramp[addr] >> 4) & 3) {
-							vidp16[x + thr.cursorx + 2] = thr.vpal[((ramp[addr] >> 4) & 3) | 0x100];
+							vidp16[x + thr.cursorx + 2] = thr.cursor_palette[((ramp[addr] >> 4) & 3) - 1];
 						}
 						if ((x + thr.cursorx + 3) >= 0 && (x + thr.cursorx + 3) < thr.vidc_xsize && (ramp[addr] >> 6) & 3) {
-							vidp16[x + thr.cursorx + 3] = thr.vpal[((ramp[addr] >> 6) & 3) | 0x100];
+							vidp16[x + thr.cursorx + 3] = thr.cursor_palette[((ramp[addr] >> 6) & 3) - 1];
 						}
 #ifdef _RPCEMU_BIG_ENDIAN
 						addr ^= 3;
@@ -1303,16 +1324,16 @@ vidcthread(void)
 						addr ^= 3;
 #endif
 						if ((x + thr.cursorx)     >= 0 && (x + thr.cursorx)     < thr.vidc_xsize && ramp[addr]        & 3) {
-							vidp[x + thr.cursorx] = thr.vpal[(ramp[addr] & 3) | 0x100];
+							vidp[x + thr.cursorx]     = thr.cursor_palette[(ramp[addr] & 3) - 1];
 						}
 						if ((x + thr.cursorx + 1) >= 0 && (x + thr.cursorx + 1) < thr.vidc_xsize && (ramp[addr] >> 2) & 3) {
-							vidp[x + thr.cursorx + 1] = thr.vpal[((ramp[addr] >> 2) & 3) | 0x100];
+							vidp[x + thr.cursorx + 1] = thr.cursor_palette[((ramp[addr] >> 2) & 3) - 1];
 						}
 						if ((x + thr.cursorx + 2) >= 0 && (x + thr.cursorx + 2) < thr.vidc_xsize && (ramp[addr] >> 4) & 3) {
-							vidp[x + thr.cursorx + 2] = thr.vpal[((ramp[addr] >> 4) & 3) | 0x100];
+							vidp[x + thr.cursorx + 2] = thr.cursor_palette[((ramp[addr] >> 4) & 3) - 1];
 						}
 						if ((x + thr.cursorx + 3) >= 0 && (x + thr.cursorx + 3) < thr.vidc_xsize && (ramp[addr] >> 6) & 3) {
-							vidp[x + thr.cursorx + 3] = thr.vpal[((ramp[addr] >> 6) & 3) | 0x100];
+							vidp[x + thr.cursorx + 3] = thr.cursor_palette[((ramp[addr] >> 6) & 3) - 1];
 						}
 #ifdef _RPCEMU_BIG_ENDIAN
 						addr ^= 3;
@@ -1371,8 +1392,8 @@ void writevidc20(uint32_t val)
 
 	switch (val >> 28) {
 	case 0: /* Video Palette */
-		if (val != vidc.vidcpal[vidc.palindex]) {
-			vidc.vidcpal[vidc.palindex] = val;
+		if (val != vidc.palette[vidc.palindex]) {
+			vidc.palette[vidc.palindex] = val;
 			vidc.palchange = 1;
 		}
 		/* Increment Video Palette Address, wraparound from 255 to 0 */
@@ -1388,8 +1409,8 @@ void writevidc20(uint32_t val)
 		break;
 
 	case 4: /* Border Colour */
-		if (val != vidc.vidcpal[0x100]) {
-			vidc.vidcpal[0x100] = val;
+		if (val != vidc.border_colour) {
+			vidc.border_colour = val;
 			vidc.palchange = 1;
 		}
 		break;
@@ -1397,10 +1418,9 @@ void writevidc20(uint32_t val)
 	case 5: /* Cursor Palette Colour 1 */
 	case 6: /* Cursor Palette Colour 2 */
 	case 7: /* Cursor Palette Colour 3 */
-		/* Cursor palette starts from base of 0x101 */
-		index = 0x101 + ((val >> 28) - 5);
-		if (val != vidc.vidcpal[index]) {
-			vidc.vidcpal[index] = val;
+		index = (val >> 28) - 5;
+		if (val != vidc.cursor_palette[index]) {
+			vidc.cursor_palette[index] = val;
 			vidc.palchange = 1;
 		}
 		break;
