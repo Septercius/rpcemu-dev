@@ -2711,11 +2711,11 @@ if test "${enable_debug+set}" = set; then :
 fi
 
 if test "$enable_debug" = "yes"; then
-   CFLAGS="$CFLAGS -Wall -Wunused-parameter -O0 -g -D_DEBUG"
+   CFLAGS="$CFLAGS -Wall -Wextra -O0 -g -D_DEBUG"
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 else
-   CFLAGS="$CFLAGS -Wall -Wunused-parameter -O2"
+   CFLAGS="$CFLAGS -Wall -Wextra -O2"
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 fi
