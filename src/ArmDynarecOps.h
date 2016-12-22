@@ -943,14 +943,15 @@ opMVNimmS(uint32_t opcode)
 static int
 opSTRT(uint32_t opcode)
 {
-	uint32_t addr, offset, templ;
+	uint32_t addr, data, offset, templ;
 
 	addr = GETADDR(RN);
 
 	/* Temporarily switch to user permissions */
 	templ = memmode;
 	memmode = 0;
-	mem_write32(addr & ~3u, arm.reg[RD]);
+	data = GETREG(RD);
+	mem_write32(addr & ~3u, data);
 	memmode = templ;
 
 	/* Check for Abort */
@@ -1020,14 +1021,15 @@ opLDRT(uint32_t opcode)
 static int
 opSTRBT(uint32_t opcode)
 {
-	uint32_t addr, offset, templ;
+	uint32_t addr, data, offset, templ;
 
 	addr = GETADDR(RN);
 
 	/* Temporarily switch to user permissions */
 	templ = memmode;
 	memmode = 0;
-	mem_write8(addr, arm.reg[RD]);
+	data = GETREG(RD);
+	mem_write8(addr, data);
 	memmode = templ;
 
 	/* Check for Abort */

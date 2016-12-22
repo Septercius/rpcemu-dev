@@ -1300,7 +1300,8 @@ execarm(int cycs)
 					/* Temp switch to user permissions */
 					templ = memmode;
 					memmode = 0;
-					mem_write32(addr & ~3u, arm.reg[RD]);
+					data = GETREG(RD);
+					mem_write32(addr & ~3u, data);
 					memmode = templ;
 
 					/* Check for Abort */
@@ -1371,7 +1372,8 @@ execarm(int cycs)
 					/* Temp switch to user permissions */
 					templ = memmode;
 					memmode = 0;
-					mem_write8(addr, arm.reg[RD]);
+					data = GETREG(RD);
+					mem_write8(addr, data);
 					memmode = templ;
 
 					/* Check for Abort */
