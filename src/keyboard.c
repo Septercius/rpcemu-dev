@@ -37,7 +37,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <allegro.h>
+//#include <allegro.h>
 #include "rpcemu.h"
 #include "vidc20.h"
 #include "mem.h"
@@ -100,6 +100,13 @@ static struct {
 	int		f12transtobreak;
 #endif
 } kbd;
+
+
+// Fake Allegro style mouse data, updated via QT frontend
+int mouse_x = 0;
+int mouse_y = 0;
+int mouse_b = 0;
+
 
 static int msenable, msreset;
 static uint8_t msstat;		/**< PS/2 control register for the mouse */
@@ -661,6 +668,7 @@ mouse_ps2_callback(void)
 void
 mouse_poll(void)
 {
+#if 0
 	static uint8_t oldmouseb = 0;
 	static int oldz = 0;
 	int x, y;
@@ -777,8 +785,10 @@ mouse_poll(void)
 
 	/* There's data in the queue, make sure we're called back */
 	mcallback = 20;
+#endif
 }
 
+#if 0
 static const int standardkeys[][2]=
 {
         {KEY_A,0x1C},{KEY_B,0x32},{KEY_C,0x21},{KEY_D,0x23},
@@ -816,7 +826,9 @@ static const int standardkeys[][2]=
 #endif
         {-1,-1}
 };
+#endif
 
+#if 0
 static int
 findkey(int c)
 {
@@ -830,7 +842,9 @@ findkey(int c)
 	}
 	return -1;
 }
+#endif
 
+#if 0
 static const int extendedkeys[][3]=
 {
         {KEY_INSERT,0xE0,0x70},{KEY_HOME,0xE0,0x6C},{KEY_PGUP,0xE0,0x7D},
@@ -840,7 +854,9 @@ static const int extendedkeys[][3]=
         {KEY_ALTGR,0xE0,0x11},{KEY_RCONTROL,0xE0,0x14},
         {-1,-1,-1}
 };
+#endif
 
+#if 0
 static int
 findextkey(int c)
 {
@@ -854,7 +870,9 @@ findextkey(int c)
 	}
 	return -1;
 }
+#endif
 
+#if 0
 static void
 keyboard_queue_break(void)
 {
@@ -868,10 +886,12 @@ keyboard_queue_break(void)
 	ps2_queue(&kbd.queue, 0xf0);
 	ps2_queue(&kbd.queue, 0x77);
 }
+#endif
 
 void
 keyboard_poll(void)
 {
+#if 0
 	int c;
 
 	for (c = 0; c < 128; c++) {
@@ -933,6 +953,8 @@ keyboard_poll(void)
 		kbd.command = 0xfe;
 		return;
 	}
+#endif
+
 }
 
 /* Mousehack functions */
@@ -1020,7 +1042,7 @@ mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 		    || (mouse_hack.boundbox.bottom >= 0)
 		    || (mouse_hack.boundbox.top < screen_osy))
 		{
-			position_mouse(host_x, host_y); /* Allegro */
+//			position_mouse(host_x, host_y); /* Allegro */
 		}
 	}
 }
@@ -1196,9 +1218,9 @@ mouse_hack_osmouse(void)
 		if (mouse_b & 4) {
 			buttons |= 1;		/* Right button */
 		}
-		if (key[KEY_MENU] || key[KEY_ALTGR]) {
-			buttons |= 1;
-		}
+//		if (key[KEY_MENU] || key[KEY_ALTGR]) {
+//			buttons |= 1;
+//		}
 	} else {
 		if (mouse_b & 2) {
 			buttons |= 1;		/* Right button */
@@ -1206,9 +1228,9 @@ mouse_hack_osmouse(void)
 		if (mouse_b & 4) {
 			buttons |= 2; 		/* Middle button */
 		}
-		if (key[KEY_MENU] || key[KEY_ALTGR]) {
-			buttons |= 2;
-		}
+//		if (key[KEY_MENU] || key[KEY_ALTGR]) {
+//			buttons |= 2;
+//		}
 	}
 	arm.reg[2] = buttons;
 

@@ -21,6 +21,10 @@
 #ifndef __CP15__
 #define __CP15__
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 extern void cp15_tlb_invalidate_physical(uint32_t addr);
 
 extern void cp15_reset(CPUModel cpu_model);
@@ -35,5 +39,9 @@ extern uint32_t translateaddress2(uint32_t addr, int rw, int prefetch);
 extern int flushes;
 extern int tlbs;
 extern int dcache;
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
 
 #endif //__CP15__

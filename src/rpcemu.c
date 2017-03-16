@@ -24,11 +24,13 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <time.h>
+#include <unistd.h>
 
-#include <allegro.h>
-#if defined WIN32 || defined _WIN32
-#include <winalleg.h>
-#endif
+//#include <allegro.h>
+//#if defined WIN32 || defined _WIN32
+//#include <winalleg.h>
+//#endif
 
 #include "rpcemu.h"
 #include "mem.h"
@@ -177,6 +179,7 @@ rpclog(const char *format, ...)
 /**
  * Called once a second to update the performance counters
  */
+/*
 static void
 domips(void)
 {
@@ -197,6 +200,7 @@ domips(void)
 
 	updatemips = 1;
 }
+*/
 
 /**
  * Reinitialise all emulated subsystems based on current configuration. This
@@ -245,7 +249,7 @@ void
 rpcemu_log_information(void)
 {
 	char cwd[1024];
-	int width, height;
+//	int width, height;
 
 	/* Log version and build type */
 	rpclog("RPCEmu " VERSION " [");
@@ -277,13 +281,14 @@ rpcemu_log_information(void)
 	rpcemu_log_os();
 
 	/* Log Allegro information */
-	rpclog("Allegro version ID: %s\n", allegro_id);
+//	rpclog("Allegro version ID: %s\n", allegro_id);
 
 	/* Log display information */
-	if (get_desktop_resolution(&width, &height) == 0) {
+/*	if (get_desktop_resolution(&width, &height) == 0) {
 		rpclog("Desktop Resolution: %d x %d\n", width, height);
 	}
 	rpclog("Host Colour Depth: %u\n", desktop_color_depth());
+*/
 
 	/* Log working directory */
 	if (getcwd(cwd, sizeof(cwd)) != NULL) {
@@ -306,9 +311,9 @@ startrpcemu(void)
 	   environment */
 	rpcemu_log_information();
 
-        install_keyboard(); /* allegro */
-        install_timer();    /* allegro */
-        install_mouse();    /* allegro */
+//        install_keyboard(); /* allegro */
+//        install_timer();    /* allegro */
+//        install_mouse();    /* allegro */
 
 	loadconfig();
 	hostfs_init();
@@ -334,7 +339,7 @@ startrpcemu(void)
 	resetrpc();
 
 	/* Call back the mips counting function every second */
-	install_int_ex(domips, MSEC_TO_TIMER(1000));
+//	install_int_ex(domips, MSEC_TO_TIMER(1000));
 
         return 0;
 }
@@ -493,14 +498,15 @@ static void
 loadconfig(void)
 {
 	char filename[512];
-	const char *p;
+/*	const char *p; */
 	Model model;
-	int i;
+/*	int i;*/
 
 	snprintf(filename, sizeof(filename), "%srpc.cfg", rpcemu_get_datadir());
-	set_config_file(filename);
+//	set_config_file(filename);
 
 	/* Copy the contents of the configfile to the log */
+/*
 	{
 		const char **entries = NULL;
 		int n = list_config_entries(NULL, &entries);
@@ -512,8 +518,9 @@ loadconfig(void)
 		}
 		free_config_entries(&entries);
 	}
+*/
 
-	p = get_config_string(NULL, "mem_size", NULL);
+/*	p = get_config_string(NULL, "mem_size", NULL);
 	if (p == NULL) {
 		config.mem_size = 16;
 	} else if (!strcmp(p, "4")) {
@@ -531,12 +538,20 @@ loadconfig(void)
 	} else {
 		config.mem_size = 16;
 	}
+*/
+	config.mem_size = 16;
 
+/*
         p = get_config_string(NULL,"vram_size",NULL);
         if (!p) config.vrammask = 0x7FFFFF;
         else if (!strcmp(p,"0"))   config.vrammask = 0;
         else                       config.vrammask = 0x7FFFFF;
+*/
 
+        config.vrammask = 0x7FFFFF;
+
+
+/*
 	p = get_config_string(NULL, "model", NULL);
 	model = Model_RPCARM710;
 	if (p != NULL) {
@@ -547,6 +562,10 @@ loadconfig(void)
 			}
 		}
 	}
+*/
+
+	model = Model_RPCARM710;
+
 	rpcemu_model_changed(model);
 
 	/* A7000 and A7000+ have no VRAM */
@@ -560,18 +579,34 @@ loadconfig(void)
 		config.vrammask = 0x3fffff;
 	}
 
+/*
         config.soundenabled = get_config_int(NULL, "sound_enabled", 1);
         config.refresh      = get_config_int(NULL, "refresh_rate", 60);
         config.cdromenabled = get_config_int(NULL, "cdrom_enabled", 0);
         config.cdromtype    = get_config_int(NULL, "cdrom_type", 0);
+*/
 
+        config.soundenabled = 1;
+        config.refresh      = 60;
+        config.cdromenabled = 0;
+        config.cdromtype    = 0;
+
+
+/*
         p = get_config_string(NULL, "cdrom_iso", NULL);
         if (!p) strcpy(config.isoname, "");
         else    strcpy(config.isoname, p);
+*/
+	strcpy(config.isoname, "");
 
+/*
         config.mousehackon    = get_config_int(NULL, "mouse_following", 1);
         config.mousetwobutton = get_config_int(NULL, "mouse_twobutton", 0);
+*/
+        config.mousehackon    = 1;
+        config.mousetwobutton = 0;
 
+/*
 	p = get_config_string(NULL, "network_type", NULL);
 	if (!p) {
 		config.network_type = NetworkType_Off;
@@ -585,9 +620,14 @@ loadconfig(void)
 		rpclog("Unknown network_type '%s', defaulting to off\n", p);
 		config.network_type = NetworkType_Off;
 	}
+*/
+
+	config.network_type = NetworkType_Off;
+
 
 	/* Take a copy of the string config values, to allow dynamic alteration
 	   later */
+/*
 	p = get_config_string(NULL, "username", NULL);
 	if (p) {
 		config.username = strdup(p);
@@ -604,8 +644,16 @@ loadconfig(void)
 	if (p) {
 		config.bridgename = strdup(p);
 	}
+*/
 
-	config.cpu_idle = get_config_int(NULL, "cpu_idle", 0);
+	config.username = strdup("");
+	config.ipaddress = strdup("");
+	config.macaddress = strdup("");
+	config.bridgename = strdup("");
+
+
+/*	config.cpu_idle = get_config_int(NULL, "cpu_idle", 0); */
+	config.cpu_idle = 0;
 }
 
 /**
@@ -617,6 +665,7 @@ loadconfig(void)
 static void
 saveconfig(void)
 {
+#if 0
         char s[256];
 
 	sprintf(s, "%u", config.mem_size);
@@ -666,6 +715,7 @@ saveconfig(void)
 	}
 
 	set_config_int(NULL, "cpu_idle", config.cpu_idle);
+#endif
 }
 
 /**

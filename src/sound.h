@@ -21,6 +21,10 @@
 #ifndef __SOUND__
 #define __SOUND__
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 extern void sound_init(void);
 
 extern void sound_restart(void);
@@ -36,5 +40,9 @@ extern void sound_buffer_update(void);
 extern int soundbufferfull;
 extern uint32_t soundaddr[4];
 extern int soundinited, soundlatch, soundcount;
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
 
 #endif //__SOUND__

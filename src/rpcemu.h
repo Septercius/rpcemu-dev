@@ -32,6 +32,10 @@
 #include "iomd.h"
 #include "superio.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /* URLs used for the help menu weblinks */
 #define URL_MANUAL  "http://www.marutan.net/rpcemu/manual/"
 #define URL_WEBSITE "http://www.marutan.net/rpcemu/"
@@ -259,4 +263,8 @@ extern int infocus;
 extern void resetfpa(void);
 extern void fpaopcode(uint32_t opcode);
 
-#endif
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
+#endif /* _rpc_h */

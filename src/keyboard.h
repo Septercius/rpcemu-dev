@@ -21,6 +21,10 @@
 #ifndef __KEYBOARD__
 #define __KEYBOARD__
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 extern void keyboard_reset(void);
 extern void keyboard_callback_rpcemu(void);
 extern void mouse_ps2_callback(void);
@@ -41,5 +45,13 @@ extern void mouse_hack_osword_21_4(uint32_t a);
 extern void mouse_hack_osbyte_106(uint32_t a);
 extern void mouse_hack_osmouse(void);
 extern void mouse_hack_get_pos(int *x, int *y);
+
+extern int mouse_x;
+extern int mouse_y;
+extern int mouse_b;
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
 
 #endif //__KEYBOARD__
