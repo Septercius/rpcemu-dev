@@ -9,7 +9,6 @@ syntax: glob
 *.wixobj
 .deps
 autom4te.cache
-config.h
 config.log
 config.status
 hd4.hdf
