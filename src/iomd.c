@@ -21,7 +21,7 @@
 /* IOMD emulation */
 #include <assert.h>
 #include <stdint.h>
-#include <allegro.h>
+//#include <allegro.h>
 #include <stdio.h>
 #include "rpcemu.h"
 #include "vidc20.h"
@@ -233,7 +233,7 @@ void updateirqs(void)
  *
  * Called (theoretically) 500 times a second IMPROVE.
  */
-static void gentimerirq(void)
+void gentimerirq(void)
 {
         iomd.t0.counter -= 4000; /* 4000 * 500Hz = 2MHz (the IO clock speed) */
         while (iomd.t0.counter < 0 && iomd.t0.in_latch)
@@ -828,6 +828,7 @@ iomd_mouse_buttons_read(void)
 {
         unsigned char temp = 0;
 
+#if 0
         /* 'mouse_b' and 'key' are Allegro variables containing
            the current host OS mouse and keyboard state */
 
@@ -851,6 +852,7 @@ iomd_mouse_buttons_read(void)
 			temp |= 0x10; // bit 5
 		}
 	}
+#endif
 
 	/* bit 0 contains the monitor id bit, 0 for VGA, 1 for TV type monitors.
 	   As we will probably always need VGA, leave as 0 */
@@ -872,7 +874,8 @@ iomd_reset(IOMDType type)
 	assert(type == IOMDType_IOMD || type == IOMDType_ARM7500 || type == IOMDType_ARM7500FE || type == IOMDType_IOMD2);
 	iomd_type = type;
 
-        remove_int(gentimerirq);
+// HACKCORE
+//        remove_int(gentimerirq);
 
 	iomd.romcr0 = 0x40; /* ROM Control 0, set to 16bit slowest access time */
 	iomd.romcr1 = 0x40; /* ROM Control 1, set to 16bit slowest access time */
@@ -930,7 +933,8 @@ iomd_reset(IOMDType type)
 	sndon = 0;
 	flyback = 0;
 
-	install_int_ex(gentimerirq, BPS_TO_TIMER(500)); /* 500 Hz */
+// HACKCORE
+//	install_int_ex(gentimerirq, BPS_TO_TIMER(500)); /* 500 Hz */
 }
 
 /**
@@ -939,7 +943,8 @@ iomd_reset(IOMDType type)
 void
 iomd_end(void)
 {
-        remove_int(gentimerirq);
+// HACKCORE
+//        remove_int(gentimerirq);
 }
 
 void

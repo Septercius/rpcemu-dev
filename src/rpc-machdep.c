@@ -20,7 +20,7 @@
 
 #include <string.h>
 
-#include <allegro.h>
+//#include <allegro.h>
 
 #include "rpcemu.h"
 
@@ -28,7 +28,7 @@
    be, but currently this version is used by Linux, all the other autoconf
    based builds and Windows. Only Mac OS X GUI version needs to override */
 
-static char datadir[512] = "";
+static char datadir[512] = "./";
 static char logpath[1024] = "";
 
 /**
@@ -40,6 +40,7 @@ static char logpath[1024] = "";
 const char *
 rpcemu_get_datadir(void)
 {
+/*
 	if (datadir[0] == '\0') {
 		char *p;
 
@@ -47,6 +48,7 @@ rpcemu_get_datadir(void)
 		p = get_filename(datadir);
 		*p = '\0';
 	}
+*/
 
 	return datadir;
 }

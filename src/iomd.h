@@ -21,6 +21,11 @@
 #ifndef __IOMD__
 #define __IOMD__
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+
 /* The individual bits of the IRQ registers */
 #define IOMD_IRQA_PARALLEL		0x01
 // Unused				0x02
@@ -143,4 +148,9 @@ extern void iomd_write(uint32_t addr, uint32_t val);
 extern uint8_t iomd_mouse_buttons_read(void);
 extern void iomd_vsync(int vsync);
 
+extern void gentimerirq(void);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
 #endif //__IOMD__

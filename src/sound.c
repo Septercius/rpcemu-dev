@@ -21,7 +21,7 @@
 /* Sound emulation */
 #include <assert.h>
 #include <stdint.h>
-#include <allegro.h>
+//#include <allegro.h>
 #include "rpcemu.h"
 #include "mem.h"
 #include "iomd.h"
@@ -35,7 +35,7 @@ static uint16_t bigsoundbuffer[8][44100 << 1]; /**< Temp store, used to buffer
 static int bigsoundpos=0;
 static int bigsoundbufferhead=0; // sound buffer being written to
 static int bigsoundbuffertail=0; // sound buffer being read from
-static AUDIOSTREAM *as;
+//static AUDIOSTREAM *as;
 
 #define BUFFERLEN (4410>>1)
 
@@ -47,13 +47,13 @@ void sound_init(void)
         /* Call the platform code to create a thread for handing sound updates */
         sound_thread_start();
 
-        install_sound(DIGI_AUTODETECT, MIDI_NONE, 0); /* allegro */
+//        install_sound(DIGI_AUTODETECT, MIDI_NONE, 0); /* allegro */
         samplefreq = 44100;
 
         if (config.soundenabled) {
-                as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 255, 128); /* allegro */
+//                as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 255, 128); /* allegro */
         } else {
-                as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 0, 128); /* allegro */
+//                as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 0, 128); /* allegro */
         }
 }
 
@@ -65,10 +65,10 @@ void sound_restart(void)
         assert(config.soundenabled);
 
         /* Stop the previously playing 'silent' stream */
-        stop_audio_stream(as); /* allegro */
+//        stop_audio_stream(as); /* allegro */
 
         /* Play an audible stream */
-        as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 255, 128); /* allegro */
+//        as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 255, 128); /* allegro */
 }
 
 /**
@@ -79,10 +79,10 @@ void sound_pause(void)
 	assert(!config.soundenabled);
 
         /* Stop the previously playing audible stream */
-        stop_audio_stream(as); /* allegro */
+//        stop_audio_stream(as); /* allegro */
 
         /* Play a zero volume 'silent' stream */
-        as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 0, 128); /* allegro */
+//        as = play_audio_stream(BUFFERLEN, 16, 1, samplefreq, 0, 128); /* allegro */
 }
 
 /**
@@ -96,7 +96,7 @@ void sound_samplefreq_change(int newsamplefreq)
 	if (newsamplefreq != samplefreq) {
 		samplefreq = newsamplefreq;
 
-		voice_set_frequency(as->voice, samplefreq); /* allegro */
+//		voice_set_frequency(as->voice, samplefreq); /* allegro */
 	}
 }
 
@@ -107,7 +107,7 @@ void sound_samplefreq_change(int newsamplefreq)
  */
 void sound_mute(void)
 {
-        voice_set_volume(as->voice, 0); /* allegro */
+//        voice_set_volume(as->voice, 0); /* allegro */
 }
 
 /**
@@ -115,8 +115,8 @@ void sound_mute(void)
  */
 void sound_unmute(void)
 {
-        voice_set_frequency(as->voice, samplefreq); /* allegro */
-        voice_set_volume(as->voice, 255);  /* allegro */
+//        voice_set_frequency(as->voice, samplefreq); /* allegro */
+//        voice_set_volume(as->voice, 255);  /* allegro */
 }
 
 /**
@@ -180,7 +180,7 @@ void sound_unmute(void)
  */
 void sound_buffer_update(void)
 {
-        uint16_t *p;
+        uint16_t *p = NULL;
         int c;
 
         if (!config.soundenabled)
@@ -190,7 +190,7 @@ void sound_buffer_update(void)
 
         while (bigsoundbuffertail!=bigsoundbufferhead)
         {
-                p = get_audio_stream_buffer(as);  /* allegro */
+//                p = get_audio_stream_buffer(as);  /* allegro */
                 if (p)
                 {
                         /* Allegro would like us to fill up a buffer */
@@ -198,7 +198,7 @@ void sound_buffer_update(void)
                                 p[c] = bigsoundbuffer[bigsoundbuffertail][c] ^ 0x8000;
                         }
                         /* We have filled the stream's buffer, let allegro know about it */
-                        free_audio_stream_buffer(as); /* allegro */
+//                        free_audio_stream_buffer(as); /* allegro */
 
                         bigsoundbuffertail++;
                         bigsoundbuffertail &= 7; /* if (bigsoundbuffertail > 7) { bigsoundbuffertail = 0; } */

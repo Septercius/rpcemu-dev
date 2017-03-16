@@ -21,6 +21,10 @@
 #ifndef __VIDC20__
 #define __VIDC20__
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 extern void initvideo(void);
 extern void closevideo(void);
 extern int vidc_get_xsize(void);
@@ -42,6 +46,10 @@ extern void vidcreleasemutex(void);
 extern int fullscreen;
 
 extern uint8_t *dirtybuffer;
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
 
 
 #endif //__VIDC20__

@@ -28,6 +28,7 @@
    ARM 7500FE Datasheet - ARM DDI 0077B
    Cirrus Logic CL-PS7500FE Advance Data Book
 */
+#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -439,13 +440,13 @@ vidc_palette_update(void)
 	                            (vidc.border_colour >> 8) & 0xff,
 	                            (vidc.border_colour >> 16) & 0xff);
 
-	if ((vidc.bit8 == 4) && (host_bpp == 16)) {
-		for (i = 0; i < 65536; i++) {
-			thr.pal16lookup[i] = thr.pal[i & 0xff].r |
-			                     thr.pal[(i >> 4) & 0xff].g |
-			                     thr.pal[i >> 8].b;
-		}
-	}
+//	if ((vidc.bit8 == 4) && (host_bpp == 16)) {
+//		for (i = 0; i < 65536; i++) {
+//			thr.pal16lookup[i] = thr.pal[i & 0xff].r |
+//			                     thr.pal[(i >> 4) & 0xff].g |
+//			                     thr.pal[i >> 8].b;
+//		}
+//	}
 }
 
 /* Called periodically from the main thread. If needredraw is non-zero
@@ -531,7 +532,7 @@ void drawscr(int needredraw)
 //                                rectfill(bitmap, 0, 0, thr.host_xsize, thr.host_ysize, thr.vpal[0x100]);
 //                                      printf("%i %i\n", thr.vidc_xsize, thr.vidc_ysize);
 				// HACKY
-				thr.bitmap.fill(thr.vpal[0x100]);
+				thr.bitmap.fill(thr.border_colour);
 				{
 					QPixmap pixmap = QPixmap::fromImage(thr.bitmap);
 
@@ -699,9 +700,9 @@ vidcthread(void)
 						addr = vidstart;
 					}
 					if ((addr & 0xfff) == 0) {
-						if (!drawit && thr.dirtybuffer[addr >> 12]) {
-							vidp = (uint32_t *) bmp_write_line(b, y);
-						}
+//						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+//							vidp = (uint32_t *) bmp_write_line(b, y);
+//						}
 						drawit = thr.dirtybuffer[addr >> 12];
 						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 							drawit = 1;
@@ -753,9 +754,9 @@ vidcthread(void)
 						addr = vidstart;
 					}
 					if ((addr & 0xfff) == 0) {
-						if (!drawit && thr.dirtybuffer[addr >> 12]) {
-							vidp = (uint32_t *) bmp_write_line(b, y);
-						}
+//						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+//							vidp = (uint32_t *) bmp_write_line(b, y);
+//						}
 						drawit = thr.dirtybuffer[addr >> 12];
 						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 							drawit = 1;
@@ -780,7 +781,8 @@ vidcthread(void)
 					}
 				}
 				if (drawit) {
-					vidp = (uint32_t *) bmp_write_line(b, y);
+//					vidp = (uint32_t *) bmp_write_line(b, y);
+					vidp = (QRgb *) thr.bitmap.scanLine(y);
 					yh = y + 1;
 				}
 				for (x = 0; x < thr.vidc_xsize; x += 32) {
@@ -817,9 +819,9 @@ if(vidp) {
 						addr = vidstart;
 					}
 					if ((addr & 0xfff) == 0) {
-						if (!drawit && thr.dirtybuffer[addr >> 12]) {
-							vidp = (uint32_t *) bmp_write_line(b, y);
-						}
+//						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+//							vidp = (uint32_t *) bmp_write_line(b, y);
+//						}
 						drawit = thr.dirtybuffer[addr >> 12];
 						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 							drawit = 1;
@@ -934,9 +936,9 @@ if(vidp) {
 						addr = vidstart;
 					}
 					if ((addr & 0xfff) == 0) {
-						if (!drawit && thr.dirtybuffer[addr >> 12]) {
-							vidp = (uint32_t *) bmp_write_line(b, y);
-						}
+//						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+//							vidp = (uint32_t *) bmp_write_line(b, y);
+//						}
 						drawit = thr.dirtybuffer[addr >> 12];
 						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 							drawit = 1;
@@ -984,9 +986,9 @@ if(vidp) {
 						addr = vidstart;
 					}
 					if ((addr & 0xfff) == 0) {
-						if (!drawit && thr.dirtybuffer[addr >> 12]) {
-							vidp = (uint32_t *) bmp_write_line(b, y);
-						}
+//						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+//							vidp = (uint32_t *) bmp_write_line(b, y);
+//						}
 						drawit = thr.dirtybuffer[addr >> 12];
 						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 							drawit = 1;
@@ -1004,7 +1006,6 @@ if(vidp) {
 		default:
 			fatal("Bad BPP %i\n", thr.bpp);
 		}
-	}
 
 	/* Cursor layer is plotted over regular display */
 	if (thr.cursorheight > 1) {
