@@ -19,11 +19,7 @@ HEADERS =	../superio.h \
 		../sound.h \
 		../vidc20.h \
 		../arm_common.h \
-		../ArmDynarecOps.h \
-		../codegen_amd64.h \
-		../codegen_x86_common.h \
 		../arm.h \
-		../codegen_x86.h \
 		../network.h \
 		main_window.h \
 		configure_dialog.h \
@@ -52,34 +48,45 @@ SOURCES =	../superio.c \
 		../rpc-machdep.c \
 		../arm_common.c \
 		../i8042.c \
-#		../cdrom-ioctl.c \
-		../cdrom-linuxioctl.c \
-		../network-linux.c \
 		../network.c \
-#		../gui.c \
 		rpc-qt5.cpp \
 		main_window.cpp \
 		configure_dialog.cpp \
 		network_dialog.cpp
 
-#	main.cpp \
+win32: {
+	SOURCES +=	../cdrom-ioctl.c \
+			../network-win.c
+}
 
+unix: {
+	SOURCES +=	../cdrom-linuxioctl.c \
+			../network-linux.c
+}
 
 CONFIG(dynarec) {
-	SOURCES +=	../ArmDynarec.c \
-			../codegen_x86.c
-#			../codegen_amd64.c \
+	SOURCES +=	../ArmDynarec.c
+	HEADERS +=	../ArmDynarecOps.h \
+			../codegen_x86_common.h
+
+	contains(QMAKE_HOST.arch, x86_64):!win32: { # win32 always uses 32bit dynarec
+		HEADERS +=	../codegen_amd64.h
+		SOURCES +=	../codegen_amd64.c
+	} else {
+		HEADERS +=	../codegen_x86.h
+		SOURCES +=	../codegen_x86.c
+	}
+	
 	TARGET = ../../rpcemu-recompiler
 } else {
 	SOURCES +=	../arm.c \
 			../codegen_null.c
-	TARGET = ../../rpcemu-interpretter
+	TARGET = ../../rpcemu-interpreter
 }
 
 CONFIG(debug) {
 	DEFINES += _DEBUG
 }
-
 
 
 RESOURCES =
