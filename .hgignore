@@ -18,6 +18,8 @@ Makefile
 poduleroms
 roms
 rpcemu
+rpcemu-interpreter
+rpcemu-recompiler
 RPCEmu-Interpreter.exe
 RPCEmu-Recompiler.exe
 rpclog.txt
