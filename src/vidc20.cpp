@@ -700,9 +700,10 @@ vidcthread(void)
 						addr = vidstart;
 					}
 					if ((addr & 0xfff) == 0) {
-//						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
 //							vidp = (uint32_t *) bmp_write_line(b, y);
-//						}
+							vidp = (QRgb *) thr.bitmap.scanLine(y);
+						}
 						drawit = thr.dirtybuffer[addr >> 12];
 						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 							drawit = 1;
@@ -754,9 +755,10 @@ vidcthread(void)
 						addr = vidstart;
 					}
 					if ((addr & 0xfff) == 0) {
-//						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
 //							vidp = (uint32_t *) bmp_write_line(b, y);
-//						}
+							vidp = (QRgb *) thr.bitmap.scanLine(y);
+						}
 						drawit = thr.dirtybuffer[addr >> 12];
 						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 							drawit = 1;
@@ -819,9 +821,10 @@ if(vidp) {
 						addr = vidstart;
 					}
 					if ((addr & 0xfff) == 0) {
-//						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
 //							vidp = (uint32_t *) bmp_write_line(b, y);
-//						}
+							vidp = (QRgb *) thr.bitmap.scanLine(y);
+						}
 						drawit = thr.dirtybuffer[addr >> 12];
 						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 							drawit = 1;
@@ -875,9 +878,10 @@ if(vidp) {
 						addr = vidstart;
 					}
 					if ((addr & 0xfff) == 0) {
-//						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
 //							vidp = (uint32_t *) bmp_write_line(b, y);
-//						}
+							vidp = (QRgb *) thr.bitmap.scanLine(y);
+						}
 						drawit = thr.dirtybuffer[addr >> 12];
 						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 							drawit = 1;
@@ -936,9 +940,10 @@ if(vidp) {
 						addr = vidstart;
 					}
 					if ((addr & 0xfff) == 0) {
-//						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
 //							vidp = (uint32_t *) bmp_write_line(b, y);
-//						}
+							vidp = (QRgb *) thr.bitmap.scanLine(y);
+						}
 						drawit = thr.dirtybuffer[addr >> 12];
 						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 							drawit = 1;
@@ -965,7 +970,6 @@ if(vidp) {
 				if (drawit) {
 //					vidp = (uint32_t *) bmp_write_line(b, y);
 					vidp = (QRgb *) thr.bitmap.scanLine(y);
-                                        yh=y+1;
 					yh = y + 1;
 				}
 				for (x = 0; x < thr.vidc_xsize; x += 4) {
@@ -986,9 +990,10 @@ if(vidp) {
 						addr = vidstart;
 					}
 					if ((addr & 0xfff) == 0) {
-//						if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						if (!drawit && thr.dirtybuffer[addr >> 12]) {
 //							vidp = (uint32_t *) bmp_write_line(b, y);
-//						}
+							vidp = (QRgb *) thr.bitmap.scanLine(y);
+						}
 						drawit = thr.dirtybuffer[addr >> 12];
 						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 							drawit = 1;
