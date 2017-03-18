@@ -109,8 +109,6 @@ int quited = 0;
 
 static FILE *arclog; /* Log file handle */
 
-static void loadconfig(void);
-static void saveconfig(void);
 
 #ifdef _DEBUG
 /**
@@ -315,7 +313,7 @@ startrpcemu(void)
 //        install_timer();    /* allegro */
 //        install_mouse();    /* allegro */
 
-	loadconfig();
+	config_load(&config);
 	hostfs_init();
 	mem_init();
 	cp15_init();
@@ -463,7 +461,7 @@ endrpcemu(void)
         free(ram01);
         free(rom);
         savecmos();
-        saveconfig();
+        config_save(&config);
 
 #ifdef RPCEMU_NETWORKING
 	network_reset();
@@ -486,236 +484,6 @@ rpcemu_model_changed(Model model)
 	machine.iomd_type   = models[model].iomd_type;
 	machine.super_type  = models[model].super_type;
 	machine.i2c_devices = models[model].i2c_devices;
-}
-
-/**
- * Load the user's previous chosen configuration. Will fill in sensible
- * defaults if any configuration values are absent.
- *
- * Called on program startup.
- */
-static void
-loadconfig(void)
-{
-	char filename[512];
-/*	const char *p; */
-	Model model;
-/*	int i;*/
-
-	snprintf(filename, sizeof(filename), "%srpc.cfg", rpcemu_get_datadir());
-//	set_config_file(filename);
-
-	/* Copy the contents of the configfile to the log */
-/*
-	{
-		const char **entries = NULL;
-		int n = list_config_entries(NULL, &entries);
-		int i;
-
-		for (i = 0; i < n; i++) {
-			rpclog("loadconfig: %s = \"%s\"\n", entries[i],
-			       get_config_string(NULL, entries[i], "-"));
-		}
-		free_config_entries(&entries);
-	}
-*/
-
-/*	p = get_config_string(NULL, "mem_size", NULL);
-	if (p == NULL) {
-		config.mem_size = 16;
-	} else if (!strcmp(p, "4")) {
-		config.mem_size = 4;
-	} else if (!strcmp(p, "8")) {
-		config.mem_size = 8;
-	} else if (!strcmp(p, "32")) {
-		config.mem_size = 32;
-	} else if (!strcmp(p, "64")) {
-		config.mem_size = 64;
-	} else if (!strcmp(p, "128")) {
-		config.mem_size = 128;
-	} else if (!strcmp(p, "256")) {
-		config.mem_size = 256;
-	} else {
-		config.mem_size = 16;
-	}
-*/
-	config.mem_size = 16;
-
-/*
-        p = get_config_string(NULL,"vram_size",NULL);
-        if (!p) config.vrammask = 0x7FFFFF;
-        else if (!strcmp(p,"0"))   config.vrammask = 0;
-        else                       config.vrammask = 0x7FFFFF;
-*/
-
-        config.vrammask = 0x7FFFFF;
-
-
-/*
-	p = get_config_string(NULL, "model", NULL);
-	model = Model_RPCARM710;
-	if (p != NULL) {
-		for (i = 0; i < Model_MAX; i++) {
-			if (strcasecmp(p, models[i].name_config) == 0) {
-				model = i;
-				break;
-			}
-		}
-	}
-*/
-
-	model = Model_RPCARM710;
-
-	rpcemu_model_changed(model);
-
-	/* A7000 and A7000+ have no VRAM */
-	if (model == Model_A7000 || model == Model_A7000plus) {
-		config.vrammask = 0;
-	}
-
-	/* If Phoebe, override some settings */
-	if (model == Model_Phoebe) {
-		config.mem_size = 256;
-		config.vrammask = 0x3fffff;
-	}
-
-/*
-        config.soundenabled = get_config_int(NULL, "sound_enabled", 1);
-        config.refresh      = get_config_int(NULL, "refresh_rate", 60);
-        config.cdromenabled = get_config_int(NULL, "cdrom_enabled", 0);
-        config.cdromtype    = get_config_int(NULL, "cdrom_type", 0);
-*/
-
-        config.soundenabled = 1;
-        config.refresh      = 60;
-        config.cdromenabled = 0;
-        config.cdromtype    = 0;
-
-
-/*
-        p = get_config_string(NULL, "cdrom_iso", NULL);
-        if (!p) strcpy(config.isoname, "");
-        else    strcpy(config.isoname, p);
-*/
-	strcpy(config.isoname, "");
-
-/*
-        config.mousehackon    = get_config_int(NULL, "mouse_following", 1);
-        config.mousetwobutton = get_config_int(NULL, "mouse_twobutton", 0);
-*/
-        config.mousehackon    = 1;
-        config.mousetwobutton = 0;
-
-/*
-	p = get_config_string(NULL, "network_type", NULL);
-	if (!p) {
-		config.network_type = NetworkType_Off;
-	} else if (!strcasecmp(p, "off")) {
-		config.network_type = NetworkType_Off;
-	} else if (!strcasecmp(p, "iptunnelling")) {
-		config.network_type = NetworkType_IPTunnelling;
-	} else if (!strcasecmp(p, "ethernetbridging")) {
-		config.network_type = NetworkType_EthernetBridging;
-	} else {
-		rpclog("Unknown network_type '%s', defaulting to off\n", p);
-		config.network_type = NetworkType_Off;
-	}
-*/
-
-	config.network_type = NetworkType_Off;
-
-
-	/* Take a copy of the string config values, to allow dynamic alteration
-	   later */
-/*
-	p = get_config_string(NULL, "username", NULL);
-	if (p) {
-		config.username = strdup(p);
-	}
-	p = get_config_string(NULL, "ipaddress", NULL);
-	if (p) {
-		config.ipaddress = strdup(p);
-	}
-	p = get_config_string(NULL, "macaddress", NULL);
-	if (p) {
-		config.macaddress = strdup(p);
-	}
-	p = get_config_string(NULL, "bridgename", NULL);
-	if (p) {
-		config.bridgename = strdup(p);
-	}
-*/
-
-	config.username = strdup("");
-	config.ipaddress = strdup("");
-	config.macaddress = strdup("");
-	config.bridgename = strdup("");
-
-
-/*	config.cpu_idle = get_config_int(NULL, "cpu_idle", 0); */
-	config.cpu_idle = 0;
-}
-
-/**
- * Store the user's most recently chosen configuration to disc, for use next
- * time the program starts.
- *
- * Called on program exit.
- */
-static void
-saveconfig(void)
-{
-#if 0
-        char s[256];
-
-	sprintf(s, "%u", config.mem_size);
-	set_config_string(NULL, "mem_size", s);
-	sprintf(s, "%s", models[machine.model].name_config);
-	set_config_string(NULL, "model", s);
-        if (config.vrammask) set_config_string(NULL, "vram_size", "2");
-        else                 set_config_string(NULL, "vram_size", "0");
-        set_config_int(NULL, "sound_enabled",     config.soundenabled);
-        set_config_int(NULL, "refresh_rate",      config.refresh);
-        set_config_int(NULL, "cdrom_enabled",     config.cdromenabled);
-        set_config_int(NULL, "cdrom_type",        config.cdromtype);
-        set_config_string(NULL, "cdrom_iso",      config.isoname);
-        set_config_int(NULL, "mouse_following",   config.mousehackon);
-        set_config_int(NULL, "mouse_twobutton",   config.mousetwobutton);
-
-	switch (config.network_type) {
-	case NetworkType_Off:              sprintf(s, "off"); break;
-	case NetworkType_EthernetBridging: sprintf(s, "ethernetbridging"); break;
-	case NetworkType_IPTunnelling:     sprintf(s, "iptunnelling"); break;
-	default:
-		/* Forgotten to add a new network type to the switch()? */
-		fatal("saveconfig(): unknown networktype %d\n",
-		      config.network_type);
-	}
-	set_config_string(NULL, "network_type", s);
-
-	if (config.username) {
-		set_config_string(NULL, "username", config.username);
-	} else {
-		set_config_string(NULL, "username", "");
-	}
-	if (config.ipaddress) {
-		set_config_string(NULL, "ipaddress", config.ipaddress);
-	} else {
-		set_config_string(NULL, "ipaddress", "");
-	}
-	if (config.macaddress) {
-		set_config_string(NULL, "macaddress", config.macaddress);
-	} else {
-		set_config_string(NULL, "macaddress", "");
-	}
-	if (config.bridgename) {
-		set_config_string(NULL, "bridgename", config.bridgename);
-	} else {
-		set_config_string(NULL, "bridgename", "");
-	}
-
-	set_config_int(NULL, "cpu_idle", config.cpu_idle);
-#endif
 }
 
 /**

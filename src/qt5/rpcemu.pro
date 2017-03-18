@@ -49,6 +49,7 @@ SOURCES =	../superio.c \
 		../arm_common.c \
 		../i8042.c \
 		../network.c \
+		settings.cpp \
 		rpc-qt5.cpp \
 		main_window.cpp \
 		configure_dialog.cpp \
