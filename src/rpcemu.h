@@ -263,6 +263,9 @@ extern int infocus;
 extern void resetfpa(void);
 extern void fpaopcode(uint32_t opcode);
 
+/* settings.cpp */
+extern void config_load(Config *config);
+extern void config_save(Config *config);
 
 #ifdef __cplusplus
 } /* extern "C" */

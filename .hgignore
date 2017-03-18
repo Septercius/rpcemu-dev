@@ -16,6 +16,11 @@ hd5.hdf
 hostfs
 Makefile
 poduleroms
+src/qt5/moc_configure_dialog.cpp
+src/qt5/moc_iomdtimer.cpp
+src/qt5/moc_main_window.cpp
+src/qt5/moc_network_dialog.cpp
+src/qt5/moc_rpc-qt5.cpp
 roms
 rpcemu
 rpcemu-interpreter
