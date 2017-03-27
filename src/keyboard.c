@@ -957,6 +957,43 @@ keyboard_poll(void)
 
 }
 
+void
+keyboard_key_press(const uint8_t *scan_codes)
+{
+	if (scan_codes == NULL) {
+		return;
+	}
+
+	ps2_queue(&kbd.queue, scan_codes[0]);
+	if (scan_codes[1] != 0) {
+		/* 2-byte scan code */
+		ps2_queue(&kbd.queue, scan_codes[1]);
+	}
+	kcallback = 20;
+	kbd.command = 0xfe;
+}
+
+void
+keyboard_key_release(const uint8_t *scan_codes)
+{
+	if (scan_codes == NULL) {
+		return;
+	}
+
+	if (scan_codes[1] == 0) {
+		/* 1-byte scan code */
+		ps2_queue(&kbd.queue, 0xf0); /* key-up modifier */
+		ps2_queue(&kbd.queue, scan_codes[0]); /* byte */
+	} else {
+		/* 2-byte scan code */
+		ps2_queue(&kbd.queue, scan_codes[0]); /* first byte */
+		ps2_queue(&kbd.queue, 0xf0); /* key-up modifier */
+		ps2_queue(&kbd.queue, scan_codes[1]); /* second byte */
+	}
+	kcallback = 20;
+	kbd.command = 0xfe;
+}
+
 /* Mousehack functions */
 
 /**

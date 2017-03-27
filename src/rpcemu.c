@@ -364,8 +364,6 @@ execrpcemu(void)
                 
                 mouse_poll();
         }
-
-	keyboard_poll();
 }
 
 /**

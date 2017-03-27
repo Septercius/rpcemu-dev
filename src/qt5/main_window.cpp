@@ -6,6 +6,7 @@
 #include "keyboard.h"
 
 #include "main_window.h"
+#include "rpc-qt5.h"
 
 #define URL_MANUAL	"http://www.marutan.net/rpcemu/manual/"
 #define URL_WEBSITE	"http://www.marutan.net/rpcemu/"
@@ -69,6 +70,15 @@ MainWindow::MainWindow()
 
 	configure_dialog = new ConfigureDialog(this);
 	network_dialog = new NetworkDialog(this);
+
+
+
+
+	QThread *emu_thread = new QThread;
+	this->emulator = new Emulator;
+	this->emulator->moveToThread(emu_thread);
+	connect(emu_thread, SIGNAL(started()), this->emulator, SLOT(mainemuloop()));
+	emu_thread->start();
 }
 
 MainWindow::~MainWindow()
@@ -83,6 +93,23 @@ MainWindow::closeEvent(QCloseEvent *event)
 	event->accept();
 }
 
+void
+MainWindow::keyPressEvent(QKeyEvent *event)
+{
+	if (!event->isAutoRepeat()) {
+		//emit this->emulator->key_press_signal(42);
+		emit this->emulator->key_press_signal(event->nativeScanCode());
+		//emit this->emulator->key_press_signal(*event);
+	}
+}
+
+void
+MainWindow::keyReleaseEvent(QKeyEvent *event)
+{
+	if (!event->isAutoRepeat()) {
+		emit this->emulator->key_release_signal(event->nativeScanCode());
+	}
+}
 
 void
 MainWindow::menu_reset()
