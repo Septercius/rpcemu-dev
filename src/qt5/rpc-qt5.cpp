@@ -32,11 +32,12 @@
 #include "vidc20.h"
 #include "gui.h"
 #include "iomd.h"
+#include "keyboard.h"
 
 /* X11 icon */
 //#include "rpcemu.xpm"
 
-MainWindow * pMainWin;
+MainWindow *pMainWin;
 
 static pthread_t sound_thread;
 static pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
@@ -314,15 +315,6 @@ install_sigchld_handler(void)
 }
 #endif
 
-static void mainemuloop(void);
-
-
-// A Thread calling your test function
-class EmuThread : public QThread {
-protected:
-  void run() { mainemuloop(); }
-};
-
 int main (int argc, char ** argv) 
 { 
 //	if (argc != 1)
@@ -336,141 +328,108 @@ int main (int argc, char ** argv)
 
 	QApplication app(argc, argv);
 
-//        MainWindow mainWin;
-//	mainWin.show();
-
-	pMainWin = new MainWindow();
-	pMainWin->show();
+	//qRegisterMetaType<uint32_t>();
+	//qRegisterMetaType<QKeyEvent>("foo");
 
 
-        if (startrpcemu()) {
-           fatal("startrpcemu() failed");
-        }
-
+	if (startrpcemu()) {
+		fatal("startrpcemu() failed");
+	}
 
 	/* TIMER CALLBACKS like this CAN NOT BE IN A SUB THREAD */
 	/* I have no idea why, but it can't be in EmuThread */
 // HACKCORE
 //        install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
-        VLBUpdateTimer timer;
-        timer.start(1000 / config.refresh);
+	VLBUpdateTimer timer;
+	timer.start(1000 / config.refresh);
 
-        IOMDTimer iomdtimer;
-        iomdtimer.start(2); /* 2ms = 500Hz */
+	IOMDTimer iomdtimer;
+	iomdtimer.start(2); /* 2ms = 500Hz */
 
 
-	EmuThread emuthread;
-	emuthread.setObjectName("rpcemu: emulator");
-	emuthread.start();
-
+	MainWindow main_window;
+	pMainWin = &main_window;
+	main_window.show();
 
 	return app.exec();
-
-#if 0
-
-	/* Setup X11 icon */
-//	allegro_icon = rpcemu_xpm;
-
-        infocus=1;
-//        allegro_init();
-
-//        set_window_title("RPCEmu v" VERSION);
-
-//	LOCK_FUNCTION(close_button_handler);
-//	set_close_button_callback(close_button_handler);
-
-        if (startrpcemu())
-           return -1;
-
-// HACKCORE
-//        install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
-
-        infocus=1;
-
-        while (!quited)
-        {
-                if (infocus)
-                        execrpcemu();
-                        if (updatemips)
-                        {                           
-                                char title[128];
-
-                                sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f",
-                                        perf.mips, perf.mips_total / perf.mips_count);
-//                                set_window_title(title);
-                                updatemips=0;
-                        }
-//                if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END]) entergui();
-//                if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && mousecapture)
-//                {
-//                        mousecapture=0;
-//                        updatemips=1;
-//                }
-        }
-        if (mousecapture)
-        {
-                mousecapture=0;
-        }
-        endrpcemu();
-
-
-        return 0;
-#endif
 }
 
-VLBUpdateTimer::VLBUpdateTimer(QObject *parent) : QTimer(parent) {
+VLBUpdateTimer::VLBUpdateTimer(QObject *parent)
+    : QTimer(parent)
+{
 	connect(this, SIGNAL(timeout()), this, SLOT(VLBUpdate()));
 }
 
-void VLBUpdateTimer::VLBUpdate() {
+void
+VLBUpdateTimer::VLBUpdate()
+{
 //	fprintf(stderr, "V");
 	vblupdate();
 }
 
-IOMDTimer::IOMDTimer(QObject *parent) : QTimer(parent) {
+IOMDTimer::IOMDTimer(QObject *parent)
+    : QTimer(parent)
+{
 	connect(this, SIGNAL(timeout()), this, SLOT(IOMDUpdate()));
 }
 
-void IOMDTimer::IOMDUpdate() {
+void
+IOMDTimer::IOMDUpdate()
+{
 //	fprintf(stderr, "I");
 	gentimerirq();
 }
 
-
-static void
-mainemuloop(void)
+Emulator::Emulator()
 {
+	//connect(this, SIGNAL(key_press_signal()), this, SLOT(key_press()));
+	connect(this, &Emulator::key_press_signal,
+	        this, &Emulator::key_press);
 
-
-        infocus=1;
-
-        while (!quited)
-        {
-                if (infocus)
-                        execrpcemu();
-                        if (updatemips)
-                        {                           
-                                char title[128];
-
-                                sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f",
-                                        perf.mips, perf.mips_total / perf.mips_count);
-//                                set_window_title(title);
-				pMainWin->setWindowTitle(title);
-                                updatemips=0;
-                        }
-//                if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END]) entergui();
-//                if ((key[KEY_LCONTROL] || key[KEY_RCONTROL]) && key[KEY_END] && mousecapture)
-//                {
-//                        mousecapture=0;
-//                        updatemips=1;
-//                }
-        }
-        if (mousecapture)
-        {
-                mousecapture=0;
-        }
-        endrpcemu();
-
+	connect(this, &Emulator::key_release_signal,
+	        this, &Emulator::key_release);
 }
 
-//END_OF_MAIN();
+void
+Emulator::mainemuloop()
+{
+	infocus = 1;
+
+	while (!quited) {
+
+		QCoreApplication::processEvents();
+
+
+		if (infocus) {
+			execrpcemu();
+		}
+		/*
+		if (updatemips) {
+			char title[128];
+
+			sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f",
+				perf.mips, perf.mips_total / perf.mips_count);
+			updatemips = 0;
+		}*/
+	}
+	if (mousecapture)
+	{
+		mousecapture=0;
+	}
+	endrpcemu();
+}
+
+void
+Emulator::key_press(unsigned scan_code)
+{
+	const uint8_t *scan_codes = keyboard_map_key(scan_code);
+	keyboard_key_press(scan_codes);
+}
+
+void
+Emulator::key_release(unsigned scan_code)
+{
+	const uint8_t *scan_codes = keyboard_map_key(scan_code);
+	keyboard_key_release(scan_codes);
+}
+

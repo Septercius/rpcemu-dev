@@ -5,6 +5,7 @@
 
 #include "configure_dialog.h"
 #include "network_dialog.h"
+#include "rpc-qt5.h"
 
 class QAction;
 class QLabel;
@@ -21,6 +22,8 @@ public:
 
 protected:
 	void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
+	void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
+	void keyReleaseEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
 
 private slots:
 	void menu_reset();
@@ -78,6 +81,9 @@ private:
 	// Dialogs
 	ConfigureDialog *configure_dialog;
 	NetworkDialog *network_dialog;
+
+
+	Emulator *emulator;
 };
 
 #endif

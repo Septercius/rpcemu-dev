@@ -48,7 +48,6 @@ SOURCES =	../superio.c \
 		../rpc-machdep.c \
 		../arm_common.c \
 		../i8042.c \
-		../network.c \
 		settings.cpp \
 		rpc-qt5.cpp \
 		main_window.cpp \
@@ -57,12 +56,19 @@ SOURCES =	../superio.c \
 
 win32: {
 	SOURCES +=	../cdrom-ioctl.c \
-			../network-win.c
+			../network.c \
+			../network-win.c \
+			keyboard_win.c
 }
 
-unix: {
+linux {
 	SOURCES +=	../cdrom-linuxioctl.c \
+			../network.c \
 			../network-linux.c
+}
+
+unix {
+	SOURCES +=	keyboard_x.c
 }
 
 CONFIG(dynarec) {
