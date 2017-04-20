@@ -361,8 +361,6 @@ execrpcemu(void)
 //                rpclog("Drawscre %i\n",drawscre);
                 drawscre--;
                 if (drawscre>5) drawscre=0;
-                
-                mouse_poll();
         }
 }
 

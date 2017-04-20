@@ -11,12 +11,28 @@ class QAction;
 class QLabel;
 class QMenu;
 
+class MainLabel : public QLabel
+{
+	Q_OBJECT
+
+public:
+	MainLabel(Emulator &emulator);
+
+protected:
+	void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+	void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+	void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+
+private:
+	Emulator &emulator;
+};
+     
 class MainWindow : public QMainWindow
 {
 	Q_OBJECT
 
 public:
-	MainWindow();
+	MainWindow(Emulator &emulator);
 	virtual ~MainWindow();
 	QLabel *label;
 
@@ -83,7 +99,7 @@ private:
 	NetworkDialog *network_dialog;
 
 
-	Emulator *emulator;
+	Emulator &emulator;
 };
 
 #endif

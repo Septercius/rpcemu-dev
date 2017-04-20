@@ -11,45 +11,46 @@
 #define URL_MANUAL	"http://www.marutan.net/rpcemu/manual/"
 #define URL_WEBSITE	"http://www.marutan.net/rpcemu/"
 
-class MyLabel : public QLabel
+MainLabel::MainLabel(Emulator &emulator)
+    : emulator(emulator)
 {
-	void mousePressEvent(QMouseEvent *event);
-	void mouseReleaseEvent(QMouseEvent *event);
-	void mouseMoveEvent(QMouseEvent *event);
-};
-     
-void MyLabel::mousePressEvent(QMouseEvent *event)
+	// Hide pointer
+	this->setCursor(Qt::BlankCursor);
+}
+
+void
+MainLabel::mouseMoveEvent(QMouseEvent *event)
+{
+	emit this->emulator.mouse_move_signal(event->x(), event->y());
+}
+
+void
+MainLabel::mousePressEvent(QMouseEvent *event)
 {
 	// Luckily allegro and qt5 use 1, 2 and 4 for left, right, mid in the same way
-	if(event->button() < (1 | 2 | 4)) {
-		mouse_b |= event->button();
-	}
 //	fprintf(stderr, "press %x\n", mouse_b);
-}
-
-void MyLabel::mouseReleaseEvent(QMouseEvent *event)
-{
-	if(event->button() < (1 | 2 | 4)) {
-		mouse_b &= ~event->button();
+	if (event->button() & 7) {
+		emit this->emulator.mouse_press_signal(event->button() & 7);
 	}
-//	fprintf(stderr, "release %x\n", mouse_b);
 }
 
-void MyLabel::mouseMoveEvent(QMouseEvent *event)
+void
+MainLabel::mouseReleaseEvent(QMouseEvent *event)
 {
-//	fprintf(stderr, "move %d,%d\n", event->x(), event->y());
-
-	mouse_x = event->x();
-	mouse_y = event->y();
+//	fprintf(stderr, "release %x\n", mouse_b);
+	if (event->button() & 7) {
+		emit this->emulator.mouse_release_signal(event->button() & 7);
+	}
 }
 
 
-MainWindow::MainWindow()
-    : full_screen(false)
+MainWindow::MainWindow(Emulator &emulator)
+    : full_screen(false),
+      emulator(emulator)
 {
 	image = new QImage(640, 480, QImage::Format_RGB32);
 
-	label = new MyLabel();
+	label = new MainLabel(emulator);
 	label->setMinimumSize(640, 480);
 	label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 	label->setPixmap(QPixmap::fromImage(*image));
@@ -70,15 +71,6 @@ MainWindow::MainWindow()
 
 	configure_dialog = new ConfigureDialog(this);
 	network_dialog = new NetworkDialog(this);
-
-
-
-
-	QThread *emu_thread = new QThread;
-	this->emulator = new Emulator;
-	this->emulator->moveToThread(emu_thread);
-	connect(emu_thread, SIGNAL(started()), this->emulator, SLOT(mainemuloop()));
-	emu_thread->start();
 }
 
 MainWindow::~MainWindow()
@@ -97,9 +89,9 @@ void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
 	if (!event->isAutoRepeat()) {
-		//emit this->emulator->key_press_signal(42);
-		emit this->emulator->key_press_signal(event->nativeScanCode());
-		//emit this->emulator->key_press_signal(*event);
+		//emit this->emulator.key_press_signal(42);
+		emit this->emulator.key_press_signal(event->nativeScanCode());
+		//emit this->emulator.key_press_signal(*event);
 	}
 }
 
@@ -107,7 +99,7 @@ void
 MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
 	if (!event->isAutoRepeat()) {
-		emit this->emulator->key_release_signal(event->nativeScanCode());
+		emit this->emulator.key_release_signal(event->nativeScanCode());
 	}
 }
 

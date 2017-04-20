@@ -103,8 +103,8 @@ static struct {
 
 
 // Fake Allegro style mouse data, updated via QT frontend
-int mouse_x = 0;
-int mouse_y = 0;
+static int mouse_x = 0;
+static int mouse_y = 0;
 int mouse_b = 0;
 
 
@@ -786,6 +786,25 @@ mouse_poll(void)
 	/* There's data in the queue, make sure we're called back */
 	mcallback = 20;
 #endif
+}
+
+void
+mouse_mouse_move(int x, int y)
+{
+	mouse_x = x;
+	mouse_y = y;
+}
+
+void
+mouse_mouse_press(int buttons)
+{
+	mouse_b |= buttons;
+}
+
+void
+mouse_mouse_release(int buttons)
+{
+	mouse_b &= ~buttons;
 }
 
 #if 0
