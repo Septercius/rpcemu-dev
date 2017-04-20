@@ -17,6 +17,10 @@ signals:
 
 	void key_release_signal(unsigned scan_code);
 
+	void mouse_move_signal(int x, int y);
+	void mouse_press_signal(int buttons);
+	void mouse_release_signal(int buttons);
+
 public slots:
 	void mainemuloop();
 
@@ -25,6 +29,10 @@ public slots:
 	//void key_press(uint32_t scan_code);
 
 	void key_release(unsigned scan_code);
+
+	void mouse_move(int x, int y);
+	void mouse_press(int buttons);
+	void mouse_release(int buttons);
 };
 
 

@@ -346,9 +346,21 @@ int main (int argc, char ** argv)
 	IOMDTimer iomdtimer;
 	iomdtimer.start(2); /* 2ms = 500Hz */
 
+	// Create Emulator Thread and Object
+	QThread *emu_thread = new QThread;
+	Emulator *emulator = new Emulator;
+	emulator->moveToThread(emu_thread);
+	QThread::connect(emu_thread, &QThread::started,
+	                 emulator, &Emulator::mainemuloop);
 
-	MainWindow main_window;
+	// Create Main Window
+	MainWindow main_window(*emulator);
 	pMainWin = &main_window;
+
+	// Start Emulator Thread
+	emu_thread->start();
+
+	// Show Main Window
 	main_window.show();
 
 	return app.exec();
@@ -388,6 +400,10 @@ Emulator::Emulator()
 
 	connect(this, &Emulator::key_release_signal,
 	        this, &Emulator::key_release);
+
+	connect(this, &Emulator::mouse_move_signal, this, &Emulator::mouse_move);
+	connect(this, &Emulator::mouse_press_signal, this, &Emulator::mouse_press);
+	connect(this, &Emulator::mouse_release_signal, this, &Emulator::mouse_release);
 }
 
 void
@@ -433,3 +449,20 @@ Emulator::key_release(unsigned scan_code)
 	keyboard_key_release(scan_codes);
 }
 
+void
+Emulator::mouse_move(int x, int y)
+{
+	mouse_mouse_move(x, y);
+}
+
+void
+Emulator::mouse_press(int buttons)
+{
+	mouse_mouse_press(buttons);
+}
+
+void
+Emulator::mouse_release(int buttons)
+{
+	mouse_mouse_release(buttons);
+}

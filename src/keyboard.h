@@ -42,6 +42,10 @@ extern void keyboard_key_press(const uint8_t *);
 extern void keyboard_key_release(const uint8_t *);
 extern const uint8_t *keyboard_map_key(uint32_t);
 
+extern void mouse_mouse_move(int x, int y);
+extern void mouse_mouse_press(int buttons);
+extern void mouse_mouse_release(int buttons);
+
 extern void mouse_hack_osword_21_0(uint32_t a);
 extern void mouse_hack_osword_21_1(uint32_t a);
 extern void mouse_hack_osword_21_4(uint32_t a);
@@ -49,8 +53,6 @@ extern void mouse_hack_osbyte_106(uint32_t a);
 extern void mouse_hack_osmouse(void);
 extern void mouse_hack_get_pos(int *x, int *y);
 
-extern int mouse_x;
-extern int mouse_y;
 extern int mouse_b;
 
 #ifdef __cplusplus
