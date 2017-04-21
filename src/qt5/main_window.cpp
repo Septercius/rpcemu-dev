@@ -7,6 +7,7 @@
 
 #include "main_window.h"
 #include "rpc-qt5.h"
+#include "config.h"
 
 #define URL_MANUAL	"http://www.marutan.net/rpcemu/manual/"
 #define URL_WEBSITE	"http://www.marutan.net/rpcemu/"
@@ -48,6 +49,8 @@ MainWindow::MainWindow(Emulator &emulator)
     : full_screen(false),
       emulator(emulator)
 {
+	setWindowTitle("RPCEmu v" VERSION);
+	
 	image = new QImage(640, 480, QImage::Format_RGB32);
 
 	label = new MainLabel(emulator);

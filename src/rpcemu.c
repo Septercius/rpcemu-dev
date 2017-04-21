@@ -27,10 +27,11 @@
 #include <time.h>
 #include <unistd.h>
 
-//#include <allegro.h>
-//#if defined WIN32 || defined _WIN32
-//#include <winalleg.h>
-//#endif
+#if defined WIN32 || defined _WIN32
+#undef UNICODE
+#include <windows.h>
+#endif
+
 
 #include "rpcemu.h"
 #include "mem.h"
