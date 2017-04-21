@@ -18,13 +18,7 @@
 #include "iomdtimer.h"
 
 #include <pthread.h>
-#include <sys/statvfs.h>
 #include <sys/types.h>
-#include <sys/utsname.h>
-#include <sys/wait.h>
-
-//#include <allegro.h>
-//extern void *allegro_icon; /**< Additional prototype required for X11 icon support */
 
 #include "rpcemu.h"
 #include "mem.h"
@@ -33,9 +27,6 @@
 #include "gui.h"
 #include "iomd.h"
 #include "keyboard.h"
-
-/* X11 icon */
-//#include "rpcemu.xpm"
 
 MainWindow *pMainWin;
 
@@ -151,54 +142,6 @@ void fatal(const char *format, ...)
 	exit(EXIT_FAILURE);
 }
 
-/**
- * Return disk space information about a file system.
- *
- * @param path Pathname of object within file system
- * @param d    Pointer to disk_info structure that will be filled in
- * @return     On success 1 is returned, on error 0 is returned
- */
-int
-path_disk_info(const char *path, disk_info *d)
-{
-	struct statvfs s;
-	int ret;
-
-	assert(path != NULL);
-	assert(d != NULL);
-
-	if ((ret = statvfs(path, &s)) != 0) {
-		return 0;
-	}
-
-	d->size = (uint64_t) s.f_blocks * (uint64_t) s.f_frsize;
-	d->free = (uint64_t) s.f_bavail * (uint64_t) s.f_frsize;
-
-	return 1;
-}
-
-/**
- * Log details about the current Operating System version.
- *
- * This function should work on all Unix and Unix-like systems.
- *
- * Called during program start-up.
- */
-void
-rpcemu_log_os(void)
-{
-	struct utsname u;
-
-	if (uname(&u) == -1) {
-		rpclog("OS: Could not determine: %s\n", strerror(errno));
-		return;
-	}
-
-	rpclog("OS: SysName = %s\n", u.sysname);
-	rpclog("OS: Release = %s\n", u.release);
-	rpclog("OS: Version = %s\n", u.version);
-	rpclog("OS: Machine = %s\n", u.machine);
-}
 
 static void vblupdate(void)
 {
@@ -281,39 +224,6 @@ void vidcreleasemutex(void)
 //}
 //END_OF_FUNCTION(close_button_handler)
 
-#if 0
-/*Shoudln't be needed with qt5 URL launcher */
-/**
- * Handler for the SIGCHLD signal.
- *
- * Wait on child process to allow cleanup.
- */
-static void
-sigchld_handler(int signum)
-{
-	(void) wait(NULL);
-}
-
-/**
- * Install a handler for the SIGCHLD signal.
- *
- * Launching a URL forks a new process, and this installs a handler for the
- * signal generated when the process exits.
- */
-static void
-install_sigchld_handler(void)
-{
-	struct sigaction act;
-
-	act.sa_handler = sigchld_handler;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
-
-	if (sigaction(SIGCHLD, &act, NULL) != 0) {
-		fatal("Could not install sigchld handler: %s\n", strerror(errno));
-	}
-}
-#endif
 
 int main (int argc, char ** argv) 
 { 

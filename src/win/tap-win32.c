@@ -33,6 +33,7 @@
 //#include "sysemu.h"
 #include "rpcemu.h"
 #include <stdio.h>
+#undef UNICODE
 #include <windows.h>
 #include <winioctl.h>
 

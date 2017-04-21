@@ -54,22 +54,28 @@ SOURCES =	../superio.c \
 		configure_dialog.cpp \
 		network_dialog.cpp
 
-win32: {
-	SOURCES +=	../cdrom-ioctl.c \
-			../network.c \
-			../network-win.c \
+win32 {
+# ../win/cdrom-ioctl.c \
+	SOURCES +=	../network.c \
+			../win/network-win.c \
+			../win/tap-win32.c \
+			../win/rpc-win.c \
 			keyboard_win.c
 }
 
 linux {
 	SOURCES +=	../cdrom-linuxioctl.c \
 			../network.c \
-			../network-linux.c
+			../network-linux.c \
+			../rpc-linux.c
 }
 
 unix {
 	SOURCES +=	keyboard_x.c
 }
+
+# Place exes in top level directory
+DESTDIR = ../..
 
 CONFIG(dynarec) {
 	SOURCES +=	../ArmDynarec.c
@@ -84,11 +90,19 @@ CONFIG(dynarec) {
 		SOURCES +=	../codegen_x86.c
 	}
 	
-	TARGET = ../../rpcemu-recompiler
+	win32 {
+		TARGET = RPCEmu-Recompiler
+	} else {
+		TARGET = rpcemu-recompiler
+	}
 } else {
 	SOURCES +=	../arm.c \
 			../codegen_null.c
-	TARGET = ../../rpcemu-interpreter
+	win32 {
+		TARGET = RPCEmu-Interpreter
+	} else {
+		TARGET = rpcemu-interpreter
+	}
 }
 
 CONFIG(debug) {
