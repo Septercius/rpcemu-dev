@@ -118,6 +118,44 @@ MainWindow::menu_reset()
 	this->setFixedSize(this->sizeHint());
 }
 
+void 
+MainWindow::menu_loaddisc0()
+{
+	const char *p;
+	QByteArray ba;
+	QString fileName = QFileDialog::getOpenFileName(this,
+	                                                tr("Open Disc Image"),
+	                                                "",
+	                                                tr("ADFS Disc Image (*.adf);;All Files (*.*)"));
+
+	if(fileName != NULL) {
+		ba = fileName.toUtf8();
+		p = ba.data();
+		std::cout << "Load Disc :0 load '" << p << "'" << std::endl;
+	} else {
+		std::cout << "Load Disc :0 User hit cancel" << std::endl;
+	}
+}
+
+void 
+MainWindow::menu_loaddisc1()
+{
+	const char *p;
+	QByteArray ba;
+	QString fileName = QFileDialog::getOpenFileName(this,
+	                                                tr("Open Disc Image"),
+	                                                "",
+	                                                tr("ADFS Disc Image (*.adf);;All Files (*.*)"));
+
+	if(fileName != NULL) {
+		ba = fileName.toUtf8();
+		p = ba.data();
+		std::cout << "Load Disc :1 load '" << p << "'" << std::endl;
+	} else {
+		std::cout << "Load Disc :1 User hit cancel" << std::endl;
+	}
+}
+
 void
 MainWindow::menu_configure()
 {
@@ -132,6 +170,56 @@ MainWindow::menu_networking()
 	std::cout << "Networking clicked" << std::endl;
 	network_dialog->exec(); // Modal
 }
+
+void
+MainWindow::menu_cdrom_disabled()
+{
+	std::cout << "CDROM disabled clicked" << std::endl;
+}
+
+void
+MainWindow::menu_cdrom_empty()
+{
+	std::cout << "CDROM empty clicked" << std::endl;
+}
+
+void
+MainWindow::menu_cdrom_iso()
+{
+	const char *p;
+	QByteArray ba;
+	QString fileName = QFileDialog::getOpenFileName(this,
+	                                                tr("Open ISO Image"),
+	                                                "",
+	                                                tr("ISO CD-ROM Image (*.iso);;All Files (*.*)"));
+
+	if(fileName != NULL) {
+		ba = fileName.toUtf8();
+		p = ba.data();
+		std::cout << "CDROM iso load '" << p << "'" << std::endl;
+	} else {
+		std::cout << "CDROM iso User hit cancel" << std::endl;
+	}
+}
+
+void
+MainWindow::menu_mouse_hack()
+{
+	std::cout << "Follows host mouse clicked" << std::endl;
+}
+
+void
+MainWindow::menu_mouse_capture()
+{
+	std::cout << "Mouse capture clicked" << std::endl;
+}
+
+void
+MainWindow::menu_mouse_twobutton()
+{
+	std::cout << "Mouse two button clicked" << std::endl;
+}
+
 
 void
 MainWindow::menu_online_manual()
@@ -166,6 +254,12 @@ MainWindow::create_actions()
 	exit_action->setStatusTip(tr("Exit the application"));
 	connect(exit_action, SIGNAL(triggered()), this, SLOT(close()));
 
+	// Actions on Disc menu
+	loaddisc0_action = new QAction(tr("Load Disc :0"), this);
+	connect(loaddisc0_action, SIGNAL(triggered()), this, SLOT(menu_loaddisc0()));
+	loaddisc1_action = new QAction(tr("Load Disc :1"), this);
+	connect(loaddisc1_action, SIGNAL(triggered()), this, SLOT(menu_loaddisc1()));
+
 	// Actions on Settings menu
 	configure_action = new QAction(tr("&Configure..."), this);
 	connect(configure_action, SIGNAL(triggered()), this, SLOT(menu_configure()));
@@ -173,7 +267,22 @@ MainWindow::create_actions()
 	connect(networking_action, SIGNAL(triggered()), this, SLOT(menu_networking()));
 	fullscreen_action = new QAction(tr("&Fullscreen mode"), this);
 	cpu_idle_action = new QAction(tr("&Reduce CPU usage"), this);
+
+	// Actions on the Settings->CD ROM Menu
 	cdrom_disabled_action = new QAction(tr("&Disabled"), this);
+	connect(cdrom_disabled_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_disabled()));
+	cdrom_empty_action = new QAction(tr("&Empty"), this);
+	connect(cdrom_empty_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_empty()));
+	cdrom_iso_action = new QAction(tr("&Iso Image..."), this);
+	connect(cdrom_iso_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_iso()));
+
+	// Aactions on the Settings->Mouse menu
+	mouse_hack_action = new QAction(tr("&Follow host mouse"), this);
+	connect(mouse_hack_action, SIGNAL(triggered()), this, SLOT(menu_mouse_hack()));
+	mouse_capture_action = new QAction(tr("&Capture"), this);
+	connect(mouse_capture_action, SIGNAL(triggered()), this, SLOT(menu_mouse_capture()));
+	mouse_twobutton_action = new QAction(tr("&Two-button Mouse Mode"), this);
+	connect(mouse_twobutton_action, SIGNAL(triggered()), this, SLOT(menu_mouse_twobutton()));
 
 	// Actions on About menu
 	online_manual_action = new QAction(tr("Online &Manual..."), this);
@@ -184,10 +293,6 @@ MainWindow::create_actions()
 	about_action = new QAction(tr("&About RPCEmu..."), this);
 	about_action->setStatusTip(tr("Show the application's About box"));
 	connect(about_action, SIGNAL(triggered()), this, SLOT(menu_about()));
-
-	aboutQtAct = new QAction(tr("About &Qt..."), this);
-	aboutQtAct->setStatusTip(tr("Show the Qt library's About box"));
-	connect(aboutQtAct, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
 
 	connect(this, SIGNAL(main_display_signal(QPixmap)), this, SLOT(main_display_update(QPixmap)), Qt::BlockingQueuedConnection);
 
@@ -204,6 +309,8 @@ MainWindow::create_menus()
 
 	// Disc menu
 	disc_menu = menuBar()->addMenu(tr("&Disc"));
+	disc_menu->addAction(loaddisc0_action);
+	disc_menu->addAction(loaddisc1_action);
 
 	// Settings menu (and submenus)
 	settings_menu = menuBar()->addMenu(tr("&Settings"));
@@ -219,9 +326,13 @@ MainWindow::create_menus()
 
 	// CD-ROM submenu
 	cdrom_menu->addAction(cdrom_disabled_action);
+	cdrom_menu->addAction(cdrom_empty_action);
+	cdrom_menu->addAction(cdrom_iso_action);
 
-	// Mouse submenu (nothing yet)
-
+	// Mouse submenu
+	mouse_menu->addAction(mouse_hack_action);
+	mouse_menu->addAction(mouse_capture_action);
+	mouse_menu->addAction(mouse_twobutton_action);
 
 
 	menuBar()->addSeparator();
@@ -232,7 +343,6 @@ MainWindow::create_menus()
 	help_menu->addAction(visit_website_action);
 	help_menu->addSeparator();
 	help_menu->addAction(about_action);
-	help_menu->addAction(aboutQtAct);
 }
 
 void

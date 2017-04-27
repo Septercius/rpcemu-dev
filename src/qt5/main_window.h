@@ -43,8 +43,16 @@ protected:
 
 private slots:
 	void menu_reset();
+	void menu_loaddisc0();
+	void menu_loaddisc1();
 	void menu_configure();
 	void menu_networking();
+	void menu_cdrom_disabled();
+	void menu_cdrom_empty();
+	void menu_cdrom_iso();
+	void menu_mouse_hack();
+	void menu_mouse_capture();
+	void menu_mouse_twobutton();
 	void menu_online_manual();
 	void menu_visit_website();
 	void menu_about();
@@ -81,18 +89,26 @@ private:
 	QAction *reset_action;
 	QAction *exit_action;
 
+	// Actions on Disc menu
+	QAction *loaddisc0_action;
+	QAction *loaddisc1_action;
+
 	// Actions on Settings menu (and submenus)
 	QAction *configure_action;
 	QAction *networking_action;
 	QAction *fullscreen_action;
 	QAction *cpu_idle_action;
 	QAction *cdrom_disabled_action;
+	QAction *cdrom_empty_action;
+	QAction *cdrom_iso_action;
+	QAction *mouse_hack_action;
+	QAction *mouse_capture_action;
+	QAction *mouse_twobutton_action;
 
 	// Actions on About menu
 	QAction *online_manual_action;
 	QAction *visit_website_action;
 	QAction *about_action;
-	QAction *aboutQtAct;
 
 	// Dialogs
 	ConfigureDialog *configure_dialog;
