@@ -1,6 +1,6 @@
 # http://doc.qt.io/qt-5/qmake-tutorial.html
 
-CONFIG += debug
+CONFIG += debug_and_release
 
 
 QT += core widgets gui
@@ -106,8 +106,9 @@ CONFIG(dynarec) {
 	}
 }
 
-CONFIG(debug) {
+CONFIG(debug, debug|release) {
 	DEFINES += _DEBUG
+	TARGET = $$join(TARGET, , , -debug)
 }
 
 
