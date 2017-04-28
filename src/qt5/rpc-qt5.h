@@ -11,9 +11,7 @@ class Emulator : public QObject {
 public:
 	Emulator();
 signals:
-	//void key_press_signal(int scan_code);
 	void key_press_signal(unsigned scan_code);
-	//void key_press_signal(uint32_t scan_code);
 
 	void key_release_signal(unsigned scan_code);
 
@@ -21,18 +19,30 @@ signals:
 	void mouse_press_signal(int buttons);
 	void mouse_release_signal(int buttons);
 
+	void reset_signal();
+	void load_disc_0_signal(const QString &discname);
+	void load_disc_1_signal(const QString &discname);
+	void cdrom_disabled_signal();
+	void cdrom_empty_signal();
+	void cdrom_load_iso_signal(const QString &discname);
+
 public slots:
 	void mainemuloop();
 
-	//void key_press(int scan_code);
 	void key_press(unsigned scan_code);
-	//void key_press(uint32_t scan_code);
 
 	void key_release(unsigned scan_code);
 
 	void mouse_move(int x, int y);
 	void mouse_press(int buttons);
 	void mouse_release(int buttons);
+
+	void reset();
+	void load_disc_0(const QString &discname);
+	void load_disc_1(const QString &discname);
+	void cdrom_disabled();
+	void cdrom_empty();
+	void cdrom_load_iso(const QString &discname);
 };
 
 

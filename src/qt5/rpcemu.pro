@@ -8,6 +8,7 @@ INCLUDEPATH += ../
 
 
 HEADERS =	../superio.h \
+		../cdrom-iso.h \
 		../cmos.h \
 		../cp15.h \
 		../fdc.h \
