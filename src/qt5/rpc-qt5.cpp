@@ -27,6 +27,8 @@
 #include "gui.h"
 #include "iomd.h"
 #include "keyboard.h"
+#include "ide.h"
+#include "cdrom-iso.h"
 
 MainWindow *pMainWin;
 
@@ -304,7 +306,7 @@ IOMDTimer::IOMDUpdate()
 
 Emulator::Emulator()
 {
-	//connect(this, SIGNAL(key_press_signal()), this, SLOT(key_press()));
+	// Signals from the main GUI window to provide emulated machine input
 	connect(this, &Emulator::key_press_signal,
 	        this, &Emulator::key_press);
 
@@ -314,8 +316,20 @@ Emulator::Emulator()
 	connect(this, &Emulator::mouse_move_signal, this, &Emulator::mouse_move);
 	connect(this, &Emulator::mouse_press_signal, this, &Emulator::mouse_press);
 	connect(this, &Emulator::mouse_release_signal, this, &Emulator::mouse_release);
+
+	// Signals from user GUI interactions to control parts of the emulator
+	connect(this, &Emulator::reset_signal, this, &Emulator::reset);
+	connect(this, &Emulator::load_disc_0_signal, this, &Emulator::load_disc_0);
+	connect(this, &Emulator::load_disc_1_signal, this, &Emulator::load_disc_1);
+	connect(this, &Emulator::cdrom_disabled_signal, this, &Emulator::cdrom_disabled);
+	connect(this, &Emulator::cdrom_empty_signal, this, &Emulator::cdrom_empty);
+	connect(this, &Emulator::cdrom_load_iso_signal, this, &Emulator::cdrom_load_iso);
+
 }
 
+/**
+ * Main thread function of the Emulator thread
+ */
 void
 Emulator::mainemuloop()
 {
@@ -376,3 +390,80 @@ Emulator::mouse_release(int buttons)
 {
 	mouse_mouse_release(buttons);
 }
+
+/**
+ * User hit reset on GUI menu
+ */
+void
+Emulator::reset()
+{
+	resetrpc();
+}
+
+/**
+ * GUI wants to change disc image in floppy drive 0
+ */
+void
+Emulator::load_disc_0(const QString &discname)
+{
+	const char *p;
+	QByteArray ba;
+
+	ba = discname.toUtf8();
+	p = ba.data();
+	std::cout << "Load Disc :0 load '" << p << "'" << std::endl;
+
+	rpcemu_floppy_load(0, p);
+}
+
+/**
+ * GUI wants to change disc image in floppy drive 1
+ */
+void
+Emulator::load_disc_1(const QString &discname)
+{
+	const char *p;
+	QByteArray ba;
+
+	ba = discname.toUtf8();
+	p = ba.data();
+	std::cout << "Load Disc :1 load '" << p << "'" << std::endl;
+
+	rpcemu_floppy_load(1, p);
+}
+
+/**
+ * GUI wants to disable cdrom drive
+ */
+void
+Emulator::cdrom_disabled()
+{
+	std::cout << "CDROM disabled clicked" << std::endl;
+}
+
+/**
+ * GUI wants to empty/eject cdrom drive
+ */
+void
+Emulator::cdrom_empty()
+{
+	std::cout << "CDROM empty clicked" << std::endl;
+}
+
+/**
+ * GUI wants to change iso image in cdrom drive
+ */
+void
+Emulator::cdrom_load_iso(const QString &discname)
+{
+	const char *p;
+	QByteArray ba;
+
+	ba = discname.toUtf8();
+	p = ba.data();
+
+	strcpy(config.isoname, p);
+	atapi->exit();
+	iso_open(config.isoname);
+}
+

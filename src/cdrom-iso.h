@@ -21,9 +21,17 @@
 #ifndef CDROM_ISO_H
 #define CDROM_ISO_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 extern int iso_open(const char *fn);
 
 void iso_init(void);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
 
 #endif
 

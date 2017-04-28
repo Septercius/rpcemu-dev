@@ -109,50 +109,34 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
 void
 MainWindow::menu_reset()
 {
-	delete image;
-	image = new QImage(800, 600, QImage::Format_RGB32);
-
-	label->setMinimumSize(800, 600);
-	label->setPixmap(QPixmap::fromImage(*image));
-
-	this->setFixedSize(this->sizeHint());
+	emit this->emulator.reset_signal();
 }
 
 void 
 MainWindow::menu_loaddisc0()
 {
-	const char *p;
-	QByteArray ba;
 	QString fileName = QFileDialog::getOpenFileName(this,
 	                                                tr("Open Disc Image"),
 	                                                "",
 	                                                tr("ADFS Disc Image (*.adf);;All Files (*.*)"));
 
+	/* fileName is NULL if user hit cancel */
 	if(fileName != NULL) {
-		ba = fileName.toUtf8();
-		p = ba.data();
-		std::cout << "Load Disc :0 load '" << p << "'" << std::endl;
-	} else {
-		std::cout << "Load Disc :0 User hit cancel" << std::endl;
+		emit this->emulator.load_disc_0_signal(fileName);
 	}
 }
 
 void 
 MainWindow::menu_loaddisc1()
 {
-	const char *p;
-	QByteArray ba;
 	QString fileName = QFileDialog::getOpenFileName(this,
 	                                                tr("Open Disc Image"),
 	                                                "",
 	                                                tr("ADFS Disc Image (*.adf);;All Files (*.*)"));
 
+	/* fileName is NULL if user hit cancel */
 	if(fileName != NULL) {
-		ba = fileName.toUtf8();
-		p = ba.data();
-		std::cout << "Load Disc :1 load '" << p << "'" << std::endl;
-	} else {
-		std::cout << "Load Disc :1 User hit cancel" << std::endl;
+		emit this->emulator.load_disc_1_signal(fileName);
 	}
 }
 
@@ -174,31 +158,26 @@ MainWindow::menu_networking()
 void
 MainWindow::menu_cdrom_disabled()
 {
-	std::cout << "CDROM disabled clicked" << std::endl;
+	emit this->emulator.cdrom_disabled_signal();
 }
 
 void
 MainWindow::menu_cdrom_empty()
 {
-	std::cout << "CDROM empty clicked" << std::endl;
+	emit this->emulator.cdrom_empty_signal();
 }
 
 void
 MainWindow::menu_cdrom_iso()
 {
-	const char *p;
-	QByteArray ba;
 	QString fileName = QFileDialog::getOpenFileName(this,
 	                                                tr("Open ISO Image"),
 	                                                "",
 	                                                tr("ISO CD-ROM Image (*.iso);;All Files (*.*)"));
 
+	/* fileName is NULL if user hit cancel */
 	if(fileName != NULL) {
-		ba = fileName.toUtf8();
-		p = ba.data();
-		std::cout << "CDROM iso load '" << p << "'" << std::endl;
-	} else {
-		std::cout << "CDROM iso User hit cancel" << std::endl;
+		emit this->emulator.cdrom_load_iso_signal(fileName);
 	}
 }
 
