@@ -11,14 +11,24 @@ ConfigureDialog::ConfigureDialog(QWidget *parent)
 
 	// Create widgets and layout
 
+	// Create Hardware Group
+	hardware_listwidget = new QListWidget();
+
+	// TODO fill in ListWidget with ListWidgetItems
+
+	hardware_vbox = new QVBoxLayout();
+	hardware_vbox->addWidget(hardware_listwidget);
+
+	hardware_group_box = new QGroupBox("Hardware");
+	hardware_group_box->setLayout(hardware_vbox);
 
 	// Create Memory Group
 	mem_4 = new QRadioButton("4 MB");
 	mem_8 = new QRadioButton("8 MB");
 	mem_16 = new QRadioButton("16 MB");
-	mem_32 = new QRadioButton("32 MB");
-	mem_64 = new QRadioButton("64 MB");
-	mem_128 = new QRadioButton("128 MB");
+	mem_32 = new QRadioButton("32 MB (recommended)");
+	mem_64 = new QRadioButton("64 MB (recommended)");
+	mem_128 = new QRadioButton("128 MB (recommended)");
 	mem_256 = new QRadioButton("256 MB");
 
 	mem_group = new QButtonGroup();
@@ -42,7 +52,23 @@ ConfigureDialog::ConfigureDialog(QWidget *parent)
 	mem_group_box = new QGroupBox("RAM");
 	mem_group_box->setLayout(mem_vbox);
 
+	// Create VRAM group
+	vram_0 = new QRadioButton("None");
+	vram_2 = new QRadioButton("2 MB (8 MB if OS supported)");
 
+	vram_group = new QButtonGroup();
+	vram_group->addButton(vram_0);
+	vram_group->addButton(vram_0);
+
+	vram_vbox = new QVBoxLayout();
+	vram_vbox->addWidget(vram_0);
+	vram_vbox->addWidget(vram_2);
+
+	vram_group_box = new QGroupBox("VRAM");
+	vram_group_box->setLayout(vram_vbox);
+
+	// Create sound checkbox
+	sound_checkbox = new QCheckBox("Sound");
 
 	// Create refresh
 	refresh_slider = new QSlider(Qt::Horizontal);
@@ -64,11 +90,13 @@ ConfigureDialog::ConfigureDialog(QWidget *parent)
 	buttons_box = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
 	// Main layout
-
-	vbox = new QVBoxLayout(this);
-	vbox->addWidget(mem_group_box);
-	vbox->addWidget(refresh_group_box);
-	vbox->addWidget(buttons_box);
+	grid = new QGridLayout(this);
+	grid->addWidget(hardware_group_box, 0, 0);
+	grid->addWidget(mem_group_box, 0, 1);
+	grid->addWidget(vram_group_box, 1, 0);
+	grid->addWidget(sound_checkbox, 1, 1);
+	grid->addWidget(refresh_group_box, 2, 0, 1, 2); // span 2 columns
+	grid->addWidget(buttons_box, 3, 0, 1, 2);       // span 2 columns
 
 	// Connect actions to widgets
 
