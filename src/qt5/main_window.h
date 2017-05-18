@@ -7,6 +7,8 @@
 #include "network_dialog.h"
 #include "rpc-qt5.h"
 
+#include "rpcemu.h"
+
 class QAction;
 class QLabel;
 class QMenu;
@@ -47,6 +49,8 @@ private slots:
 	void menu_loaddisc1();
 	void menu_configure();
 	void menu_networking();
+	void menu_fullscreen();
+	void menu_cpu_idle();
 	void menu_cdrom_disabled();
 	void menu_cdrom_empty();
 	void menu_cdrom_iso();
@@ -114,8 +118,13 @@ private:
 	ConfigureDialog *configure_dialog;
 	NetworkDialog *network_dialog;
 
-
+	// Pointer to emulator instance
 	Emulator &emulator;
+
+	// GUI thread copy of the emulator's config
+	Config config_copy;
+	Model model_copy;
+
 };
 
 #endif

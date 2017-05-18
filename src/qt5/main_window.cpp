@@ -28,7 +28,6 @@ MainLabel::mouseMoveEvent(QMouseEvent *event)
 void
 MainLabel::mousePressEvent(QMouseEvent *event)
 {
-	// Luckily allegro and qt5 use 1, 2 and 4 for left, right, mid in the same way
 //	fprintf(stderr, "press %x\n", mouse_b);
 	if (event->button() & 7) {
 		emit this->emulator.mouse_press_signal(event->button() & 7);
@@ -59,7 +58,7 @@ MainWindow::MainWindow(Emulator &emulator)
 	label->setPixmap(QPixmap::fromImage(*image));
 	setCentralWidget(label);
 
-	// Mouse handlind
+	// Mouse handling
 	label->setMouseTracking(true);
 
 	create_actions();
@@ -74,6 +73,24 @@ MainWindow::MainWindow(Emulator &emulator)
 
 	configure_dialog = new ConfigureDialog(this);
 	network_dialog = new NetworkDialog(this);
+
+	// Copy the emulators config to a thread local copy
+	memcpy(&config_copy, &config,  sizeof(Config));
+	model_copy = machine.model;
+
+	// Update the gui with the initial config setting
+	// TODO what about fullscreen? (probably handled in GUI only
+	if(config_copy.cpu_idle) {
+		cpu_idle_action->setChecked(true);
+	}
+        if(config.mousehackon) {
+		mouse_hack_action->setChecked(true);
+	}
+        if(config.mousetwobutton) {
+		mouse_twobutton_action->setChecked(true);
+	}
+	// TODO CDROM actions, were these ever set to anything?
+
 }
 
 MainWindow::~MainWindow()
@@ -92,9 +109,7 @@ void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
 	if (!event->isAutoRepeat()) {
-		//emit this->emulator.key_press_signal(42);
 		emit this->emulator.key_press_signal(event->nativeScanCode());
-		//emit this->emulator.key_press_signal(*event);
 	}
 }
 
@@ -143,17 +158,46 @@ MainWindow::menu_loaddisc1()
 void
 MainWindow::menu_configure()
 {
-	std::cout << "Configure clicked" << std::endl;
 	configure_dialog->exec(); // Modal
-	//configure_dialog->show(); // Non-modal
 }
 
 void
 MainWindow::menu_networking()
 {
-	std::cout << "Networking clicked" << std::endl;
 	network_dialog->exec(); // Modal
 }
+
+void
+MainWindow::menu_fullscreen()
+{
+	std::cout << "fullscreen clicked" << std::endl;
+}
+
+void
+MainWindow::menu_cpu_idle()
+{
+	QMessageBox msgBox;
+	msgBox.setText("This will reset RPCEmu!\nOkay to continue?");
+	msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+	msgBox.setDefaultButton(QMessageBox::Cancel);
+	int ret = msgBox.exec();
+
+	switch (ret) {
+	case QMessageBox::Ok:
+		emit this->emulator.cpu_idle_signal();
+		config_copy.cpu_idle ^= 1;
+		break;
+
+	case QMessageBox::Cancel:
+		// If cancelled reset the tick box on the menu back to current emu state
+		cpu_idle_action->setChecked(config_copy.cpu_idle);
+		break;
+	default:
+		break;
+	}
+
+}
+
 
 void
 MainWindow::menu_cdrom_disabled()
@@ -184,19 +228,21 @@ MainWindow::menu_cdrom_iso()
 void
 MainWindow::menu_mouse_hack()
 {
-	std::cout << "Follows host mouse clicked" << std::endl;
+	emit this->emulator.mouse_hack_signal();
+	config_copy.mousehackon ^= 1;
 }
 
 void
 MainWindow::menu_mouse_capture()
 {
-	std::cout << "Mouse capture clicked" << std::endl;
+	emit this->emulator.mouse_capture_signal();
 }
 
 void
 MainWindow::menu_mouse_twobutton()
 {
-	std::cout << "Mouse two button clicked" << std::endl;
+	emit this->emulator.mouse_twobutton_signal();
+	config_copy.mousetwobutton ^= 1;
 }
 
 
@@ -245,22 +291,36 @@ MainWindow::create_actions()
 	networking_action = new QAction(tr("&Networking..."), this);
 	connect(networking_action, SIGNAL(triggered()), this, SLOT(menu_networking()));
 	fullscreen_action = new QAction(tr("&Fullscreen mode"), this);
+	fullscreen_action->setCheckable(true);
+	connect(fullscreen_action, SIGNAL(triggered()), this, SLOT(menu_fullscreen()));
 	cpu_idle_action = new QAction(tr("&Reduce CPU usage"), this);
+	cpu_idle_action->setCheckable(true);
+	connect(cpu_idle_action, SIGNAL(triggered()), this, SLOT(menu_cpu_idle()));
 
 	// Actions on the Settings->CD ROM Menu
 	cdrom_disabled_action = new QAction(tr("&Disabled"), this);
+	cdrom_disabled_action->setCheckable(true);
 	connect(cdrom_disabled_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_disabled()));
+
 	cdrom_empty_action = new QAction(tr("&Empty"), this);
+	cdrom_empty_action->setCheckable(true);
 	connect(cdrom_empty_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_empty()));
+
 	cdrom_iso_action = new QAction(tr("&Iso Image..."), this);
+	cdrom_iso_action->setCheckable(true);
 	connect(cdrom_iso_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_iso()));
 
 	// Aactions on the Settings->Mouse menu
 	mouse_hack_action = new QAction(tr("&Follow host mouse"), this);
+	mouse_hack_action->setCheckable(true);
 	connect(mouse_hack_action, SIGNAL(triggered()), this, SLOT(menu_mouse_hack()));
+
 	mouse_capture_action = new QAction(tr("&Capture"), this);
+	mouse_capture_action->setCheckable(true);
 	connect(mouse_capture_action, SIGNAL(triggered()), this, SLOT(menu_mouse_capture()));
+
 	mouse_twobutton_action = new QAction(tr("&Two-button Mouse Mode"), this);
+	mouse_twobutton_action->setCheckable(true);
 	connect(mouse_twobutton_action, SIGNAL(triggered()), this, SLOT(menu_mouse_twobutton()));
 
 	// Actions on About menu
@@ -274,6 +334,7 @@ MainWindow::create_actions()
 	connect(about_action, SIGNAL(triggered()), this, SLOT(menu_about()));
 
 	connect(this, SIGNAL(main_display_signal(QPixmap)), this, SLOT(main_display_update(QPixmap)), Qt::BlockingQueuedConnection);
+//	connect(this, SIGNAL(main_display_signal(QPixmap)), this, SLOT(main_display_update(QPixmap)));
 
 }
 
