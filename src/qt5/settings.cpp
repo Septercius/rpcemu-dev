@@ -44,7 +44,7 @@ config_load(Config * config)
 	}
 */
 
-	sText = settings.value("model", "16").toString();
+	sText = settings.value("mem_size", "16").toString();
 	ba = sText.toUtf8();
         p = ba.data();
 /*	p = get_config_string(NULL, "mem_size", NULL);
