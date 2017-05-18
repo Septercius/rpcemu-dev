@@ -321,10 +321,13 @@ Emulator::Emulator()
 	connect(this, &Emulator::reset_signal, this, &Emulator::reset);
 	connect(this, &Emulator::load_disc_0_signal, this, &Emulator::load_disc_0);
 	connect(this, &Emulator::load_disc_1_signal, this, &Emulator::load_disc_1);
+	connect(this, &Emulator::cpu_idle_signal, this, &Emulator::cpu_idle);
 	connect(this, &Emulator::cdrom_disabled_signal, this, &Emulator::cdrom_disabled);
 	connect(this, &Emulator::cdrom_empty_signal, this, &Emulator::cdrom_empty);
 	connect(this, &Emulator::cdrom_load_iso_signal, this, &Emulator::cdrom_load_iso);
-
+	connect(this, &Emulator::mouse_hack_signal, this, &Emulator::mouse_hack);
+	connect(this, &Emulator::mouse_capture_signal, this, &Emulator::mouse_capture);
+	connect(this, &Emulator::mouse_twobutton_signal, this, &Emulator::mouse_twobutton);
 }
 
 /**
@@ -402,6 +405,8 @@ Emulator::reset()
 
 /**
  * GUI wants to change disc image in floppy drive 0
+ *
+ * @param discname filename of disc image
  */
 void
 Emulator::load_disc_0(const QString &discname)
@@ -411,13 +416,14 @@ Emulator::load_disc_0(const QString &discname)
 
 	ba = discname.toUtf8();
 	p = ba.data();
-	std::cout << "Load Disc :0 load '" << p << "'" << std::endl;
 
 	rpcemu_floppy_load(0, p);
 }
 
 /**
  * GUI wants to change disc image in floppy drive 1
+ *
+ * @param discname filename of disc image
  */
 void
 Emulator::load_disc_1(const QString &discname)
@@ -427,9 +433,18 @@ Emulator::load_disc_1(const QString &discname)
 
 	ba = discname.toUtf8();
 	p = ba.data();
-	std::cout << "Load Disc :1 load '" << p << "'" << std::endl;
 
 	rpcemu_floppy_load(1, p);
+}
+
+/**
+ * GUI is the CPU idling feature
+ */
+void
+Emulator::cpu_idle()
+{
+	config.cpu_idle ^= 1;
+	resetrpc();
 }
 
 /**
@@ -452,6 +467,8 @@ Emulator::cdrom_empty()
 
 /**
  * GUI wants to change iso image in cdrom drive
+ * 
+ * @param discname filename of iso image
  */
 void
 Emulator::cdrom_load_iso(const QString &discname)
@@ -467,3 +484,29 @@ Emulator::cdrom_load_iso(const QString &discname)
 	iso_open(config.isoname);
 }
 
+/**
+ * GUI is toggling mousehack (follows host mouse)
+ */
+void
+Emulator::mouse_hack()
+{
+	config.mousehackon ^= 1;
+}
+
+/**
+ * GUI is toggling capture mouse mode
+ */
+void
+Emulator::mouse_capture()
+{
+	std::cout << "mouse capture clicked" << std::endl;
+}
+
+/**
+ * GUI is toggling two button mouse mode
+ */
+void
+Emulator::mouse_twobutton()
+{
+	config.mousetwobutton ^= 1;
+}

@@ -19,12 +19,17 @@ signals:
 	void mouse_press_signal(int buttons);
 	void mouse_release_signal(int buttons);
 
+	// GUI actions
 	void reset_signal();
 	void load_disc_0_signal(const QString &discname);
 	void load_disc_1_signal(const QString &discname);
+	void cpu_idle_signal();
 	void cdrom_disabled_signal();
 	void cdrom_empty_signal();
 	void cdrom_load_iso_signal(const QString &discname);
+	void mouse_hack_signal();
+	void mouse_capture_signal();
+	void mouse_twobutton_signal();
 
 public slots:
 	void mainemuloop();
@@ -37,12 +42,17 @@ public slots:
 	void mouse_press(int buttons);
 	void mouse_release(int buttons);
 
+	// GUI actions
 	void reset();
 	void load_disc_0(const QString &discname);
 	void load_disc_1(const QString &discname);
+	void cpu_idle();
 	void cdrom_disabled();
 	void cdrom_empty();
 	void cdrom_load_iso(const QString &discname);
+	void mouse_hack();
+	void mouse_capture();
+	void mouse_twobutton();
 };
 
 
