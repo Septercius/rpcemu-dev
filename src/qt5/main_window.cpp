@@ -90,9 +90,6 @@ MainWindow::MainWindow(Emulator &emulator)
 	this->setFixedSize(this->sizeHint());
 	setUnifiedTitleAndToolBarOnMac(true);
 
-	configure_dialog = new ConfigureDialog(this);
-	network_dialog = new NetworkDialog(this);
-
 	// Copy the emulators config to a thread local copy
 	memcpy(&config_copy, &config,  sizeof(Config));
 	model_copy = machine.model;
@@ -110,6 +107,8 @@ MainWindow::MainWindow(Emulator &emulator)
 	}
 	// TODO CDROM actions, were these ever set to anything?
 
+	configure_dialog = new ConfigureDialog(&config_copy, &model_copy);
+	network_dialog = new NetworkDialog(this);
 }
 
 MainWindow::~MainWindow()

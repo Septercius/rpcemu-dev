@@ -21,10 +21,14 @@
 
 #include "configure_dialog.h"
 
-ConfigureDialog::ConfigureDialog(QWidget *parent)
+ConfigureDialog::ConfigureDialog(Config *config_copy, Model *model_copy, QWidget *parent)
     : QDialog(parent)
 {
 	setWindowTitle("Configure RPCEmu");
+
+	// Store pointer to the GUI thread's copy of the emulator config
+	this->config_copy = config_copy;
+	this->model_copy = model_copy;
 
 	// Create actions
 
@@ -33,7 +37,14 @@ ConfigureDialog::ConfigureDialog(QWidget *parent)
 	// Create Hardware Group
 	hardware_listwidget = new QListWidget();
 
-	// TODO fill in ListWidget with ListWidgetItems
+	// Fill in ListWidget with models
+	int modeliter =  0;
+	while(modeliter < (int) Model_MAX) {
+		QListWidgetItem *item = new QListWidgetItem(models[modeliter].name_gui);
+		hardware_list_items.insert(hardware_list_items.end(), item);
+		hardware_listwidget->addItem(item);
+		modeliter++;
+	}
 
 	hardware_vbox = new QVBoxLayout();
 	hardware_vbox->addWidget(hardware_listwidget);
@@ -77,7 +88,7 @@ ConfigureDialog::ConfigureDialog(QWidget *parent)
 
 	vram_group = new QButtonGroup();
 	vram_group->addButton(vram_0);
-	vram_group->addButton(vram_0);
+	vram_group->addButton(vram_2);
 
 	vram_vbox = new QVBoxLayout();
 	vram_vbox->addWidget(vram_0);
@@ -92,11 +103,10 @@ ConfigureDialog::ConfigureDialog(QWidget *parent)
 	// Create refresh
 	refresh_slider = new QSlider(Qt::Horizontal);
 	refresh_slider->setRange(20, 100);
-	refresh_slider->setValue(60);
 	refresh_slider->setTickPosition(QSlider::TicksBothSides);
 	refresh_slider->setFixedWidth(256);
 
-	refresh_label = new QLabel("60 Hz");
+	refresh_label = new QLabel("");
 
 	refresh_hbox = new QHBoxLayout();
 	refresh_hbox->addWidget(refresh_slider);
@@ -118,7 +128,6 @@ ConfigureDialog::ConfigureDialog(QWidget *parent)
 	grid->addWidget(buttons_box, 3, 0, 1, 2);       // span 2 columns
 
 	// Connect actions to widgets
-
 	connect(refresh_slider, SIGNAL(sliderMoved(int)), this, SLOT(slider_moved(int)));
 
 	connect(buttons_box, SIGNAL(accepted()), this, SLOT(accept()));
@@ -127,11 +136,10 @@ ConfigureDialog::ConfigureDialog(QWidget *parent)
 	connect(this, SIGNAL(accepted()), this, SLOT(dialog_accepted()));
 	connect(this, SIGNAL(rejected()), this, SLOT(dialog_rejected()));
 
-	mem_32->setChecked(true);
-
-	//this->setFixedSize(this->sizeHint());
-
+	// Set the values in the configure dialog box
+	applyConfig();
 }
+
 
 ConfigureDialog::~ConfigureDialog()
 {
@@ -154,14 +162,74 @@ ConfigureDialog::slider_moved(int value)
 	refresh_label->setText(QString::number(value) + " Hz");
 }
 
+/**
+ * User clicked OK on the Configure dialog box 
+ */
 void
 ConfigureDialog::dialog_accepted()
 {
 	std::cout << "dialog_accepted()" << std::endl;
 }
 
+/**
+ * User clicked cancel on the Configure dialog box 
+ */
 void
 ConfigureDialog::dialog_rejected()
 {
-	std::cout << "dialog_rejected()" << std::endl;
+	// Set the values in the dialog back to the current settings
+	applyConfig();
+}
+
+/**
+ * Set the values in the configure dialog box based on the current
+ * values of the GUI config copy
+ */
+void
+ConfigureDialog::applyConfig()
+{
+	// Hardware Model
+	hardware_listwidget->setCurrentItem(hardware_list_items.at((int) *model_copy));
+
+	// RAM Size
+	mem_4->setChecked(false);
+	mem_8->setChecked(false);
+	mem_16->setChecked(false);
+	mem_32->setChecked(false);
+	mem_64->setChecked(false);
+	mem_128->setChecked(false);
+	mem_256->setChecked(false);
+
+	switch(config_copy->mem_size) {
+	case   4: mem_4->setChecked(true);   break;
+	case   8: mem_8->setChecked(true);   break;
+	case  16: mem_16->setChecked(true);  break;
+	case  32: mem_32->setChecked(true);  break;
+	case  64: mem_64->setChecked(true);  break;
+	case 128: mem_128->setChecked(true); break;
+	case 256: mem_256->setChecked(true); break;
+	default: fatal("configuredialog.cpp: unhandled memsize %u", config_copy->mem_size);
+	}
+
+	// VRAM
+	vram_0->setChecked(false);
+	vram_2->setChecked(false);
+
+	switch(config_copy->vrammask) {
+	case        0: vram_0->setChecked(true); break;
+	case 0x7FFFFF: vram_2->setChecked(true); break;
+	// TODO Pheobe? cos it'll trip this defualt ...
+	default: fatal("configuredialog.cpp: unhandled vram size 0x%08x", config_copy->vrammask);
+	}
+
+	// Sound
+	if(config_copy->soundenabled) {
+		sound_checkbox->setChecked(true);
+	} else {
+		sound_checkbox->setChecked(false);
+	}
+
+	// Video Refresh Rate
+	refresh_slider->setValue(config_copy->refresh);
+	refresh_label->setText(QString::number(config_copy->refresh) + " Hz");
 }
