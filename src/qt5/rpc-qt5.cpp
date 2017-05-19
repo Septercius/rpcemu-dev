@@ -47,6 +47,9 @@
 
 MainWindow *pMainWin;
 
+/// Instruction counter shared between Emulator and GUI threads
+QAtomicInt instruction_count;
+
 static pthread_t sound_thread;
 static pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t sound_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -361,14 +364,12 @@ Emulator::mainemuloop()
 		if (infocus) {
 			execrpcemu();
 		}
-		/*
-		if (updatemips) {
-			char title[128];
 
-			sprintf(title, "RPCEmu v" VERSION " - MIPS: %.1f, AVG: %.1f",
-				perf.mips, perf.mips_total / perf.mips_count);
-			updatemips = 0;
-		}*/
+		// If the instruction count is greater than 100000, update the shared counter
+		if (inscount >= 100000) {
+			instruction_count.fetchAndAddRelease((int) inscount);
+			inscount = 0;
+		}
 	}
 	if (mousecapture)
 	{
