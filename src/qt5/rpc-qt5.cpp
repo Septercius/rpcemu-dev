@@ -453,7 +453,7 @@ Emulator::load_disc_1(const QString &discname)
 }
 
 /**
- * GUI is the CPU idling feature
+ * GUI is toggling the CPU idling feature
  */
 void
 Emulator::cpu_idle()

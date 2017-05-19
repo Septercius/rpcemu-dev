@@ -20,15 +20,19 @@
 #ifndef CONFIGURE_DIALOG_H
 #define CONFIGURE_DIALOG_H
 
+#include <vector>
+
 #include <QDialog>
 #include <QtWidgets>
+
+#include "rpcemu.h"
 
 class ConfigureDialog : public QDialog
 {
 	Q_OBJECT
 
 public:
-	ConfigureDialog(QWidget *parent = 0);
+	ConfigureDialog(Config *config_copy, Model *model_copy, QWidget *parent = 0);
 	virtual ~ConfigureDialog();
 
 	void keyPressEvent(QKeyEvent *);
@@ -40,7 +44,10 @@ private slots:
 	void dialog_rejected();
 
 private:
+	void applyConfig();
+
 	QListWidget *hardware_listwidget;
+	std::vector<QListWidgetItem *>  hardware_list_items;
 	QVBoxLayout *hardware_vbox;
 	QGroupBox *hardware_group_box;
 
@@ -64,6 +71,11 @@ private:
 	QDialogButtonBox *buttons_box;
 
 	QGridLayout *grid;
+
+	// Pointers to GUI thread copies of the emulator's config
+	Config *config_copy;
+	Model *model_copy;
+
 };
 
 #endif
