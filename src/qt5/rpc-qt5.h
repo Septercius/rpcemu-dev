@@ -23,7 +23,11 @@
 #include <stdint.h>
 
 #include <QtCore>
+#include <QAtomicInt>
 #include <QKeyEvent>
+
+/// Instruction counter shared between Emulator and GUI threads
+extern QAtomicInt instruction_count;
 
 class Emulator : public QObject {
 	Q_OBJECT

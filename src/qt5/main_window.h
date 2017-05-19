@@ -82,6 +82,9 @@ private slots:
 
 	void main_display_update(QPixmap pixmap);
 
+	// MIPS counting
+	void mips_timer_timeout();
+
 signals:
         void main_display_signal(QPixmap);
 
@@ -144,6 +147,11 @@ private:
 	Config config_copy;
 	Model model_copy;
 
+	// MIPS counting
+	QTimer mips_timer;
+	uint64_t mips_total_instructions;
+	int32_t mips_seconds;
+	QString window_title;
 };
 
 #endif

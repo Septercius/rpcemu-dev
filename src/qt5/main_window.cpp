@@ -65,7 +65,10 @@ MainLabel::mouseReleaseEvent(QMouseEvent *event)
 
 MainWindow::MainWindow(Emulator &emulator)
     : full_screen(false),
-      emulator(emulator)
+      emulator(emulator),
+      mips_timer(this),
+      mips_total_instructions(0),
+      mips_seconds(0)
 {
 	setWindowTitle("RPCEmu v" VERSION);
 	
@@ -109,6 +112,11 @@ MainWindow::MainWindow(Emulator &emulator)
 
 	configure_dialog = new ConfigureDialog(&config_copy, &model_copy);
 	network_dialog = new NetworkDialog(this);
+
+	// MIPS counting
+	window_title.reserve(128);
+	connect(&mips_timer, &QTimer::timeout, this, &MainWindow::mips_timer_timeout);
+	mips_timer.start(1000);
 }
 
 MainWindow::~MainWindow()
@@ -438,3 +446,31 @@ MainWindow::main_display_update(QPixmap pixmap)
 	this->label->setPixmap(pixmap);
 }
 
+/**
+ * Called each time the mips_timer times out.
+ *
+ * The shared instruction counter is read and the title updated with the
+ * MIPS and Average.
+ */
+void
+MainWindow::mips_timer_timeout()
+{
+	// Read (and zero atomically) the instruction count from the emulator core
+	const unsigned count = (unsigned) instruction_count.fetchAndStoreRelease(0);
+
+	// Calculate MIPS
+	const double mips = (double) count / 1000000.0;
+
+	// Update variables used for average
+	mips_total_instructions += (uint64_t) count;
+	mips_seconds++;
+
+	// Calculate Average
+	const double average = (double) mips_total_instructions / ((double) mips_seconds * 1000000.0);
+
+	// Update window title
+	window_title = QString("RPCEmu v" VERSION " - MIPS: %1 AVG: %2")
+	    .arg(mips, 0, 'f', 1)
+	    .arg(average, 0, 'f', 1);
+	setWindowTitle(window_title);
+}
