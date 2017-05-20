@@ -21,10 +21,13 @@
 
 #include "configure_dialog.h"
 
-ConfigureDialog::ConfigureDialog(Config *config_copy, Model *model_copy, QWidget *parent)
+ConfigureDialog::ConfigureDialog(Emulator *emulator, Config *config_copy, Model *model_copy, QWidget *parent)
     : QDialog(parent)
+
 {
 	setWindowTitle("Configure RPCEmu");
+
+	this->emulator = emulator;
 
 	// Store pointer to the GUI thread's copy of the emulator config
 	this->config_copy = config_copy;
@@ -104,7 +107,6 @@ ConfigureDialog::ConfigureDialog(Config *config_copy, Model *model_copy, QWidget
 	refresh_slider = new QSlider(Qt::Horizontal);
 	refresh_slider->setRange(20, 100);
 	refresh_slider->setTickPosition(QSlider::TicksBothSides);
-	refresh_slider->setFixedWidth(256);
 
 	refresh_label = new QLabel("");
 
@@ -168,7 +170,70 @@ ConfigureDialog::slider_moved(int value)
 void
 ConfigureDialog::dialog_accepted()
 {
-	std::cout << "dialog_accepted()" << std::endl;
+	// Take a copy of the existing config
+	Config new_config;
+	memcpy(&new_config, config_copy, sizeof(Config));
+	Model new_model = *model_copy;
+
+	// Fill in the choices from the dialog box
+	// Hardware Model
+	new_model = (Model) hardware_listwidget->currentRow();
+
+	// RAM Size
+	if(mem_4->isChecked())   new_config.mem_size =   4;
+	if(mem_8->isChecked())   new_config.mem_size =   8;
+	if(mem_16->isChecked())  new_config.mem_size =  16;
+	if(mem_32->isChecked())  new_config.mem_size =  32;
+	if(mem_64->isChecked())  new_config.mem_size =  64;
+	if(mem_128->isChecked()) new_config.mem_size = 128;
+	if(mem_256->isChecked()) new_config.mem_size = 256;
+
+	// VRAM
+	if(vram_0->isChecked()) new_config.vrammask = 0;
+	if(vram_2->isChecked()) new_config.vrammask = 0x7FFFFF;
+
+	// Sound
+	if(sound_checkbox->isChecked()) {
+		new_config.soundenabled = 1;
+	} else {
+		new_config.soundenabled = 0;
+	}
+
+	// Video Refresh Rate
+	new_config.refresh = refresh_slider->value();
+
+	// Compare against existing config and see if it will cause a reboot
+	if(rpcemu_config_is_reset_required(&new_config, new_model)) {
+		QMessageBox msgBox;
+		msgBox.setText("This will reset RPCEmu!\nOkay to continue?");
+		msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+		msgBox.setDefaultButton(QMessageBox::Cancel);
+		int ret = msgBox.exec();
+
+		if(ret == QMessageBox::Cancel) {
+			// Set the values in the dialog back to the current settings
+			applyConfig();
+			return;
+		}
+	}
+
+	// We now have either a config change that doesn't require a reset,
+	// or one that does that the user has agreed too
+
+	// Copy Config to the GUI copy
+	memcpy(config_copy, &new_config, sizeof(Config));
+	*model_copy = new_model;
+
+	// Create a new copy of the config, to be owned and freed by the emulator
+        // thread
+	Config *emu_config = (Config *) malloc(sizeof(Config));
+	if(NULL == emu_config) {
+		fatal("out of memory creating config copy");
+	}
+	memcpy(emu_config, &new_config, sizeof(Config));
+
+	// Inform the emulator thread of the new choices
+	emit this->emulator->config_updated_signal(emu_config, *model_copy);
 }
 
 /**

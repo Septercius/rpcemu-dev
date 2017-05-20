@@ -276,6 +276,9 @@ int main (int argc, char ** argv)
 	IOMDTimer iomdtimer;
 	iomdtimer.start(2); /* 2ms = 500Hz */
 
+	// Allow rpcemu model enum to be passed in slots and signals
+	qRegisterMetaType<Model>("Model");
+
 	// Create Emulator Thread and Object
 	QThread *emu_thread = new QThread;
 	Emulator *emulator = new Emulator;
@@ -346,6 +349,7 @@ Emulator::Emulator()
 	connect(this, &Emulator::mouse_hack_signal, this, &Emulator::mouse_hack);
 	connect(this, &Emulator::mouse_capture_signal, this, &Emulator::mouse_capture);
 	connect(this, &Emulator::mouse_twobutton_signal, this, &Emulator::mouse_twobutton);
+	connect(this, &Emulator::config_updated_signal, this, &Emulator::config_updated);
 }
 
 /**
@@ -526,3 +530,20 @@ Emulator::mouse_twobutton()
 {
 	config.mousetwobutton ^= 1;
 }
+
+/**
+ * GUI is requesting setting of new config
+ * 
+ * @param new_config new config settings
+ * @param new_model  new config settingss
+ */
+void
+Emulator::config_updated(Config *new_config, Model new_model)
+{
+	rpcemu_config_apply_new_settings(new_config, new_model);
+
+	// The new_config was created for the emulator thread in gui thread, this
+	// function must free it
+	free(new_config);
+}
+

@@ -525,3 +525,98 @@ rpcemu_file_get_extension(const char *filename)
 		return position + 1;
 	}
 }
+
+/**
+ * Test whether the changes in configuration would require an emulated
+ * machine reset
+ * 
+ * Called from GUI thread, is thread safe due to only reading the emulator
+ * state
+ * 
+ * @thread GUI
+ * @param new_config New configuration values
+ * @param new_model New configuration values
+ * @returns Bool of whether emulated machine reset required
+ */
+int
+rpcemu_config_is_reset_required(const Config *new_config, Model new_model)
+{
+	int needs_reset = 0;
+	assert(new_config);
+
+	if(machine.model != new_model) {
+		needs_reset = 1;
+	}
+
+	if(config.mem_size != new_config->mem_size) {
+		needs_reset = 1;
+	}
+
+	if(config.vrammask != new_config->vrammask) {
+		needs_reset = 1;
+	}
+
+	// TODO so much logic here
+
+	return needs_reset;
+}
+
+/**
+ * Apply a new configuration and reset the emulator is required
+ * 
+ * @thread emulator
+ * @param new_config the new configuration
+ * @param new_model the new configuration
+ */
+void
+rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
+{
+	int needs_reset = 0;
+
+	/* Sound turned off */
+	if(config.soundenabled && !new_config->soundenabled) {
+		sound_pause();
+	}
+
+	/* Sound turned on */
+	if(new_config->soundenabled && !config.soundenabled) {
+		sound_restart();
+	}
+
+	/* Changed machine we're emulating? */
+	if(new_model != machine.model) {
+		rpcemu_model_changed(new_model);
+		needs_reset = 1;
+	}
+
+	/* If an A7000 or an A7000+ it does not have vram */
+	if (machine.model == Model_A7000 || machine.model == Model_A7000plus) {
+		new_config->vrammask = 0;
+	}
+
+	/* If Phoebe, override some settings */
+	if (machine.model == Model_Phoebe) {
+		new_config->mem_size = 256;
+		new_config->vrammask = 0x3fffff;
+	}
+
+	if (new_config->mem_size != config.mem_size) {
+		needs_reset = 1;
+	}
+
+	if (new_config->vrammask != config.vrammask) {
+		needs_reset = 1;
+	}
+
+	/* Copy new settings over */
+	memcpy(&config, new_config, sizeof(Config));
+
+	/* Reset the machine after the config variables have been set to their
+	   new values */
+	if(needs_reset) {
+		resetrpc();
+	}
+
+	// TODO update video refresh timer
+//	install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
+}

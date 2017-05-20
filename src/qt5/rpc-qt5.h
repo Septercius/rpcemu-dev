@@ -26,6 +26,8 @@
 #include <QAtomicInt>
 #include <QKeyEvent>
 
+#include "rpcemu.h"
+
 /// Instruction counter shared between Emulator and GUI threads
 extern QAtomicInt instruction_count;
 
@@ -53,6 +55,7 @@ signals:
 	void mouse_hack_signal();
 	void mouse_capture_signal();
 	void mouse_twobutton_signal();
+	void config_updated_signal(Config *new_config, Model new_model);
 
 public slots:
 	void mainemuloop();
@@ -76,6 +79,7 @@ public slots:
 	void mouse_hack();
 	void mouse_capture();
 	void mouse_twobutton();
+	void config_updated(Config *new_config, Model new_model);
 };
 
 
