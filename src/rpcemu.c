@@ -572,15 +572,13 @@ void
 rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
 {
 	int needs_reset = 0;
+	int sound_changed = 0;
 
-	/* Sound turned off */
-	if(config.soundenabled && !new_config->soundenabled) {
-		sound_pause();
-	}
-
-	/* Sound turned on */
-	if(new_config->soundenabled && !config.soundenabled) {
-		sound_restart();
+	/* Sound state changed? */
+	if((config.soundenabled && !new_config->soundenabled)
+	   || (new_config->soundenabled && !config.soundenabled))
+	{
+		sound_changed = 1;
 	}
 
 	/* Changed machine we're emulating? */
@@ -610,6 +608,14 @@ rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
 
 	/* Copy new settings over */
 	memcpy(&config, new_config, sizeof(Config));
+
+	if(sound_changed) {
+		if(config.soundenabled) {
+			sound_restart();
+		} else {
+			sound_pause();
+		}
+	}
 
 	/* Reset the machine after the config variables have been set to their
 	   new values */
