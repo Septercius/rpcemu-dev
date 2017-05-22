@@ -21,17 +21,13 @@
 
 #include "configure_dialog.h"
 
-ConfigureDialog::ConfigureDialog(Emulator *emulator, Config *config_copy, Model *model_copy, QWidget *parent)
-    : QDialog(parent)
-
+ConfigureDialog::ConfigureDialog(Emulator &emulator, Config *config_copy, Model *model_copy, QWidget *parent)
+    : QDialog(parent),
+	emulator(emulator),
+	config_copy(config_copy),
+	model_copy(model_copy)
 {
 	setWindowTitle("Configure RPCEmu");
-
-	this->emulator = emulator;
-
-	// Store pointer to the GUI thread's copy of the emulator config
-	this->config_copy = config_copy;
-	this->model_copy = model_copy;
 
 	// Create actions
 
@@ -233,7 +229,7 @@ ConfigureDialog::dialog_accepted()
 	memcpy(emu_config, &new_config, sizeof(Config));
 
 	// Inform the emulator thread of the new choices
-	emit this->emulator->config_updated_signal(emu_config, *model_copy);
+	emit this->emulator.config_updated_signal(emu_config, *model_copy);
 }
 
 /**

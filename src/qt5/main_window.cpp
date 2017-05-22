@@ -110,7 +110,7 @@ MainWindow::MainWindow(Emulator &emulator)
 	}
 	// TODO CDROM actions, were these ever set to anything?
 
-	configure_dialog = new ConfigureDialog(&emulator, &config_copy, &model_copy, this);
+	configure_dialog = new ConfigureDialog(emulator, &config_copy, &model_copy, this);
 	network_dialog = new NetworkDialog(this);
 
 	// MIPS counting
