@@ -33,7 +33,7 @@ class ConfigureDialog : public QDialog
 	Q_OBJECT
 
 public:
-	ConfigureDialog(Emulator *emulator, Config *config_copy, Model *model_copy, QWidget *parent = 0);
+	ConfigureDialog(Emulator &emulator, Config *config_copy, Model *model_copy, QWidget *parent = 0);
 	virtual ~ConfigureDialog();
 
 	void keyPressEvent(QKeyEvent *);
@@ -73,7 +73,7 @@ private:
 
 	QGridLayout *grid;
 
-	Emulator *emulator;
+	Emulator &emulator;
 
 	// Pointers to GUI thread copies of the emulator's config
 	Config *config_copy;
