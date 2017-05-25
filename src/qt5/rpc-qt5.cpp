@@ -99,8 +99,8 @@ void sound_thread_wakeup(void)
  */
 void sound_thread_close(void)
 {
-	sound_thread_wakeup();
-	pthread_join(sound_thread, NULL);
+//	sound_thread_wakeup();
+//	pthread_join(sound_thread, NULL);
 }
 /**
  * Called on program startup. Create a thread for copying sound
@@ -214,9 +214,9 @@ void vidcstartthread(void)
 
 void vidcendthread(void)
 {
-	quited=1;
-        if (pthread_cond_signal(&vidccond)) fatal("Couldn't signal vidc thread");
-	pthread_join(thread, NULL);
+//	quited=1;
+//        if (pthread_cond_signal(&vidccond)) fatal("Couldn't signal vidc thread");
+//	pthread_join(thread, NULL);
 }
 
 void vidcwakeupthread(void)
@@ -340,6 +340,7 @@ Emulator::Emulator()
 
 	// Signals from user GUI interactions to control parts of the emulator
 	connect(this, &Emulator::reset_signal, this, &Emulator::reset);
+	connect(this, &Emulator::exit_signal, this, &Emulator::exit);
 	connect(this, &Emulator::load_disc_0_signal, this, &Emulator::load_disc_0);
 	connect(this, &Emulator::load_disc_1_signal, this, &Emulator::load_disc_1);
 	connect(this, &Emulator::cpu_idle_signal, this, &Emulator::cpu_idle);
@@ -361,9 +362,8 @@ Emulator::mainemuloop()
 	infocus = 1;
 
 	while (!quited) {
-
+		// Handle qt events and messages
 		QCoreApplication::processEvents();
-
 
 		if (infocus) {
 			execrpcemu();
@@ -422,6 +422,25 @@ Emulator::reset()
 {
 	resetrpc();
 }
+
+/**
+ * User hit exit on GUI menu
+ */
+void
+Emulator::exit()
+{
+	// Tell the main emulator loop to end
+	// This causes the emulator thread run() function to end
+	quited = 1;
+
+	// Kill emulator thread
+        // This wakes up the GUI thread to continue the exit process
+	// TODO this should not be needed except we're using QThread
+	// wrong and running our main loop in the started state, not
+	// a subclassed run() function
+	this->thread()->quit();
+}
+
 
 /**
  * GUI wants to change disc image in floppy drive 0
