@@ -46,6 +46,7 @@ signals:
 
 	// GUI actions
 	void reset_signal();
+	void exit_signal();
 	void load_disc_0_signal(const QString &discname);
 	void load_disc_1_signal(const QString &discname);
 	void cpu_idle_signal();
@@ -70,6 +71,7 @@ public slots:
 
 	// GUI actions
 	void reset();
+	void exit();
 	void load_disc_0(const QString &discname);
 	void load_disc_1(const QString &discname);
 	void cpu_idle();

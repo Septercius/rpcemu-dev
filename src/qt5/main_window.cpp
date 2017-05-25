@@ -125,9 +125,22 @@ MainWindow::~MainWindow()
 	delete configure_dialog;
 }
 
+/**
+ * Window close button or File->exit() selected
+ * 
+ * @param event
+ */
 void
 MainWindow::closeEvent(QCloseEvent *event)
 {
+	// Inform the emulator thread that we're quitting
+	emit this->emulator.exit_signal();
+
+	// Wait until emulator thread has exited
+	this->emulator.thread()->wait();
+
+	// Pass on the close message for the main window, this
+	// will cause the program to quit
 	event->accept();
 }
 
