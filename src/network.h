@@ -24,6 +24,10 @@
 #include "rpcemu.h"
 #include "podules.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /* RPCemu networking */
 
 // r0: Reason code in r0
@@ -88,4 +92,8 @@ struct rx_hdr {
     uint32_t rx_cksum;
 };
 
-#endif
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
+
+#endif /* NETWORK_H */

@@ -23,12 +23,15 @@
 #include <QDialog>
 #include <QtWidgets>
 
+#include "rpc-qt5.h"
+#include "rpcemu.h"
+
 class NetworkDialog : public QDialog
 {
 	Q_OBJECT
 
 public:
-	NetworkDialog(QWidget *parent = 0);
+	NetworkDialog(Emulator &emulator, Config *config_copy, Model *model_copy, QWidget *parent = 0);
 	virtual ~NetworkDialog();
 
 private slots:
@@ -37,15 +40,27 @@ private slots:
 	void dialog_rejected();
 
 private:
-	QRadioButton *net_off, *net_bridging;
+	void applyConfig();
+
+	QRadioButton *net_off, *net_bridging, *net_tunnelling;
 
 	QLabel *bridge_label;
 	QLineEdit *bridge_name;
 	QHBoxLayout *bridge_hbox;
 
+	QLabel *tunnelling_label;
+	QLineEdit *tunnelling_name;
+	QHBoxLayout *tunnelling_hbox;
+
 	QDialogButtonBox *buttons_box;
 
 	QVBoxLayout *vbox;
+
+	Emulator &emulator;
+
+	// Pointers to GUI thread copies of the emulator's config
+	Config *config_copy;
+	Model *model_copy;
 };
 
 #endif

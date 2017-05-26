@@ -21,8 +21,13 @@
 
 #include "network_dialog.h"
 
-NetworkDialog::NetworkDialog(QWidget *parent)
-    : QDialog(parent)
+#include "network.h"
+
+NetworkDialog::NetworkDialog(Emulator &emulator, Config *config_copy, Model *model_copy, QWidget *parent)
+    : QDialog(parent),
+	emulator(emulator),
+	config_copy(config_copy),
+	model_copy(model_copy)
 {
 	setWindowTitle("Configure RPCEmu Networking");
 
@@ -31,6 +36,7 @@ NetworkDialog::NetworkDialog(QWidget *parent)
 	// Create widgets and layout
 	net_off = new QRadioButton("Off");
 	net_bridging = new QRadioButton("Ethernet Bridging");
+	net_tunnelling = new QRadioButton("IP Tunnelling");
 
 	bridge_label = new QLabel("Bridge Name");
 	bridge_name = new QLineEdit(QString("rpcemu"));
@@ -39,6 +45,14 @@ NetworkDialog::NetworkDialog(QWidget *parent)
 	bridge_hbox->insertSpacing(0, 48);
 	bridge_hbox->addWidget(bridge_label);
 	bridge_hbox->addWidget(bridge_name);
+
+	tunnelling_label = new QLabel("IP Address");
+	tunnelling_name = new QLineEdit(QString("172.31.0.1"));
+	tunnelling_name->setMinimumWidth(192);
+	tunnelling_hbox = new QHBoxLayout();
+	tunnelling_hbox->insertSpacing(0, 48);
+	tunnelling_hbox->addWidget(tunnelling_label);
+	tunnelling_hbox->addWidget(tunnelling_name);
 
 	// Create Buttons
 	buttons_box = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
@@ -49,11 +63,19 @@ NetworkDialog::NetworkDialog(QWidget *parent)
 	vbox->addWidget(net_off);
 	vbox->addWidget(net_bridging);
 	vbox->addLayout(bridge_hbox);
+
+	// IP Tunnelling is linux only
+#if defined __linux || defined __linux__
+	vbox->addWidget(net_tunnelling);
+	vbox->addLayout(tunnelling_hbox);
+#endif /* linux */
+
 	vbox->addWidget(buttons_box);
 
 	// Connect actions to widgets
 	connect(net_off, SIGNAL(clicked(bool)), this, SLOT(radio_clicked()));
 	connect(net_bridging, SIGNAL(clicked(bool)), this, SLOT(radio_clicked()));
+	connect(net_tunnelling, SIGNAL(clicked(bool)), this, SLOT(radio_clicked()));
 
 	connect(buttons_box, SIGNAL(accepted()), this, SLOT(accept()));
 	connect(buttons_box, SIGNAL(rejected()), this, SLOT(reject()));
@@ -61,9 +83,8 @@ NetworkDialog::NetworkDialog(QWidget *parent)
 	connect(this, SIGNAL(accepted()), this, SLOT(dialog_accepted()));
 	connect(this, SIGNAL(rejected()), this, SLOT(dialog_rejected()));
 
-	net_off->setChecked(true);
-	bridge_label->setEnabled(false);
-	bridge_name->setEnabled(false);
+	// Set the values of the window to the config values
+	applyConfig();
 
 	//this->setFixedSize(this->sizeHint());
 }
@@ -78,20 +99,102 @@ NetworkDialog::radio_clicked()
 	if (net_off->isChecked()) {
 		bridge_label->setEnabled(false);
 		bridge_name->setEnabled(false);
-	} else {
+		tunnelling_label->setEnabled(false);
+		tunnelling_name->setEnabled(false);
+	} else if(net_bridging->isChecked()) {
 		bridge_label->setEnabled(true);
 		bridge_name->setEnabled(true);
+		tunnelling_label->setEnabled(false);
+		tunnelling_name->setEnabled(false);
+	} else if(net_tunnelling->isChecked()) {
+		bridge_label->setEnabled(false);
+		bridge_name->setEnabled(false);
+		tunnelling_label->setEnabled(true);
+		tunnelling_name->setEnabled(true);
 	}
 }
 
+/**
+ * User clicked OK on the Networking dialog box 
+ */
 void
 NetworkDialog::dialog_accepted()
 {
-	std::cout << "dialog_accepted()" << std::endl;
+	QByteArray ba_bridgename, ba_ipaddress;
+	char *bridgename, *ipaddress;
+	NetworkType network_type = NetworkType_Off;
+
+	// Fill in the choices from the dialog box
+	if(net_off->isChecked()) {
+		network_type = NetworkType_Off;
+	}
+	if(net_bridging->isChecked()) {
+		network_type = NetworkType_EthernetBridging;
+	}
+	if(net_tunnelling->isChecked()) {
+		network_type = NetworkType_IPTunnelling;
+	}
+
+	ba_bridgename = bridge_name->text().toUtf8();
+	bridgename = ba_bridgename.data();
+
+	ba_ipaddress = tunnelling_name->text().toUtf8();
+	ipaddress = ba_ipaddress.data();
+
+	if(network_config_changed(network_type, bridgename, ipaddress)) {
+		// Emulator reset required
+		emit this->emulator.reset_signal();
+	}
 }
 
+/**
+ * User clicked cancel on the Networking dialog box 
+ */
 void
 NetworkDialog::dialog_rejected()
 {
-	std::cout << "dialog_rejected()" << std::endl;
+	// Set the values in the dialog back to the current settings
+	applyConfig();
+}
+
+/**
+ * Set the values in the networking dialog box based on the current
+ * values of the GUI config copy
+ */
+void
+NetworkDialog::applyConfig()
+{
+//	if windows and iptunnelling, net = off
+
+	// Select the correct radio button
+	switch(config_copy->network_type) {
+		case NetworkType_Off:
+			net_off->setChecked(true);
+			net_bridging->setChecked(false);
+			net_tunnelling->setChecked(false);
+			break;
+		case NetworkType_EthernetBridging:
+			net_off->setChecked(false);
+			net_bridging->setChecked(true);
+			net_tunnelling->setChecked(false);
+			break;
+		case NetworkType_IPTunnelling:
+			net_off->setChecked(false);
+			net_bridging->setChecked(false);
+			net_tunnelling->setChecked(true);
+			break;
+		default: fatal("Unhandled network type");
+	}
+
+	// Use the helper function to grey out the boxes of unselected
+	// network types
+	radio_clicked();
+
+	if(config_copy->bridgename && config_copy->bridgename[0] != '\0') {
+		bridge_name->setText(config_copy->bridgename);
+	}
+
+	if(config_copy->ipaddress && config_copy->ipaddress[0] != '\0') {
+		tunnelling_name->setText(config_copy->ipaddress);
+	}
 }
