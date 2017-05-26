@@ -111,7 +111,7 @@ MainWindow::MainWindow(Emulator &emulator)
 	// TODO CDROM actions, were these ever set to anything?
 
 	configure_dialog = new ConfigureDialog(emulator, &config_copy, &model_copy, this);
-	network_dialog = new NetworkDialog(this);
+	network_dialog = new NetworkDialog(emulator, &config_copy, &model_copy, this);
 
 	// MIPS counting
 	window_title.reserve(128);
@@ -327,8 +327,10 @@ MainWindow::create_actions()
 	// Actions on Settings menu
 	configure_action = new QAction(tr("&Configure..."), this);
 	connect(configure_action, SIGNAL(triggered()), this, SLOT(menu_configure()));
+#ifdef RPCEMU_NETWORKING
 	networking_action = new QAction(tr("&Networking..."), this);
 	connect(networking_action, SIGNAL(triggered()), this, SLOT(menu_networking()));
+#endif
 	fullscreen_action = new QAction(tr("&Fullscreen mode"), this);
 	fullscreen_action->setCheckable(true);
 	connect(fullscreen_action, SIGNAL(triggered()), this, SLOT(menu_fullscreen()));
