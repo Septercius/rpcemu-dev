@@ -92,7 +92,6 @@ private:
 	void create_actions();
 	void create_menus();
 	void create_tool_bars();
-	void create_status_bar();
 
 	void readSettings();
 	void writeSettings();

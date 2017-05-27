@@ -86,7 +86,6 @@ MainWindow::MainWindow(Emulator &emulator)
 	create_actions();
 	create_menus();
 	create_tool_bars();
-	create_status_bar();
 
 	readSettings();
 
@@ -429,12 +428,6 @@ MainWindow::create_menus()
 void
 MainWindow::create_tool_bars()
 {
-}
-
-void
-MainWindow::create_status_bar()
-{
-	statusBar()->showMessage(tr("Ready"));
 }
 
 void

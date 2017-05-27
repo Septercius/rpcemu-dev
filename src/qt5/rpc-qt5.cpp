@@ -47,12 +47,17 @@
 
 MainWindow *pMainWin;
 
-/// Instruction counter shared between Emulator and GUI threads
+// Instruction counter shared between Emulator and GUI threads
 QAtomicInt instruction_count;
 
 static pthread_t sound_thread;
 static pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t sound_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static pthread_t thread;
+static pthread_cond_t vidccond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t vidcmutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 /**
  * Function called in sound thread to block
@@ -177,10 +182,6 @@ void releasemousecapture(void)
 {
 }
 
-static pthread_t thread;
-static pthread_cond_t vidccond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t vidcmutex = PTHREAD_MUTEX_INITIALIZER;
-
 static void *vidcthreadrunner(void *threadid)
 {
 	NOT_USED(threadid);
@@ -237,13 +238,6 @@ void vidcreleasemutex(void)
 {
     if (pthread_mutex_unlock(&vidcmutex)) fatal("Releasing vidc mutex failed");
 }
-
-//static void close_button_handler(void)
-//{
-//  quited = TRUE;
-//}
-//END_OF_FUNCTION(close_button_handler)
-
 
 int main (int argc, char ** argv) 
 { 
@@ -431,6 +425,7 @@ Emulator::exit()
 {
 	// Tell the main emulator loop to end
 	// This causes the emulator thread run() function to end
+	// It should also cause the vidc and sound threads to end
 	quited = 1;
 
 	// Kill emulator thread

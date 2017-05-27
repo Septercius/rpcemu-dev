@@ -141,6 +141,9 @@ NetworkDialog::dialog_accepted()
 	ba_ipaddress = tunnelling_name->text().toUtf8();
 	ipaddress = ba_ipaddress.data();
 
+	// This is iffy thread safety, this function sets the networking
+	// config from the GUI thread, luckily the config is only read
+	// on emulator restart which happens in the emu thread.
 	if(network_config_changed(network_type, bridgename, ipaddress)) {
 		// Emulator reset required
 		emit this->emulator.reset_signal();
