@@ -57,6 +57,10 @@ public:
 	virtual ~MainWindow();
 	QLabel *label;
 
+	/* Handle displaying error messages */
+	void error(QString error);
+	void fatal(QString error);
+
 protected:
 	void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
 	void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
@@ -86,7 +90,10 @@ private slots:
 	void mips_timer_timeout();
 
 signals:
-        void main_display_signal(QPixmap);
+	void main_display_signal(QPixmap);
+
+	void error_signal(QString error);
+	void fatal_signal(QString error);
 
 private:
 	void create_actions();

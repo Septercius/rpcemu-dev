@@ -47,7 +47,6 @@ MainLabel::mouseMoveEvent(QMouseEvent *event)
 void
 MainLabel::mousePressEvent(QMouseEvent *event)
 {
-//	fprintf(stderr, "press %x\n", mouse_b);
 	if (event->button() & 7) {
 		emit this->emulator.mouse_press_signal(event->button() & 7);
 	}
@@ -56,7 +55,6 @@ MainLabel::mousePressEvent(QMouseEvent *event)
 void
 MainLabel::mouseReleaseEvent(QMouseEvent *event)
 {
-//	fprintf(stderr, "release %x\n", mouse_b);
 	if (event->button() & 7) {
 		emit this->emulator.mouse_release_signal(event->button() & 7);
 	}
@@ -376,6 +374,9 @@ MainWindow::create_actions()
 	connect(this, SIGNAL(main_display_signal(QPixmap)), this, SLOT(main_display_update(QPixmap)), Qt::BlockingQueuedConnection);
 //	connect(this, SIGNAL(main_display_signal(QPixmap)), this, SLOT(main_display_update(QPixmap)));
 
+	// Connections for displaying error messages in the GUI
+	connect(this, &MainWindow::error_signal, this, &MainWindow::error);
+	connect(this, &MainWindow::fatal_signal, this, &MainWindow::fatal);
 }
 
 void
@@ -481,4 +482,30 @@ MainWindow::mips_timer_timeout()
 	    .arg(mips, 0, 'f', 1)
 	    .arg(average, 0, 'f', 1);
 	setWindowTitle(window_title);
+}
+
+/**
+ * Present a model dialog to the user about an error that has occured.
+ * Wait for them to dismiss it
+ * 
+ * @param error error string
+ */
+void
+MainWindow::error(QString error)
+{
+	QMessageBox::warning(this, "RPCEmu Error", error);
+}
+
+/**
+ * Present a model dialog to the user about a fatal error that has occured.
+ * Wait for them to dismiss it and exit the program
+ * 
+ * @param error error string
+ */
+void
+MainWindow::fatal(QString error)
+{
+	QMessageBox::critical(this, "RPCEmu Fatal Error", error);
+
+	exit(EXIT_FAILURE);
 }

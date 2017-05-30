@@ -45,7 +45,8 @@
 #include "ide.h"
 #include "cdrom-iso.h"
 
-MainWindow *pMainWin;
+MainWindow *pMainWin = NULL; /**< Reference to main GUI window */
+static QThread *gui_thread = NULL; /**< copy of reference to GUI thread */
 
 // Instruction counter shared between Emulator and GUI threads
 QAtomicInt instruction_count;
@@ -126,7 +127,8 @@ void sound_thread_start(void)
  * @param format varargs format
  * @param ... varargs arguments
  */
-void error(const char *format, ...)
+void
+error(const char *format, ...)
 {
 	char buf[4096];
 	va_list ap;
@@ -137,9 +139,18 @@ void error(const char *format, ...)
 	rpclog("ERROR: %s\n", buf);
 	fprintf(stderr, "RPCEmu error: %s\n", buf);
 
-//	if (gui_get_screen() != NULL) {
-//		alert("RPCEmu error", buf, "", "&Continue", NULL, 'c', 0);
-//	}
+	/* Handle displaying error to user in GUI */
+	if(gui_thread != NULL) {
+		if(QThread::currentThread() == gui_thread) {
+			/* We're in the GUI thread display error here */
+			std::cout << "error in gui thread" << std::endl;
+			pMainWin->error(buf);
+		} else {
+			/* We're in a background thread, throw message to GUI thread */
+			std::cout << "error in background thread" << std::endl;
+			emit pMainWin->error_signal(buf);
+		}
+	}
 }
 
 /**
@@ -149,7 +160,8 @@ void error(const char *format, ...)
  * @param format varargs format
  * @param ... varargs arguments
  */
-void fatal(const char *format, ...)
+void
+fatal(const char *format, ...)
 {
 	char buf[4096];
 	va_list ap;
@@ -158,12 +170,33 @@ void fatal(const char *format, ...)
 	vsprintf(buf, format, ap);
 	va_end(ap);
 	rpclog("FATAL: %s\n", buf);
+
 	fprintf(stderr, "RPCEmu fatal error: %s\n", buf);
 
-//	if (gui_get_screen() != NULL) {
-//		alert("RPCEmu fatal error", buf, "", "&Exit", NULL, 'c', 0);
-//	}
+	/* If there is not a gui running, no more work to do */
+	if(gui_thread == NULL) {
+		exit(EXIT_FAILURE);
+	}
 
+	/* Handle displaying error to user in GUI */
+	if(QThread::currentThread() == gui_thread) {
+		/* We're in the GUI thread display error here */
+		std::cout << "fatal in gui thread" << std::endl;
+		pMainWin->fatal(buf);
+		/* This will exit the program in that function */
+	} else {
+		/* We're in a background thread, throw message to GUI thread */
+		std::cout << "fatal in background thread" << std::endl;
+		emit pMainWin->fatal_signal(buf);
+		/* This will exit the program in the GUI thread */
+	}
+
+	/* This function cannot return within causing issues with
+	   emu thread processor events, use this to block here */
+	gui_thread->wait();
+
+	/* This is a fallback to prevent a warning about returning 
+	  from a noreturn function */
 	exit(EXIT_FAILURE);
 }
 
@@ -290,6 +323,10 @@ int main (int argc, char ** argv)
 	// Show Main Window
 	main_window.show();
 
+	// Store a reference to the GUI thread
+	gui_thread = QThread::currentThread();
+
+	// Start main gui thread running
 	return app.exec();
 }
 
