@@ -109,6 +109,7 @@ MainWindow::MainWindow(Emulator &emulator)
 
 	configure_dialog = new ConfigureDialog(emulator, &config_copy, &model_copy, this);
 	network_dialog = new NetworkDialog(emulator, &config_copy, &model_copy, this);
+	about_dialog = new AboutDialog(this);
 
 	// MIPS counting
 	window_title.reserve(128);
@@ -120,6 +121,7 @@ MainWindow::~MainWindow()
 {
 	delete network_dialog;
 	delete configure_dialog;
+	delete about_dialog;
 }
 
 /**
@@ -297,10 +299,7 @@ MainWindow::menu_visit_website()
 void
 MainWindow::menu_about()
 {
-	QMessageBox::about(this, tr("About RPCEmu"),
-	    tr("The <b>Application</b> example demonstrates how to "
-	       "write modern GUI applications using Qt, with a menu bar, "
-	       "toolbars, and a status bar."));
+	about_dialog->exec(); // Modal
 }
 
 void
