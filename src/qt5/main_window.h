@@ -24,6 +24,7 @@
 
 #include "configure_dialog.h"
 #include "network_dialog.h"
+#include "about_dialog.h"
 #include "rpc-qt5.h"
 
 #include "rpcemu.h"
@@ -145,6 +146,7 @@ private:
 	// Dialogs
 	ConfigureDialog *configure_dialog;
 	NetworkDialog *network_dialog;
+	AboutDialog *about_dialog;
 
 	// Pointer to emulator instance
 	Emulator &emulator;
