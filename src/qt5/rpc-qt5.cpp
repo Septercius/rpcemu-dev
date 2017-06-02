@@ -30,7 +30,6 @@
 
 #include "main_window.h"
 #include "rpc-qt5.h"
-#include "iomdtimer.h"
 
 #include <pthread.h>
 #include <sys/types.h>
@@ -50,6 +49,8 @@ static QThread *gui_thread = NULL; /**< copy of reference to GUI thread */
 
 // Instruction counter shared between Emulator and GUI threads
 QAtomicInt instruction_count;
+
+QAtomicInt iomd_timer_count; ///< IOMD timer counter shared between Emulator and GUI threads
 
 static pthread_t sound_thread;
 static pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
@@ -300,9 +301,6 @@ int main (int argc, char ** argv)
 	VLBUpdateTimer timer;
 	timer.start(1000 / config.refresh);
 
-	IOMDTimer iomdtimer;
-	iomdtimer.start(2); /* 2ms = 500Hz */
-
 	// Allow rpcemu model enum to be passed in slots and signals
 	qRegisterMetaType<Model>("Model");
 
@@ -343,19 +341,6 @@ VLBUpdateTimer::VLBUpdate()
 	vblupdate();
 }
 
-IOMDTimer::IOMDTimer(QObject *parent)
-    : QTimer(parent)
-{
-	connect(this, SIGNAL(timeout()), this, SLOT(IOMDUpdate()));
-}
-
-void
-IOMDTimer::IOMDUpdate()
-{
-//	fprintf(stderr, "I");
-	gentimerirq();
-}
-
 Emulator::Emulator()
 {
 	// Signals from the main GUI window to provide emulated machine input
@@ -390,7 +375,15 @@ Emulator::Emulator()
 void
 Emulator::mainemuloop()
 {
+	const int32_t iomd_timer_interval = 2000000; // 2000000 ns = 2 ms (500 Hz)
+
+	qint64 iomd_timer_next = (qint64) iomd_timer_interval; // Time after which the IOMD timer should trigger
+
+	QElapsedTimer elapsed_timer;
+
 	infocus = 1;
+
+	elapsed_timer.start();
 
 	while (!quited) {
 		// Handle qt events and messages
@@ -398,6 +391,13 @@ Emulator::mainemuloop()
 
 		if (infocus) {
 			execrpcemu();
+		}
+
+		// If we have passed the time the IOMD timer event should occur, trigger it
+		if (elapsed_timer.nsecsElapsed() >= iomd_timer_next) {
+			iomd_timer_count.fetchAndAddRelease(1);
+			gentimerirq();
+			iomd_timer_next += (qint64) iomd_timer_interval;
 		}
 
 		// If the instruction count is greater than 100000, update the shared counter
