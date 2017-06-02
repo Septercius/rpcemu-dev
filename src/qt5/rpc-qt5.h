@@ -30,6 +30,7 @@
 
 /// Instruction counter shared between Emulator and GUI threads
 extern QAtomicInt instruction_count;
+extern QAtomicInt iomd_timer_count; ///< IOMD timer counter shared between Emulator and GUI threads
 
 class Emulator : public QObject {
 	Q_OBJECT

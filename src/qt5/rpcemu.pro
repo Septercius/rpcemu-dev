@@ -26,8 +26,7 @@ HEADERS =	../superio.h \
 		configure_dialog.h \
 		network_dialog.h \
 		about_dialog.h \
-		rpc-qt5.h \
-		../iomdtimer.h
+		rpc-qt5.h
 
 SOURCES =	../superio.c \
 		../cdrom-iso.c \
