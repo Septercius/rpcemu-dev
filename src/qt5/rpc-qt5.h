@@ -48,8 +48,8 @@ signals:
 	// GUI actions
 	void reset_signal();
 	void exit_signal();
-	void load_disc_0_signal(const QString &discname);
-	void load_disc_1_signal(const QString &discname);
+	void load_disc_0_signal(QString discname);
+	void load_disc_1_signal(QString discname);
 	void cpu_idle_signal();
 	void cdrom_disabled_signal();
 	void cdrom_empty_signal();
@@ -74,12 +74,12 @@ public slots:
 	// GUI actions
 	void reset();
 	void exit();
-	void load_disc_0(const QString &discname);
-	void load_disc_1(const QString &discname);
+	void load_disc_0(QString discname);
+	void load_disc_1(QString discname);
 	void cpu_idle();
 	void cdrom_disabled();
 	void cdrom_empty();
-	void cdrom_load_iso(const QString &discname);
+	void cdrom_load_iso(QString discname);
 #if defined(Q_OS_LINUX)
 	void cdrom_ioctl();
 #endif /* linux */

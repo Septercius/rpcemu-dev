@@ -493,7 +493,7 @@ Emulator::exit()
  * @param discname filename of disc image
  */
 void
-Emulator::load_disc_0(const QString &discname)
+Emulator::load_disc_0(QString discname)
 {
 	const char *p;
 	QByteArray ba;
@@ -510,7 +510,7 @@ Emulator::load_disc_0(const QString &discname)
  * @param discname filename of disc image
  */
 void
-Emulator::load_disc_1(const QString &discname)
+Emulator::load_disc_1(QString discname)
 {
 	const char *p;
 	QByteArray ba;
@@ -564,7 +564,7 @@ Emulator::cdrom_empty()
  * @param discname filename of iso image
  */
 void
-Emulator::cdrom_load_iso(const QString &discname)
+Emulator::cdrom_load_iso(QString discname)
 {
 	const char *p;
 	QByteArray ba;
