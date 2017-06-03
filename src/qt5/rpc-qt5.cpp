@@ -215,7 +215,7 @@ fatal(const char *format, ...)
 
 static void vblupdate(void)
 {
-        if (infocus) drawscre++;
+	drawscre++;
 }
 
 void updatewindowsize(uint32_t x, uint32_t y)
@@ -377,17 +377,14 @@ Emulator::mainemuloop()
 
 	QElapsedTimer elapsed_timer;
 
-	infocus = 1;
-
 	elapsed_timer.start();
 
 	while (!quited) {
 		// Handle qt events and messages
 		QCoreApplication::processEvents();
 
-		if (infocus) {
-			execrpcemu();
-		}
+		// Run some instructions in the emulator
+		execrpcemu();
 
 		const qint64 elapsed = elapsed_timer.nsecsElapsed();
 
@@ -622,7 +619,7 @@ Emulator::mouse_twobutton()
  * GUI is requesting setting of new config
  * 
  * @param new_config new config settings
- * @param new_model  new config settingss
+ * @param new_model  new config settings
  */
 void
 Emulator::config_updated(Config *new_config, Model new_model)

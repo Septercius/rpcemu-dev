@@ -102,7 +102,6 @@ Perf perf = {
 	0.0f  /* mips_total */
 };
 
-int infocus = 0;
 int cyccount = 0;
 int drawscre = 0;
 int mousecapture = 0;

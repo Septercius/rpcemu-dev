@@ -259,9 +259,6 @@ extern Perf perf;
  * where the parameter is part of more generic API */
 #define NOT_USED(arg)	(void) arg
 
-/*Generic*/
-extern int infocus;
-
 /*FPA*/
 extern void resetfpa(void);
 extern void fpaopcode(uint32_t opcode);
