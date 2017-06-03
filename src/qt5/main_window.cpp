@@ -105,7 +105,13 @@ MainWindow::MainWindow(Emulator &emulator)
         if(config.mousetwobutton) {
 		mouse_twobutton_action->setChecked(true);
 	}
-	// TODO CDROM actions, were these ever set to anything?
+	if(config.cdromenabled) {
+		// TODO we could check config.cdromtype here, but it's a bit
+		// unreliable
+		cdrom_empty_action->setChecked(true);
+	} else {
+		cdrom_disabled_action->setChecked(true);
+	}
 
 	configure_dialog = new ConfigureDialog(emulator, &config_copy, &model_copy, this);
 	network_dialog = new NetworkDialog(emulator, &config_copy, &model_copy, this);
@@ -240,13 +246,63 @@ MainWindow::menu_cpu_idle()
 void
 MainWindow::menu_cdrom_disabled()
 {
+	if (config_copy.cdromenabled) {
+		QMessageBox msgBox;
+		msgBox.setText("This will reset RPCEmu!\nOkay to continue?");
+		msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+		msgBox.setDefaultButton(QMessageBox::Cancel);
+		int ret = msgBox.exec();
+
+		switch (ret) {
+		case QMessageBox::Ok:
+			break;
+
+		case QMessageBox::Cancel:
+			cdrom_disabled_action->setChecked(false);
+			return;
+		default:
+			cdrom_disabled_action->setChecked(false);
+			return;
+		}
+	}
+
+	/* we now have either no need to reboot or an agreement to reboot */
+
 	emit this->emulator.cdrom_disabled_signal();
+	config_copy.cdromenabled = 0;
+
+	cdrom_menu_selection_update(cdrom_disabled_action);
 }
 
 void
 MainWindow::menu_cdrom_empty()
 {
+	if (!config_copy.cdromenabled) {
+		QMessageBox msgBox;
+		msgBox.setText("This will reset RPCEmu!\nOkay to continue?");
+		msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+		msgBox.setDefaultButton(QMessageBox::Cancel);
+		int ret = msgBox.exec();
+
+		switch (ret) {
+		case QMessageBox::Ok:
+			break;
+
+		case QMessageBox::Cancel:
+			cdrom_empty_action->setChecked(false);
+			return;
+		default:
+			cdrom_empty_action->setChecked(false);
+			return;
+		}
+	}
+
+	/* we now have either no need to reboot or an agreement to reboot */
+
 	emit this->emulator.cdrom_empty_signal();
+	config_copy.cdromenabled = 1;
+
+	cdrom_menu_selection_update(cdrom_empty_action);
 }
 
 void
@@ -259,8 +315,69 @@ MainWindow::menu_cdrom_iso()
 
 	/* fileName is NULL if user hit cancel */
 	if(fileName != NULL) {
+		if (!config_copy.cdromenabled) {
+			QMessageBox msgBox;
+			msgBox.setText("This will reset RPCEmu!\nOkay to continue?");
+			msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+			msgBox.setDefaultButton(QMessageBox::Cancel);
+			int ret = msgBox.exec();
+
+			switch (ret) {
+			case QMessageBox::Ok:
+				break;
+
+			case QMessageBox::Cancel:
+				cdrom_iso_action->setChecked(false);
+				return;
+			default:
+				cdrom_iso_action->setChecked(false);
+				return;
+			}
+		}
+
+		/* we now have either no need to reboot or an agreement to reboot */
+
 		emit this->emulator.cdrom_load_iso_signal(fileName);
+		config_copy.cdromenabled = 1;
+
+		cdrom_menu_selection_update(cdrom_iso_action);
+		return;
 	}
+
+	cdrom_iso_action->setChecked(false);
+}
+
+void
+MainWindow::menu_cdrom_ioctl()
+{
+#if defined(Q_OS_LINUX)
+	if (!config_copy.cdromenabled) {
+		QMessageBox msgBox;
+		msgBox.setText("This will reset RPCEmu!\nOkay to continue?");
+		msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+		msgBox.setDefaultButton(QMessageBox::Cancel);
+		int ret = msgBox.exec();
+
+		switch (ret) {
+		case QMessageBox::Ok:
+			break;
+
+		case QMessageBox::Cancel:
+			cdrom_ioctl_action->setChecked(false);
+			return;
+		default:
+			cdrom_ioctl_action->setChecked(false);
+			return;
+		}
+	}
+
+	/* we now have either no need to reboot or an agreement to reboot */
+
+	emit this->emulator.cdrom_ioctl_signal();
+	config_copy.cdromenabled = 1;
+
+	cdrom_menu_selection_update(cdrom_ioctl_action);
+#endif /* linux */
 }
 
 void
@@ -347,6 +464,12 @@ MainWindow::create_actions()
 	cdrom_iso_action->setCheckable(true);
 	connect(cdrom_iso_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_iso()));
 
+#if defined(Q_OS_LINUX)
+	cdrom_ioctl_action = new QAction(tr("&Host CD/DVD Drive"), this);
+	cdrom_ioctl_action->setCheckable(true);
+	connect(cdrom_ioctl_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_ioctl()));
+#endif /* linux */
+
 	// Aactions on the Settings->Mouse menu
 	mouse_hack_action = new QAction(tr("&Follow host mouse"), this);
 	mouse_hack_action->setCheckable(true);
@@ -408,6 +531,9 @@ MainWindow::create_menus()
 	cdrom_menu->addAction(cdrom_disabled_action);
 	cdrom_menu->addAction(cdrom_empty_action);
 	cdrom_menu->addAction(cdrom_iso_action);
+#if defined(Q_OS_LINUX)
+	cdrom_menu->addAction(cdrom_ioctl_action);
+#endif /* linux */
 
 	// Mouse submenu
 	mouse_menu->addAction(mouse_hack_action);
@@ -511,4 +637,45 @@ MainWindow::fatal(QString error)
 	QMessageBox::critical(this, "RPCEmu Fatal Error", error);
 
 	exit(EXIT_FAILURE);
+}
+
+/**
+ * Make the selected CDROM menu item the only one selected 
+ * 
+ * @param cdrom_action CDROM item to make the selection
+ */ 
+void
+MainWindow::cdrom_menu_selection_update(const QAction *cdrom_action)
+{
+	if(cdrom_action == cdrom_disabled_action) {
+		cdrom_disabled_action->setChecked(true);
+		cdrom_empty_action->setChecked(false);
+		cdrom_iso_action->setChecked(false);
+#if defined(Q_OS_LINUX)
+		cdrom_ioctl_action->setChecked(false);
+#endif
+	} else if(cdrom_action == cdrom_empty_action) {
+		cdrom_disabled_action->setChecked(false);
+		cdrom_empty_action->setChecked(true);
+		cdrom_iso_action->setChecked(false);
+#if defined(Q_OS_LINUX)
+		cdrom_ioctl_action->setChecked(false);
+#endif
+	} else if(cdrom_action == cdrom_iso_action) {
+		cdrom_disabled_action->setChecked(false);
+		cdrom_empty_action->setChecked(false);
+		cdrom_iso_action->setChecked(true);
+#if defined(Q_OS_LINUX)
+		cdrom_ioctl_action->setChecked(false);
+#endif
+#if defined(Q_OS_LINUX)
+	} else if(cdrom_action == cdrom_ioctl_action) {
+		cdrom_disabled_action->setChecked(false);
+		cdrom_empty_action->setChecked(false);
+		cdrom_iso_action->setChecked(false);
+		cdrom_ioctl_action->setChecked(true);
+#endif
+	} else {
+		fatal("Unknown CDROM action");
+	}
 }

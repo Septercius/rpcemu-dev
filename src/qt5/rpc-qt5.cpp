@@ -44,6 +44,16 @@
 #include "ide.h"
 #include "cdrom-iso.h"
 
+#if defined(Q_OS_LINUX)
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+extern void ioctl_init(void);
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
+#endif /* linux */
+
 MainWindow *pMainWin = NULL; /**< Reference to main GUI window */
 static QThread *gui_thread = NULL; /**< copy of reference to GUI thread */
 
@@ -363,6 +373,9 @@ Emulator::Emulator()
 	connect(this, &Emulator::cdrom_disabled_signal, this, &Emulator::cdrom_disabled);
 	connect(this, &Emulator::cdrom_empty_signal, this, &Emulator::cdrom_empty);
 	connect(this, &Emulator::cdrom_load_iso_signal, this, &Emulator::cdrom_load_iso);
+#if defined(Q_OS_LINUX)
+	connect(this, &Emulator::cdrom_ioctl_signal, this, &Emulator::cdrom_ioctl);
+#endif /* linux */
 	connect(this, &Emulator::mouse_hack_signal, this, &Emulator::mouse_hack);
 	connect(this, &Emulator::mouse_capture_signal, this, &Emulator::mouse_capture);
 	connect(this, &Emulator::mouse_twobutton_signal, this, &Emulator::mouse_twobutton);
@@ -524,7 +537,10 @@ Emulator::cpu_idle()
 void
 Emulator::cdrom_disabled()
 {
-	std::cout << "CDROM disabled clicked" << std::endl;
+	if(config.cdromenabled) {
+		config.cdromenabled = 0;
+		resetrpc();
+	}
 }
 
 /**
@@ -533,7 +549,13 @@ Emulator::cdrom_disabled()
 void
 Emulator::cdrom_empty()
 {
-	std::cout << "CDROM empty clicked" << std::endl;
+	if (!config.cdromenabled) {
+		config.cdromenabled = 1;
+		resetrpc();
+	}
+
+	atapi->exit();
+	iso_init();
 }
 
 /**
@@ -547,6 +569,11 @@ Emulator::cdrom_load_iso(const QString &discname)
 	const char *p;
 	QByteArray ba;
 
+	if(!config.cdromenabled) {
+		config.cdromenabled = 1;
+		resetrpc();
+	}
+
 	ba = discname.toUtf8();
 	p = ba.data();
 
@@ -554,6 +581,23 @@ Emulator::cdrom_load_iso(const QString &discname)
 	atapi->exit();
 	iso_open(config.isoname);
 }
+
+#if defined(Q_OS_LINUX)
+/**
+ * GUI wants to use Linux real cdrom drive
+ */
+void
+Emulator::cdrom_ioctl()
+{
+	if(!config.cdromenabled) {
+		config.cdromenabled = 1;
+		resetrpc();
+	}
+
+	atapi->exit();
+	ioctl_init();
+}
+#endif /* linux */
 
 /**
  * GUI is toggling mousehack (follows host mouse)

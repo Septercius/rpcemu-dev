@@ -54,6 +54,7 @@ signals:
 	void cdrom_disabled_signal();
 	void cdrom_empty_signal();
 	void cdrom_load_iso_signal(const QString &discname);
+	void cdrom_ioctl_signal();
 	void mouse_hack_signal();
 	void mouse_capture_signal();
 	void mouse_twobutton_signal();
@@ -79,6 +80,9 @@ public slots:
 	void cdrom_disabled();
 	void cdrom_empty();
 	void cdrom_load_iso(const QString &discname);
+#if defined(Q_OS_LINUX)
+	void cdrom_ioctl();
+#endif /* linux */
 	void mouse_hack();
 	void mouse_capture();
 	void mouse_twobutton();
