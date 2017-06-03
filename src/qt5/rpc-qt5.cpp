@@ -61,6 +61,7 @@ static QThread *gui_thread = NULL; /**< copy of reference to GUI thread */
 QAtomicInt instruction_count;
 
 QAtomicInt iomd_timer_count; ///< IOMD timer counter shared between Emulator and GUI threads
+QAtomicInt video_timer_count; ///< Video timer counter shared between Emulator and GUI threads
 
 static pthread_t sound_thread;
 static pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
@@ -304,13 +305,6 @@ int main (int argc, char ** argv)
 		fatal("startrpcemu() failed");
 	}
 
-	/* TIMER CALLBACKS like this CAN NOT BE IN A SUB THREAD */
-	/* I have no idea why, but it can't be in EmuThread */
-// HACKCORE
-//        install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
-	VLBUpdateTimer timer;
-	timer.start(1000 / config.refresh);
-
 	// Allow rpcemu model enum to be passed in slots and signals
 	qRegisterMetaType<Model>("Model");
 
@@ -336,19 +330,6 @@ int main (int argc, char ** argv)
 
 	// Start main gui thread running
 	return app.exec();
-}
-
-VLBUpdateTimer::VLBUpdateTimer(QObject *parent)
-    : QTimer(parent)
-{
-	connect(this, SIGNAL(timeout()), this, SLOT(VLBUpdate()));
-}
-
-void
-VLBUpdateTimer::VLBUpdate()
-{
-//	fprintf(stderr, "V");
-	vblupdate();
 }
 
 Emulator::Emulator()
@@ -389,8 +370,10 @@ void
 Emulator::mainemuloop()
 {
 	const int32_t iomd_timer_interval = 2000000; // 2000000 ns = 2 ms (500 Hz)
+	video_timer_interval = 1000000000 / config.refresh;
 
 	qint64 iomd_timer_next = (qint64) iomd_timer_interval; // Time after which the IOMD timer should trigger
+	qint64 video_timer_next = (qint64) video_timer_interval;
 
 	QElapsedTimer elapsed_timer;
 
@@ -406,11 +389,20 @@ Emulator::mainemuloop()
 			execrpcemu();
 		}
 
+		const qint64 elapsed = elapsed_timer.nsecsElapsed();
+
 		// If we have passed the time the IOMD timer event should occur, trigger it
-		if (elapsed_timer.nsecsElapsed() >= iomd_timer_next) {
+		if (elapsed >= iomd_timer_next) {
 			iomd_timer_count.fetchAndAddRelease(1);
 			gentimerirq();
 			iomd_timer_next += (qint64) iomd_timer_interval;
+		}
+
+		// If we have passed the time the Video timer event should occur, trigger it
+		if (elapsed >= video_timer_next) {
+			video_timer_count.fetchAndAddRelease(1);
+			vblupdate();
+			video_timer_next += (qint64) video_timer_interval;
 		}
 
 		// If the instruction count is greater than 100000, update the shared counter
@@ -636,6 +628,8 @@ void
 Emulator::config_updated(Config *new_config, Model new_model)
 {
 	rpcemu_config_apply_new_settings(new_config, new_model);
+
+	video_timer_interval = 1000000000 / config.refresh;
 
 	// The new_config was created for the emulator thread in gui thread, this
 	// function must free it
