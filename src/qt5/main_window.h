@@ -78,6 +78,7 @@ private slots:
 	void menu_cdrom_disabled();
 	void menu_cdrom_empty();
 	void menu_cdrom_iso();
+	void menu_cdrom_ioctl();
 	void menu_mouse_hack();
 	void menu_mouse_capture();
 	void menu_mouse_twobutton();
@@ -103,6 +104,8 @@ private:
 
 	void readSettings();
 	void writeSettings();
+
+	void cdrom_menu_selection_update(const QAction *cdrom_action);
 
 	bool full_screen;
 
@@ -133,6 +136,9 @@ private:
 	QAction *cpu_idle_action;
 	QAction *cdrom_disabled_action;
 	QAction *cdrom_empty_action;
+#if defined(Q_OS_LINUX)
+	QAction *cdrom_ioctl_action;
+#endif /* linux */
 	QAction *cdrom_iso_action;
 	QAction *mouse_hack_action;
 	QAction *mouse_capture_action;

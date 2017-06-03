@@ -65,7 +65,7 @@ NetworkDialog::NetworkDialog(Emulator &emulator, Config *config_copy, Model *mod
 	vbox->addLayout(bridge_hbox);
 
 	// IP Tunnelling is linux only
-#if defined __linux || defined __linux__
+#if defined(Q_OS_LINUX)
 	vbox->addWidget(net_tunnelling);
 	vbox->addLayout(tunnelling_hbox);
 #endif /* linux */
