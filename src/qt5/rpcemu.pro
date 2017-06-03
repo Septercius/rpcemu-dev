@@ -63,6 +63,8 @@ win32 {
 			../win/tap-win32.c \
 			../win/rpc-win.c \
 			keyboard_win.c
+			
+	RC_ICONS = ../win/rpcemu.ico
 }
 
 linux {
