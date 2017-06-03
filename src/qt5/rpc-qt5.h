@@ -31,6 +31,7 @@
 /// Instruction counter shared between Emulator and GUI threads
 extern QAtomicInt instruction_count;
 extern QAtomicInt iomd_timer_count; ///< IOMD timer counter shared between Emulator and GUI threads
+extern QAtomicInt video_timer_count; ///< Video timer counter shared between Emulator and GUI threads
 
 class Emulator : public QObject {
 	Q_OBJECT
@@ -87,16 +88,9 @@ public slots:
 	void mouse_capture();
 	void mouse_twobutton();
 	void config_updated(Config *new_config, Model new_model);
-};
 
-
-
-class VLBUpdateTimer : public QTimer {
-  Q_OBJECT
-public:
-  VLBUpdateTimer(QObject *parent = 0);
-private slots:
-  void VLBUpdate();
+private:
+	int32_t video_timer_interval; ///< Interval between video timer events (in nanoseconds)
 };
 
 #endif /* RPC_QT5_H */

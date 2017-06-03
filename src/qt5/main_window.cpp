@@ -605,11 +605,15 @@ MainWindow::mips_timer_timeout()
 	// Read  (and zero atomically) the IOMD timer count from the emulator core
 	const int icount = iomd_timer_count.fetchAndStoreRelease(0);
 
+	// Read  (and zero atomically) the Video timer count from the emulator core
+	const int vcount = video_timer_count.fetchAndStoreRelease(0);
+
 	// Update window title
-	window_title = QString("RPCEmu - MIPS: %1 AVG: %2, ITimer: %3")
+	window_title = QString("RPCEmu - MIPS: %1 AVG: %2, ITimer: %3, VTimer: %4")
 	    .arg(mips, 0, 'f', 1)
 	    .arg(average, 0, 'f', 1)
-	    .arg(icount);
+	    .arg(icount)
+	    .arg(vcount);
 	setWindowTitle(window_title);
 }
 
