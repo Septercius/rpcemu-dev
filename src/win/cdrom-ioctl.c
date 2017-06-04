@@ -22,7 +22,7 @@
 
 #include <windows.h>
 #include <io.h>
-#include "ddk/ntddcdrm.h"
+#include "ntddcdrm.h"
 #include "rpcemu.h"
 #include "ide.h"
 #include "arm.h"
@@ -257,7 +257,7 @@ int ioctl_open(char d)
                 tocvalid=0;
         }
         rpclog("Opening %s\n",ioctl_path);
-	hIOCTL	= CreateFile(/*"\\\\.\\g:"*/ioctl_path,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,0,NULL);
+	hIOCTL = CreateFileA(ioctl_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 	if (!hIOCTL)
 	{
                 fatal("IOCTL");

@@ -44,6 +44,10 @@
 #include "ide.h"
 #include "cdrom-iso.h"
 
+#if defined(Q_OS_WIN32)
+#include "cdrom-ioctl.h"
+#endif /* win32 */
+
 #if defined(Q_OS_LINUX)
 #ifdef __cplusplus
 extern "C" {
@@ -357,6 +361,9 @@ Emulator::Emulator()
 #if defined(Q_OS_LINUX)
 	connect(this, &Emulator::cdrom_ioctl_signal, this, &Emulator::cdrom_ioctl);
 #endif /* linux */
+#if defined(Q_OS_WIN32)
+	connect(this, &Emulator::cdrom_win_ioctl_signal, this, &Emulator::cdrom_win_ioctl);
+#endif /* win32 */
 	connect(this, &Emulator::mouse_hack_signal, this, &Emulator::mouse_hack);
 	connect(this, &Emulator::mouse_capture_signal, this, &Emulator::mouse_capture);
 	connect(this, &Emulator::mouse_twobutton_signal, this, &Emulator::mouse_twobutton);
@@ -587,6 +594,25 @@ Emulator::cdrom_ioctl()
 	ioctl_init();
 }
 #endif /* linux */
+
+#if defined(Q_OS_WIN32)
+/**
+ * GUI wants to use Windows real cdrom drive
+ *
+ * @param drive_letter drive letter of cdrom drive
+ */
+void
+Emulator::cdrom_win_ioctl(char drive_letter)
+{
+	if(!config.cdromenabled) {
+		config.cdromenabled = 1;
+		resetrpc();
+	}
+
+	atapi->exit();
+	ioctl_open(drive_letter);
+}
+#endif /* win32 */
 
 /**
  * GUI is toggling mousehack (follows host mouse)

@@ -21,9 +21,17 @@
 #ifndef CDROM_IOCTL_H
 #define CDROM_IOCTL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /* this header file lists the functions provided by
    various platform specific cdrom-ioctl files */
 
 extern int ioctl_open(char d);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
    
 #endif /* ! CDROM_IOCTL_H */

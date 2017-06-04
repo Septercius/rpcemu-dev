@@ -79,6 +79,7 @@ private slots:
 	void menu_cdrom_empty();
 	void menu_cdrom_iso();
 	void menu_cdrom_ioctl();
+	void menu_cdrom_win_ioctl();
 	void menu_mouse_hack();
 	void menu_mouse_capture();
 	void menu_mouse_twobutton();
@@ -139,6 +140,9 @@ private:
 #if defined(Q_OS_LINUX)
 	QAction *cdrom_ioctl_action;
 #endif /* linux */
+#if defined(Q_OS_WIN32)
+	std::vector<QAction *> cdrom_win_ioctl_actions;
+#endif /* win32 */
 	QAction *cdrom_iso_action;
 	QAction *mouse_hack_action;
 	QAction *mouse_capture_action;
