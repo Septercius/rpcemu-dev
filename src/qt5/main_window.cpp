@@ -99,10 +99,10 @@ MainWindow::MainWindow(Emulator &emulator)
 	if(config_copy.cpu_idle) {
 		cpu_idle_action->setChecked(true);
 	}
-        if(config.mousehackon) {
+	if(config.mousehackon) {
 		mouse_hack_action->setChecked(true);
 	}
-        if(config.mousetwobutton) {
+	if(config.mousetwobutton) {
 		mouse_twobutton_action->setChecked(true);
 	}
 	if(config.cdromenabled) {
@@ -381,6 +381,44 @@ MainWindow::menu_cdrom_ioctl()
 }
 
 void
+MainWindow::menu_cdrom_win_ioctl()
+{
+#if defined(Q_OS_WIN32)
+	QAction* action = qobject_cast<QAction *>(QObject::sender());
+	if(!action) {
+		fatal("menu_cdrom_win_ioctl no action\n");
+	}
+	char drive_letter = action->data().toChar().toLatin1();
+
+	if (!config_copy.cdromenabled) {
+		QMessageBox msgBox;
+		msgBox.setText("This will reset RPCEmu!\nOkay to continue?");
+		msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+		msgBox.setDefaultButton(QMessageBox::Cancel);
+		int ret = msgBox.exec();
+
+		switch (ret) {
+		case QMessageBox::Ok:
+			break;
+
+		case QMessageBox::Cancel:
+			action->setChecked(false);
+			return;
+		default:
+			action->setChecked(false);
+			return;
+		}
+	}
+
+	/* we now have either no need to reboot or an agreement to reboot */
+
+	emit this->emulator.cdrom_win_ioctl_signal(drive_letter);
+	config_copy.cdromenabled = 1;
+
+	cdrom_menu_selection_update(action);
+#endif /* win32 */
+}
+void
 MainWindow::menu_mouse_hack()
 {
 	emit this->emulator.mouse_hack_signal();
@@ -469,6 +507,26 @@ MainWindow::create_actions()
 	cdrom_ioctl_action->setCheckable(true);
 	connect(cdrom_ioctl_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_ioctl()));
 #endif /* linux */
+#if defined(Q_OS_WIN32)
+	// Dynamically add windows cdrom drives to the settings->cdrom menu
+	char s[32];
+	// Loop through each Windows drive letter and test to see if it's a CDROM
+	for (char c = 'A'; c <= 'Z'; c++) {
+		sprintf(s, "%c:\\", c);
+		if (GetDriveTypeA(s) == DRIVE_CDROM) {
+			sprintf(s, "Host CD/DVD Drive (%c:)", c);
+			rpclog(s);
+			
+			QAction *new_action = new QAction(s, this);
+			new_action->setCheckable(true);
+			new_action->setData(c);
+
+			connect(new_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_win_ioctl()));
+
+			cdrom_win_ioctl_actions.insert(cdrom_win_ioctl_actions.end(), new_action);
+		}
+	}
+#endif
 
 	// Aactions on the Settings->Mouse menu
 	mouse_hack_action = new QAction(tr("&Follow host mouse"), this);
@@ -534,6 +592,11 @@ MainWindow::create_menus()
 #if defined(Q_OS_LINUX)
 	cdrom_menu->addAction(cdrom_ioctl_action);
 #endif /* linux */
+#if defined(Q_OS_WIN32)
+	for (unsigned i = 0; i < cdrom_win_ioctl_actions.size(); i++) {
+		cdrom_menu->addAction(cdrom_win_ioctl_actions[i]);
+	}
+#endif
 
 	// Mouse submenu
 	mouse_menu->addAction(mouse_hack_action);
@@ -651,35 +714,37 @@ MainWindow::fatal(QString error)
 void
 MainWindow::cdrom_menu_selection_update(const QAction *cdrom_action)
 {
+	// Turn all tick boxes off 
+	cdrom_disabled_action->setChecked(false);
+	cdrom_empty_action->setChecked(false);
+	cdrom_iso_action->setChecked(false);
+#if defined(Q_OS_LINUX)
+	cdrom_ioctl_action->setChecked(false);
+#endif
+#if defined(Q_OS_WIN32)
+	for (unsigned i = 0; i < cdrom_win_ioctl_actions.size(); i++) {
+		cdrom_win_ioctl_actions[i]->setChecked(false);
+	}
+#endif
+
+	// Turn correct one on
 	if(cdrom_action == cdrom_disabled_action) {
 		cdrom_disabled_action->setChecked(true);
-		cdrom_empty_action->setChecked(false);
-		cdrom_iso_action->setChecked(false);
-#if defined(Q_OS_LINUX)
-		cdrom_ioctl_action->setChecked(false);
-#endif
 	} else if(cdrom_action == cdrom_empty_action) {
-		cdrom_disabled_action->setChecked(false);
 		cdrom_empty_action->setChecked(true);
-		cdrom_iso_action->setChecked(false);
-#if defined(Q_OS_LINUX)
-		cdrom_ioctl_action->setChecked(false);
-#endif
 	} else if(cdrom_action == cdrom_iso_action) {
-		cdrom_disabled_action->setChecked(false);
-		cdrom_empty_action->setChecked(false);
 		cdrom_iso_action->setChecked(true);
 #if defined(Q_OS_LINUX)
-		cdrom_ioctl_action->setChecked(false);
-#endif
-#if defined(Q_OS_LINUX)
 	} else if(cdrom_action == cdrom_ioctl_action) {
-		cdrom_disabled_action->setChecked(false);
-		cdrom_empty_action->setChecked(false);
-		cdrom_iso_action->setChecked(false);
 		cdrom_ioctl_action->setChecked(true);
 #endif
+#if defined(Q_OS_WIN32)
 	} else {
-		fatal("Unknown CDROM action");
+		for (unsigned i = 0; i < cdrom_win_ioctl_actions.size(); i++) {
+			if(cdrom_action == cdrom_win_ioctl_actions[i]) {
+				cdrom_win_ioctl_actions[i]->setChecked(true);
+			}
+		}
+#endif
 	}
 }

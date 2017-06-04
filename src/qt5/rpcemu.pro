@@ -56,9 +56,9 @@ SOURCES =	../superio.c \
 		network_dialog.cpp \
 		about_dialog.cpp
 
-win32 {
-# ../win/cdrom-ioctl.c \
-	SOURCES +=	../network.c \
+win32 { 
+	SOURCES +=	../win/cdrom-ioctl.c \
+			../network.c \
 			../win/network-win.c \
 			../win/tap-win32.c \
 			../win/rpc-win.c \
