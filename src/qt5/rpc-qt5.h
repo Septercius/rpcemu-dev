@@ -38,6 +38,8 @@ class Emulator : public QObject {
 public:
 	Emulator();
 signals:
+	void finished();
+
 	void key_press_signal(unsigned scan_code);
 
 	void key_release_signal(unsigned scan_code);
