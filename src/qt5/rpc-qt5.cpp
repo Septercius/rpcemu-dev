@@ -58,22 +58,20 @@ extern void ioctl_init(void);
 #endif /* __cplusplus */
 #endif /* linux */
 
-MainWindow *pMainWin = NULL; /**< Reference to main GUI window */
-static QThread *gui_thread = NULL; /**< copy of reference to GUI thread */
+MainWindow *pMainWin = NULL; ///< Reference to main GUI window
+static QThread *gui_thread = NULL; ///< copy of reference to GUI thread
 
-// Instruction counter shared between Emulator and GUI threads
-QAtomicInt instruction_count;
-
-QAtomicInt iomd_timer_count; ///< IOMD timer counter shared between Emulator and GUI threads
+QAtomicInt instruction_count; ///< Instruction counter shared between Emulator and GUI threads
+QAtomicInt iomd_timer_count;  ///< IOMD timer  counter shared between Emulator and GUI threads
 QAtomicInt video_timer_count; ///< Video timer counter shared between Emulator and GUI threads
 
 static pthread_t sound_thread;
 static pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t sound_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static pthread_t thread;
-static pthread_cond_t vidccond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t vidcmutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_t video_thread;
+static pthread_cond_t video_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t video_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 /**
@@ -81,23 +79,22 @@ static pthread_mutex_t vidcmutex = PTHREAD_MUTEX_INITIALIZER;
  * on waiting for sound data and trigger copying
  * it to Allegro's sound output buffer
  */
-static void *sound_thread_function(void *p)
+static void *
+sound_thread_function(void *p)
 {
-	if (pthread_mutex_lock(&sound_mutex))
-	{
+	if (pthread_mutex_lock(&sound_mutex)) {
 		fatal("Cannot lock mutex");
 	}
-	while (!quited)
-	{
-		if (pthread_cond_wait(&sound_cond, &sound_mutex))
-		{
+
+	while (!quited)	{
+		if (pthread_cond_wait(&sound_cond, &sound_mutex)) {
 			fatal("pthread_cond_wait failed");
 		}
-		if (!quited)
-		{
+		if (!quited) {
 			sound_buffer_update();
 		}
 	}
+
 	pthread_mutex_unlock(&sound_mutex);
 
 	return NULL;
@@ -108,32 +105,34 @@ static void *sound_thread_function(void *p)
  * know that more data is available to be put in the
  * output buffer
  */
-void sound_thread_wakeup(void)
+void
+sound_thread_wakeup(void)
 {
-    if (pthread_cond_signal(&sound_cond))
-    {
-        fatal("Couldn't signal vidc thread");
-    }
+	if (pthread_cond_signal(&sound_cond)) {
+		fatal("Couldn't signal vidc thread");
+	}
 }
 
 /**
  * Called on program shutdown to tidy up the sound thread
  */
-void sound_thread_close(void)
+void
+sound_thread_close(void)
 {
 //	sound_thread_wakeup();
 //	pthread_join(sound_thread, NULL);
 }
+
 /**
  * Called on program startup. Create a thread for copying sound
  * data into Allegro's sound output buffer
  */
-void sound_thread_start(void)
+void
+sound_thread_start(void)
 {
-    if (pthread_create(&sound_thread, NULL, sound_thread_function, NULL))
-    {
-        fatal("Couldn't create vidc thread");
-    }
+	if (pthread_create(&sound_thread, NULL, sound_thread_function, NULL)) {
+		fatal("Couldn't create vidc thread");
+	}
 }
 
 /**
@@ -155,15 +154,13 @@ error(const char *format, ...)
 	rpclog("ERROR: %s\n", buf);
 	fprintf(stderr, "RPCEmu error: %s\n", buf);
 
-	/* Handle displaying error to user in GUI */
-	if(gui_thread != NULL) {
-		if(QThread::currentThread() == gui_thread) {
-			/* We're in the GUI thread display error here */
-			std::cout << "error in gui thread" << std::endl;
+	// Handle displaying error to user in GUI
+	if (gui_thread != NULL) {
+		if (QThread::currentThread() == gui_thread) {
+			// We're in the GUI thread display error here
 			pMainWin->error(buf);
 		} else {
-			/* We're in a background thread, throw message to GUI thread */
-			std::cout << "error in background thread" << std::endl;
+			// We're in a background thread, throw message to GUI thread
 			emit pMainWin->error_signal(buf);
 		}
 	}
@@ -189,59 +186,86 @@ fatal(const char *format, ...)
 
 	fprintf(stderr, "RPCEmu fatal error: %s\n", buf);
 
-	/* If there is not a gui running, no more work to do */
-	if(gui_thread == NULL) {
+	// If there is not a gui running, no more work to do
+	if (gui_thread == NULL) {
 		exit(EXIT_FAILURE);
 	}
 
-	/* Handle displaying error to user in GUI */
-	if(QThread::currentThread() == gui_thread) {
-		/* We're in the GUI thread display error here */
-		std::cout << "fatal in gui thread" << std::endl;
+	// Handle displaying error to user in GUI
+	if (QThread::currentThread() == gui_thread) {
+		// We're in the GUI thread display error here
 		pMainWin->fatal(buf);
-		/* This will exit the program in that function */
+		// This will exit the program in that function
 	} else {
-		/* We're in a background thread, throw message to GUI thread */
-		std::cout << "fatal in background thread" << std::endl;
+		// We're in a background thread, throw message to GUI thread
 		emit pMainWin->fatal_signal(buf);
-		/* This will exit the program in the GUI thread */
+		// This will exit the program in the GUI thread
 	}
 
-	/* This function cannot return within causing issues with
-	   emu thread processor events, use this to block here */
+	// This function cannot return within causing issues with
+	// emu thread processor events, use this to block here
 	gui_thread->wait();
 
-	/* This is a fallback to prevent a warning about returning 
-	  from a noreturn function */
+	// This is a fallback to prevent a warning about returning 
+	// from a noreturn function
 	exit(EXIT_FAILURE);
 }
 
 
-static void vblupdate(void)
+/**
+ * Callback on video refresh rate timer
+ */
+static void
+vblupdate(void)
 {
 	drawscre++;
 }
-
-void updatewindowsize(uint32_t x, uint32_t y)
+/**
+ * Call back when emulated machine video display changes
+ * 
+ * @param x New X size
+ * @param y New Y size
+ */ 
+void
+updatewindowsize(uint32_t x, uint32_t y)
 {
 	fprintf(stderr, "Win Size %u %u\n", x, y);
 }
 
-void releasemousecapture(void)
+/**
+ * Action on leaving mouse capture mode
+ */
+void
+releasemousecapture(void)
 {
+	// TODO
 }
 
-static void *vidcthreadrunner(void *threadid)
+/**
+ * Function called in video thread to block
+ * on waiting for video data and trigger copying
+ * it from VRAM to video buffer
+ */
+static void *
+vidcthreadrunner(void *threadid)
 {
 	NOT_USED(threadid);
 
-        if (pthread_mutex_lock(&vidcmutex)) fatal("Cannot lock mutex");
-	while (!quited)
-	{
-                if (pthread_cond_wait(&vidccond, &vidcmutex)) fatal("pthread_cond_wait failed");
-		if (!quited) vidcthread();
+	if (pthread_mutex_lock(&video_mutex)) {
+		fatal("Cannot lock mutex");
 	}
-        pthread_mutex_unlock(&vidcmutex);
+
+	while (!quited) {
+		if (pthread_cond_wait(&video_cond, &video_mutex)) {
+			fatal("pthread_cond_wait failed");
+		}
+		if (!quited) {
+			vidcthread();
+		}
+	}
+
+	pthread_mutex_unlock(&video_mutex);
+
 	return NULL;
 }
 
@@ -249,62 +273,89 @@ static void *vidcthreadrunner(void *threadid)
 extern "C" {
 
 
-void vidcstartthread(void)
+/**
+ * Called on program startup. Create a thread for copying video
+ * data from VRAM into a video buffer
+ */
+void
+vidcstartthread(void)
 {
-    if (pthread_create(&thread,NULL,vidcthreadrunner,NULL)) {
-      fatal("Couldn't create vidc thread");
-    }
+	if (pthread_create(&video_thread, NULL, vidcthreadrunner, NULL)) {
+		fatal("Couldn't create vidc thread");
+	}
 
 #ifdef _GNU_SOURCE
-    if(0 != pthread_setname_np(thread, "rpcemu: vidc")) {
-      fatal("Couldn't set vidc thread name");
-    }
-#endif /* _GNU_SOURCE */
+	if (0 != pthread_setname_np(video_thread, "rpcemu: vidc")) {
+		fatal("Couldn't set vidc thread name");
+	}
+#endif // _GNU_SOURCE
 }
 
-void vidcendthread(void)
+/**
+ * Called on program shutdown to tidy up video thread
+ */
+void
+vidcendthread(void)
 {
-//	quited=1;
-//        if (pthread_cond_signal(&vidccond)) fatal("Couldn't signal vidc thread");
-//	pthread_join(thread, NULL);
+//	quited = 1;
+//	if (pthread_cond_signal(&video_cond)) {
+//		fatal("Couldn't signal vidc thread");
+//	}
+//	pthread_join(video_thread, NULL);
 }
 
-void vidcwakeupthread(void)
+/**
+ * A signal sent to the video thread to let it
+ * know that more data is available to be put in the
+ * output video buffer
+ */
+void
+vidcwakeupthread(void)
 {
-        if (pthread_cond_signal(&vidccond)) fatal("Couldn't signal vidc thread");
+	if (pthread_cond_signal(&video_cond)) {
+		fatal("Couldn't signal vidc thread");
+	}
 }
-} /* extern "C" */
+} // extern "C"
 
-int vidctrymutex(void)
+int
+vidctrymutex(void)
 {
-    int ret = pthread_mutex_trylock(&vidcmutex);
-    if (ret == EBUSY) return 0;
-    if (ret) fatal("Getting vidc mutex failed");
-    return 1;
+	int ret = pthread_mutex_trylock(&video_mutex);
+	if (ret == EBUSY) {
+		return 0;
+	}
+	if (ret) {
+		fatal("Getting vidc mutex failed");
+	}
+	return 1;
 }
 
-void vidcreleasemutex(void)
+void
+vidcreleasemutex(void)
 {
-    if (pthread_mutex_unlock(&vidcmutex)) fatal("Releasing vidc mutex failed");
+	if(pthread_mutex_unlock(&video_mutex)) {
+		fatal("Releasing vidc mutex failed");
+	}
 }
 
+/**
+ * Program entry point
+ *
+ * @param argc command line arguments
+ * @param argv command line arguments
+ */ 
 int main (int argc, char ** argv) 
 { 
-//	if (argc != 1)
-//	{
+//	if (argc != 1) {
 //		fprintf(stderr, "No command line options supported.\n");
 //		return 1;
 //	}
 
-//	install_sigchld_handler();
-
-
+	// Initialise QT app
 	QApplication app(argc, argv);
 
-	//qRegisterMetaType<uint32_t>();
-	//qRegisterMetaType<QKeyEvent>("foo");
-
-
+	// Initialise emulator system
 	if (startrpcemu()) {
 		fatal("startrpcemu() failed");
 	}
@@ -340,6 +391,10 @@ int main (int argc, char ** argv)
 	return app.exec();
 }
 
+/**
+ * Emulator class constructor
+ * Connect up QT signals
+ */
 Emulator::Emulator()
 {
 	// Signals from the main GUI window to provide emulated machine input
@@ -364,10 +419,10 @@ Emulator::Emulator()
 	connect(this, &Emulator::cdrom_load_iso_signal, this, &Emulator::cdrom_load_iso);
 #if defined(Q_OS_LINUX)
 	connect(this, &Emulator::cdrom_ioctl_signal, this, &Emulator::cdrom_ioctl);
-#endif /* linux */
+#endif // linux
 #if defined(Q_OS_WIN32)
 	connect(this, &Emulator::cdrom_win_ioctl_signal, this, &Emulator::cdrom_win_ioctl);
-#endif /* win32 */
+#endif // win32
 	connect(this, &Emulator::mouse_hack_signal, this, &Emulator::mouse_hack);
 	connect(this, &Emulator::mouse_capture_signal, this, &Emulator::mouse_capture);
 	connect(this, &Emulator::mouse_twobutton_signal, this, &Emulator::mouse_twobutton);
@@ -419,9 +474,9 @@ Emulator::mainemuloop()
 			inscount = 0;
 		}
 	}
-	if (mousecapture)
-	{
-		mousecapture=0;
+
+	if (mousecapture) {
+		mousecapture = 0;
 	}
 
 	// Perform clean-up and finalising actions
@@ -430,6 +485,11 @@ Emulator::mainemuloop()
 	emit finished();
 }
 
+/**
+ * Key pressed
+ * 
+ * @param scan_code QT native host key code
+ */  
 void
 Emulator::key_press(unsigned scan_code)
 {
@@ -437,6 +497,11 @@ Emulator::key_press(unsigned scan_code)
 	keyboard_key_press(scan_codes);
 }
 
+/**
+ * Key released
+ * 
+ * @param scan_code QT native host key code
+ */  
 void
 Emulator::key_release(unsigned scan_code)
 {
@@ -444,18 +509,34 @@ Emulator::key_release(unsigned scan_code)
 	keyboard_key_release(scan_codes);
 }
 
+/**
+ * Mouse has moved
+ * 
+ * @param x new x position
+ * @param y new y position
+ */ 
 void
 Emulator::mouse_move(int x, int y)
 {
 	mouse_mouse_move(x, y);
 }
 
+/**
+ * Mouse button pressed
+ * 
+ * @param buttons buttons pressed (QT format)
+ */
 void
 Emulator::mouse_press(int buttons)
 {
 	mouse_mouse_press(buttons);
 }
 
+/**
+ * Mouse button released
+ *
+ * @param buttons buttons pressed (QT format)
+ */
 void
 Emulator::mouse_release(int buttons)
 {
@@ -486,7 +567,6 @@ Emulator::exit()
 	// This wakes up the GUI thread to continue the exit process
 	this->thread()->quit();
 }
-
 
 /**
  * GUI wants to change disc image in floppy drive 0
@@ -598,7 +678,7 @@ Emulator::cdrom_ioctl()
 	atapi->exit();
 	ioctl_init();
 }
-#endif /* linux */
+#endif // linux
 
 #if defined(Q_OS_WIN32)
 /**
@@ -617,7 +697,7 @@ Emulator::cdrom_win_ioctl(char drive_letter)
 	atapi->exit();
 	ioctl_open(drive_letter);
 }
-#endif /* win32 */
+#endif // win32
 
 /**
  * GUI is toggling mousehack (follows host mouse)
@@ -634,6 +714,7 @@ Emulator::mouse_hack()
 void
 Emulator::mouse_capture()
 {
+	// TODO
 	std::cout << "mouse capture clicked" << std::endl;
 }
 
