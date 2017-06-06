@@ -314,10 +314,14 @@ int main (int argc, char ** argv)
 
 	// Create Emulator Thread and Object
 	QThread *emu_thread = new QThread;
+	emu_thread->setObjectName("rpcemu: emu");
+
 	Emulator *emulator = new Emulator;
 	emulator->moveToThread(emu_thread);
-	QThread::connect(emu_thread, &QThread::started,
-	                 emulator, &Emulator::mainemuloop);
+	QThread::connect(emu_thread, &QThread::started, emulator, &Emulator::mainemuloop);
+	QThread::connect(emulator, &Emulator::finished, emu_thread, &QThread::quit);
+	QThread::connect(emulator, &Emulator::finished, emulator, &Emulator::deleteLater);
+	QThread::connect(emu_thread, &QThread::finished, emu_thread, &QThread::deleteLater);
 
 	// Create Main Window
 	MainWindow main_window(*emulator);
@@ -419,7 +423,11 @@ Emulator::mainemuloop()
 	{
 		mousecapture=0;
 	}
+
+	// Perform clean-up and finalising actions
 	endrpcemu();
+
+	emit finished();
 }
 
 void
@@ -475,10 +483,7 @@ Emulator::exit()
 	quited = 1;
 
 	// Kill emulator thread
-        // This wakes up the GUI thread to continue the exit process
-	// TODO this should not be needed except we're using QThread
-	// wrong and running our main loop in the started state, not
-	// a subclassed run() function
+	// This wakes up the GUI thread to continue the exit process
 	this->thread()->quit();
 }
 
