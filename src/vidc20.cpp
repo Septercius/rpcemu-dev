@@ -632,6 +632,11 @@ vidcthread(void)
 	static int oldcursorheight;
 	static int oldcursory;
 
+	/* Deal with the possibility of a spurious thread wakeup */
+	if (thr.threadpending == 0) {
+		return;
+	}
+
 	thr.threadpending = 0;
 
 //	if (b == NULL) {
