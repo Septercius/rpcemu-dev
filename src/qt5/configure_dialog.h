@@ -22,8 +22,15 @@
 
 #include <vector>
 
+#include <QCheckBox>
 #include <QDialog>
-#include <QtWidgets>
+#include <QDialogButtonBox>
+#include <QGridLayout>
+#include <QGroupBox>
+#include <QLabel>
+#include <QListWidget>
+#include <QRadioButton>
+#include <QSlider>
 
 #include "rpc-qt5.h"
 #include "rpcemu.h"

@@ -33,10 +33,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-//#include <allegro.h>
 #include <QColor>
 #include <QImage>
-#include <QtWidgets>
+
 #include "main_window.h"
 
 #include "rpcemu.h"

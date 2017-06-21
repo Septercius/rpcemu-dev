@@ -21,6 +21,8 @@
 #ifndef __KEYBOARD__
 #define __KEYBOARD__
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
