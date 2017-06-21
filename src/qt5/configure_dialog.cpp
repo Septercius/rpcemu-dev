@@ -19,6 +19,9 @@
  */
 #include <iostream>
 
+#include <QButtonGroup>
+#include <QMessageBox>
+
 #include "configure_dialog.h"
 
 ConfigureDialog::ConfigureDialog(Emulator &emulator, Config *config_copy, Model *model_copy, QWidget *parent)

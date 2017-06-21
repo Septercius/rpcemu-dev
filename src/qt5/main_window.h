@@ -20,7 +20,10 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
+#include <QAction>
+#include <QLabel>
 #include <QMainWindow>
+#include <QMenu>
 
 #include "configure_dialog.h"
 #include "network_dialog.h"
@@ -28,10 +31,6 @@
 #include "rpc-qt5.h"
 
 #include "rpcemu.h"
-
-class QAction;
-class QLabel;
-class QMenu;
 
 class MainLabel : public QLabel
 {

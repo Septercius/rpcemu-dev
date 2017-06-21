@@ -20,8 +20,12 @@
 #ifndef NETWORK_DIALOG_H
 #define NETWORK_DIALOG_H
 
+#include <QBoxLayout>
 #include <QDialog>
-#include <QtWidgets>
+#include <QDialogButtonBox>
+#include <QLabel>
+#include <QLineEdit>
+#include <QRadioButton>
 
 #include "rpc-qt5.h"
 #include "rpcemu.h"

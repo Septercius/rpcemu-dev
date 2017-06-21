@@ -21,7 +21,9 @@
 #define ABOUT_DIALOG_H
 
 #include <QDialog>
-#include <QtWidgets>
+#include <QDialogButtonBox>
+#include <QGridLayout>
+#include <QLabel>
 
 class AboutDialog : public QDialog
 {

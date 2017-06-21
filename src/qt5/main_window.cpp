@@ -20,7 +20,9 @@
 #include <iostream>
 
 #include <QDesktopServices>
-#include <QtWidgets>
+#include <QFileDialog>
+#include <QMenuBar>
+#include <QMessageBox>
 
 #include "keyboard.h"
 
