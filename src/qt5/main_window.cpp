@@ -642,6 +642,15 @@ MainWindow::writeSettings()
 void
 MainWindow::main_display_update(QPixmap pixmap)
 {
+	if (pixmap.size() != label->size()) {
+		// Resize Label containing image
+		label->setMinimumSize(pixmap.size());
+		label->setMaximumSize(pixmap.size());
+
+		// Resize Window
+		this->setFixedSize(this->sizeHint());
+	}
+
 	this->label->setPixmap(pixmap);
 }
 
