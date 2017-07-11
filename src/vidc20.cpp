@@ -619,13 +619,10 @@ vidcthread(void)
 {
 	const uint32_t vidstart = thr.iomd_vidstart & 0x7ffff0;
 	uint32_t vidend;
-//	uint32_t *vidp = NULL;
 	QRgb *vidp = NULL;
-//	uint16_t *vidp16 = NULL;
 	int drawit = 0;
 	int x, y;
 	const uint8_t *ramp;
-//	const uint16_t *ramw;
 	int addr;
 	int yl = -1, yh = -1;
 	static int oldcursorheight;
@@ -638,10 +635,6 @@ vidcthread(void)
 
 	thr.threadpending = 0;
 
-//	if (b == NULL) {
-//		abort();
-//	}
-
 	if (thr.iomd_vidinit & 0x10000000) {
 		/* Using DRAM for video */
 		/* TODO video could be in DRAM other than simm 0 bank 0 */
@@ -652,7 +645,6 @@ vidcthread(void)
 		ramp = (const uint8_t *) vram;
 		vidend = (thr.iomd_vidend + 2048) & 0x7ffff0;
 	}
-//        ramw = (const uint16_t *) ramp;
 
 	addr = thr.iomd_vidinit & 0x7fffff;
 
@@ -661,360 +653,342 @@ vidcthread(void)
 		yl = 0;
 	}
 
-		switch (thr.bpp) {
-		case 0: /* 1 bpp on 32 bpp */
-			for (y = 0; y < thr.vidc_ysize; y++) {
-				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-					drawit = 1;
-					yh = y + 8;
-					if (yl == -1) {
+	switch (thr.bpp) {
+	case 0: /* 1 bpp on 32 bpp */
+		for (y = 0; y < thr.vidc_ysize; y++) {
+			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+				drawit = 1;
+				yh = y + 8;
+				if (yl == -1) {
+					yl = y;
+				}
+			}
+			if (drawit) {
+				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				yh = y + 1;
+			}
+			for (x = 0; x < thr.vidc_xsize; x += 8) {
+				if (drawit) {
+					int xx;
+					for (xx = 0; xx < 8; xx += 8) {
+#ifdef _RPCEMU_BIG_ENDIAN
+						addr ^= 3;
+#endif
+						vidp[x + xx]     = thr.palette[ramp[addr] & 1];
+						vidp[x + xx + 1] = thr.palette[(ramp[addr] >> 1) & 1];
+						vidp[x + xx + 2] = thr.palette[(ramp[addr] >> 2) & 1];
+						vidp[x + xx + 3] = thr.palette[(ramp[addr] >> 3) & 1];
+						vidp[x + xx + 4] = thr.palette[(ramp[addr] >> 4) & 1];
+						vidp[x + xx + 5] = thr.palette[(ramp[addr] >> 5) & 1];
+						vidp[x + xx + 6] = thr.palette[(ramp[addr] >> 6) & 1];
+						vidp[x + xx + 7] = thr.palette[(ramp[addr] >> 7) & 1];
+#ifdef _RPCEMU_BIG_ENDIAN
+						addr ^= 3;
+#endif
+						addr++;
+					}
+				} else {
+					addr += 1;
+				}
+				if (addr == (int) vidend) {
+					addr = vidstart;
+				}
+				if ((addr & 0xfff) == 0) {
+					if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						vidp = (QRgb *) thr.bitmap.scanLine(y);
+					}
+					drawit = thr.dirtybuffer[addr >> 12];
+					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+						drawit = 1;
+					}
+					if (drawit) {
+						yh = y + 8;
+					}
+					if (yl == -1 && drawit) {
 						yl = y;
 					}
 				}
-				if (drawit) {
-//					vidp = (uint32_t *) bmp_write_line(b, y);
-                                        vidp = (QRgb *) thr.bitmap.scanLine(y);
-					assert(vidp);
-					yh = y + 1;
-				}
-				for (x = 0; x < thr.vidc_xsize; x += 8) {
-					if (drawit) {
-						int xx;
-						for (xx = 0; xx < 8; xx += 8) {
-#ifdef _RPCEMU_BIG_ENDIAN
-//							addr ^= 3;
-#endif
-							vidp[x + xx]     = thr.palette[ramp[addr] & 1];
-							vidp[x + xx + 1] = thr.palette[(ramp[addr] >> 1) & 1];
-							vidp[x + xx + 2] = thr.palette[(ramp[addr] >> 2) & 1];
-							vidp[x + xx + 3] = thr.palette[(ramp[addr] >> 3) & 1];
-							vidp[x + xx + 4] = thr.palette[(ramp[addr] >> 4) & 1];
-							vidp[x + xx + 5] = thr.palette[(ramp[addr] >> 5) & 1];
-							vidp[x + xx + 6] = thr.palette[(ramp[addr] >> 6) & 1];
-							vidp[x + xx + 7] = thr.palette[(ramp[addr] >> 7) & 1];
-#ifdef _RPCEMU_BIG_ENDIAN
-//							addr ^= 3;
-#endif
-							addr++;
-						}
-					} else {
-						addr += 1;
-					}
-					if (addr == (int) vidend) {
-						addr = vidstart;
-					}
-					if ((addr & 0xfff) == 0) {
-						if (!drawit && thr.dirtybuffer[addr >> 12]) {
-//							vidp = (uint32_t *) bmp_write_line(b, y);
-							vidp = (QRgb *) thr.bitmap.scanLine(y);
-						}
-						drawit = thr.dirtybuffer[addr >> 12];
-						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-							drawit = 1;
-						}
-						if (drawit) {
-							yh = y + 8;
-						}
-						if (yl == -1 && drawit) {
-							yl = y;
-						}
-					}
-				}
 			}
-			break;
-		case 1: /* 2 bpp on 32 bpp */
-			for (y = 0; y < thr.vidc_ysize; y++) {
-				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-					drawit = 1;
-					yh = y + 8;
-					if (yl == -1) {
-						yl = y;
-					}
-				}
-				if (drawit) {
-//					vidp = (uint32_t *) bmp_write_line(b, y);
-					vidp = (QRgb *) thr.bitmap.scanLine(y);
-					yh = y + 1;
-				}
-				for (x = 0; x < thr.vidc_xsize; x += 4) {
-					if (drawit) {
-						int xx;
-						for (xx = 0; xx < 4; xx += 4) {
-#ifdef _RPCEMU_BIG_ENDIAN
-							addr ^= 3;
-#endif
-							vidp[x + xx]     = thr.palette[ramp[addr] & 3];
-							vidp[x + xx + 1] = thr.palette[(ramp[addr] >> 2) & 3];
-							vidp[x + xx + 2] = thr.palette[(ramp[addr] >> 4) & 3];
-							vidp[x + xx + 3] = thr.palette[(ramp[addr] >> 6) & 3];
-#ifdef _RPCEMU_BIG_ENDIAN
-							addr ^= 3;
-#endif
-							addr++;
-						}
-					} else {
-						addr += 1;
-					}
-					if (addr == (int) vidend) {
-						addr = vidstart;
-					}
-					if ((addr & 0xfff) == 0) {
-						if (!drawit && thr.dirtybuffer[addr >> 12]) {
-//							vidp = (uint32_t *) bmp_write_line(b, y);
-							vidp = (QRgb *) thr.bitmap.scanLine(y);
-						}
-						drawit = thr.dirtybuffer[addr >> 12];
-						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-							drawit = 1;
-						}
-						if (drawit) {
-							yh = y + 8;
-						}
-						if (yl == -1 && drawit) {
-							yl = y;
-						}
-					}
-				}
-			}
-			break;
-		case 2: /* 4 bpp on 32 bpp */
-			for (y = 0; y < thr.vidc_ysize; y++) {
-				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-					drawit = 1;
-					yh = y + 8;
-					if (yl == -1) {
-						yl = y;
-					}
-				}
-				if (drawit) {
-//					vidp = (uint32_t *) bmp_write_line(b, y);
-					vidp = (QRgb *) thr.bitmap.scanLine(y);
-					yh = y + 1;
-				}
-				for (x = 0; x < thr.vidc_xsize; x += 32) {
-					if (drawit) {
-						int xx;
-						for (xx = 0; xx < 32; xx += 8) {
-#ifdef _RPCEMU_BIG_ENDIAN
-//							vidp[x + xx]     = thr.palette[ramp[addr + 3] & 0xf];
-//							vidp[x + xx + 1] = thr.palette[(ramp[addr + 3] >> 4) & 0xf];
-//							vidp[x + xx + 2] = thr.palette[ramp[addr + 2] & 0xf];
-//							vidp[x + xx + 3] = thr.palette[(ramp[addr + 2] >> 4) & 0xf];
-//							vidp[x + xx + 4] = thr.palette[ramp[addr + 1] & 0xf];
-//							vidp[x + xx + 5] = thr.palette[(ramp[addr + 1] >> 4) & 0xf];
-//							vidp[x + xx + 6] = thr.palette[ramp[addr] & 0xf];
-//							vidp[x + xx + 7] = thr.palette[(ramp[addr] >> 4) & 0xf];
-#else
-if(vidp) {
-							vidp[x + xx]     = thr.palette[ramp[addr] & 0xf];
-							vidp[x + xx + 1] = thr.palette[(ramp[addr] >> 4) & 0xf];
-							vidp[x + xx + 2] = thr.palette[ramp[addr + 1] & 0xf];
-							vidp[x + xx + 3] = thr.palette[(ramp[addr + 1] >> 4) & 0xf];
-							vidp[x + xx + 4] = thr.palette[ramp[addr + 2] & 0xf];
-							vidp[x + xx + 5] = thr.palette[(ramp[addr + 2] >> 4) & 0xf];
-							vidp[x + xx + 6] = thr.palette[ramp[addr + 3] & 0xf];
-							vidp[x + xx + 7] = thr.palette[(ramp[addr + 3] >> 4) & 0xf];
-}
-#endif
-							addr += 4;
-						}
-					} else {
-						addr += 16;
-					}
-					if (addr == (int) vidend) {
-						addr = vidstart;
-					}
-					if ((addr & 0xfff) == 0) {
-						if (!drawit && thr.dirtybuffer[addr >> 12]) {
-//							vidp = (uint32_t *) bmp_write_line(b, y);
-							vidp = (QRgb *) thr.bitmap.scanLine(y);
-						}
-						drawit = thr.dirtybuffer[addr >> 12];
-						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-							drawit = 1;
-						}
-						if (drawit) {
-							yh = y + 8;
-						}
-						if (yl == -1 && drawit) {
-							yl = y;
-						}
-					}
-				}
-			}
-			break;
-		case 3: /* 8 bpp on 32 bpp */
-			for (y = 0; y < thr.vidc_ysize; y++) {
-				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-					drawit = 1;
-					yh = y + 8;
-					if (yl == -1) {
-						yl = y;
-					}
-				}
-				if (drawit) {
-//					vidp = (uint32_t *) bmp_write_line(b, y);
-					vidp = (QRgb *) thr.bitmap.scanLine(y);
-					assert(vidp);
-					yh = y + 1;
-				}
-				for (x = 0; x < thr.vidc_xsize; x += 16) {
-					if (drawit) {
-						int xx;
-						for (xx = 0; xx < 16; xx += 4) {
-#ifdef _RPCEMU_BIG_ENDIAN
-//							vidp[x + xx]     = thr.palette[ramp[addr + 3]];
-//							vidp[x + xx + 1] = thr.palette[ramp[addr + 2]];
-//							vidp[x + xx + 2] = thr.palette[ramp[addr + 1]];
-//							vidp[x + xx + 3] = thr.palette[ramp[addr]];
-#else
-//							vidp[x + xx]     = thr.palette[ramp[addr]];
-//							vidp[x + xx + 1] = thr.palette[ramp[addr + 1]];
-//							vidp[x + xx + 2] = thr.palette[ramp[addr + 2]];
-//							vidp[x + xx + 3] = thr.palette[ramp[addr + 3]];
-#endif
-							addr += 4;
-						}
-					} else {
-						addr += 16;
-					}
-					if (addr == (int) vidend) {
-						addr = vidstart;
-					}
-					if ((addr & 0xfff) == 0) {
-						if (!drawit && thr.dirtybuffer[addr >> 12]) {
-//							vidp = (uint32_t *) bmp_write_line(b, y);
-							vidp = (QRgb *) thr.bitmap.scanLine(y);
-						}
-						drawit = thr.dirtybuffer[addr >> 12];
-						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-							drawit = 1;
-						}
-						if (drawit) {
-							yh = y + 8;
-						}
-						if (yl == -1 && drawit) {
-							yl = y;
-						}
-					}
-				}
-			}
-			break;
-
-		case 4: /* 16 bpp on 32 bpp */
-			for (y = 0; y < thr.vidc_ysize; y++) {
-				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-					drawit = 1;
-					yh = y + 8;
-					if (yl == -1) {
-						yl = y;
-					}
-				}
-				if (drawit) {
-//					vidp = (uint32_t *) bmp_write_line(b, y);
-					vidp = (QRgb *) thr.bitmap.scanLine(y);
-					assert(vidp);
-					yh = y + 1;
-				}
-				for (x = 0; x < thr.vidc_xsize; x += 8) {
-					if (drawit) {
-						int xx;
-						for (xx = 0; xx < 8; xx += 2) {
-//							uint16_t temp16;
-							/* VIDC20 format :                      xBBB BBGG GGGR RRRR
-							   Windows format : xxxx xxxx RRRR RRRR GGGG GGGG BBBB BBBB */
-#ifdef _RPCEMU_BIG_ENDIAN
-//							temp16 = ramp[addr + 3] | (ramp[addr + 2] << 8);
-#else
-//							temp16 = ramp[addr] | (ramp[addr + 1] << 8);
-#endif
-//							vidp[x + xx] = thr.pal[temp16 & 0xff].r | thr.pal[(temp16 >> 4) & 0xff].g | thr.pal[(temp16 >> 8) & 0xff].b;
-#ifdef _RPCEMU_BIG_ENDIAN
-//							temp16 = ramp[addr + 1] | (ramp[addr] << 8);
-#else
-//							temp16 = ramp[addr + 2] | (ramp[addr + 3] << 8);
-#endif
-//							vidp[x + xx + 1] = thr.pal[temp16 & 0xff].r | thr.pal[(temp16 >> 4) & 0xff].g | thr.pal[(temp16 >> 8) & 0xff].b;
-							addr += 4;
-						}
-					} else {
-						addr += 16;
-					}
-					if (addr == (int) vidend) {
-						addr = vidstart;
-					}
-					if ((addr & 0xfff) == 0) {
-						if (!drawit && thr.dirtybuffer[addr >> 12]) {
-//							vidp = (uint32_t *) bmp_write_line(b, y);
-							vidp = (QRgb *) thr.bitmap.scanLine(y);
-						}
-						drawit = thr.dirtybuffer[addr >> 12];
-						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-							drawit = 1;
-						}
-						if (drawit) {
-							yh = y + 8;
-						}
-						if (yl == -1 && drawit) {
-							yl = y;
-						}
-					}
-				}
-			}
-			break;
-		case 6: /* 32 bpp on 32 bpp */
-			for (y = 0; y < thr.vidc_ysize; y++) {
-				if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-					drawit = 1;
-					yh = y + 8;
-					if (yl == -1) {
-						yl = y;
-					}
-				}
-				if (drawit) {
-//					vidp = (uint32_t *) bmp_write_line(b, y);
-					vidp = (QRgb *) thr.bitmap.scanLine(y);
-					yh = y + 1;
-				}
-				for (x = 0; x < thr.vidc_xsize; x += 4) {
-					if (drawit) {
-						int xx;
-						for (xx = 0; xx < 4; xx++) {
-#ifdef _RPCEMU_BIG_ENDIAN
-//							vidp[x + xx] = thr.pal[ramp[addr + 3]].r | thr.pal[ramp[addr + 2]].g | thr.pal[ramp[addr + 1]].b;
-#else
-//							vidp[x + xx] = thr.pal[ramp[addr]].r | thr.pal[ramp[addr + 1]].g | thr.pal[ramp[addr + 2]].b;
-#endif
-							addr += 4;
-						}
-					} else {
-						addr += 16;
-					}
-					if (addr == (int) vidend) {
-						addr = vidstart;
-					}
-					if ((addr & 0xfff) == 0) {
-						if (!drawit && thr.dirtybuffer[addr >> 12]) {
-//							vidp = (uint32_t *) bmp_write_line(b, y);
-							vidp = (QRgb *) thr.bitmap.scanLine(y);
-						}
-						drawit = thr.dirtybuffer[addr >> 12];
-						if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
-							drawit = 1;
-						}
-						if (drawit) {
-							yh = y + 8;
-						}
-						if (yl == -1 && drawit) {
-							yl = y;
-						}
-					}
-				}
-			}
-			break;
-		default:
-			fatal("Bad BPP %i\n", thr.bpp);
 		}
+		break;
+	case 1: /* 2 bpp on 32 bpp */
+		for (y = 0; y < thr.vidc_ysize; y++) {
+			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+				drawit = 1;
+				yh = y + 8;
+				if (yl == -1) {
+					yl = y;
+				}
+			}
+			if (drawit) {
+				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				yh = y + 1;
+			}
+			for (x = 0; x < thr.vidc_xsize; x += 4) {
+				if (drawit) {
+					int xx;
+					for (xx = 0; xx < 4; xx += 4) {
+#ifdef _RPCEMU_BIG_ENDIAN
+						addr ^= 3;
+#endif
+						vidp[x + xx]     = thr.palette[ramp[addr] & 3];
+						vidp[x + xx + 1] = thr.palette[(ramp[addr] >> 2) & 3];
+						vidp[x + xx + 2] = thr.palette[(ramp[addr] >> 4) & 3];
+						vidp[x + xx + 3] = thr.palette[(ramp[addr] >> 6) & 3];
+#ifdef _RPCEMU_BIG_ENDIAN
+						addr ^= 3;
+#endif
+						addr++;
+					}
+				} else {
+					addr += 1;
+				}
+				if (addr == (int) vidend) {
+					addr = vidstart;
+				}
+				if ((addr & 0xfff) == 0) {
+					if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						vidp = (QRgb *) thr.bitmap.scanLine(y);
+					}
+					drawit = thr.dirtybuffer[addr >> 12];
+					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+						drawit = 1;
+					}
+					if (drawit) {
+						yh = y + 8;
+					}
+					if (yl == -1 && drawit) {
+						yl = y;
+					}
+				}
+			}
+		}
+		break;
+	case 2: /* 4 bpp on 32 bpp */
+		for (y = 0; y < thr.vidc_ysize; y++) {
+			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+				drawit = 1;
+				yh = y + 8;
+				if (yl == -1) {
+					yl = y;
+				}
+			}
+			if (drawit) {
+				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				yh = y + 1;
+			}
+			for (x = 0; x < thr.vidc_xsize; x += 32) {
+				if (drawit) {
+					int xx;
+					for (xx = 0; xx < 32; xx += 8) {
+#ifdef _RPCEMU_BIG_ENDIAN
+						vidp[x + xx]     = thr.palette[ramp[addr + 3] & 0xf];
+						vidp[x + xx + 1] = thr.palette[(ramp[addr + 3] >> 4) & 0xf];
+						vidp[x + xx + 2] = thr.palette[ramp[addr + 2] & 0xf];
+						vidp[x + xx + 3] = thr.palette[(ramp[addr + 2] >> 4) & 0xf];
+						vidp[x + xx + 4] = thr.palette[ramp[addr + 1] & 0xf];
+						vidp[x + xx + 5] = thr.palette[(ramp[addr + 1] >> 4) & 0xf];
+						vidp[x + xx + 6] = thr.palette[ramp[addr] & 0xf];
+						vidp[x + xx + 7] = thr.palette[(ramp[addr] >> 4) & 0xf];
+#else
+						vidp[x + xx]     = thr.palette[ramp[addr] & 0xf];
+						vidp[x + xx + 1] = thr.palette[(ramp[addr] >> 4) & 0xf];
+						vidp[x + xx + 2] = thr.palette[ramp[addr + 1] & 0xf];
+						vidp[x + xx + 3] = thr.palette[(ramp[addr + 1] >> 4) & 0xf];
+						vidp[x + xx + 4] = thr.palette[ramp[addr + 2] & 0xf];
+						vidp[x + xx + 5] = thr.palette[(ramp[addr + 2] >> 4) & 0xf];
+						vidp[x + xx + 6] = thr.palette[ramp[addr + 3] & 0xf];
+						vidp[x + xx + 7] = thr.palette[(ramp[addr + 3] >> 4) & 0xf];
+#endif
+						addr += 4;
+					}
+				} else {
+					addr += 16;
+				}
+				if (addr == (int) vidend) {
+					addr = vidstart;
+				}
+				if ((addr & 0xfff) == 0) {
+					if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						vidp = (QRgb *) thr.bitmap.scanLine(y);
+					}
+					drawit = thr.dirtybuffer[addr >> 12];
+					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+						drawit = 1;
+					}
+					if (drawit) {
+						yh = y + 8;
+					}
+					if (yl == -1 && drawit) {
+						yl = y;
+					}
+				}
+			}
+		}
+		break;
+	case 3: /* 8 bpp on 32 bpp */
+		for (y = 0; y < thr.vidc_ysize; y++) {
+			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+				drawit = 1;
+				yh = y + 8;
+				if (yl == -1) {
+					yl = y;
+				}
+			}
+			if (drawit) {
+				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				yh = y + 1;
+			}
+			for (x = 0; x < thr.vidc_xsize; x += 16) {
+				if (drawit) {
+					int xx;
+					for (xx = 0; xx < 16; xx += 4) {
+#ifdef _RPCEMU_BIG_ENDIAN
+						vidp[x + xx]     = thr.palette[ramp[addr + 3]];
+						vidp[x + xx + 1] = thr.palette[ramp[addr + 2]];
+						vidp[x + xx + 2] = thr.palette[ramp[addr + 1]];
+						vidp[x + xx + 3] = thr.palette[ramp[addr]];
+#else
+						vidp[x + xx]     = thr.palette[ramp[addr]];
+						vidp[x + xx + 1] = thr.palette[ramp[addr + 1]];
+						vidp[x + xx + 2] = thr.palette[ramp[addr + 2]];
+						vidp[x + xx + 3] = thr.palette[ramp[addr + 3]];
+#endif
+						addr += 4;
+					}
+				} else {
+					addr += 16;
+				}
+				if (addr == (int) vidend) {
+					addr = vidstart;
+				}
+				if ((addr & 0xfff) == 0) {
+					if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						vidp = (QRgb *) thr.bitmap.scanLine(y);
+					}
+					drawit = thr.dirtybuffer[addr >> 12];
+					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+						drawit = 1;
+					}
+					if (drawit) {
+						yh = y + 8;
+					}
+					if (yl == -1 && drawit) {
+						yl = y;
+					}
+				}
+			}
+		}
+		break;
+	case 4: /* 16 bpp on 32 bpp */
+		for (y = 0; y < thr.vidc_ysize; y++) {
+			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+				drawit = 1;
+				yh = y + 8;
+				if (yl == -1) {
+					yl = y;
+				}
+			}
+			if (drawit) {
+				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				yh = y + 1;
+			}
+			for (x = 0; x < thr.vidc_xsize; x += 8) {
+				if (drawit) {
+					int xx;
+					for (xx = 0; xx < 8; xx += 2) {
+						uint16_t temp16;
+						/* VIDC20 format :                      xBBB BBGG GGGR RRRR
+						   Windows format : xxxx xxxx RRRR RRRR GGGG GGGG BBBB BBBB */
+#ifdef _RPCEMU_BIG_ENDIAN
+						temp16 = ramp[addr + 3] | (ramp[addr + 2] << 8);
+#else
+						temp16 = ramp[addr] | (ramp[addr + 1] << 8);
+#endif
+						vidp[x + xx] = thr.pal[temp16 & 0xff].r | thr.pal[(temp16 >> 4) & 0xff].g | thr.pal[(temp16 >> 8) & 0xff].b;
+#ifdef _RPCEMU_BIG_ENDIAN
+						temp16 = ramp[addr + 1] | (ramp[addr] << 8);
+#else
+						temp16 = ramp[addr + 2] | (ramp[addr + 3] << 8);
+#endif
+						vidp[x + xx + 1] = thr.pal[temp16 & 0xff].r | thr.pal[(temp16 >> 4) & 0xff].g | thr.pal[(temp16 >> 8) & 0xff].b;
+						addr += 4;
+					}
+				} else {
+					addr += 16;
+				}
+				if (addr == (int) vidend) {
+					addr = vidstart;
+				}
+				if ((addr & 0xfff) == 0) {
+					if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						vidp = (QRgb *) thr.bitmap.scanLine(y);
+					}
+					drawit = thr.dirtybuffer[addr >> 12];
+					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+						drawit = 1;
+					}
+					if (drawit) {
+						yh = y + 8;
+					}
+					if (yl == -1 && drawit) {
+						yl = y;
+					}
+				}
+			}
+		}
+		break;
+	case 6: /* 32 bpp on 32 bpp */
+		for (y = 0; y < thr.vidc_ysize; y++) {
+			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+				drawit = 1;
+				yh = y + 8;
+				if (yl == -1) {
+					yl = y;
+				}
+			}
+			if (drawit) {
+				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				yh = y + 1;
+			}
+			for (x = 0; x < thr.vidc_xsize; x += 4) {
+				if (drawit) {
+					int xx;
+					for (xx = 0; xx < 4; xx++) {
+#ifdef _RPCEMU_BIG_ENDIAN
+						vidp[x + xx] = thr.pal[ramp[addr + 3]].r | thr.pal[ramp[addr + 2]].g | thr.pal[ramp[addr + 1]].b;
+#else
+						vidp[x + xx] = thr.pal[ramp[addr]].r | thr.pal[ramp[addr + 1]].g | thr.pal[ramp[addr + 2]].b;
+#endif
+						addr += 4;
+					}
+				} else {
+					addr += 16;
+				}
+				if (addr == (int) vidend) {
+					addr = vidstart;
+				}
+				if ((addr & 0xfff) == 0) {
+					if (!drawit && thr.dirtybuffer[addr >> 12]) {
+						vidp = (QRgb *) thr.bitmap.scanLine(y);
+					}
+					drawit = thr.dirtybuffer[addr >> 12];
+					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
+						drawit = 1;
+					}
+					if (drawit) {
+						yh = y + 8;
+					}
+					if (yl == -1 && drawit) {
+						yl = y;
+					}
+				}
+			}
+		}
+		break;
+	default:
+		fatal("Bad BPP %i\n", thr.bpp);
+	}
 
 	/* Cursor layer is plotted over regular display */
 	if (thr.cursorheight > 1) {
@@ -1030,37 +1004,35 @@ if(vidp) {
 		}
 		addr = cinit & mem_rammask;
 		// printf("Mouse now at %i,%i\n", thr.cursorx, thr.cursory);
-			for (y = 0; y < thr.cursorheight; y++) {
-				if ((y + thr.cursory) >= thr.vidc_ysize) {
-					break;
-				}
-				if ((y + thr.cursory) >= 0) {
-//					vidp = (uint32_t *) bmp_write_line(b, y + thr.cursory);
-					vidp = (QRgb *) thr.bitmap.scanLine(y + thr.cursory);
-					for (x = 0; x < 32; x += 4) {
+		for (y = 0; y < thr.cursorheight; y++) {
+			if ((y + thr.cursory) >= thr.vidc_ysize) {
+				break;
+			}
+			if ((y + thr.cursory) >= 0) {
+				vidp = (QRgb *) thr.bitmap.scanLine(y + thr.cursory);
+				for (x = 0; x < 32; x += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
-						addr ^= 3;
+					addr ^= 3;
 #endif
-						if ((x + thr.cursorx)     >= 0 && (x + thr.cursorx)     < thr.vidc_xsize && ramp[addr]        & 3) {
-							vidp[x + thr.cursorx]     = thr.cursor_palette[(ramp[addr] & 3) - 1];
-						}
-						if ((x + thr.cursorx + 1) >= 0 && (x + thr.cursorx + 1) < thr.vidc_xsize && (ramp[addr] >> 2) & 3) {
-							vidp[x + thr.cursorx + 1] = thr.cursor_palette[((ramp[addr] >> 2) & 3) - 1];
-						}
-						if ((x + thr.cursorx + 2) >= 0 && (x + thr.cursorx + 2) < thr.vidc_xsize && (ramp[addr] >> 4) & 3) {
-							vidp[x + thr.cursorx + 2] = thr.cursor_palette[((ramp[addr] >> 4) & 3) - 1];
-						}
-						if ((x + thr.cursorx + 3) >= 0 && (x + thr.cursorx + 3) < thr.vidc_xsize && (ramp[addr] >> 6) & 3) {
-							vidp[x + thr.cursorx + 3] = thr.cursor_palette[((ramp[addr] >> 6) & 3) - 1];
-						}
-#ifdef _RPCEMU_BIG_ENDIAN
-						addr ^= 3;
-#endif
-						addr++;
+					if ((x + thr.cursorx)     >= 0 && (x + thr.cursorx)     < thr.vidc_xsize && ramp[addr]        & 3) {
+						vidp[x + thr.cursorx]     = thr.cursor_palette[(ramp[addr] & 3) - 1];
 					}
+					if ((x + thr.cursorx + 1) >= 0 && (x + thr.cursorx + 1) < thr.vidc_xsize && (ramp[addr] >> 2) & 3) {
+						vidp[x + thr.cursorx + 1] = thr.cursor_palette[((ramp[addr] >> 2) & 3) - 1];
+					}
+					if ((x + thr.cursorx + 2) >= 0 && (x + thr.cursorx + 2) < thr.vidc_xsize && (ramp[addr] >> 4) & 3) {
+						vidp[x + thr.cursorx + 2] = thr.cursor_palette[((ramp[addr] >> 4) & 3) - 1];
+					}
+					if ((x + thr.cursorx + 3) >= 0 && (x + thr.cursorx + 3) < thr.vidc_xsize && (ramp[addr] >> 6) & 3) {
+						vidp[x + thr.cursorx + 3] = thr.cursor_palette[((ramp[addr] >> 6) & 3) - 1];
+					}
+#ifdef _RPCEMU_BIG_ENDIAN
+					addr ^= 3;
+#endif
+					addr++;
 				}
 			}
-
+		}
 
 		if (yl > thr.cursory) {
 			yl = thr.cursory;
@@ -1077,9 +1049,6 @@ if(vidp) {
 	}
 	oldcursorheight = thr.cursorheight;
 	oldcursory = thr.cursory;
-
-
-//	bmp_unwrite_line(b);
 
 	/* Clean the dirtybuffer now we have updated eveything in it */
 	memset(thr.dirtybuffer, 0, 512 * 4);
