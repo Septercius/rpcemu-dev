@@ -3,7 +3,7 @@
 CONFIG += debug_and_release
 
 
-QT += core widgets gui
+QT += core widgets gui multimedia
 INCLUDEPATH += ../
 
 
@@ -26,7 +26,8 @@ HEADERS =	../superio.h \
 		configure_dialog.h \
 		network_dialog.h \
 		about_dialog.h \
-		rpc-qt5.h
+		rpc-qt5.h \
+		plt_sound.h
 
 SOURCES =	../superio.c \
 		../cdrom-iso.c \
@@ -54,7 +55,8 @@ SOURCES =	../superio.c \
 		main_window.cpp \
 		configure_dialog.cpp \
 		network_dialog.cpp \
-		about_dialog.cpp
+		about_dialog.cpp \
+		plt_sound.cpp
 
 win32 { 
 	SOURCES +=	../win/cdrom-ioctl.c \
