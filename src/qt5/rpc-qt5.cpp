@@ -119,8 +119,8 @@ sound_thread_wakeup(void)
 void
 sound_thread_close(void)
 {
-//	sound_thread_wakeup();
-//	pthread_join(sound_thread, NULL);
+	sound_thread_wakeup();
+	pthread_join(sound_thread, NULL);
 }
 
 /**

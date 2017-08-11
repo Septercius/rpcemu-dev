@@ -30,9 +30,6 @@ extern void sound_init(void);
 extern void sound_restart(void);
 extern void sound_pause(void);
 
-extern void sound_mute(void);
-extern void sound_unmute(void);
-
 extern void sound_samplefreq_change(int newsamplefreq);
 extern void sound_irq_update(void);
 extern void sound_buffer_update(void);
@@ -40,6 +37,13 @@ extern void sound_buffer_update(void);
 extern int soundbufferfull;
 extern uint32_t soundaddr[4];
 extern int soundinited, soundlatch, soundcount;
+
+/* Provide by platform specific code */
+extern void plt_sound_init(uint32_t bufferlen);
+extern void plt_sound_restart(void);
+extern void plt_sound_pause(void);
+extern int32_t plt_sound_buffer_free(void);
+extern void plt_sound_buffer_play(const char *buffer, uint32_t length);
 
 #ifdef __cplusplus
 } /* extern "C" */
