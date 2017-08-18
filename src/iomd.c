@@ -821,12 +821,17 @@ iomd_read(uint32_t addr)
  * Read the state of the Quadrature (bus) mouse
  * found on the RPC.
  *
- * Also contains the monitor ID bit in bit 0
+ * bit 0 is the monitor ID bit
+ * bit 4 is the right mouse button (active low)
+ * bit 5 is the middle mouse button (active low)
+ * bit 6 is the left mouse button (active low)
+ * bit 7 is cmos reset bit (active high) TODO not sure of interpretation
+ * bit 8 is 16 bit sound (active low) else 8 bit (high)
  */
-uint8_t
+uint32_t
 iomd_mouse_buttons_read(void)
 {
-        unsigned char temp = 0;
+        uint32_t temp = 0;
 
 #if 0
         /* 'mouse_b' and 'key' are Allegro variables containing
@@ -834,22 +839,22 @@ iomd_mouse_buttons_read(void)
 
 	/* Left */
 	if (mouse_b & 1) {
-		temp |= 0x40; // bit 7
+		temp |= 0x40; // bit 6
 	}
 	/* Middle */
 	if ((mouse_b & 4) || key[KEY_MENU] || key[KEY_ALTGR]) {
 		if (config.mousetwobutton) {
-			temp |= 0x10; // bit 5
+			temp |= 0x10; // bit 4
 		} else {
-			temp |= 0x20; // bit 6
+			temp |= 0x20; // bit 5
 		}
 	}
 	/* Right */
 	if (mouse_b & 2) {
 		if (config.mousetwobutton) {
-			temp |= 0x20; // bit 6
+			temp |= 0x20; // bit 5
 		} else {
-			temp |= 0x10; // bit 5
+			temp |= 0x10; // bit 4
 		}
 	}
 #endif
@@ -857,7 +862,12 @@ iomd_mouse_buttons_read(void)
 	/* bit 0 contains the monitor id bit, 0 for VGA, 1 for TV type monitors.
 	   As we will probably always need VGA, leave as 0 */
 
-        return temp ^ 0x70; // bit 5 6 and 7
+	/* bit 8 is used to detect to presence of 16 bit sound, if written high
+	   and read back low it's 16 bit, due to weak pullup resistor, always
+	   return 0 to indicate bit */
+
+	/* Invert the button values */
+	return temp ^ 0x70; // bit 4 5 and 6
 }
 
 /**
