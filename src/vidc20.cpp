@@ -1206,14 +1206,17 @@ void writevidc20(uint32_t val)
 		/* Because either the Sound Frequency or Control register has
 		   changed recalculate the sample frequency. */
 
-		val = (vidc.b0 & 0xff) + 2;
-		/* Calculated frequency depends on selected clock: */
-		if (vidc.b1 & 1) {
-			freq = (1000000.0f / (float) val) / 4.0f;
-		} else {
-			freq = (705600.0f / (float) val) / 4.0f;
+		/* We only support 16 bit sound (serial sound mode) */
+		if(vidc.b1 & 2) {
+			val = (vidc.b0 & 0xff) + 2;
+			/* Calculated frequency depends on selected clock: */
+			if (vidc.b1 & 1) {
+				freq = (1000000.0f / (float) val) / 4.0f;
+			} else {
+				freq = (705600.0f / (float) val) / 4.0f;
+			}
+			sound_samplefreq_change((int) freq);
 		}
-		sound_samplefreq_change((int) freq);
 		break;
 
 	case 0xc: /* External Register */
