@@ -68,6 +68,12 @@ AudioOut::AudioOut(uint32_t bufferlen)
 		rpclog("%d: %s\n", i, codecs.at(i).toLocal8Bit().constData());
 	}
 
+	QList<int> samprates = info.supportedSampleRates();
+	rpclog("Audio SampleRates Supported: %d\n", samprates.size());
+	for(int i = 0; i < samprates.size(); i++) {
+		rpclog("%d: %d\n", i, samprates.at(i));
+	}
+
 	if(!info.isFormatSupported(format)) {
 		// TODO this shouldn't be fatal, it could just be they need to install the codecs package
 		fatal("Unsupported Audio format for playback");
