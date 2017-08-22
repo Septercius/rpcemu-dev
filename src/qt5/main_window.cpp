@@ -24,6 +24,10 @@
 #include <QMenuBar>
 #include <QMessageBox>
 
+#if defined(Q_OS_WIN32)
+#include "Windows.h"
+#endif /* Q_OS_WIN32 */ 
+
 #include "keyboard.h"
 
 #include "main_window.h"
