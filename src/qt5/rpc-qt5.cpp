@@ -355,10 +355,10 @@ int main (int argc, char ** argv)
 	// Initialise QT app
 	QApplication app(argc, argv);
 
-	// Initialise emulator system
-	if (startrpcemu()) {
-		fatal("startrpcemu() failed");
-	}
+	// start enough of the emulator system to allow
+	// the GUI to initialise (e.g. load the config to init
+	// the configure window)
+	rpcemu_prestart();
 
 	// Allow rpcemu model enum to be passed in slots and signals
 	qRegisterMetaType<Model>("Model");
@@ -378,14 +378,19 @@ int main (int argc, char ** argv)
 	MainWindow main_window(*emulator);
 	pMainWin = &main_window;
 
-	// Start Emulator Thread
-	emu_thread->start();
-
 	// Show Main Window
 	main_window.show();
 
 	// Store a reference to the GUI thread
+	// Needed to handle displaying fatal() and error()
+	// in the GUI
 	gui_thread = QThread::currentThread();
+
+	// Initialise emulator system
+	rpcemu_start();
+
+	// Start Emulator Thread
+	emu_thread->start();
 
 	// Start main gui thread running
 	return app.exec();
