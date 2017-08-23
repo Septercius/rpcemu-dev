@@ -22,7 +22,8 @@
 
 #include <QDialog>
 #include <QDialogButtonBox>
-#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QLabel>
 
 class AboutDialog : public QDialog
@@ -38,15 +39,13 @@ private slots:
 	void dialog_rejected();
 
 private:
-	QLabel *icon_label;
-	QLabel *name_label;
-	QLabel *version_label;
-	QLabel *copyright_label;
-	QLabel *gpl_label;
+	QLabel *image_label;
+	QLabel *text_label;
 
 	QDialogButtonBox *buttons_box;
 
-	QGridLayout *grid;
+	QHBoxLayout *hbox;
+	QVBoxLayout *vbox;
 };
 
 #endif /* ABOUT_DIALOG */

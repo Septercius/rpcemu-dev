@@ -29,44 +29,43 @@ AboutDialog::AboutDialog(QWidget *parent)
 {
 	setWindowTitle("About RPCEmu");
 
-	this->setFixedWidth(350);
+	// Image label
+	image_label = new QLabel();
+	QPixmap icon = QPixmap(":/rpcemu_icon.png");
+	image_label->setPixmap(icon.scaledToWidth(48, Qt::SmoothTransformation));
+	image_label->setAlignment(Qt::AlignTop);
 
-	// Create actions
+	// Date, based on build date from __DATE__ std C macro
+	const char *datestr = __DATE__; // Format is 08 Nov 2013
 
-	// Create widgets and layout
-	icon_label = new QLabel("R"); // Temporary until program icon available
-	icon_label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-	icon_label->setFixedWidth(40);
+	// Text label string containing year from __DATE__
+	QString str = QString("<h1>RPCEmu</h1>"
+	    "<h2>" VERSION "</h2>"
+	    "<p>Copyright 2005-%1 RPCEmu Developers</p>"
+	    "<p>RPCEmu is released under the terms of the "
+	    "GNU General Public License, Version 2. Please see the file "
+	    "COPYING for more details.</p>").arg(datestr + 7);
 
-	name_label = new QLabel("RPCEmu");
-	name_label->setAlignment(Qt::AlignHCenter);
-	name_label->setWordWrap(true);
-	version_label = new QLabel(VERSION);
-	version_label->setAlignment(Qt::AlignHCenter);
-	version_label->setWordWrap(true);
-
-	const char datestr[] = __DATE__; /* Format is 08 Nov 2013 */
-	char copyright[64] = "";
-	sprintf(copyright, "Copyright 2005-%s RPCEmu Developers", datestr + 7);
-	copyright_label = new QLabel(copyright);
-	copyright_label->setAlignment(Qt::AlignHCenter);
-	copyright_label->setWordWrap(true);
-
-	gpl_label = new QLabel("RPCEmu is released under the terms of the GNU General Public Licence, Version 2. Please see the file COPYING for more details.");
-	gpl_label->setWordWrap(true);
+	// Text label
+	text_label = new QLabel(str);
+	text_label->setWordWrap(true);
 
 	// Create Buttons
 	buttons_box = new QDialogButtonBox(QDialogButtonBox::Ok);
 
-	// Main layout
-	grid = new QGridLayout(this);
-	grid->addWidget(icon_label, 0, 0, 3, 1); // Span 3 rows
-	grid->addWidget(name_label, 0, 1);
-	grid->addWidget(version_label, 1, 1);
-	grid->addWidget(copyright_label, 2, 1);
+	hbox = new QHBoxLayout();
+	hbox->addWidget(image_label);
+	hbox->addWidget(text_label);
 
-	grid->addWidget(gpl_label, 3, 0, 1, 2); // Span 2 columns
-	grid->addWidget(buttons_box, 4, 0, 1, 2); // Span 2 columns
+	hbox->setSpacing(16);
+
+	// Main layout
+	vbox = new QVBoxLayout(this);
+	vbox->addLayout(hbox);
+	vbox->addWidget(buttons_box);
+
+	// Remove resize on Dialog
+	this->setFixedSize(this->sizeHint());
 
 	connect(buttons_box, SIGNAL(accepted()), this, SLOT(accept()));
 	connect(this, SIGNAL(accepted()), this, SLOT(dialog_accepted()));
