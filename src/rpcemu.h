@@ -196,8 +196,9 @@ extern void sound_thread_close(void);
 /* Additional logging functions (optional) */
 extern void rpcemu_log_os(void);
 
-/*rpcemu.c*/
-extern int startrpcemu(void);
+/* rpcemu.c */
+extern void rpcemu_prestart(void);
+extern void rpcemu_start(void);
 extern void execrpcemu(void);
 extern void rpcemu_idle(void);
 extern void endrpcemu(void);

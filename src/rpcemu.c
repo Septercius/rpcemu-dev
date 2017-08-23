@@ -295,6 +295,24 @@ rpcemu_log_information(void)
 }
 
 /**
+ * Start enough of the emulator system to allow
+ * the GUI to initialise (e.g. load the config to init
+ * the configure window)
+ *
+ * Called from each platform's code on program startup.
+ */
+void
+rpcemu_prestart(void)
+{
+	/* On startup log additional information about the build and environment */
+	rpcemu_log_information();
+
+	config_load(&config);
+
+	return 0;
+}
+
+/**
  * Set the initial state of all emulated subsystems. Load disc images, CMOS
  * and configuration.
  *
@@ -302,18 +320,9 @@ rpcemu_log_information(void)
  *
  * @return Always 0
  */
-int
-startrpcemu(void)
+void
+rpcemu_start(void)
 {
-	/* On startup log additional information about the build and
-	   environment */
-	rpcemu_log_information();
-
-//        install_keyboard(); /* allegro */
-//        install_timer();    /* allegro */
-//        install_mouse();    /* allegro */
-
-	config_load(&config);
 	hostfs_init();
 	mem_init();
 	cp15_init();
@@ -335,11 +344,6 @@ startrpcemu(void)
 	/* Other components are initialised in the same way as the hardware
 	   being reset */
 	resetrpc();
-
-	/* Call back the mips counting function every second */
-//	install_int_ex(domips, MSEC_TO_TIMER(1000));
-
-        return 0;
 }
 
 /**
