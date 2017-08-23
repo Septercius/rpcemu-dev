@@ -355,6 +355,9 @@ int main (int argc, char ** argv)
 	// Initialise QT app
 	QApplication app(argc, argv);
 
+	// Add a program icon
+	QApplication::setWindowIcon(QIcon(":/rpcemu_icon.png"));
+	
 	// start enough of the emulator system to allow
 	// the GUI to initialise (e.g. load the config to init
 	// the configure window)

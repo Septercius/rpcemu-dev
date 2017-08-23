@@ -58,6 +58,8 @@ SOURCES =	../superio.c \
 		about_dialog.cpp \
 		plt_sound.cpp
 
+RESOURCES =	icon.qrc
+
 win32 { 
 	SOURCES +=	../win/cdrom-ioctl.c \
 			../network.c \
@@ -115,8 +117,5 @@ CONFIG(debug, debug|release) {
 	DEFINES += _DEBUG
 	TARGET = $$join(TARGET, , , -debug)
 }
-
-
-RESOURCES =
 
 LIBS +=
