@@ -29,7 +29,7 @@
 #include "sound.h"
 
 uint32_t soundaddr[4];
-static int samplefreq = 44100;
+static int samplefreq = 41666;
 int soundinited, soundlatch, soundcount;
 static int16_t bigsoundbuffer[8][44100 * 2]; /**< Temp store, used to buffer
                                                     data between the emulated sound
@@ -49,8 +49,8 @@ sound_init(void)
 	/* Call the platform code to create a thread for handing sound updates */
 	sound_thread_start();
 
-	/* As we currently only support '16-bit' sound this is the only sample rate we support */
-	samplefreq = 44100;
+	/* The initial default sample rate for the Risc PC is not 44100 */
+	samplefreq = 41666;
 
 	/* Call the platform specific code to start the audio playing */
 	plt_sound_init(BUFFERLEN << 2);
@@ -89,10 +89,12 @@ sound_pause(void)
 void
 sound_samplefreq_change(int newsamplefreq)
 {
-	/* This is the VIDC interface for changing sample rate for the
-	  8-bit audio system, as we only support 16-bit at the moment, ignore */
+	/* TODO if different from current samplerate pass on to platform sound
+	   for it perform changes needed */
 
-	NOT_USED(newsamplefreq);
+	rpclog("Samplerate: %d %s\n", newsamplefreq, newsamplefreq == 41666 ? "supported" : "unsupported");
+
+	samplefreq = newsamplefreq;
 }
 
 /**
@@ -164,7 +166,7 @@ sound_buffer_update(void)
 	}
 
 	while (bigsoundbuffertail != bigsoundbufferhead) {
-		if(plt_sound_buffer_free() > (BUFFERLEN << 1)) {
+		if(plt_sound_buffer_free() >= (BUFFERLEN << 2)) {
 			plt_sound_buffer_play((const char *) bigsoundbuffer[bigsoundbuffertail], BUFFERLEN << 2);  // write one buffer
 
 			bigsoundbuffertail++;
