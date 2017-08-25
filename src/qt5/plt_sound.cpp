@@ -51,7 +51,7 @@ AudioOut::AudioOut(uint32_t bufferlen)
 {
 
 	// Set the initial format
-	format.setSampleRate(44100);       // 44100 for rpc 16 bit sound
+	format.setSampleRate(41666);       // 41666 for rpc 16 bit sound defaults
 	format.setChannelCount(2);         // Stereo
 	format.setSampleSize(16);          // 16 bit sound
 	format.setCodec("audio/pcm");
@@ -88,7 +88,9 @@ AudioOut::AudioOut(uint32_t bufferlen)
 		audio_output->setVolume(0.0f);
 	}
 
-	audio_output->setBufferSize(bufferlen);
+	// Set qt buffer len to greater than buffers we are placing into it
+	// this prevents buffer underruns but will add latency
+	audio_output->setBufferSize(bufferlen * 4);
 
 	audio_io = audio_output->start();
 }
