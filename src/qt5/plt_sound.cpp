@@ -36,50 +36,82 @@ extern "C" void plt_sound_init(uint32_t bufferlen);
 extern "C" void plt_sound_restart(void);
 extern "C" void plt_sound_pause(void);
 extern "C" int32_t plt_sound_buffer_free(void);
-extern "C" void plt_sound_buffer_play(const char *buffer, uint32_t length);
-
- 
-QAudioFormat format; /**< Qt output representing a kind of audio format */
+extern "C" void plt_sound_buffer_play(uint32_t samplerate, const char *buffer, uint32_t length);
 
 AudioOut *audio_out; /**< Our class used to hold QT sound variables */
 
 /**
  * Our class constructor
- * create an audio stream of the correct format and start it playing
+ * 
+ * @param bufferlen size of buffer in bytes of one chunk of audio data that we will be asked to play
  */
 AudioOut::AudioOut(uint32_t bufferlen)
 {
+	audio_output = NULL;
+	audio_io = NULL;
+
+	this->bufferlen = bufferlen;
+	this->samplerate = 0;
+
+	// Output some information to the log
+	QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
+	rpclog("qt5 Audio Device: %s\n", info.deviceName().toLocal8Bit().constData());
+
+	QStringList codecs = info.supportedCodecs();
+	rpclog("qt5 Audio Codecs Supported: %d\n", codecs.size());
+	for(int i = 0; i < codecs.size(); i++) {
+		rpclog("%d: %s\n", i, codecs.at(i).toLocal8Bit().constData());
+	}
+
+	QList<int> samprates = info.supportedSampleRates();
+	rpclog("qt5 Audio SampleRates Supported: %d\n", samprates.size());
+	for(int i = 0; i < samprates.size(); i++) {
+		rpclog("%d: %d\n", i, samprates.at(i));
+	}
+}
+
+AudioOut::~AudioOut()
+{
+}
+
+/**
+ * Change from playing back whatever rate we were playing (or not playing anything)
+ * to the requested sample rate
+ *
+ * @param samplerate new samplerate in Hz
+ */
+void
+AudioOut::changeSampleRate(uint32_t samplerate)
+{
+	QAudioFormat format; /**< Qt output representing a kind of audio format */
+
+	this->samplerate = samplerate;
+
+	// Destroy any previous sound output
+	if(audio_output != NULL) {
+		delete audio_output;
+	}
 
 	// Set the initial format
-	format.setSampleRate(41666);       // 41666 for rpc 16 bit sound defaults
+	format.setSampleRate(samplerate);  // 41666 for rpc 16 bit sound defaults
 	format.setChannelCount(2);         // Stereo
 	format.setSampleSize(16);          // 16 bit sound
 	format.setCodec("audio/pcm");
 	format.setByteOrder(QAudioFormat::LittleEndian);
 	format.setSampleType(QAudioFormat::SignedInt);
 
-	// Check the format is playable on the default device
-	QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
-	rpclog("Audio Device: %s\n", info.deviceName().toLocal8Bit().constData());
-
-	QStringList codecs = info.supportedCodecs();
-	rpclog("Audio Codecs Supported: %d\n", codecs.size());
-	for(int i = 0; i < codecs.size(); i++) {
-		rpclog("%d: %s\n", i, codecs.at(i).toLocal8Bit().constData());
-	}
-
-	QList<int> samprates = info.supportedSampleRates();
-	rpclog("Audio SampleRates Supported: %d\n", samprates.size());
-	for(int i = 0; i < samprates.size(); i++) {
-		rpclog("%d: %d\n", i, samprates.at(i));
-	}
-
-	if(!info.isFormatSupported(format)) {
-		// TODO this shouldn't be fatal, it could just be they need to install the codecs package
-		fatal("Unsupported Audio format for playback");
-	}
-
 	audio_output = new QAudioOutput(format);
+	if(NULL == audio_output) {
+		error("Failed to create QAudioOutput\n");
+		return;
+	}
+
+	// Verify the format we were given is usable
+	QAudioFormat checkFormat = audio_output->format();
+	if((int) samplerate != checkFormat.sampleRate()) {
+		rpclog("Tried to set sample rate %uHz but was given %dHz, audio may be distorted\n", samplerate, checkFormat.sampleRate());
+	}
+
 	audio_output->setCategory("RPCEmu"); // String used in OS Mixer
 
 	if(config.soundenabled) {
@@ -95,11 +127,6 @@ AudioOut::AudioOut(uint32_t bufferlen)
 	audio_io = audio_output->start();
 }
 
-AudioOut::~AudioOut()
-{
-}
-
-
 /**
  * Called on program startup to initialise the sound system
  * 
@@ -110,6 +137,9 @@ plt_sound_init(uint32_t bufferlen)
 {
 	/* Use our class to do the work */
 	audio_out = new AudioOut(bufferlen);
+	if(NULL == audio_out) {
+		fatal("plt_sound_init: out of memory");
+	}
 }
 
 /**
@@ -118,9 +148,12 @@ plt_sound_init(uint32_t bufferlen)
 void
 plt_sound_restart(void)
 {
+	assert(audio_out);
 	assert(config.soundenabled);
 
-	audio_out->audio_output->setVolume(1.0f);
+	if(audio_out->audio_output) {
+		audio_out->audio_output->setVolume(1.0f);
+	}
 }
 
 /**
@@ -129,9 +162,12 @@ plt_sound_restart(void)
 void
 plt_sound_pause(void)
 {
+	assert(audio_out);
 	assert(!config.soundenabled);
 
-	audio_out->audio_output->setVolume(0.0f);
+	if(audio_out->audio_output) {
+		audio_out->audio_output->setVolume(0.0f);
+	}
 }
 
 /**
@@ -142,21 +178,40 @@ plt_sound_pause(void)
 int32_t
 plt_sound_buffer_free(void)
 {
-	return audio_out->audio_output->bytesFree();
+	assert(audio_out);
+
+	if(audio_out->audio_output) {
+		return audio_out->audio_output->bytesFree();
+	} else {
+		// The first time around we don't have an audio_output yet
+		// that'll be created by plt_sound_buffer_play(), so we must
+		// return that we can eat a buffer here else that'll never be called
+		return audio_out->bufferlen;
+	}
 }
 
 /**
  * Write some audio data into this platforms audio output 
  * 
  * @thread sound 
+ * @param samplerate Frequency in Hz of this block of audio data
  * @param buffer pointer to audio data
  * @param length size of data in bytes
  */
 void
-plt_sound_buffer_play(const char *buffer, uint32_t length)
+plt_sound_buffer_play(uint32_t samplerate, const char *buffer, uint32_t length)
 {
+	assert(audio_out);
 	assert(buffer);
 	assert(length > 0);
-	audio_out->audio_io->write(buffer, (qint64) length);
+
+	if(samplerate != audio_out->samplerate) {
+		rpclog("qt5 Audio: changing to samplerate %uHz\n", samplerate);
+		audio_out->changeSampleRate(samplerate);
+	}
+
+	if(audio_out->audio_io) {
+		audio_out->audio_io->write(buffer, (qint64) length);
+	}
 }
 

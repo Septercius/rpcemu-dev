@@ -43,7 +43,7 @@ extern void plt_sound_init(uint32_t bufferlen);
 extern void plt_sound_restart(void);
 extern void plt_sound_pause(void);
 extern int32_t plt_sound_buffer_free(void);
-extern void plt_sound_buffer_play(const char *buffer, uint32_t length);
+extern void plt_sound_buffer_play(uint32_t samplerate, const char *buffer, uint32_t length);
 
 #ifdef __cplusplus
 } /* extern "C" */
