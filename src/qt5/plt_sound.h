@@ -35,11 +35,12 @@ class AudioOut : public QObject
 public:
 	AudioOut(uint32_t bufferlen);
 	virtual ~AudioOut();
+	void changeSampleRate(uint32_t samplerate);
 
-public:
 	QAudioOutput *audio_output;
 	QIODevice *audio_io;
-
+	uint32_t samplerate;
+	uint32_t bufferlen;
 };
 
 #endif // PLT_SOUND_H

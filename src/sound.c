@@ -29,7 +29,7 @@
 #include "sound.h"
 
 uint32_t soundaddr[4];
-static int samplefreq = 41666;
+static uint32_t samplefreq = 41666;
 int soundinited, soundlatch, soundcount;
 
 #define BUFFERLENSAMPLES (4410)
@@ -91,12 +91,16 @@ sound_pause(void)
 void
 sound_samplefreq_change(int newsamplefreq)
 {
-	/* TODO if different from current samplerate pass on to platform sound
-	   for it perform changes needed */
+	if((uint32_t) newsamplefreq != samplefreq) {
+		int i;
+		/* to prevent queued data being played at the wrong frequency
+		   blank it */
+		for(i = 0; i < 4; i++) {
+			memset(bigsoundbuffer[i], 0, BUFFERLENBYTES);
+		}
 
-	rpclog("Samplerate: %d %s\n", newsamplefreq, newsamplefreq == 41666 ? "supported" : "unsupported");
-
-	samplefreq = newsamplefreq;
+		samplefreq = (uint32_t) newsamplefreq;
+	}
 }
 
 /**
@@ -169,7 +173,7 @@ sound_buffer_update(void)
 
 	while (bigsoundbuffertail != bigsoundbufferhead) {
 		if(plt_sound_buffer_free() >= (BUFFERLENBYTES)) {
-			plt_sound_buffer_play((const char *) bigsoundbuffer[bigsoundbuffertail], BUFFERLENBYTES);  // write one buffer
+			plt_sound_buffer_play(samplefreq, (const char *) bigsoundbuffer[bigsoundbuffertail], BUFFERLENBYTES);  // write one buffer
 
 			bigsoundbuffertail++;
 			bigsoundbuffertail &= 3; /* if (bigsoundbuffertail > 3) { bigsoundbuffertail = 0; } */
