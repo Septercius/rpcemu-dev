@@ -31,14 +31,16 @@
 uint32_t soundaddr[4];
 static int samplefreq = 41666;
 int soundinited, soundlatch, soundcount;
-static int16_t bigsoundbuffer[8][44100 * 2]; /**< Temp store, used to buffer
-                                                    data between the emulated sound
-                                                    and Allegro, * 2 is stereo */
+
+#define BUFFERLENSAMPLES (4410)
+#define BUFFERLENBYTES (BUFFERLENSAMPLES * 2)
+static int16_t bigsoundbuffer[4][BUFFERLENSAMPLES]; /**< Temp store, used to buffer
+                                                      data between the emulated sound
+                                                       and platform */
 static int bigsoundpos = 0;
 static int bigsoundbufferhead = 0; // sound buffer being written to
 static int bigsoundbuffertail = 0; // sound buffer being read from
 
-#define BUFFERLEN (4410>>1)
 
 /**
  * Called on program startup to initialise the sound system
@@ -53,7 +55,7 @@ sound_init(void)
 	samplefreq = 41666;
 
 	/* Call the platform specific code to start the audio playing */
-	plt_sound_init(BUFFERLEN << 2);
+	plt_sound_init(BUFFERLENBYTES);
 }
 
 /**
@@ -118,7 +120,7 @@ sound_irq_update(void)
 
         // If bigsoundbufferhead is 1 less than bigsoundbuffertail, then
         // the buffer list is full.
-        if (((bigsoundbufferhead + 1) & 7) == bigsoundbuffertail)
+        if (((bigsoundbufferhead + 1) & 3) == bigsoundbuffertail)
         {
                 soundcount += 4000;
                 // kick the sound thread to clear the list
@@ -142,10 +144,10 @@ sound_irq_update(void)
                 temp = ram00[((c + page) & mem_rammask) >> 2];
                 bigsoundbuffer[bigsoundbufferhead][bigsoundpos++] = (temp & 0xFFFF); //^0x8000;
                 bigsoundbuffer[bigsoundbufferhead][bigsoundpos++] = (temp >> 16); //&0x8000;
-                if (bigsoundpos >= (BUFFERLEN << 1))
+                if (bigsoundpos >= (BUFFERLENSAMPLES))
                 {
                         bigsoundbufferhead++;
-                        bigsoundbufferhead &= 7; /* if (bigsoundbufferhead > 7) { bigsoundbufferhead = 0; } */
+                        bigsoundbufferhead &= 3; /* if (bigsoundbufferhead > 3) { bigsoundbufferhead = 0; } */
                         bigsoundpos = 0;
                         sound_thread_wakeup();
                 }
@@ -166,11 +168,11 @@ sound_buffer_update(void)
 	}
 
 	while (bigsoundbuffertail != bigsoundbufferhead) {
-		if(plt_sound_buffer_free() >= (BUFFERLEN << 2)) {
-			plt_sound_buffer_play((const char *) bigsoundbuffer[bigsoundbuffertail], BUFFERLEN << 2);  // write one buffer
+		if(plt_sound_buffer_free() >= (BUFFERLENBYTES)) {
+			plt_sound_buffer_play((const char *) bigsoundbuffer[bigsoundbuffertail], BUFFERLENBYTES);  // write one buffer
 
 			bigsoundbuffertail++;
-			bigsoundbuffertail &= 7; /* if (bigsoundbuffertail > 7) { bigsoundbuffertail = 0; } */
+			bigsoundbuffertail &= 3; /* if (bigsoundbuffertail > 3) { bigsoundbuffertail = 0; } */
 		} else {
 			/* Still playing previous block of data, no need to fill it up yet */
 			break;
