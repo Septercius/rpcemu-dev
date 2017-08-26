@@ -448,88 +448,84 @@ vidc_palette_update(void)
 //	}
 }
 
-/* Called periodically from the main thread. If needredraw is non-zero
-   then the refresh timer indicates it is time for a new frame */
-void drawscr(int needredraw)
+/**
+ * Called periodically from the main thread. If needredraw is non-zero
+ * then the refresh timer indicates it is time for a new frame.
+ */
+void
+drawscr(int needredraw)
 {
-        static int lastframeborder=0;
-        int x,y;
-        int c;
-        int lastblock;
+	static int lastframeborder = 0;
 
-        /* Must get the mutex before altering the thread's state. */
-        if (!vidctrymutex()) return;
+	/* Must get the mutex before altering the thread's state. */
+	if (!vidctrymutex()) {
+		return;
+	}
 
-        /* If the thread hasn't run since the last request then don't request it again */
-        if (thr.threadpending) needredraw = 0;
+	/* If the thread hasn't run since the last request then don't request it again */
+	if (thr.threadpending) {
+		needredraw = 0;
+	}
 
-        if (needredraw)
-        {
-                        
-                thr.vidc_xsize = vidc.hder - vidc.hdsr;
-                thr.vidc_ysize = vidc.vder - vidc.vdsr;
-                thr.cursorx = vidc.hcsr - vidc.hdsr;
-                thr.cursory = vidc.vcsr - vidc.vdsr;
-                if (mousehack) {
-                        mouse_hack_get_pos(&thr.cursorx, &thr.cursory);
-                }
-                thr.cursorheight=vidc.vcer-vidc.vcsr;
+	if (needredraw) {
+		thr.vidc_xsize = vidc.hder - vidc.hdsr;
+		thr.vidc_ysize = vidc.vder - vidc.vdsr;
 
-                if (vidc.palchange) {
-                        vidc_palette_update();
-                }
+		thr.cursorx = vidc.hcsr - vidc.hdsr;
+		thr.cursory = vidc.vcsr - vidc.vdsr;
+		if (mousehack) {
+			mouse_hack_get_pos(&thr.cursorx, &thr.cursory);
+		}
+		thr.cursorheight = vidc.vcer - vidc.vcsr;
 
+		if (vidc.palchange) {
+			vidc_palette_update();
+		}
 
-//                rpclog("Draw screen\n");
-                thr.iomd_vidstart = iomd.vidstart;
-                thr.iomd_vidend = iomd.vidend;
-                thr.iomd_vidinit = iomd.vidinit;
-                thr.iomd_vidcr = iomd.vidcr;
-                thr.bpp = vidc.bit8;
-//                rpclog("XS %i YS %i\n",thr.xsize,thr.ysize);
-                if (thr.vidc_xsize < 2) {
-                        thr.vidc_xsize = 2;
-                }
-                if (thr.vidc_ysize < 1) {
-                        thr.vidc_ysize = 480;
-                }
+		thr.iomd_vidstart = iomd.vidstart;
+		thr.iomd_vidend = iomd.vidend;
+		thr.iomd_vidinit = iomd.vidinit;
+		thr.iomd_vidcr = iomd.vidcr;
+		thr.bpp = vidc.bit8;
 
-                thr.host_xsize = thr.vidc_xsize;
-                thr.host_ysize = thr.vidc_ysize;
-                thr.doublesize = VIDC_DOUBLE_NONE;
+		if (thr.vidc_xsize < 2) {
+			thr.vidc_xsize = 2;
+		}
+		if (thr.vidc_ysize < 1) {
+			thr.vidc_ysize = 480;
+		}
+
+		thr.host_xsize = thr.vidc_xsize;
+		thr.host_ysize = thr.vidc_ysize;
+		thr.doublesize = VIDC_DOUBLE_NONE;
 
 		/* Modes below certain sizes are scaled up, e.g. 320x256. Modes with rectangular
 		   pixels, e.g. 640x256, are doubled up in the Y direction to look better on
 		   square pixel hosts */
-                if (thr.vidc_xsize <= 448 || (thr.vidc_xsize <= 480 && thr.vidc_ysize <= 352))
-                {
-                        thr.host_xsize = thr.vidc_xsize << 1;
-                        thr.doublesize |= VIDC_DOUBLE_X;
-                }
-                if (thr.vidc_ysize <= 352)
-                {
-                        thr.host_ysize = thr.vidc_ysize << 1;
-                        thr.doublesize |= VIDC_DOUBLE_Y;
-                }
+		if (thr.vidc_xsize <= 448 || (thr.vidc_xsize <= 480 && thr.vidc_ysize <= 352)) {
+			thr.host_xsize = thr.vidc_xsize << 1;
+			thr.doublesize |= VIDC_DOUBLE_X;
+		}
+		if (thr.vidc_ysize <= 352) {
+			thr.host_ysize = thr.vidc_ysize << 1;
+			thr.doublesize |= VIDC_DOUBLE_Y;
+		}
 
 		/* Store the value of this screen's pixel doubling, used in keyboard.c for mousehack */
 		doublesize = thr.doublesize;
 
-                /* Have we changed screen mode since the last draw? */
-                if (thr.host_xsize != current_sizex || thr.host_ysize != current_sizey) {
-                        resizedisplay(thr.host_xsize, thr.host_ysize);
-                }
+		/* Have we changed screen mode since the last draw? */
+		if (thr.host_xsize != current_sizex || thr.host_ysize != current_sizey) {
+			resizedisplay(thr.host_xsize, thr.host_ysize);
+		}
 
-                /* Handle full screen border plotting */
-                /* If not Video cursor DMA enabled or vertical start > vertical end registered */
-                if (!(thr.iomd_vidcr & 0x20) || vidc.vdsr > vidc.vder) {
-                        lastframeborder=1;
-                        if (dirtybuffer[0] || vidc.palchange)
-                        {
-                                dirtybuffer[0]=0;
-                                vidc.palchange=0;
-//                                rectfill(bitmap, 0, 0, thr.host_xsize, thr.host_ysize, thr.vpal[0x100]);
-//                                      printf("%i %i\n", thr.vidc_xsize, thr.vidc_ysize);
+		/* Handle full screen border plotting */
+		/* If not Video cursor DMA enabled or vertical start > vertical end */
+		if ((thr.iomd_vidcr & 0x20) == 0 || vidc.vdsr > vidc.vder) {
+			lastframeborder = 1;
+			if (dirtybuffer[0] || vidc.palchange) {
+				dirtybuffer[0] = 0;
+				vidc.palchange = 0;
 				// HACKY
 				thr.bitmap.fill(thr.border_colour);
 				{
@@ -539,71 +535,70 @@ void drawscr(int needredraw)
 					// image
 					emit pMainWin->main_display_signal(pixmap);
 				}
-//                                blit(bitmap, screen, 0, 0, 0, 0, thr.host_xsize, thr.host_ysize);
-                        }
-                        needredraw = 0;
-                        thr.needvsync = 1;
-                }
-        }
+			}
+			needredraw = 0;
+			thr.needvsync = 1;
+		}
+	}
 
-        if (needredraw)
-        {
-                if (vidc.palchange)
-                {
-                        resetbuffer();
-                        vidc.palchange=0;
-                }
+	if (needredraw) {
+		int x, y;
+		int c;
+		int lastblock;
 
-                if (lastframeborder)
-                {
-                        lastframeborder=0;
-                        resetbuffer();
-                }
-        
-                x=y=c=0;
-                lastblock = -1;
-                while (y < thr.vidc_ysize) {
+		if (vidc.palchange) {
+			resetbuffer();
+			vidc.palchange = 0;
+		}
+
+		if (lastframeborder) {
+			lastframeborder = 0;
+			resetbuffer();
+		}
+
+		x = y = c = 0;
+		lastblock = -1;
+		while (y < thr.vidc_ysize) {
 			static const int xdiff[8] = { 8192, 4096, 2048, 1024, 512, 512, 256, 256 };
 
-                        if (dirtybuffer[c++])
-                        {
-                                lastblock=c;
-                        }
-                        x += xdiff[thr.bpp] << 2;
-                        while (x > thr.vidc_xsize) {
-                                x -= thr.vidc_xsize;
-                                y++;
-                        }
-                }
-                thr.lastblock = lastblock;
-                thr.dirtybuffer = dirtybuffer;
-                dirtybuffer = (dirtybuffer == dirtybuffer1) ? dirtybuffer2 : dirtybuffer1;
+			if (dirtybuffer[c++]) {
+				lastblock = c;
+			}
+			x += xdiff[thr.bpp] << 2;
+			while (x > thr.vidc_xsize) {
+				x -= thr.vidc_xsize;
+				y++;
+			}
+		}
+		thr.lastblock = lastblock;
+		thr.dirtybuffer = dirtybuffer;
+		dirtybuffer = (dirtybuffer == dirtybuffer1) ? dirtybuffer2 : dirtybuffer1;
+	}
 
-                //rpclog("last block %d 0x%08x finished at %d 0x%08x\n", lastblock, lastblock, c, c);
-        }
-        if (needredraw)
-        {
-                uint32_t invalidate = thr.iomd_vidinit & 0x1f000000;
+	if (needredraw) {
+		uint32_t invalidate = thr.iomd_vidinit & 0x1f000000;
 
-                /* Invalidate Write-TLB entries corresponding to the screen memory,
-                   so that writes to this region will cause the dirtybuffer[] to be modified. */
-                cp15_tlb_invalidate_physical(invalidate);
+		/* Invalidate Write-TLB entries corresponding to the screen memory,
+		   so that writes to this region will cause the dirtybuffer[] to be modified. */
+		cp15_tlb_invalidate_physical(invalidate);
 
-                thr.threadpending = 1;
-        }
+		thr.threadpending = 1;
+	}
 
-        if (thr.needvsync) 
-        {
-            iomd_vsync(1);
-            thr.needvsync = 0;
-        }
-        if (needredraw)
-        {
-            iomd_vsync(0);
-        }
-        vidcreleasemutex();
+	if (thr.needvsync) {
+		iomd_vsync(1);
+		thr.needvsync = 0;
+	}
 
-        if (needredraw) vidcwakeupthread();
+	if (needredraw) {
+		iomd_vsync(0);
+	}
+
+	vidcreleasemutex();
+
+	if (needredraw) {
+		vidcwakeupthread();
+	}
 }
 
 /**
