@@ -220,17 +220,6 @@ vblupdate(void)
 {
 	drawscre++;
 }
-/**
- * Call back when emulated machine video display changes
- * 
- * @param x New X size
- * @param y New Y size
- */ 
-void
-updatewindowsize(uint32_t x, uint32_t y)
-{
-	fprintf(stderr, "Win Size %u %u\n", x, y);
-}
 
 /**
  * Action on leaving mouse capture mode

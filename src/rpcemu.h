@@ -186,7 +186,6 @@ extern void error(const char *format, ...);
 
 extern int path_disk_info(const char *path, disk_info *d);
 
-extern void updatewindowsize(uint32_t x, uint32_t y);
 extern void updateirqs(void);
 
 extern void sound_thread_wakeup(void);

@@ -370,7 +370,7 @@ tryagain:
 		if (x < MIN_X_SIZE) x = MIN_X_SIZE;
 		if (y < MIN_Y_SIZE) y = MIN_Y_SIZE;
 		fprintf(stderr, "resize bpp %d\n", vidc.bit8);
-                updatewindowsize(x,y);
+		fprintf(stderr, "Win Size %u %u\n", x, y);
 //                bitmap = create_bitmap(x, y);
 		thr.bitmap = QImage(x, y, QImage::Format_RGB32);
 #if 0
