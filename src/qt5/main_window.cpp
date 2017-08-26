@@ -460,7 +460,7 @@ MainWindow::menu_visit_website()
 void
 MainWindow::menu_about()
 {
-	about_dialog->exec(); // Modal
+	about_dialog->show(); // Modeless
 }
 
 void
