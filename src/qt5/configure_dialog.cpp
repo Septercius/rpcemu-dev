@@ -139,6 +139,9 @@ ConfigureDialog::ConfigureDialog(Emulator &emulator, Config *config_copy, Model 
 
 	// Set the values in the configure dialog box
 	applyConfig();
+	
+	// Remove resize on Dialog
+	this->setFixedSize(this->sizeHint());
 }
 
 

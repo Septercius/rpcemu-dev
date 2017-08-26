@@ -86,7 +86,8 @@ NetworkDialog::NetworkDialog(Emulator &emulator, Config *config_copy, Model *mod
 	// Set the values of the window to the config values
 	applyConfig();
 
-	//this->setFixedSize(this->sizeHint());
+	// Remove resize on Dialog
+	this->setFixedSize(this->sizeHint());
 }
 
 NetworkDialog::~NetworkDialog()
