@@ -113,6 +113,7 @@ sound_samplefreq_change(int newsamplefreq)
 void
 sound_irq_update(void)
 {
+	const uint32_t *ramp; /**< Pointer to which bank of RAM 'page' is in */
         uint32_t page,start,end,temp;
         int offset = (iomd.sndstat & IOMD_DMA_STATUS_BUFFER) << 1;
         int len;
@@ -131,7 +132,7 @@ sound_irq_update(void)
                 sound_thread_wakeup();
                 return;
         }
-        page  = soundaddr[offset] & 0xFFFFF000;
+        page  = soundaddr[offset] & 0xFFFFF000; /** TODO This should also be & with phys_space_mask */
         start = soundaddr[offset] & 0xFF0;
         end   = (soundaddr[offset + 1] & 0xFF0) + 16;
         len   = (end - start) >> 2;
@@ -143,9 +144,18 @@ sound_irq_update(void)
         iomd.sndstat |= (IOMD_DMA_STATUS_INTERRUPT | IOMD_DMA_STATUS_OVERRUN);
         iomd.sndstat ^= IOMD_DMA_STATUS_BUFFER; /* Swap between buffer A and B */
 
+	/* Handle sound data all over physical RAM */
+	if (page & 0x08000000) {
+		ramp =  ram1;
+	} else if (page & 0x04000000) {
+		ramp = ram01;
+	} else {
+		ramp = ram00;
+	}
+
         for (c = start; c < end; c += 4)
         {
-                temp = ram00[((c + page) & mem_rammask) >> 2];
+                temp = ramp[((c + page) & mem_rammask) >> 2];
                 bigsoundbuffer[bigsoundbufferhead][bigsoundpos++] = (temp & 0xFFFF); //^0x8000;
                 bigsoundbuffer[bigsoundbufferhead][bigsoundpos++] = (temp >> 16); //&0x8000;
                 if (bigsoundpos >= (BUFFERLENSAMPLES))
