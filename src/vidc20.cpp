@@ -119,6 +119,15 @@ uint8_t *dirtybuffer = dirtybuffer1;
 
 extern MainWindow * pMainWin;
 
+static void
+video_update(void)
+{
+	QPixmap pixmap = QPixmap::fromImage(thr.bitmap);
+
+	// Send update message to GUI
+	emit pMainWin->main_display_signal(pixmap);
+}
+
 /**
  * thread: vidc
  * 
@@ -132,15 +141,8 @@ static void
 blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 {
 	int lfullscreen = fullscreen; /* Take a local copy of the fullscreen var, as other threads can change it mid blit */
-	QPixmap pixmap = QPixmap::fromImage(thr.bitmap);
 
-
-//	pMainWin->label->setPixmap(QPixmap::fromImage(thr.bitmap));
-
-	// This signal is set to blocking and will block the vidc thread until the GUI has blitted the
-	// image
-	emit pMainWin->main_display_signal(pixmap);
-
+	video_update();
 
 	switch (doublesize) {
 	case VIDC_DOUBLE_NONE:
@@ -526,15 +528,9 @@ drawscr(int needredraw)
 			if (dirtybuffer[0] || vidc.palchange) {
 				dirtybuffer[0] = 0;
 				vidc.palchange = 0;
-				// HACKY
-				thr.bitmap.fill(thr.border_colour);
-				{
-					QPixmap pixmap = QPixmap::fromImage(thr.bitmap);
 
-					// This signal is set to blocking and will block the vidc thread until the GUI has blitted the
-					// image
-					emit pMainWin->main_display_signal(pixmap);
-				}
+				thr.bitmap.fill(thr.border_colour);
+				video_update();
 			}
 			needredraw = 0;
 			thr.needvsync = 1;
