@@ -71,7 +71,9 @@ private slots:
 	void menu_loaddisc0();
 	void menu_loaddisc1();
 	void menu_configure();
+#ifdef RPCEMU_NETWORKING
 	void menu_networking();
+#endif /* RPCEMU_NETWORKING */
 	void menu_fullscreen();
 	void menu_cpu_idle();
 	void menu_cdrom_disabled();
@@ -131,7 +133,9 @@ private:
 
 	// Actions on Settings menu (and submenus)
 	QAction *configure_action;
+#ifdef RPCEMU_NETWORKING
 	QAction *networking_action;
+#endif /* RPCEMU_NETWORKING */
 	QAction *fullscreen_action;
 	QAction *cpu_idle_action;
 	QAction *cdrom_disabled_action;

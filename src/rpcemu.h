@@ -59,7 +59,7 @@ extern "C" {
 #endif
 
 
-#if defined __MACH__ || defined __OpenBSD__
+#if defined __MACH__ || defined __OpenBSD__ || defined __FreeBSD__
 #define fseeko64(_a, _b, _c) fseeko(_a, _b, _c)
 #define ftello64(stream) ftello(stream)
 #define fopen64(_a, _b) fopen(_a, _b)

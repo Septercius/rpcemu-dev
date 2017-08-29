@@ -308,8 +308,6 @@ rpcemu_prestart(void)
 	rpcemu_log_information();
 
 	config_load(&config);
-
-	return 0;
 }
 
 /**
