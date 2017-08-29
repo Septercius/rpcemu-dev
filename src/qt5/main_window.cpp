@@ -120,7 +120,9 @@ MainWindow::MainWindow(Emulator &emulator)
 	}
 
 	configure_dialog = new ConfigureDialog(emulator, &config_copy, &model_copy, this);
+#ifdef RPCEMU_NETWORKING
 	network_dialog = new NetworkDialog(emulator, &config_copy, &model_copy, this);
+#endif /* RPCEMU_NETWORKING */
 	about_dialog = new AboutDialog(this);
 
 	// MIPS counting
@@ -131,7 +133,9 @@ MainWindow::MainWindow(Emulator &emulator)
 
 MainWindow::~MainWindow()
 {
+#ifdef RPCEMU_NETWORKING
 	delete network_dialog;
+#endif /* RPCEMU_NETWORKING */
 	delete configure_dialog;
 	delete about_dialog;
 }
@@ -211,11 +215,13 @@ MainWindow::menu_configure()
 	configure_dialog->exec(); // Modal
 }
 
+#ifdef RPCEMU_NETWORKING
 void
 MainWindow::menu_networking()
 {
 	network_dialog->exec(); // Modal
 }
+#endif /* RPCEMU_NETWORKING */
 
 void
 MainWindow::menu_fullscreen()
@@ -487,7 +493,7 @@ MainWindow::create_actions()
 #ifdef RPCEMU_NETWORKING
 	networking_action = new QAction(tr("&Networking..."), this);
 	connect(networking_action, SIGNAL(triggered()), this, SLOT(menu_networking()));
-#endif
+#endif /* RPCEMU_NETWORKING */
 	fullscreen_action = new QAction(tr("&Fullscreen mode"), this);
 	fullscreen_action->setCheckable(true);
 	connect(fullscreen_action, SIGNAL(triggered()), this, SLOT(menu_fullscreen()));
@@ -582,7 +588,9 @@ MainWindow::create_menus()
 	// Settings menu (and submenus)
 	settings_menu = menuBar()->addMenu(tr("&Settings"));
 	settings_menu->addAction(configure_action);
+#ifdef RPCEMU_NETWORKING
 	settings_menu->addAction(networking_action);
+#endif /* RPCEMU_NETWORKING */
 	settings_menu->addSeparator();
 	settings_menu->addAction(fullscreen_action);
 	settings_menu->addAction(cpu_idle_action);

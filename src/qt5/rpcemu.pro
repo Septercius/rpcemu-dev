@@ -21,10 +21,8 @@ HEADERS =	../superio.h \
 		../vidc20.h \
 		../arm_common.h \
 		../arm.h \
-		../network.h \
 		main_window.h \
 		configure_dialog.h \
-		network_dialog.h \
 		about_dialog.h \
 		rpc-qt5.h \
 		plt_sound.h
@@ -54,7 +52,6 @@ SOURCES =	../superio.c \
 		rpc-qt5.cpp \
 		main_window.cpp \
 		configure_dialog.cpp \
-		network_dialog.cpp \
 		about_dialog.cpp \
 		plt_sound.cpp
 
@@ -62,24 +59,30 @@ RESOURCES =	icon.qrc
 
 win32 { 
 	SOURCES +=	../win/cdrom-ioctl.c \
-			../network.c \
 			../win/network-win.c \
+			../network.c \
+			network_dialog.cpp \
 			../win/tap-win32.c \
 			../win/rpc-win.c \
 			keyboard_win.c
-			
+	HEADERS +=	../network.h \
+			network_dialog.h
+
 	RC_ICONS = ../win/rpcemu.ico
 }
 
 linux {
 	SOURCES +=	../cdrom-linuxioctl.c \
-			../network.c \
 			../network-linux.c \
-			../rpc-linux.c
+			../network.c \
+			network_dialog.cpp
+	HEADERS +=	../network.h \
+			network_dialog.h
 }
 
 unix {
-	SOURCES +=	keyboard_x.c
+	SOURCES +=	keyboard_x.c \
+			../rpc-linux.c
 }
 
 # Place exes in top level directory
