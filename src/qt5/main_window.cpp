@@ -474,50 +474,50 @@ MainWindow::create_actions()
 {
 	// Actions on File menu
 	reset_action = new QAction(tr("&Reset"), this);
-	connect(reset_action, SIGNAL(triggered()), this, SLOT(menu_reset()));
+	connect(reset_action, &QAction::triggered, this, &MainWindow::menu_reset);
 
 	exit_action = new QAction(tr("E&xit"), this);
 	exit_action->setShortcuts(QKeySequence::Quit);
 	exit_action->setStatusTip(tr("Exit the application"));
-	connect(exit_action, SIGNAL(triggered()), this, SLOT(close()));
+	connect(exit_action, &QAction::triggered, this, &QMainWindow::close);
 
 	// Actions on Disc menu
 	loaddisc0_action = new QAction(tr("Load Disc :0"), this);
-	connect(loaddisc0_action, SIGNAL(triggered()), this, SLOT(menu_loaddisc0()));
+	connect(loaddisc0_action, &QAction::triggered, this, &MainWindow::menu_loaddisc0);
 	loaddisc1_action = new QAction(tr("Load Disc :1"), this);
-	connect(loaddisc1_action, SIGNAL(triggered()), this, SLOT(menu_loaddisc1()));
+	connect(loaddisc1_action, &QAction::triggered, this, &MainWindow::menu_loaddisc1);
 
 	// Actions on Settings menu
 	configure_action = new QAction(tr("&Configure..."), this);
-	connect(configure_action, SIGNAL(triggered()), this, SLOT(menu_configure()));
+	connect(configure_action, &QAction::triggered, this, &MainWindow::menu_configure);
 #ifdef RPCEMU_NETWORKING
 	networking_action = new QAction(tr("&Networking..."), this);
-	connect(networking_action, SIGNAL(triggered()), this, SLOT(menu_networking()));
+	connect(networking_action, &QAction::triggered, this, &MainWindow::menu_networking);
 #endif /* RPCEMU_NETWORKING */
 	fullscreen_action = new QAction(tr("&Fullscreen mode"), this);
 	fullscreen_action->setCheckable(true);
-	connect(fullscreen_action, SIGNAL(triggered()), this, SLOT(menu_fullscreen()));
+	connect(fullscreen_action, &QAction::triggered, this, &MainWindow::menu_fullscreen);
 	cpu_idle_action = new QAction(tr("&Reduce CPU usage"), this);
 	cpu_idle_action->setCheckable(true);
-	connect(cpu_idle_action, SIGNAL(triggered()), this, SLOT(menu_cpu_idle()));
+	connect(cpu_idle_action, &QAction::triggered, this, &MainWindow::menu_cpu_idle);
 
 	// Actions on the Settings->CD ROM Menu
 	cdrom_disabled_action = new QAction(tr("&Disabled"), this);
 	cdrom_disabled_action->setCheckable(true);
-	connect(cdrom_disabled_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_disabled()));
+	connect(cdrom_disabled_action, &QAction::triggered, this, &MainWindow::menu_cdrom_disabled);
 
 	cdrom_empty_action = new QAction(tr("&Empty"), this);
 	cdrom_empty_action->setCheckable(true);
-	connect(cdrom_empty_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_empty()));
+	connect(cdrom_empty_action, &QAction::triggered, this, &MainWindow::menu_cdrom_empty);
 
 	cdrom_iso_action = new QAction(tr("&Iso Image..."), this);
 	cdrom_iso_action->setCheckable(true);
-	connect(cdrom_iso_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_iso()));
+	connect(cdrom_iso_action, &QAction::triggered, this, &MainWindow::menu_cdrom_iso);
 
 #if defined(Q_OS_LINUX)
 	cdrom_ioctl_action = new QAction(tr("&Host CD/DVD Drive"), this);
 	cdrom_ioctl_action->setCheckable(true);
-	connect(cdrom_ioctl_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_ioctl()));
+	connect(cdrom_ioctl_action, &QAction::triggered, this, &MainWindow::menu_cdrom_ioctl);
 #endif /* linux */
 #if defined(Q_OS_WIN32)
 	// Dynamically add windows cdrom drives to the settings->cdrom menu
@@ -533,38 +533,38 @@ MainWindow::create_actions()
 			new_action->setCheckable(true);
 			new_action->setData(c);
 
-			connect(new_action, SIGNAL(triggered()), this, SLOT(menu_cdrom_win_ioctl()));
+			connect(new_action, &QAction::triggered, this, &MainWindow::menu_cdrom_win_ioctl);
 
 			cdrom_win_ioctl_actions.insert(cdrom_win_ioctl_actions.end(), new_action);
 		}
 	}
 #endif
 
-	// Aactions on the Settings->Mouse menu
+	// Actions on the Settings->Mouse menu
 	mouse_hack_action = new QAction(tr("&Follow host mouse"), this);
 	mouse_hack_action->setCheckable(true);
-	connect(mouse_hack_action, SIGNAL(triggered()), this, SLOT(menu_mouse_hack()));
+	connect(mouse_hack_action, &QAction::triggered, this, &MainWindow::menu_mouse_hack);
 
 	mouse_capture_action = new QAction(tr("&Capture"), this);
 	mouse_capture_action->setCheckable(true);
-	connect(mouse_capture_action, SIGNAL(triggered()), this, SLOT(menu_mouse_capture()));
+	connect(mouse_capture_action, &QAction::triggered, this, &MainWindow::menu_mouse_capture);
 
 	mouse_twobutton_action = new QAction(tr("&Two-button Mouse Mode"), this);
 	mouse_twobutton_action->setCheckable(true);
-	connect(mouse_twobutton_action, SIGNAL(triggered()), this, SLOT(menu_mouse_twobutton()));
+	connect(mouse_twobutton_action, &QAction::triggered, this, &MainWindow::menu_mouse_twobutton);
 
 	// Actions on About menu
 	online_manual_action = new QAction(tr("Online &Manual..."), this);
-	connect(online_manual_action, SIGNAL(triggered()), this, SLOT(menu_online_manual()));
+	connect(online_manual_action, &QAction::triggered, this, &MainWindow::menu_online_manual);
 	visit_website_action = new QAction(tr("Visit &Website..."), this);
-	connect(visit_website_action, SIGNAL(triggered()), this, SLOT(menu_visit_website()));
+	connect(visit_website_action, &QAction::triggered, this, &MainWindow::menu_visit_website);
 
 	about_action = new QAction(tr("&About RPCEmu..."), this);
 	about_action->setStatusTip(tr("Show the application's About box"));
-	connect(about_action, SIGNAL(triggered()), this, SLOT(menu_about()));
+	connect(about_action, &QAction::triggered, this, &MainWindow::menu_about);
 
-	connect(this, SIGNAL(main_display_signal(QPixmap)), this, SLOT(main_display_update(QPixmap)), Qt::BlockingQueuedConnection);
-//	connect(this, SIGNAL(main_display_signal(QPixmap)), this, SLOT(main_display_update(QPixmap)));
+	connect(this, &MainWindow::main_display_signal, this, &MainWindow::main_display_update, Qt::BlockingQueuedConnection);
+//	connect(this, &MainWindow::main_display_signal, this, &MainWindow::main_display_update);
 
 	// Connections for displaying error messages in the GUI
 	connect(this, &MainWindow::error_signal, this, &MainWindow::error);
