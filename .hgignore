@@ -34,3 +34,8 @@ src/qt5/Makefile.Debug
 src/qt5/Makefile.Release
 src/qt5/debug
 src/qt5/release
+# Generated when running windows qmake
+src/qt5/RPCEmu-Interpreter-debug_resource.rc
+src/qt5/RPCEmu-Interpreter_resource.rc
+src/qt5/object_script.RPCEmu-Interpreter-debug.Debug
+src/qt5/object_script.RPCEmu-Interpreter.Release
