@@ -73,15 +73,15 @@ NetworkDialog::NetworkDialog(Emulator &emulator, Config *config_copy, Model *mod
 	vbox->addWidget(buttons_box);
 
 	// Connect actions to widgets
-	connect(net_off, SIGNAL(clicked(bool)), this, SLOT(radio_clicked()));
-	connect(net_bridging, SIGNAL(clicked(bool)), this, SLOT(radio_clicked()));
-	connect(net_tunnelling, SIGNAL(clicked(bool)), this, SLOT(radio_clicked()));
+	connect(net_off, &QRadioButton::clicked, this, &NetworkDialog::radio_clicked);
+	connect(net_bridging, &QRadioButton::clicked, this, &NetworkDialog::radio_clicked);
+	connect(net_tunnelling, &QRadioButton::clicked, this, &NetworkDialog::radio_clicked);
 
-	connect(buttons_box, SIGNAL(accepted()), this, SLOT(accept()));
-	connect(buttons_box, SIGNAL(rejected()), this, SLOT(reject()));
+	connect(buttons_box, &QDialogButtonBox::accepted, this, &QDialog::accept);
+	connect(buttons_box, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
-	connect(this, SIGNAL(accepted()), this, SLOT(dialog_accepted()));
-	connect(this, SIGNAL(rejected()), this, SLOT(dialog_rejected()));
+	connect(this, &QDialog::accepted, this, &NetworkDialog::dialog_accepted);
+	connect(this, &QDialog::rejected, this, &NetworkDialog::dialog_rejected);
 
 	// Set the values of the window to the config values
 	applyConfig();

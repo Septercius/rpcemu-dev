@@ -67,29 +67,9 @@ AboutDialog::AboutDialog(QWidget *parent)
 	// Remove resize on Dialog
 	this->setFixedSize(this->sizeHint());
 
-	connect(buttons_box, SIGNAL(accepted()), this, SLOT(accept()));
-	connect(this, SIGNAL(accepted()), this, SLOT(dialog_accepted()));
+	connect(buttons_box, &QDialogButtonBox::accepted, this, &QDialog::close);
 }
 
 AboutDialog::~AboutDialog()
 {
 }
-
-/**
- * User clicked OK on the About dialog box 
- */
-void
-AboutDialog::dialog_accepted()
-{
-	this->close();
-}
-
-/**
- * User clicked close button on the About dialog box 
- */
-void
-AboutDialog::dialog_rejected()
-{
-	this->close();
-}
-
