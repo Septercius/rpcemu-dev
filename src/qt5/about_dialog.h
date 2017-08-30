@@ -34,10 +34,6 @@ public:
 	AboutDialog(QWidget *parent = 0);
 	virtual ~AboutDialog();
 
-private slots:
-	void dialog_accepted();
-	void dialog_rejected();
-
 private:
 	QLabel *image_label;
 	QLabel *text_label;

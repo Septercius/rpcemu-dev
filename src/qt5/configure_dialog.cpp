@@ -129,13 +129,13 @@ ConfigureDialog::ConfigureDialog(Emulator &emulator, Config *config_copy, Model 
 	grid->addWidget(buttons_box, 3, 0, 1, 2);       // span 2 columns
 
 	// Connect actions to widgets
-	connect(refresh_slider, SIGNAL(valueChanged(int)), this, SLOT(slider_moved(int)));
+	connect(refresh_slider, &QSlider::valueChanged, this, &ConfigureDialog::slider_moved);
 
-	connect(buttons_box, SIGNAL(accepted()), this, SLOT(accept()));
-	connect(buttons_box, SIGNAL(rejected()), this, SLOT(reject()));
+	connect(buttons_box, &QDialogButtonBox::accepted, this, &QDialog::accept);
+	connect(buttons_box, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
-	connect(this, SIGNAL(accepted()), this, SLOT(dialog_accepted()));
-	connect(this, SIGNAL(rejected()), this, SLOT(dialog_rejected()));
+	connect(this, &QDialog::accepted, this, &ConfigureDialog::dialog_accepted);
+	connect(this, &QDialog::rejected, this, &ConfigureDialog::dialog_rejected);
 
 	// Set the values in the configure dialog box
 	applyConfig();
