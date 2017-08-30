@@ -119,10 +119,6 @@ sound_irq_update(void)
         int len;
         unsigned int c;
 
-        if (!config.soundenabled) {
-                return;
-        }
-
         // If bigsoundbufferhead is 1 less than bigsoundbuffertail, then
         // the buffer list is full.
         if (((bigsoundbufferhead + 1) & 3) == bigsoundbuffertail)
@@ -177,13 +173,11 @@ sound_irq_update(void)
 void
 sound_buffer_update(void)
 {
-	if (!config.soundenabled) {
-		return;
-	}
-
 	while (bigsoundbuffertail != bigsoundbufferhead) {
 		if(plt_sound_buffer_free() >= (BUFFERLENBYTES)) {
-			plt_sound_buffer_play(samplefreq, (const char *) bigsoundbuffer[bigsoundbuffertail], BUFFERLENBYTES);  // write one buffer
+			if (config.soundenabled) {
+				plt_sound_buffer_play(samplefreq, (const char *) bigsoundbuffer[bigsoundbuffertail], BUFFERLENBYTES);  // write one buffer
+			}
 
 			bigsoundbuffertail++;
 			bigsoundbuffertail &= 3; /* if (bigsoundbuffertail > 3) { bigsoundbuffertail = 0; } */
