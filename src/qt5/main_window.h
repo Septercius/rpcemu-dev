@@ -32,6 +32,14 @@
 
 #include "rpcemu.h"
 
+
+struct VideoUpdate {
+	QImage		image;
+	int		yl;
+	int		yh;
+};
+
+
 class MainLabel : public QLabel
 {
 	Q_OBJECT
@@ -88,13 +96,13 @@ private slots:
 	void menu_visit_website();
 	void menu_about();
 
-	void main_display_update(QPixmap pixmap);
+	void main_display_update(VideoUpdate video_update);
 
 	// MIPS counting
 	void mips_timer_timeout();
 
 signals:
-	void main_display_signal(QPixmap);
+	void main_display_signal(VideoUpdate video_update);
 
 	void error_signal(QString error);
 	void fatal_signal(QString error);

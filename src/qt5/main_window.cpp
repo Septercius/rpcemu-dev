@@ -652,16 +652,18 @@ MainWindow::writeSettings()
 }
 
 void
-MainWindow::main_display_update(QPixmap pixmap)
+MainWindow::main_display_update(VideoUpdate video_update)
 {
-	if (pixmap.size() != label->size()) {
+	if (video_update.image.size() != label->size()) {
 		// Resize Label containing image
-		label->setMinimumSize(pixmap.size());
-		label->setMaximumSize(pixmap.size());
+		label->setMinimumSize(video_update.image.size());
+		label->setMaximumSize(video_update.image.size());
 
 		// Resize Window
 		this->setFixedSize(this->sizeHint());
 	}
+
+	QPixmap pixmap = QPixmap::fromImage(video_update.image);
 
 	this->label->setPixmap(pixmap);
 }
