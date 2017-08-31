@@ -352,8 +352,9 @@ int main (int argc, char ** argv)
 	// the configure window)
 	rpcemu_prestart();
 
-	// Allow rpcemu model enum to be passed in slots and signals
+	// Allow additional types to be passed in slots and signals
 	qRegisterMetaType<Model>("Model");
+	qRegisterMetaType<VideoUpdate>("VideoUpdate");
 
 	// Create Emulator Thread and Object
 	QThread *emu_thread = new QThread;

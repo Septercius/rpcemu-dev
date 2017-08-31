@@ -120,12 +120,17 @@ uint8_t *dirtybuffer = dirtybuffer1;
 extern MainWindow * pMainWin;
 
 static void
-video_update(void)
+video_update(int yl, int yh)
 {
-	QPixmap pixmap = QPixmap::fromImage(thr.bitmap);
+	VideoUpdate video_update;
+
+	// Prepare update message
+	video_update.image = thr.bitmap;
+	video_update.yl = yl;
+	video_update.yh = yh;
 
 	// Send update message to GUI
-	emit pMainWin->main_display_signal(pixmap);
+	emit pMainWin->main_display_signal(video_update);
 }
 
 /**
@@ -142,7 +147,7 @@ blitterthread(int xs, int ys, int yl, int yh, int doublesize)
 {
 	int lfullscreen = fullscreen; /* Take a local copy of the fullscreen var, as other threads can change it mid blit */
 
-	video_update();
+	video_update(yl, yh);
 
 	switch (doublesize) {
 	case VIDC_DOUBLE_NONE:
@@ -530,7 +535,7 @@ drawscr(int needredraw)
 				vidc.palchange = 0;
 
 				thr.bitmap.fill(thr.border_colour);
-				video_update();
+				video_update(0, thr.vidc_ysize);
 			}
 			needredraw = 0;
 			thr.needvsync = 1;
