@@ -40,22 +40,28 @@ struct VideoUpdate {
 };
 
 
-class MainLabel : public QLabel
+class MainDisplay : public QWidget
 {
 	Q_OBJECT
 
 public:
-	MainLabel(Emulator &emulator);
+	MainDisplay(Emulator &emulator, QWidget *parent = 0);
+
+	void update_image(const QImage&);
 
 protected:
 	void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 	void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 	void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+	void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
 
 private:
 	Emulator &emulator;
+
+	QImage *image;
 };
-     
+
+
 class MainWindow : public QMainWindow
 {
 	Q_OBJECT
@@ -63,7 +69,6 @@ class MainWindow : public QMainWindow
 public:
 	MainWindow(Emulator &emulator);
 	virtual ~MainWindow();
-	QLabel *label;
 
 	/* Handle displaying error messages */
 	void error(QString error);
@@ -119,7 +124,7 @@ private:
 
 	bool full_screen;
 
-	QImage *image;
+	MainDisplay *display;
 
 	QString curFile;
 

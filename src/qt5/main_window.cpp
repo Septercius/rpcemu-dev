@@ -23,6 +23,7 @@
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPainter>
 
 #if defined(Q_OS_WIN32)
 #include "Windows.h"
@@ -37,21 +38,24 @@
 #define URL_MANUAL	"http://www.marutan.net/rpcemu/manual/"
 #define URL_WEBSITE	"http://www.marutan.net/rpcemu/"
 
-MainLabel::MainLabel(Emulator &emulator)
-    : emulator(emulator)
+MainDisplay::MainDisplay(Emulator &emulator, QWidget *parent)
+    : QWidget(parent),
+      emulator(emulator)
 {
+	image = new QImage(640, 480, QImage::Format_RGB32);
+
 	// Hide pointer
 	this->setCursor(Qt::BlankCursor);
 }
 
 void
-MainLabel::mouseMoveEvent(QMouseEvent *event)
+MainDisplay::mouseMoveEvent(QMouseEvent *event)
 {
 	emit this->emulator.mouse_move_signal(event->x(), event->y());
 }
 
 void
-MainLabel::mousePressEvent(QMouseEvent *event)
+MainDisplay::mousePressEvent(QMouseEvent *event)
 {
 	if (event->button() & 7) {
 		emit this->emulator.mouse_press_signal(event->button() & 7);
@@ -59,11 +63,28 @@ MainLabel::mousePressEvent(QMouseEvent *event)
 }
 
 void
-MainLabel::mouseReleaseEvent(QMouseEvent *event)
+MainDisplay::mouseReleaseEvent(QMouseEvent *event)
 {
 	if (event->button() & 7) {
 		emit this->emulator.mouse_release_signal(event->button() & 7);
 	}
+}
+
+void
+MainDisplay::paintEvent(QPaintEvent *)
+{
+	QPainter painter(this);
+
+	const QSize size = image->size();
+	const QRect rect(0, 0, size.width(), size.height());
+
+	painter.drawImage(rect, *image);
+}
+
+void
+MainDisplay::update_image(const QImage& image)
+{
+	*(this->image) = image;
 }
 
 
@@ -75,17 +96,14 @@ MainWindow::MainWindow(Emulator &emulator)
       mips_seconds(0)
 {
 	setWindowTitle("RPCEmu v" VERSION);
-	
-	image = new QImage(640, 480, QImage::Format_RGB32);
 
-	label = new MainLabel(emulator);
-	label->setMinimumSize(640, 480);
-	label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-	label->setPixmap(QPixmap::fromImage(*image));
-	setCentralWidget(label);
+	display = new MainDisplay(emulator);
+	display->setMinimumSize(640, 480);
+	display->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+	setCentralWidget(display);
 
 	// Mouse handling
-	label->setMouseTracking(true);
+	display->setMouseTracking(true);
 
 	create_actions();
 	create_menus();
@@ -654,18 +672,23 @@ MainWindow::writeSettings()
 void
 MainWindow::main_display_update(VideoUpdate video_update)
 {
-	if (video_update.image.size() != label->size()) {
-		// Resize Label containing image
-		label->setMinimumSize(video_update.image.size());
-		label->setMaximumSize(video_update.image.size());
+	if (video_update.image.size() != display->size()) {
+		// Resize Widget containing image
+		display->setMinimumSize(video_update.image.size());
+		display->setMaximumSize(video_update.image.size());
 
 		// Resize Window
 		this->setFixedSize(this->sizeHint());
 	}
 
-	QPixmap pixmap = QPixmap::fromImage(video_update.image);
+	// Copy image data
+	display->update_image(video_update.image);
 
-	this->label->setPixmap(pixmap);
+	// Trigger repaint of changed region
+	display->update(0,
+	    video_update.yl,
+	    video_update.image.size().width(),
+	    video_update.yh - video_update.yl);
 }
 
 /**
