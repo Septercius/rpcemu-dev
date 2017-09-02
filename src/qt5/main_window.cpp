@@ -44,6 +44,9 @@ MainDisplay::MainDisplay(Emulator &emulator, QWidget *parent)
 {
 	image = new QImage(640, 480, QImage::Format_RGB32);
 
+	// No need to erase to background colour before painting
+	this->setAttribute(Qt::WA_OpaquePaintEvent);
+
 	// Hide pointer
 	this->setCursor(Qt::BlankCursor);
 }
