@@ -71,14 +71,14 @@ MainDisplay::mouseReleaseEvent(QMouseEvent *event)
 }
 
 void
-MainDisplay::paintEvent(QPaintEvent *)
+MainDisplay::paintEvent(QPaintEvent *event)
 {
 	QPainter painter(this);
 
-	const QSize size = image->size();
-	const QRect rect(0, 0, size.width(), size.height());
+	const QRect rect = event->rect();
 
-	painter.drawImage(rect, *image);
+	// Draw the requested region
+	painter.drawImage(rect, *image, rect);
 }
 
 void
