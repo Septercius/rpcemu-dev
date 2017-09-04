@@ -85,9 +85,22 @@ MainDisplay::paintEvent(QPaintEvent *event)
 }
 
 void
-MainDisplay::update_image(const QImage& image)
+MainDisplay::update_image(const QImage& img, int yl, int yh)
 {
-	*(this->image) = image;
+	if (img.size() != image->size()) {
+		// Re-create image with new size and copy of data
+		*(this->image) = img;
+
+	} else {
+		// Copy just the data that has changed
+		const void *src = img.scanLine(yl);
+		void *dest = image->scanLine(yl);
+
+		const int lines = yh - yl;
+		const int bytes = img.bytesPerLine() * lines;
+
+		memcpy(dest, src, (size_t) bytes);
+	}
 }
 
 
@@ -685,7 +698,7 @@ MainWindow::main_display_update(VideoUpdate video_update)
 	}
 
 	// Copy image data
-	display->update_image(video_update.image);
+	display->update_image(video_update.image, video_update.yl, video_update.yh);
 
 	// Trigger repaint of changed region
 	display->update(0,
