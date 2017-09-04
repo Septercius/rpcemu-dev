@@ -47,7 +47,7 @@ class MainDisplay : public QWidget
 public:
 	MainDisplay(Emulator &emulator, QWidget *parent = 0);
 
-	void update_image(const QImage&);
+	void update_image(const QImage& img, int yl, int yh);
 
 protected:
 	void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
