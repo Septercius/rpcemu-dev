@@ -54,13 +54,6 @@ static int current_sizey = -1; /**< Size of the host screen, including any doubl
 static const int MIN_X_SIZE = 320;
 static const int MIN_Y_SIZE = 256;
 
-/* VIDC modes that are too small are scaled up for host OS.
-   Also handles stretching small rectangular pixel modes */
-#define VIDC_DOUBLE_NONE 0
-#define VIDC_DOUBLE_X    1
-#define VIDC_DOUBLE_Y    2
-#define VIDC_DOUBLE_BOTH 3
-
 static int doublesize = VIDC_DOUBLE_NONE; /**< Current state of doubling X/Y values */
 
 /* This state is written by the main thread. The display thread should not read it. */
@@ -128,6 +121,9 @@ video_update(int yl, int yh)
 	video_update.image = thr.bitmap;
 	video_update.yl = yl;
 	video_update.yh = yh;
+	video_update.double_size = thr.doublesize;
+	video_update.host_xsize = thr.host_xsize;
+	video_update.host_ysize = thr.host_ysize;
 
 	// Send update message to GUI
 	emit pMainWin->main_display_signal(video_update);

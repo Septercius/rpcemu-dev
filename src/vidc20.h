@@ -25,6 +25,13 @@
 extern "C" {
 #endif /* __cplusplus */
 
+/* VIDC modes that are too small are scaled up for host OS.
+   Also handles stretching small rectangular pixel modes */
+#define VIDC_DOUBLE_NONE	0
+#define VIDC_DOUBLE_X		1
+#define VIDC_DOUBLE_Y		2
+#define VIDC_DOUBLE_BOTH	3
+
 extern void initvideo(void);
 extern void closevideo(void);
 extern int vidc_get_xsize(void);
