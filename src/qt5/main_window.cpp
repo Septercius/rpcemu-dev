@@ -29,18 +29,19 @@
 #include "Windows.h"
 #endif /* Q_OS_WIN32 */ 
 
+#include "config.h"
 #include "keyboard.h"
-
 #include "main_window.h"
 #include "rpc-qt5.h"
-#include "config.h"
+#include "vidc20.h"
 
 #define URL_MANUAL	"http://www.marutan.net/rpcemu/manual/"
 #define URL_WEBSITE	"http://www.marutan.net/rpcemu/"
 
 MainDisplay::MainDisplay(Emulator &emulator, QWidget *parent)
     : QWidget(parent),
-      emulator(emulator)
+      emulator(emulator),
+      double_size(VIDC_DOUBLE_NONE)
 {
 	image = new QImage(640, 480, QImage::Format_RGB32);
 
@@ -78,14 +79,29 @@ MainDisplay::paintEvent(QPaintEvent *event)
 {
 	QPainter painter(this);
 
-	const QRect rect = event->rect();
+	const QRect dest = event->rect();
+	QRect source;
 
-	// Draw the requested region
-	painter.drawImage(rect, *image, rect);
+	switch (double_size) {
+	case VIDC_DOUBLE_NONE:
+		source = dest;
+		break;
+	case VIDC_DOUBLE_X:
+		source = QRect(dest.x() / 2, dest.y(), dest.width() / 2, dest.height());
+		break;
+	case VIDC_DOUBLE_Y:
+		source = QRect(dest.x(), dest.y() / 2, dest.width(), dest.height() / 2);
+		break;
+	case VIDC_DOUBLE_BOTH:
+		source = QRect(dest.x() / 2, dest.y() / 2, dest.width() / 2, dest.height() / 2);
+		break;
+	}
+
+	painter.drawImage(dest, *image, source);
 }
 
 void
-MainDisplay::update_image(const QImage& img, int yl, int yh)
+MainDisplay::update_image(const QImage& img, int yl, int yh, int double_size)
 {
 	if (img.size() != image->size()) {
 		// Re-create image with new size and copy of data
@@ -101,6 +117,8 @@ MainDisplay::update_image(const QImage& img, int yl, int yh)
 
 		memcpy(dest, src, (size_t) bytes);
 	}
+
+	this->double_size = double_size;
 }
 
 
@@ -688,23 +706,35 @@ MainWindow::writeSettings()
 void
 MainWindow::main_display_update(VideoUpdate video_update)
 {
-	if (video_update.image.size() != display->size()) {
+	if (video_update.host_xsize != display->width() ||
+	    video_update.host_ysize != display->height())
+	{
 		// Resize Widget containing image
-		display->setMinimumSize(video_update.image.size());
-		display->setMaximumSize(video_update.image.size());
+		display->setMinimumSize(video_update.host_xsize, video_update.host_ysize);
+		display->setMaximumSize(video_update.host_xsize, video_update.host_ysize);
 
 		// Resize Window
 		this->setFixedSize(this->sizeHint());
 	}
 
 	// Copy image data
-	display->update_image(video_update.image, video_update.yl, video_update.yh);
+	display->update_image(video_update.image, video_update.yl, video_update.yh,
+	    video_update.double_size);
 
 	// Trigger repaint of changed region
-	display->update(0,
-	    video_update.yl,
-	    video_update.image.size().width(),
-	    video_update.yh - video_update.yl);
+	int height = video_update.yh - video_update.yl;
+	int width = video_update.image.width();
+	int ypos = video_update.yl;
+
+	if (video_update.double_size & VIDC_DOUBLE_X) {
+		width *= 2;
+	}
+	if (video_update.double_size & VIDC_DOUBLE_Y) {
+		height *= 2;
+		ypos *= 2;
+	}
+
+	display->update(0, ypos, width, height);
 }
 
 /**

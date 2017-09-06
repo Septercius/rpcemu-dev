@@ -37,6 +37,10 @@ struct VideoUpdate {
 	QImage		image;
 	int		yl;
 	int		yh;
+
+	int		double_size;
+	int		host_xsize;
+	int		host_ysize;
 };
 
 
@@ -47,7 +51,7 @@ class MainDisplay : public QWidget
 public:
 	MainDisplay(Emulator &emulator, QWidget *parent = 0);
 
-	void update_image(const QImage& img, int yl, int yh);
+	void update_image(const QImage& img, int yl, int yh, int double_size);
 
 protected:
 	void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
@@ -59,6 +63,7 @@ private:
 	Emulator &emulator;
 
 	QImage *image;
+	int double_size;
 };
 
 
