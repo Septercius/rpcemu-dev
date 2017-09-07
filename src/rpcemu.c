@@ -247,7 +247,18 @@ void
 rpcemu_log_information(void)
 {
 	char cwd[1024];
-//	int width, height;
+	time_t now;
+	char buffer[22];
+	struct tm* tm_info;
+
+	/* Time and date of this run */
+	time(&now);
+	tm_info = localtime(&now);
+	strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm_info);
+	rpclog("localtime: %s\n", buffer);
+	tm_info = gmtime(&now);
+	strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm_info);
+	rpclog("   gmtime: %s\n", buffer);
 
 	/* Log version and build type */
 	rpclog("RPCEmu " VERSION " [");
@@ -274,19 +285,11 @@ rpcemu_log_information(void)
 #elif defined __GNUC__ && defined __VERSION__
 	rpclog("Compiler: GCC version " __VERSION__ "\n");
 #endif
-
 	/* Log details of Operating System */
 	rpcemu_log_os();
 
-	/* Log Allegro information */
-//	rpclog("Allegro version ID: %s\n", allegro_id);
-
-	/* Log display information */
-/*	if (get_desktop_resolution(&width, &height) == 0) {
-		rpclog("Desktop Resolution: %d x %d\n", width, height);
-	}
-	rpclog("Host Colour Depth: %u\n", desktop_color_depth());
-*/
+	/* Log details of Platform (qt) */
+	rpcemu_log_platform();
 
 	/* Log working directory */
 	if (getcwd(cwd, sizeof(cwd)) != NULL) {
