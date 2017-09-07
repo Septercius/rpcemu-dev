@@ -82,6 +82,8 @@ static pthread_mutex_t video_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void *
 sound_thread_function(void *p)
 {
+	NOT_USED(p);
+
 	if (pthread_mutex_lock(&sound_mutex)) {
 		fatal("Cannot lock mutex");
 	}
@@ -131,8 +133,14 @@ void
 sound_thread_start(void)
 {
 	if (pthread_create(&sound_thread, NULL, sound_thread_function, NULL)) {
-		fatal("Couldn't create vidc thread");
+		fatal("Couldn't create sound thread");
 	}
+
+#ifdef _GNU_SOURCE
+	if (0 != pthread_setname_np(sound_thread, "rpcemu: sound")) {
+		fatal("Couldn't set sound thread name");
+	}
+#endif // _GNU_SOURCE
 }
 
 /**
