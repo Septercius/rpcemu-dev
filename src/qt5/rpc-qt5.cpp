@@ -26,6 +26,7 @@
 #include <iostream>
 
 #include <QApplication>
+#include <QScreen>
 #include <QtCore>
 
 #include "main_window.h"
@@ -751,3 +752,30 @@ Emulator::config_updated(Config *new_config, Model new_model)
 	free(new_config);
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/** 
+ * On startup log specific details related to QT
+ */ 
+void
+rpcemu_log_platform(void)
+{
+	/* version of qt5 this app is running on */
+	rpclog("QT5: %s\n", qVersion());
+
+	/* Log display information */
+	rpclog("Number of screens: %d\n", QGuiApplication::screens().size());
+	rpclog("Primary screen: %s\n" , QGuiApplication::primaryScreen()->name().toLocal8Bit().constData());
+
+	foreach (QScreen *screen, QGuiApplication::screens()) {
+		rpclog("Information for screen: %s\n", screen->name().toLocal8Bit().constData());
+		rpclog(" Resolution: %d x %d\n", screen->size().width(), screen->size().height());
+		rpclog(" Colour depth: %d\n", screen->depth());
+	}
+}
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif /* __cplusplus */
