@@ -119,6 +119,21 @@ MainDisplay::update_image(const QImage& img, int yl, int yh, int double_size)
 	}
 
 	this->double_size = double_size;
+
+	// Trigger repaint of changed region
+	int height = yh - yl;
+	int width = image->width();
+	int ypos = yl;
+
+	if (double_size & VIDC_DOUBLE_X) {
+		width *= 2;
+	}
+	if (double_size & VIDC_DOUBLE_Y) {
+		height *= 2;
+		ypos *= 2;
+	}
+
+	this->update(0, ypos, width, height);
 }
 
 
@@ -710,8 +725,7 @@ MainWindow::main_display_update(VideoUpdate video_update)
 	    video_update.host_ysize != display->height())
 	{
 		// Resize Widget containing image
-		display->setMinimumSize(video_update.host_xsize, video_update.host_ysize);
-		display->setMaximumSize(video_update.host_xsize, video_update.host_ysize);
+		display->setFixedSize(video_update.host_xsize, video_update.host_ysize);
 
 		// Resize Window
 		this->setFixedSize(this->sizeHint());
@@ -720,21 +734,6 @@ MainWindow::main_display_update(VideoUpdate video_update)
 	// Copy image data
 	display->update_image(video_update.image, video_update.yl, video_update.yh,
 	    video_update.double_size);
-
-	// Trigger repaint of changed region
-	int height = video_update.yh - video_update.yl;
-	int width = video_update.image.width();
-	int ypos = video_update.yl;
-
-	if (video_update.double_size & VIDC_DOUBLE_X) {
-		width *= 2;
-	}
-	if (video_update.double_size & VIDC_DOUBLE_Y) {
-		height *= 2;
-		ypos *= 2;
-	}
-
-	display->update(0, ypos, width, height);
 }
 
 /**
