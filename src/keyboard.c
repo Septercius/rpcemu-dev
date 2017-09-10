@@ -102,10 +102,11 @@ static struct {
 } kbd;
 
 
-// Fake Allegro style mouse data, updated via QT frontend
-static int mouse_x = 0;
-static int mouse_y = 0;
-int mouse_b = 0;
+static struct {
+	int x;		/**< host mouse x (absolute, including doublesize), updated via QT frontend */
+	int y;		/**< host mouse y (absolute, including doublesize), updated via QT frontend */
+	int buttons;	/**< Mouse button bitfield, updated via QT frontend */
+} mouse;
 
 
 static int msenable, msreset;
@@ -791,20 +792,20 @@ mouse_poll(void)
 void
 mouse_mouse_move(int x, int y)
 {
-	mouse_x = x;
-	mouse_y = y;
+	mouse.x = x;
+	mouse.y = y;
 }
 
 void
 mouse_mouse_press(int buttons)
 {
-	mouse_b |= buttons;
+	mouse.buttons |= buttons;
 }
 
 void
 mouse_mouse_release(int buttons)
 {
-	mouse_b &= ~buttons;
+	mouse.buttons &= ~buttons;
 }
 
 #if 0
@@ -1034,8 +1035,8 @@ mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 	int host_y;
 	int vidc_x; /* host mouse pos in vidc units */
 	int vidc_y;
-	int lmouse_x = mouse_x; /* Allegro */
-	int lmouse_y = mouse_y; /* Allegro */
+	int lmouse_x = mouse.x;
+	int lmouse_y = mouse.y;
 
 	assert(mousehack);
 
@@ -1239,7 +1240,7 @@ mouse_hack_osmouse(void)
 	vidc_get_doublesize(&double_x, &double_y);
 
 	/* Mouse X coordinate */
-	temp_x = mouse_x << 1;		/* Allegro */
+	temp_x = mouse.x << 1;
 	if (temp_x > mouse_hack.boundbox.right) {
 		temp_x = mouse_hack.boundbox.right;
 	}
@@ -1252,7 +1253,7 @@ mouse_hack_osmouse(void)
 	if (double_y) {
 		yeig = 2;
 	}
-	temp_y = (vidc_get_ysize() << yeig) - (mouse_y << 1);	/* Allegro */
+	temp_y = (vidc_get_ysize() << yeig) - (mouse.y << 1);
 	if (temp_y < mouse_hack.boundbox.bottom) {
 		temp_y = mouse_hack.boundbox.bottom;
 	}
@@ -1262,26 +1263,26 @@ mouse_hack_osmouse(void)
 	arm.reg[1] = (uint32_t) temp_y;
 
 	/* Mouse buttons */
-	if (mouse_b & 1) { 
+	if (mouse.buttons & 1) { 
 		buttons |= 4;			/* Left button */
 	}
 	if (config.mousetwobutton) {
 		/* To help people with only two buttons on their mouse, swap
 		   the behaviour of middle and right buttons */
-		if (mouse_b & 2) {
+		if (mouse.buttons & 2) {
 			buttons |= 2;		/* Middle button */
 		}
-		if (mouse_b & 4) {
+		if (mouse.buttons & 4) {
 			buttons |= 1;		/* Right button */
 		}
 //		if (key[KEY_MENU] || key[KEY_ALTGR]) {
 //			buttons |= 1;
 //		}
 	} else {
-		if (mouse_b & 2) {
+		if (mouse.buttons & 2) {
 			buttons |= 1;		/* Right button */
 		}
-		if (mouse_b & 4) {
+		if (mouse.buttons & 4) {
 			buttons |= 2; 		/* Middle button */
 		}
 //		if (key[KEY_MENU] || key[KEY_ALTGR]) {
