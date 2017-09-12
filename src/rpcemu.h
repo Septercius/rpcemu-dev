@@ -81,9 +81,8 @@ extern "C" {
 /*This makes the RISC OS mouse pointer follow the host pointer exactly. Useful
   for Linux port, however use mouse capturing if possible - mousehack has some
   bugs*/
-#define mousehack (config.mousehackon && !fullscreen)
+#define mousehack	(config.mousehackon)
 
-extern int fullscreen;
 /*This enables abort checking after every LDR/STR/LDM/STM instruction in the
   recompiler. Disabling this makes the recompiler check after every block
   instead - this doesn't appear to break RISC OS, but you never know...*/
