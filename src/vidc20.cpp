@@ -46,8 +46,8 @@
 #include "mem.h"
 #include "iomd.h"
 
-static int current_sizex = -1; /**< Size of the host screen, including any doublesize doubling, -1 on invalid */
-static int current_sizey = -1; /**< Size of the host screen, including any doublesize doubling, -1 on invalid */
+static int current_sizex = -1; /**< Width of the video mode, -1 on invalid */
+static int current_sizey = -1; /**< Height of the video mode, -1 on invalid */
 
 // Don't resize the window to smaller than this.
 static const int MIN_X_SIZE = 320;
@@ -183,12 +183,12 @@ vidc_get_doublesize(int *double_x, int *double_y)
 }
 
 /**
- * Called when emulated screen size changes, resize the host display
+ * Called when emulated screen size changes, resize the display buffer
  *
- * Called when main thread has VIDC mutex
+ * Called when machine thread has video mutex.
  *
- * @param x Width (including any doublesize doubling)
- * @param y Height (including any doublesize doubling)
+ * @param x Width
+ * @param y Height
  */
 static void
 resizedisplay(int x, int y)
@@ -203,8 +203,8 @@ resizedisplay(int x, int y)
 	current_sizex = x;
 	current_sizey = y;
 
-	fprintf(stderr, "resize bpp %d\n", vidc.bit8);
-	fprintf(stderr, "Win Size %u %u\n", x, y);
+	fprintf(stderr, "resize bit8 %u\n", vidc.bit8);
+	fprintf(stderr, "Buffer Size %u %u\n", x, y);
 
 	thr.bitmap = QImage(x, y, QImage::Format_RGB32);
 
@@ -294,6 +294,11 @@ drawscr(int needredraw)
 			thr.vidc_ysize = 480;
 		}
 
+		/* Have we changed screen size since the last draw? */
+		if (thr.vidc_xsize != current_sizex || thr.vidc_ysize != current_sizey) {
+			resizedisplay(thr.vidc_xsize, thr.vidc_ysize);
+		}
+
 		thr.host_xsize = thr.vidc_xsize;
 		thr.host_ysize = thr.vidc_ysize;
 		thr.doublesize = VIDC_DOUBLE_NONE;
@@ -312,11 +317,6 @@ drawscr(int needredraw)
 
 		/* Store the value of this screen's pixel doubling, used in keyboard.c for mousehack */
 		doublesize = thr.doublesize;
-
-		/* Have we changed screen mode since the last draw? */
-		if (thr.host_xsize != current_sizex || thr.host_ysize != current_sizey) {
-			resizedisplay(thr.host_xsize, thr.host_ysize);
-		}
 
 		/* Handle full screen border plotting */
 		/* If not Video cursor DMA enabled or vertical start > vertical end */
