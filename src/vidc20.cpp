@@ -80,6 +80,7 @@ static struct cached_state {
         uint32_t palette[256];		/**< Video Palette */
         uint32_t border_colour;		/**< Border Colour */
         uint32_t cursor_palette[3];	/**< Cursor Palette */
+        uint32_t iomd_cinit;
         uint32_t iomd_vidstart;
         uint32_t iomd_vidend;
         uint32_t iomd_vidinit;
@@ -281,6 +282,7 @@ drawscr(int needredraw)
 			vidc_palette_update();
 		}
 
+		thr.iomd_cinit = cinit;
 		thr.iomd_vidstart = iomd.vidstart;
 		thr.iomd_vidend = iomd.vidend;
 		thr.iomd_vidinit = iomd.vidinit;
@@ -783,14 +785,14 @@ vidcthread(void)
 		/* Calculate host address of cursor data from physical address.
 		   This assumes that cursor data is always in DRAM, not VRAM,
 		   which is currently true for RISC OS */
-		if (cinit & 0x8000000) {
+		if (thr.iomd_cinit & 0x8000000) {
 			ramp = (const uint8_t *) ram1;
-		} else if (cinit & 0x4000000) {
+		} else if (thr.iomd_cinit & 0x4000000) {
 			ramp = (const uint8_t *) ram01;
 		} else {
 			ramp = (const uint8_t *) ram00;
 		}
-		addr = cinit & mem_rammask;
+		addr = thr.iomd_cinit & mem_rammask;
 		// printf("Mouse now at %i,%i\n", thr.cursorx, thr.cursory);
 		for (y = 0; y < thr.cursorheight; y++) {
 			if ((y + thr.cursory) >= thr.vidc_ysize) {
