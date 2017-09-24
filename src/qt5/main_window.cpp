@@ -24,6 +24,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPainter>
+#include <QShortcut>
 
 #if defined(Q_OS_WIN32)
 #include "Windows.h"
@@ -41,7 +42,8 @@
 MainDisplay::MainDisplay(Emulator &emulator, QWidget *parent)
     : QWidget(parent),
       emulator(emulator),
-      double_size(VIDC_DOUBLE_NONE)
+      double_size(VIDC_DOUBLE_NONE),
+      full_screen(false)
 {
 	image = new QImage(640, 480, QImage::Format_RGB32);
 
@@ -50,6 +52,8 @@ MainDisplay::MainDisplay(Emulator &emulator, QWidget *parent)
 
 	// Hide pointer
 	this->setCursor(Qt::BlankCursor);
+
+	calculate_scaling();
 }
 
 void
@@ -97,15 +101,49 @@ MainDisplay::paintEvent(QPaintEvent *event)
 		break;
 	}
 
-	painter.drawImage(dest, *image, source);
+	if (full_screen) {
+		if (dest.x() < offset_x) {
+			painter.fillRect(dest, Qt::black);
+		}
+
+		const QRect rect(offset_x, offset_y, scaled_x, scaled_y);
+		painter.drawImage(rect, *image);
+	} else {
+		painter.drawImage(dest, *image, source);
+	}
+}
+
+void
+MainDisplay::resizeEvent(QResizeEvent *)
+{
+	calculate_scaling();
+}
+
+void
+MainDisplay::get_host_size(int& xsize, int& ysize) const
+{
+	xsize = this->host_xsize;
+	ysize = this->host_ysize;
+}
+
+void
+MainDisplay::set_full_screen(bool full_screen)
+{
+	this->full_screen = full_screen;
+
+	calculate_scaling();
 }
 
 void
 MainDisplay::update_image(const QImage& img, int yl, int yh, int double_size)
 {
+	bool recalculate_needed = false;
+
 	if (img.size() != image->size()) {
 		// Re-create image with new size and copy of data
 		*(this->image) = img;
+
+		recalculate_needed = true;
 
 	} else {
 		// Copy just the data that has changed
@@ -118,7 +156,16 @@ MainDisplay::update_image(const QImage& img, int yl, int yh, int double_size)
 		memcpy(dest, src, (size_t) bytes);
 	}
 
-	this->double_size = double_size;
+	if (double_size != this->double_size) {
+		this->double_size = double_size;
+		recalculate_needed = true;
+	}
+
+	if (recalculate_needed) {
+		calculate_scaling();
+		this->update();
+		return;
+	}
 
 	// Trigger repaint of changed region
 	int height = yh - yl;
@@ -133,7 +180,54 @@ MainDisplay::update_image(const QImage& img, int yl, int yh, int double_size)
 		ypos *= 2;
 	}
 
-	this->update(0, ypos, width, height);
+	if (full_screen) {
+		width = (width * scaled_x) / host_xsize;
+		height = (height * scaled_y) / host_ysize;
+		ypos = (ypos * scaled_y) / host_ysize;
+		this->update(offset_x, ypos + offset_y, width, height);
+	} else {
+		this->update(0, ypos, width, height);
+	}
+}
+
+/**
+ * Called to update the image scaling.
+ *
+ * Called when any of the following change:
+ * - Image size
+ * - Double-size
+ * - Windowed or Full screen
+ * - Widget size
+ */
+void
+MainDisplay::calculate_scaling()
+{
+	if (double_size & VIDC_DOUBLE_X) {
+		host_xsize = image->width() * 2;
+	} else {
+		host_xsize = image->width();
+	}
+	if (double_size & VIDC_DOUBLE_Y) {
+		host_ysize = image->height() * 2;
+	} else {
+		host_ysize = image->height();
+	}
+
+	if (full_screen) {
+		const int widget_x = this->width();
+		const int widget_y = this->height();
+
+		if ((widget_x * host_ysize) >= (widget_y * host_xsize)) {
+			scaled_x = (widget_y * host_xsize) / host_ysize;
+			scaled_y = widget_y;
+		} else {
+			scaled_x = widget_x;
+			scaled_y = (widget_x * host_ysize) / host_xsize;
+		}
+
+		offset_x = (widget_x - scaled_x) / 2;
+		offset_y = (widget_y - scaled_y) / 2;
+	}
 }
 
 
@@ -147,8 +241,7 @@ MainWindow::MainWindow(Emulator &emulator)
 	setWindowTitle("RPCEmu v" VERSION);
 
 	display = new MainDisplay(emulator);
-	display->setMinimumSize(640, 480);
-	display->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+	display->setFixedSize(640, 480);
 	setCentralWidget(display);
 
 	// Mouse handling
@@ -293,7 +386,39 @@ MainWindow::menu_networking()
 void
 MainWindow::menu_fullscreen()
 {
-	std::cout << "fullscreen clicked" << std::endl;
+	if (full_screen) {
+		// Change Full Screen -> Windowed
+
+		display->set_full_screen(false);
+
+		int host_xsize, host_ysize;
+		display->get_host_size(host_xsize, host_ysize);
+		display->setFixedSize(host_xsize, host_ysize);
+
+		menuBar()->setVisible(true);
+		this->showNormal();
+		this->setFixedSize(this->sizeHint());
+
+		full_screen = false;
+
+		// Request redraw of display
+		display->update();
+
+	} else {
+		// Change Windowed -> Full Screen
+
+		display->set_full_screen(true);
+
+		this->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+		display->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+		menuBar()->setVisible(false);
+		this->showFullScreen();
+
+		full_screen = true;
+	}
+
+	// Keep tick of menu item in sync
+	fullscreen_action->setChecked(full_screen);
 }
 
 void
@@ -636,6 +761,15 @@ MainWindow::create_actions()
 	// Connections for displaying error messages in the GUI
 	connect(this, &MainWindow::error_signal, this, &MainWindow::error);
 	connect(this, &MainWindow::fatal_signal, this, &MainWindow::fatal);
+
+	QShortcut *shortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_End), this);
+	connect(shortcut, &QShortcut::activated, this, &MainWindow::fullscreen_shortcut);
+}
+
+void
+MainWindow::fullscreen_shortcut()
+{
+	menu_fullscreen();
 }
 
 void
@@ -724,11 +858,13 @@ MainWindow::main_display_update(VideoUpdate video_update)
 	if (video_update.host_xsize != display->width() ||
 	    video_update.host_ysize != display->height())
 	{
-		// Resize Widget containing image
-		display->setFixedSize(video_update.host_xsize, video_update.host_ysize);
+		if (!full_screen) {
+			// Resize Widget containing image
+			display->setFixedSize(video_update.host_xsize, video_update.host_ysize);
 
-		// Resize Window
-		this->setFixedSize(this->sizeHint());
+			// Resize Window
+			this->setFixedSize(this->sizeHint());
+		}
 	}
 
 	// Copy image data

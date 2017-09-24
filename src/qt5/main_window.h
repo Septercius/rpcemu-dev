@@ -51,6 +51,8 @@ class MainDisplay : public QWidget
 public:
 	MainDisplay(Emulator &emulator, QWidget *parent = 0);
 
+	void get_host_size(int& host_xsize, int& host_ysize) const;
+	void set_full_screen(bool full_screen);
 	void update_image(const QImage& img, int yl, int yh, int double_size);
 
 protected:
@@ -58,12 +60,20 @@ protected:
 	void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 	void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 	void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
+	void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
 
 private:
+	void calculate_scaling();
+
 	Emulator &emulator;
 
 	QImage *image;
 	int double_size;
+
+	bool full_screen;
+	int host_xsize, host_ysize;
+	int scaled_x, scaled_y;
+	int offset_x, offset_y;
 };
 
 
@@ -107,6 +117,8 @@ private slots:
 	void menu_about();
 
 	void main_display_update(VideoUpdate video_update);
+
+	void fullscreen_shortcut();
 
 	// MIPS counting
 	void mips_timer_timeout();
