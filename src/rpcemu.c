@@ -439,7 +439,7 @@ rpcemu_idle(void)
 
 				mouse_poll();
 			}
-			keyboard_poll();
+//			keyboard_poll();
 		}
 	}
 }
