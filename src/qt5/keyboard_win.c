@@ -22,7 +22,7 @@
 
 typedef struct {
 	uint32_t	native_scancode;	// Native Scancode
-	uint8_t		set_2[2];		// PS/2 Set 2 make code
+	uint8_t		set_2[8];		// PS/2 Set 2 make code
 } KeyMapInfo;
 
 static const KeyMapInfo key_map[] = {
@@ -101,6 +101,7 @@ static const KeyMapInfo key_map[] = {
 	{ 0x44, { 0x09 } },		// F10
 
 	{ 0x145, { 0x77 } },		// Keypad Num Lock
+	{ 0x45, { 0xe1, 0x14, 0x77, 0xe1, 0xf0, 0x14, 0xf0, 0x77 } },	// Break
 	{ 0x46, { 0x7e } },		// Scroll Lock
 	{ 0x47, { 0x6c } },		// Keypad 7
 	{ 0x48, { 0x75 } },		// Keypad 8

@@ -513,6 +513,12 @@ void
 Emulator::key_release(unsigned scan_code)
 {
 	const uint8_t *scan_codes = keyboard_map_key(scan_code);
+
+	// Break key has no release code
+	if(scan_codes && scan_codes[0] == 0xe1) {
+		return;
+	}
+
 	keyboard_key_release(scan_codes);
 }
 
