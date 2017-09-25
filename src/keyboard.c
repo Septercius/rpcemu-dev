@@ -976,7 +976,9 @@ keyboard_poll(void)
 #endif
 
 }
-
+/**
+ * @param scan_codes pointer to array of ps2 set2 scan codes
+ */
 void
 keyboard_key_press(const uint8_t *scan_codes)
 {
@@ -985,20 +987,34 @@ keyboard_key_press(const uint8_t *scan_codes)
 	}
 
 	ps2_queue(&kbd.queue, scan_codes[0]);
-	if (scan_codes[1] != 0) {
+	if (scan_codes[0] == 0xe0) {
 		/* 2-byte scan code */
 		ps2_queue(&kbd.queue, scan_codes[1]);
+	} else if (scan_codes[0] == 0xe1) {
+		/* 8-byte scan code (only break key) */
+		ps2_queue(&kbd.queue, scan_codes[1]);
+		ps2_queue(&kbd.queue, scan_codes[2]);
+		ps2_queue(&kbd.queue, scan_codes[3]);
+		ps2_queue(&kbd.queue, scan_codes[4]);
+		ps2_queue(&kbd.queue, scan_codes[5]);
+		ps2_queue(&kbd.queue, scan_codes[6]);
+		ps2_queue(&kbd.queue, scan_codes[7]);
 	}
 	kcallback = 20;
 	kbd.command = 0xfe;
 }
 
+/**
+ * @param scan_codes pointer to array of ps2 set2 scan codes
+ */
 void
 keyboard_key_release(const uint8_t *scan_codes)
 {
 	if (scan_codes == NULL) {
 		return;
 	}
+
+	assert(scan_codes[0] != 0xe1); /* Break key has no release code */
 
 	if (scan_codes[1] == 0) {
 		/* 1-byte scan code */
