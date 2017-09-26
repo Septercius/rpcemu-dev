@@ -38,13 +38,15 @@ extern uint8_t keyboard_status_read(void);
 extern uint8_t keyboard_data_read(void);
 extern uint8_t mouse_status_read(void);
 extern uint8_t mouse_data_read(void);
-extern void mouse_poll(void);
 extern void keyboard_poll(void);
 extern void keyboard_key_press(const uint8_t *);
 extern void keyboard_key_release(const uint8_t *);
 extern const uint8_t *keyboard_map_key(uint32_t);
+extern int mouse_buttons_get(void);
+
 
 extern void mouse_mouse_move(int x, int y);
+extern void mouse_mouse_move_relative(int dx, int dy);
 extern void mouse_mouse_press(int buttons);
 extern void mouse_mouse_release(int buttons);
 

@@ -104,7 +104,6 @@ Perf perf = {
 
 int cyccount = 0;
 int drawscre = 0;
-int mousecapture = 0;
 int quited = 0;
 
 static FILE *arclog; /* Log file handle */
@@ -437,7 +436,7 @@ rpcemu_idle(void)
 				if (drawscre > 5)
 					drawscre = 0;
 
-				mouse_poll();
+//				mouse_poll();
 			}
 //			keyboard_poll();
 		}

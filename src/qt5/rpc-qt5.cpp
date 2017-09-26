@@ -74,6 +74,9 @@ static pthread_t video_thread;
 static pthread_cond_t video_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t video_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+int mouse_captured = 0;		///< Have we captured the mouse in mouse capture mode
+Config *pconfig_copy = NULL;	///< Pointer to frontend copy of config
+
 
 /**
  * Function called in sound thread to block
@@ -228,15 +231,6 @@ static void
 vblupdate(void)
 {
 	drawscre++;
-}
-
-/**
- * Action on leaving mouse capture mode
- */
-void
-releasemousecapture(void)
-{
-	// TODO
 }
 
 /**
@@ -412,6 +406,7 @@ Emulator::Emulator()
 	        this, &Emulator::key_release);
 
 	connect(this, &Emulator::mouse_move_signal, this, &Emulator::mouse_move);
+	connect(this, &Emulator::mouse_move_relative_signal, this, &Emulator::mouse_move_relative);
 	connect(this, &Emulator::mouse_press_signal, this, &Emulator::mouse_press);
 	connect(this, &Emulator::mouse_release_signal, this, &Emulator::mouse_release);
 
@@ -431,7 +426,6 @@ Emulator::Emulator()
 	connect(this, &Emulator::cdrom_win_ioctl_signal, this, &Emulator::cdrom_win_ioctl);
 #endif // win32
 	connect(this, &Emulator::mouse_hack_signal, this, &Emulator::mouse_hack);
-	connect(this, &Emulator::mouse_capture_signal, this, &Emulator::mouse_capture);
 	connect(this, &Emulator::mouse_twobutton_signal, this, &Emulator::mouse_twobutton);
 	connect(this, &Emulator::config_updated_signal, this, &Emulator::config_updated);
 }
@@ -482,10 +476,6 @@ Emulator::mainemuloop()
 		}
 	}
 
-	if (mousecapture) {
-		mousecapture = 0;
-	}
-
 	// Perform clean-up and finalising actions
 	endrpcemu();
 
@@ -523,7 +513,7 @@ Emulator::key_release(unsigned scan_code)
 }
 
 /**
- * Mouse has moved
+ * Mouse has moved in absolute position (mousehack mode)
  * 
  * @param x new x position
  * @param y new y position
@@ -532,6 +522,17 @@ void
 Emulator::mouse_move(int x, int y)
 {
 	mouse_mouse_move(x, y);
+}
+/**
+ * Mouse has moved in relative position (mousecapture mode)
+ * 
+ * @param dx change in x pos
+ * @param dy change in y pos
+ */ 
+void
+Emulator::mouse_move_relative(int dx, int dy)
+{
+	mouse_mouse_move_relative(dx, dy);
 }
 
 /**
@@ -719,16 +720,6 @@ void
 Emulator::mouse_hack()
 {
 	config.mousehackon ^= 1;
-}
-
-/**
- * GUI is toggling capture mouse mode
- */
-void
-Emulator::mouse_capture()
-{
-	// TODO
-	std::cout << "mouse capture clicked" << std::endl;
 }
 
 /**

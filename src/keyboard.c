@@ -106,6 +106,8 @@ static struct {
 	int x;		/**< host mouse x (absolute, including doublesize), updated via QT frontend */
 	int y;		/**< host mouse y (absolute, including doublesize), updated via QT frontend */
 	int buttons;	/**< Mouse button bitfield, updated via QT frontend */
+	int dx;		/**< delta of relative mouse movement since previous mouse update message */
+	int dy;		/**< delta of relative mouse movement since previous mouse update message */
 } mouse;
 
 
@@ -661,47 +663,41 @@ mouse_ps2_callback(void)
  * Main interface to inform the emulated machine of changes in host OS mouse
  * movement (Quadrature & PS/2) and buttons (PS/2 only).
  *
- * This function returns early in 'mousehack' mode, as that uses RISC OS
- * specific SWI interception to provide the mouse data.
+ * This function returns is only called in Capture mouse mode. 'mousehack'
+ * uses RISC OS specific SWI interception to provide the mouse data.
  *
- * Called from emulator main loop.
+ * Called when mouse system recieves mouse movement and button updates
+ * from front end
  */
-void
-mouse_poll(void)
+static void
+mouse_process(void)
 {
-#if 0
 	static uint8_t oldmouseb = 0;
 	static int oldz = 0;
 	int x, y;
 	int z, tmpz;
-	uint8_t mouseb = mouse_b & 7; /* Allegro */
+	uint8_t mouseb = mouse.buttons & 7;
 	uint8_t b;
 
-	/* In mousehack mode all movement data is sent via the SWI callbacks */
-	if (mousehack) {
-		iomd.mousex = 0;
-		iomd.mousey = 0;
-		return;
-	}
+	assert(!mousehack);
 
 	/* Use the 'Menu' key on the keyboard as a fake Menu mouse click */
-	if (key[KEY_MENU] || key[KEY_ALTGR]) {
-		mouseb |= 4;
-	}
+//	if (key[KEY_MENU] || key[KEY_ALTGR]) {
+//		mouseb |= 4;
+//	}
 
-	/* Get the relative X/Y movements since the last call to get_mouse_mickeys() */
-	get_mouse_mickeys(&x, &y); /* Allegro */
+	/* Get the relative X/Y movements since the last call */
+	x = mouse.dx;
+	y = mouse.dy;
 
 	/* Get the absolute value of the scroll wheel position */
-	z = mouse_z; /* Allegro */
+//	z = mouse_z; /* Allegro */
+	z = 0; /* HACK */
+
 
 	/* Update quadrature mouse */
 	iomd.mousex += x;
 	iomd.mousey -= y; /* Allegro and RPC Y axis go in opposite directions */
-
-	if (mousecapture) {
-		position_mouse(vidc_get_xsize() >> 1, vidc_get_ysize() >> 1); /* Allegro */
-	}
 
         /* Return if not PS/2 mouse */
         if (machine.model != Model_A7000 && machine.model != Model_A7000plus && machine.model != Model_Phoebe) {
@@ -723,6 +719,7 @@ mouse_poll(void)
         oldmouseb=mouseb;
 
 	/* Maximum range you can fit in one PS/2 movement packet is -256 to 255 */
+	/* TODO why not send multiple move packets? */
         if (x<-256) x=-256;
         if (x>255) x=255;
         if (y<-256) y=-256;
@@ -786,26 +783,82 @@ mouse_poll(void)
 
 	/* There's data in the queue, make sure we're called back */
 	mcallback = 20;
-#endif
 }
 
+/**
+ * Absolute coordinates used in mousehack mode
+
+ * @param x
+ * @param y
+ */
 void
 mouse_mouse_move(int x, int y)
 {
+	assert(mousehack);
+
 	mouse.x = x;
 	mouse.y = y;
 }
 
+/**
+ * Relative movements used in mouse capture modes
+ * 
+ * @param dx
+ * @param dy
+ */
+void
+mouse_mouse_move_relative(int dx, int dy)
+{
+	assert(!mousehack);
+
+	mouse.dx = dx;
+	mouse.dy = dy;
+
+	mouse.x += mouse.dx;
+	mouse.y += mouse.dy;
+
+	mouse_process();
+}
+
+/**
+ * 
+ * 
+ * @param buttons Mouse button bitfield
+ */
 void
 mouse_mouse_press(int buttons)
 {
 	mouse.buttons |= buttons;
+
+	// Capture mode
+	if(!mousehack) {
+		mouse_process();
+	}
 }
 
+/**
+ * 
+ * 
+ * @param buttons Mouse button bitfield
+ */
 void
 mouse_mouse_release(int buttons)
 {
 	mouse.buttons &= ~buttons;
+
+	// Capture mode
+	if(!mousehack) {
+		mouse_process();
+	}
+}
+
+/**
+ * Used in iomd for Quadrature mouse button processing
+ */
+int
+mouse_buttons_get(void)
+{
+	return mouse.buttons;
 }
 
 /**
