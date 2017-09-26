@@ -833,16 +833,14 @@ iomd_mouse_buttons_read(void)
 {
         uint32_t temp = 0;
 
-#if 0
-        /* 'mouse_b' and 'key' are Allegro variables containing
-           the current host OS mouse and keyboard state */
+	int mouse_buttons = mouse_buttons_get();
 
 	/* Left */
-	if (mouse_b & 1) {
+	if (mouse_buttons & 1) {
 		temp |= 0x40; // bit 6
 	}
 	/* Middle */
-	if ((mouse_b & 4) || key[KEY_MENU] || key[KEY_ALTGR]) {
+	if ((mouse_buttons & 4) /* || key[KEY_MENU] || key[KEY_ALTGR] */) {
 		if (config.mousetwobutton) {
 			temp |= 0x10; // bit 4
 		} else {
@@ -850,14 +848,13 @@ iomd_mouse_buttons_read(void)
 		}
 	}
 	/* Right */
-	if (mouse_b & 2) {
+	if (mouse_buttons & 2) {
 		if (config.mousetwobutton) {
 			temp |= 0x20; // bit 5
 		} else {
 			temp |= 0x10; // bit 4
 		}
 	}
-#endif
 
 	/* bit 0 contains the monitor id bit, 0 for VGA, 1 for TV type monitors.
 	   As we will probably always need VGA, leave as 0 */

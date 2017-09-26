@@ -110,15 +110,12 @@ private slots:
 	void menu_cdrom_ioctl();
 	void menu_cdrom_win_ioctl();
 	void menu_mouse_hack();
-	void menu_mouse_capture();
 	void menu_mouse_twobutton();
 	void menu_online_manual();
 	void menu_visit_website();
 	void menu_about();
 
 	void main_display_update(VideoUpdate video_update);
-
-	void fullscreen_shortcut();
 
 	// MIPS counting
 	void mips_timer_timeout();
@@ -178,7 +175,6 @@ private:
 #endif /* win32 */
 	QAction *cdrom_iso_action;
 	QAction *mouse_hack_action;
-	QAction *mouse_capture_action;
 	QAction *mouse_twobutton_action;
 
 	// Actions on About menu

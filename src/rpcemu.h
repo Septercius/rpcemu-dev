@@ -210,7 +210,6 @@ extern int rpcemu_config_is_reset_required(const Config *new_config, Model new_m
 extern void rpcemu_config_apply_new_settings(Config *new_config, Model new_model);
 
 
-extern int mousecapture;
 extern int drawscre;
 extern int quited;
 extern char discname[2][260];

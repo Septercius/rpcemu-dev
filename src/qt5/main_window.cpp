@@ -17,6 +17,7 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+#include <assert.h>
 #include <iostream>
 
 #include <QDesktopServices>
@@ -59,12 +60,38 @@ MainDisplay::MainDisplay(Emulator &emulator, QWidget *parent)
 void
 MainDisplay::mouseMoveEvent(QMouseEvent *event)
 {
-	emit this->emulator.mouse_move_signal(event->x(), event->y());
+	if(!pconfig_copy->mousehackon && mouse_captured) {
+		QPoint middle;
+
+		// In mouse capture mode move the mouse back to the middle of the window */ 
+		middle.setX(this->width() / 2);
+		middle.setY(this->height() / 2);
+
+		QCursor::setPos(this->mapToGlobal(middle));
+
+		// Calculate relative deltas based on difference from centre of display widget
+		int dx = event->x() - middle.x();
+		int dy = event->y() - middle.y();
+
+		emit this->emulator.mouse_move_relative_signal(dx, dy);
+	} else if(pconfig_copy->mousehackon) {
+		// Follows host mouse (mousehack) mode
+		emit this->emulator.mouse_move_signal(event->x(), event->y());
+	}
+
 }
 
 void
 MainDisplay::mousePressEvent(QMouseEvent *event)
 {
+	// Handle turning on mouse capture in capture mouse mode
+	if(!pconfig_copy->mousehackon) {
+		if(!mouse_captured) {
+			mouse_captured = 1;
+			return;
+		}
+	}
+
 	if (event->button() & 7) {
 		emit this->emulator.mouse_press_signal(event->button() & 7);
 	}
@@ -258,6 +285,7 @@ MainWindow::MainWindow(Emulator &emulator)
 
 	// Copy the emulators config to a thread local copy
 	memcpy(&config_copy, &config,  sizeof(Config));
+	pconfig_copy = &config_copy;
 	model_copy = machine.model;
 
 	// Update the gui with the initial config setting
@@ -322,6 +350,33 @@ MainWindow::closeEvent(QCloseEvent *event)
 void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
+	// Check for Ctrl-End
+	if((Qt::Key_End == event->key()) && (event->modifiers() & Qt::ControlModifier)) {
+		if(full_screen) {
+			// Change Full Screen -> Windowed
+
+			display->set_full_screen(false);
+
+			int host_xsize, host_ysize;
+			display->get_host_size(host_xsize, host_ysize);
+			display->setFixedSize(host_xsize, host_ysize);
+
+			menuBar()->setVisible(true);
+			this->showNormal();
+			this->setFixedSize(this->sizeHint());
+
+			full_screen = false;
+
+			// Request redraw of display
+			display->update();
+			return;
+		} else if(!pconfig_copy->mousehackon && mouse_captured) {
+			// Turn off mouse capture
+			mouse_captured = 0;
+			return;
+		}
+	}
+
 	if (!event->isAutoRepeat()) {
 		emit this->emulator.key_press_signal(event->nativeScanCode());
 	}
@@ -386,25 +441,7 @@ MainWindow::menu_networking()
 void
 MainWindow::menu_fullscreen()
 {
-	if (full_screen) {
-		// Change Full Screen -> Windowed
-
-		display->set_full_screen(false);
-
-		int host_xsize, host_ysize;
-		display->get_host_size(host_xsize, host_ysize);
-		display->setFixedSize(host_xsize, host_ysize);
-
-		menuBar()->setVisible(true);
-		this->showNormal();
-		this->setFixedSize(this->sizeHint());
-
-		full_screen = false;
-
-		// Request redraw of display
-		display->update();
-
-	} else {
+	if (!full_screen) {
 		// Change Windowed -> Full Screen
 
 		display->set_full_screen(true);
@@ -418,7 +455,7 @@ MainWindow::menu_fullscreen()
 	}
 
 	// Keep tick of menu item in sync
-	fullscreen_action->setChecked(full_screen);
+	fullscreen_action->setChecked(false);
 }
 
 void
@@ -627,12 +664,12 @@ MainWindow::menu_mouse_hack()
 {
 	emit this->emulator.mouse_hack_signal();
 	config_copy.mousehackon ^= 1;
-}
 
-void
-MainWindow::menu_mouse_capture()
-{
-	emit this->emulator.mouse_capture_signal();
+	// If we were previously in mouse capture mode (somehow having
+	// escaped the mouse capturing), decapture the mouse
+	if(config_copy.mousehackon) {
+		mouse_captured = 0;
+	}
 }
 
 void
@@ -737,10 +774,6 @@ MainWindow::create_actions()
 	mouse_hack_action->setCheckable(true);
 	connect(mouse_hack_action, &QAction::triggered, this, &MainWindow::menu_mouse_hack);
 
-	mouse_capture_action = new QAction(tr("&Capture"), this);
-	mouse_capture_action->setCheckable(true);
-	connect(mouse_capture_action, &QAction::triggered, this, &MainWindow::menu_mouse_capture);
-
 	mouse_twobutton_action = new QAction(tr("&Two-button Mouse Mode"), this);
 	mouse_twobutton_action->setCheckable(true);
 	connect(mouse_twobutton_action, &QAction::triggered, this, &MainWindow::menu_mouse_twobutton);
@@ -761,15 +794,6 @@ MainWindow::create_actions()
 	// Connections for displaying error messages in the GUI
 	connect(this, &MainWindow::error_signal, this, &MainWindow::error);
 	connect(this, &MainWindow::fatal_signal, this, &MainWindow::fatal);
-
-	QShortcut *shortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_End), this);
-	connect(shortcut, &QShortcut::activated, this, &MainWindow::fullscreen_shortcut);
-}
-
-void
-MainWindow::fullscreen_shortcut()
-{
-	menu_fullscreen();
 }
 
 void
@@ -815,7 +839,6 @@ MainWindow::create_menus()
 
 	// Mouse submenu
 	mouse_menu->addAction(mouse_hack_action);
-	mouse_menu->addAction(mouse_capture_action);
 	mouse_menu->addAction(mouse_twobutton_action);
 
 
@@ -881,6 +904,10 @@ MainWindow::main_display_update(VideoUpdate video_update)
 void
 MainWindow::mips_timer_timeout()
 {
+	const char *capture_text = NULL;
+
+	assert(pconfig_copy);
+
 	// Read (and zero atomically) the instruction count from the emulator core
 	const unsigned count = (unsigned) instruction_count.fetchAndStoreRelease(0);
 
@@ -900,12 +927,23 @@ MainWindow::mips_timer_timeout()
 	// Read  (and zero atomically) the Video timer count from the emulator core
 	const int vcount = video_timer_count.fetchAndStoreRelease(0);
 
+	if(!pconfig_copy->mousehackon) {
+		if(mouse_captured) {
+			capture_text = " Press CTRL-END to release mouse";
+		} else {
+			capture_text = " Click to capture mouse";
+		}
+	} else {
+		capture_text = "";
+	}
+
 	// Update window title
-	window_title = QString("RPCEmu - MIPS: %1 AVG: %2, ITimer: %3, VTimer: %4")
+	window_title = QString("RPCEmu - MIPS: %1 AVG: %2, ITimer: %3, VTimer: %4%5")
 	    .arg(mips, 0, 'f', 1)
 	    .arg(average, 0, 'f', 1)
 	    .arg(icount)
-	    .arg(vcount);
+	    .arg(vcount)
+	    .arg(capture_text);
 	setWindowTitle(window_title);
 }
 

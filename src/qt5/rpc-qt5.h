@@ -33,6 +33,9 @@ extern QAtomicInt instruction_count;
 extern QAtomicInt iomd_timer_count; ///< IOMD timer counter shared between Emulator and GUI threads
 extern QAtomicInt video_timer_count; ///< Video timer counter shared between Emulator and GUI threads
 
+extern int mouse_captured;
+extern Config *pconfig_copy;
+
 class Emulator : public QObject {
 	Q_OBJECT
 public:
@@ -45,6 +48,7 @@ signals:
 	void key_release_signal(unsigned scan_code);
 
 	void mouse_move_signal(int x, int y);
+	void mouse_move_relative_signal(int dx, int dy);
 	void mouse_press_signal(int buttons);
 	void mouse_release_signal(int buttons);
 
@@ -60,7 +64,6 @@ signals:
 	void cdrom_ioctl_signal();
 	void cdrom_win_ioctl_signal(char drive_letter);
 	void mouse_hack_signal();
-	void mouse_capture_signal();
 	void mouse_twobutton_signal();
 	void config_updated_signal(Config *new_config, Model new_model);
 
@@ -72,6 +75,7 @@ public slots:
 	void key_release(unsigned scan_code);
 
 	void mouse_move(int x, int y);
+	void mouse_move_relative(int dx, int dy);
 	void mouse_press(int buttons);
 	void mouse_release(int buttons);
 
@@ -91,7 +95,6 @@ public slots:
 	void cdrom_win_ioctl(char drive_letter);
 #endif /* win32 */
 	void mouse_hack();
-	void mouse_capture();
 	void mouse_twobutton();
 	void config_updated(Config *new_config, Model new_model);
 
