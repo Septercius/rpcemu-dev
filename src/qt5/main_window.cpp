@@ -46,14 +46,18 @@ MainDisplay::MainDisplay(Emulator &emulator, QWidget *parent)
       double_size(VIDC_DOUBLE_NONE),
       full_screen(false)
 {
+	assert(pconfig_copy);
+
 	image = new QImage(640, 480, QImage::Format_RGB32);
 
 	// No need to erase to background colour before painting
 	this->setAttribute(Qt::WA_OpaquePaintEvent);
 
-	// Hide pointer
-	this->setCursor(Qt::BlankCursor);
-
+	// Hide pointer in mouse hack mode
+	if(pconfig_copy->mousehackon) {
+		this->setCursor(Qt::BlankCursor);
+	}
+		
 	calculate_scaling();
 }
 
@@ -88,6 +92,10 @@ MainDisplay::mousePressEvent(QMouseEvent *event)
 	if(!pconfig_copy->mousehackon) {
 		if(!mouse_captured) {
 			mouse_captured = 1;
+
+			// Hide pointer in mouse capture mode when it's been captured
+			this->setCursor(Qt::BlankCursor);
+
 			return;
 		}
 	}
@@ -267,6 +275,11 @@ MainWindow::MainWindow(Emulator &emulator)
 {
 	setWindowTitle("RPCEmu v" VERSION);
 
+	// Copy the emulators config to a thread local copy
+	memcpy(&config_copy, &config,  sizeof(Config));
+	pconfig_copy = &config_copy;
+	model_copy = machine.model;
+
 	display = new MainDisplay(emulator);
 	display->setFixedSize(640, 480);
 	setCentralWidget(display);
@@ -282,11 +295,6 @@ MainWindow::MainWindow(Emulator &emulator)
 
 	this->setFixedSize(this->sizeHint());
 	setUnifiedTitleAndToolBarOnMac(true);
-
-	// Copy the emulators config to a thread local copy
-	memcpy(&config_copy, &config,  sizeof(Config));
-	pconfig_copy = &config_copy;
-	model_copy = machine.model;
 
 	// Update the gui with the initial config setting
 	// TODO what about fullscreen? (probably handled in GUI only
@@ -379,6 +387,10 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 		} else if(!pconfig_copy->mousehackon && mouse_captured) {
 			// Turn off mouse capture
 			mouse_captured = 0;
+
+			// show pointer in mouse capture mode when it's not been captured
+			this->display->setCursor(Qt::ArrowCursor);
+
 			return;
 		}
 	}
@@ -683,6 +695,12 @@ MainWindow::menu_mouse_hack()
 	// escaped the mouse capturing), decapture the mouse
 	if(config_copy.mousehackon) {
 		mouse_captured = 0;
+
+		// Hide pointer in mouse hack mode
+		this->setCursor(Qt::BlankCursor);
+	} else {
+		// Show pointer in mouse capture mode when it's not been captured
+		this->setCursor(Qt::ArrowCursor);
 	}
 }
 
