@@ -350,7 +350,13 @@ MainWindow::closeEvent(QCloseEvent *event)
 void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
-	// Check for Ctrl-End
+	// Special case, handle windows menu key as being menu mouse button
+	if(Qt::Key_Menu == event->key()) {
+		emit this->emulator.mouse_press_signal(Qt::MidButton);
+		return;
+	}
+
+	// Special case, check for Ctrl-End, our multi purpose do clever things key
 	if((Qt::Key_End == event->key()) && (event->modifiers() & Qt::ControlModifier)) {
 		if(full_screen) {
 			// Change Full Screen -> Windowed
@@ -377,6 +383,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 		}
 	}
 
+	// Regular case pass key press onto the emulator
 	if (!event->isAutoRepeat()) {
 		emit this->emulator.key_press_signal(event->nativeScanCode());
 	}
@@ -385,6 +392,13 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 void
 MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
+	// Special case, handle windows menu key as being menu mouse button
+	if(Qt::Key_Menu == event->key()) {
+		emit this->emulator.mouse_release_signal(Qt::MidButton);
+		return;
+	}
+
+	// Regular case pass key release onto the emulator
 	if (!event->isAutoRepeat()) {
 		emit this->emulator.key_release_signal(event->nativeScanCode());
 	}

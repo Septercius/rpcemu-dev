@@ -681,11 +681,6 @@ mouse_process(void)
 
 	assert(!mousehack);
 
-	/* Use the 'Menu' key on the keyboard as a fake Menu mouse click */
-//	if (key[KEY_MENU] || key[KEY_ALTGR]) {
-//		mouseb |= 4;
-//	}
-
 	/* Get the relative X/Y movements since the last call */
 	x = mouse.dx;
 	y = mouse.dy;
@@ -1176,9 +1171,6 @@ mouse_hack_osmouse(void)
 		if (mouse.buttons & 4) {
 			buttons |= 1;		/* Right button */
 		}
-//		if (key[KEY_MENU] || key[KEY_ALTGR]) {
-//			buttons |= 1;
-//		}
 	} else {
 		if (mouse.buttons & 2) {
 			buttons |= 1;		/* Right button */
@@ -1186,9 +1178,6 @@ mouse_hack_osmouse(void)
 		if (mouse.buttons & 4) {
 			buttons |= 2; 		/* Middle button */
 		}
-//		if (key[KEY_MENU] || key[KEY_ALTGR]) {
-//			buttons |= 2;
-//		}
 	}
 	arm.reg[2] = buttons;
 
