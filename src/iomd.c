@@ -840,7 +840,7 @@ iomd_mouse_buttons_read(void)
 		temp |= 0x40; // bit 6
 	}
 	/* Middle */
-	if ((mouse_buttons & 4) /* || key[KEY_MENU] || key[KEY_ALTGR] */) {
+	if (mouse_buttons & 4) {
 		if (config.mousetwobutton) {
 			temp |= 0x10; // bit 4
 		} else {
