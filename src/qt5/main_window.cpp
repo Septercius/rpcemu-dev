@@ -19,7 +19,9 @@
  */
 #include <assert.h>
 #include <iostream>
+#include <list>
 
+#include <QGuiApplication>
 #include <QDesktopServices>
 #include <QFileDialog>
 #include <QMenuBar>
@@ -331,6 +333,9 @@ MainWindow::MainWindow(Emulator &emulator)
 	window_title.reserve(128);
 	connect(&mips_timer, &QTimer::timeout, this, &MainWindow::mips_timer_timeout);
 	mips_timer.start(1000);
+	
+	// App losing/gaining focus
+	connect(qApp, &QGuiApplication::applicationStateChanged, this, &MainWindow::application_state_changed);
 }
 
 MainWindow::~MainWindow()
@@ -340,6 +345,25 @@ MainWindow::~MainWindow()
 #endif /* RPCEMU_NETWORKING */
 	delete configure_dialog;
 	delete about_dialog;
+}
+
+/**
+ * Signal received about window gaining/losing focus, or minimising etc.
+ *
+ * @param state new application state
+ */
+void
+MainWindow::application_state_changed(Qt::ApplicationState state)
+{
+	// If the application loses focus, release all the keys
+	// that are pressed down. Prevents key stuck down repeats in emulator
+	if(state != Qt::ApplicationActive) {
+		for (std::list<quint32>::reverse_iterator it = held_keys.rbegin(); it != held_keys.rend(); ++it) {
+			emit this->emulator.key_release_signal(*it);
+		}
+
+		held_keys.clear();
+	}
 }
 
 /**
@@ -403,6 +427,10 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 
 	// Regular case pass key press onto the emulator
 	if (!event->isAutoRepeat()) {
+		// Add the key to the list of held_keys, that will be released
+		// when the window loses the focus
+		held_keys.insert(held_keys.end(), event->nativeScanCode());
+	
 		emit this->emulator.key_press_signal(event->nativeScanCode());
 	}
 }
@@ -418,6 +446,10 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
 
 	// Regular case pass key release onto the emulator
 	if (!event->isAutoRepeat()) {
+		// Remove the key from the list of held_keys, that will be released
+		// when the window loses the focus
+		held_keys.remove(event->nativeScanCode());
+
 		emit this->emulator.key_release_signal(event->nativeScanCode());
 	}
 }

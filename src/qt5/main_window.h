@@ -120,6 +120,7 @@ private slots:
 	// MIPS counting
 	void mips_timer_timeout();
 
+	void application_state_changed(Qt::ApplicationState state);
 signals:
 	void main_display_signal(VideoUpdate video_update);
 
@@ -199,6 +200,9 @@ private:
 	uint64_t mips_total_instructions;
 	int32_t mips_seconds;
 	QString window_title;
+	
+	// List of keys currently held down, released when window loses focus
+	std::list<quint32> held_keys;
 };
 
 #endif
