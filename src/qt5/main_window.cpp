@@ -118,6 +118,12 @@ MainDisplay::paintEvent(QPaintEvent *event)
 {
 	QPainter painter(this);
 
+	if(full_screen) {
+		painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+	} else {
+		painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
+	}
+	
 	const QRect dest = event->rect();
 	QRect source;
 
@@ -697,10 +703,10 @@ MainWindow::menu_mouse_hack()
 		mouse_captured = 0;
 
 		// Hide pointer in mouse hack mode
-		this->setCursor(Qt::BlankCursor);
+		this->display->setCursor(Qt::BlankCursor);
 	} else {
 		// Show pointer in mouse capture mode when it's not been captured
-		this->setCursor(Qt::ArrowCursor);
+		this->display->setCursor(Qt::ArrowCursor);
 	}
 }
 
