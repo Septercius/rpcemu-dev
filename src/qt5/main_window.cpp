@@ -145,7 +145,7 @@ MainDisplay::paintEvent(QPaintEvent *event)
 	}
 
 	if (full_screen) {
-		if (dest.x() < offset_x) {
+		if ((dest.x() < offset_x) || (dest.y() < offset_y)) {
 			painter.fillRect(dest, Qt::black);
 		}
 
