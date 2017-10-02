@@ -33,7 +33,7 @@
 #include "Windows.h"
 #endif /* Q_OS_WIN32 */ 
 
-#include "config.h"
+#include "rpcemu.h"
 #include "keyboard.h"
 #include "main_window.h"
 #include "rpc-qt5.h"

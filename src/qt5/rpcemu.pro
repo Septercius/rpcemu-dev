@@ -116,6 +116,12 @@ CONFIG(dynarec) {
 	}
 }
 
+# Big endian architectures
+# need to find defines for sparc, arm be, mips be
+contains(QMAKE_HOST.arch, ppc)|contains(QMAKE_HOST.arch, ppc64) {
+	DEFINES += _RPCEMU_BIG_ENDIAN
+}
+
 CONFIG(debug, debug|release) {
 	DEFINES += _DEBUG
 	TARGET = $$join(TARGET, , , -debug)

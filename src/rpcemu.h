@@ -28,13 +28,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
 #include "iomd.h"
 #include "superio.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
+
+/* Version number of RPCEmu */
+#define VERSION "0.8.99 SUPER SECRET EDITION"
 
 /* URLs used for the help menu weblinks */
 #define URL_MANUAL  "http://www.marutan.net/rpcemu/manual/"
@@ -64,10 +66,6 @@ extern "C" {
 #define ftello64(stream) ftello(stream)
 #define fopen64(_a, _b) fopen(_a, _b)
 #define off64_t off_t
-#endif
-
-#if defined WORDS_BIGENDIAN
-	#define _RPCEMU_BIG_ENDIAN
 #endif
 
 /* Does this platform support one or more of our networking types? */
