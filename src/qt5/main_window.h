@@ -138,6 +138,7 @@ private:
 	void cdrom_menu_selection_update(const QAction *cdrom_action);
 
 	bool full_screen;
+	bool reenable_mousehack; ///< Did we disable mousehack entering fullscreen and have to reenable it on leaving fullscreen?
 
 	MainDisplay *display;
 
