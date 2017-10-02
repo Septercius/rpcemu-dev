@@ -66,7 +66,7 @@ MainDisplay::MainDisplay(Emulator &emulator, QWidget *parent)
 void
 MainDisplay::mouseMoveEvent(QMouseEvent *event)
 {
-	if(!pconfig_copy->mousehackon && mouse_captured) {
+	if((!pconfig_copy->mousehackon && mouse_captured) || full_screen) {
 		QPoint middle;
 
 		// In mouse capture mode move the mouse back to the middle of the window */ 
@@ -276,6 +276,7 @@ MainDisplay::calculate_scaling()
 
 MainWindow::MainWindow(Emulator &emulator)
     : full_screen(false),
+      reenable_mousehack(false),
       emulator(emulator),
       mips_timer(this),
       mips_total_instructions(0),
@@ -413,6 +414,20 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 
 			// Request redraw of display
 			display->update();
+			
+			// If we were in mousehack mode before entering fullscreen
+			// return to it now
+			if(reenable_mousehack) {
+				emit this->emulator.mouse_hack_signal();	
+			}
+			reenable_mousehack = false;
+			
+			// If we were in mouse capture mode before entering fullscreen
+			// and we hadn't captured the mouse, display the host cursor now
+			if(!config_copy.mousehackon && !mouse_captured) {
+				this->display->setCursor(Qt::ArrowCursor);
+			}
+			
 			return;
 		} else if(!pconfig_copy->mousehackon && mouse_captured) {
 			// Turn off mouse capture
@@ -516,6 +531,16 @@ MainWindow::menu_fullscreen()
 		this->showFullScreen();
 
 		full_screen = true;
+		
+		// If in mousehack mode, change to a temporary mouse capture style
+		// during full screen
+		if(config_copy.mousehackon) {
+			emit this->emulator.mouse_hack_signal();
+			reenable_mousehack = true; 
+		}
+		
+		// If in mouse capture mode and not captured, the cursor will be visible, hide it
+		this->display->setCursor(Qt::BlankCursor);
 	}
 
 	// Keep tick of menu item in sync
