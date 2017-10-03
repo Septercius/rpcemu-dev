@@ -174,32 +174,6 @@ rpclog(const char *format, ...)
 }
 
 /**
- * Called once a second to update the performance counters
- */
-/*
-static void
-domips(void)
-{
-	perf.mips = (float) inscount / 1000000.0f;
-	inscount = 0;
-
-	perf.mips_count += 1;
-	perf.mips_total += perf.mips;
-
-	perf.mhz = (float) cyccount / 1000000.0f;
-	cyccount = 0;
-
-	perf.tlb_sec = (float) tlbs / 1000000.0f;
-	tlbs = 0;
-
-	perf.flush_sec = (float) flushes;
-	flushes = 0;
-
-	updatemips = 1;
-}
-*/
-
-/**
  * Reinitialise all emulated subsystems based on current configuration. This
  * is equivalent to resetting the emulated hardware.
  *
@@ -559,8 +533,6 @@ rpcemu_config_is_reset_required(const Config *new_config, Model new_model)
 		needs_reset = 1;
 	}
 
-	// TODO so much logic here
-
 	return needs_reset;
 }
 
@@ -625,7 +597,4 @@ rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
 	if(needs_reset) {
 		resetrpc();
 	}
-
-	// TODO update video refresh timer
-//	install_int_ex(vblupdate, BPS_TO_TIMER(config.refresh));
 }

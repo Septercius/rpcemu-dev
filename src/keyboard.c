@@ -37,7 +37,6 @@
 #include <stdint.h>
 #include <string.h>
 
-//#include <allegro.h>
 #include "rpcemu.h"
 #include "vidc20.h"
 #include "mem.h"
@@ -995,6 +994,7 @@ mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 		    || (mouse_hack.boundbox.bottom >= 0)
 		    || (mouse_hack.boundbox.top < screen_osy))
 		{
+			// I'm not sure we should do this in mousehack mode, it feels more mouse capturey
 //			position_mouse(host_x, host_y); /* Allegro */
 		}
 	}

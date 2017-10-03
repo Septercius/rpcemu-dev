@@ -21,7 +21,6 @@
 /* IOMD emulation */
 #include <assert.h>
 #include <stdint.h>
-//#include <allegro.h>
 #include <stdio.h>
 #include "rpcemu.h"
 #include "vidc20.h"
@@ -881,9 +880,6 @@ iomd_reset(IOMDType type)
 	assert(type == IOMDType_IOMD || type == IOMDType_ARM7500 || type == IOMDType_ARM7500FE || type == IOMDType_IOMD2);
 	iomd_type = type;
 
-// HACKCORE
-//        remove_int(gentimerirq);
-
 	iomd.romcr0 = 0x40; /* ROM Control 0, set to 16bit slowest access time */
 	iomd.romcr1 = 0x40; /* ROM Control 1, set to 16bit slowest access time */
 
@@ -940,8 +936,6 @@ iomd_reset(IOMDType type)
 	sndon = 0;
 	flyback = 0;
 
-// HACKCORE
-//	install_int_ex(gentimerirq, BPS_TO_TIMER(500)); /* 500 Hz */
 }
 
 /**
@@ -950,8 +944,6 @@ iomd_reset(IOMDType type)
 void
 iomd_end(void)
 {
-// HACKCORE
-//        remove_int(gentimerirq);
 }
 
 void
