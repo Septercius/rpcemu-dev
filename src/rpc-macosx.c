@@ -32,7 +32,6 @@
 #include "mem.h"
 #include "sound.h"
 #include "vidc20.h"
-#include "gui.h"
 
 static pthread_t sound_thread;
 static pthread_cond_t sound_cond = PTHREAD_COND_INITIALIZER;

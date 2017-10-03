@@ -39,7 +39,6 @@
 #include "mem.h"
 #include "sound.h"
 #include "vidc20.h"
-#include "gui.h"
 #include "iomd.h"
 #include "keyboard.h"
 #include "ide.h"
