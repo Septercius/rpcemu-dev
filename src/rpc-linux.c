@@ -33,7 +33,6 @@
 #include "mem.h"
 #include "sound.h"
 #include "vidc20.h"
-#include "gui.h"
 
 
 
