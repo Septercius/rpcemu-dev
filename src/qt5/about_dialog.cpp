@@ -22,7 +22,8 @@
 #include <iostream>
 
 #include "about_dialog.h"
-#include "config.h"
+
+#include "rpcemu.h"
 
 AboutDialog::AboutDialog(QWidget *parent)
     : QDialog(parent)
