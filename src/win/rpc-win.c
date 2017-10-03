@@ -28,7 +28,6 @@
 #include <windows.h>
 
 #include "rpcemu.h"
-#include "resources.h"
 #include "vidc20.h"
 #include "keyboard.h"
 #include "sound.h"
