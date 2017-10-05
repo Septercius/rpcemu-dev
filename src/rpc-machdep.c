@@ -20,8 +20,6 @@
 
 #include <string.h>
 
-//#include <allegro.h>
-
 #include "rpcemu.h"
 
 /* These are functions that can be overridden by platforms if need
@@ -40,16 +38,6 @@ static char logpath[1024] = "";
 const char *
 rpcemu_get_datadir(void)
 {
-/*
-	if (datadir[0] == '\0') {
-		char *p;
-
-		get_executable_name(datadir, 511);
-		p = get_filename(datadir);
-		*p = '\0';
-	}
-*/
-
 	return datadir;
 }
 
