@@ -211,25 +211,40 @@ MainDisplay::update_image(const QImage& img, int yl, int yh, int double_size)
 	}
 
 	// Trigger repaint of changed region
-	int height = yh - yl;
 	int width = image->width();
-	int ypos = yl;
+	int ymin = yl;
+	int ymax = yh;
 
 	if (double_size & VIDC_DOUBLE_X) {
 		width *= 2;
 	}
 	if (double_size & VIDC_DOUBLE_Y) {
-		height *= 2;
-		ypos *= 2;
+		ymin *= 2;
+		ymax *= 2;
 	}
 
 	if (full_screen) {
 		width = (width * scaled_x) / host_xsize;
-		height = (height * scaled_y) / host_ysize;
-		ypos = (ypos * scaled_y) / host_ysize;
-		this->update(offset_x, ypos + offset_y, width, height);
+
+		/* For the Pixmap Smoothing to work properly, the height
+		 * needs to be expanded by one pixel to avoid visual
+		 * artifacts */
+		if (ymin > 0) {
+			ymin--;
+		}
+		if (ymax < host_ysize) {
+			ymax++;
+		}
+
+		// calculate 'ymin' rounded down, 'ymax' rounded up
+		ymin = (ymin * scaled_y) / host_ysize;
+		ymax = ((ymax * scaled_y) + host_ysize - 1) / host_ysize;
+
+		int height = ymax - ymin;
+		this->update(offset_x, ymin + offset_y, width, height);
 	} else {
-		this->update(0, ypos, width, height);
+		int height = ymax - ymin;
+		this->update(0, ymin, width, height);
 	}
 }
 
