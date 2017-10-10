@@ -76,6 +76,7 @@ static pthread_mutex_t video_mutex = PTHREAD_MUTEX_INITIALIZER;
 int mouse_captured = 0;		///< Have we captured the mouse in mouse capture mode
 Config *pconfig_copy = NULL;	///< Pointer to frontend copy of config
 
+static Emulator *emulator = NULL;
 
 /**
  * Function called in sound thread to block
@@ -307,7 +308,6 @@ vidcwakeupthread(void)
 		fatal("Couldn't signal vidc thread");
 	}
 }
-} // extern "C"
 
 int
 vidctrymutex(void)
@@ -329,6 +329,18 @@ vidcreleasemutex(void)
 		fatal("Releasing vidc mutex failed");
 	}
 }
+
+/**
+ * Helper function to call the idle_process_events() method on the
+ * Emulator object from C.
+ */
+void
+rpcemu_idle_process_events(void)
+{
+	emulator->idle_process_events();
+}
+
+} // extern "C"
 
 /**
  * Program entry point
@@ -362,7 +374,7 @@ int main (int argc, char ** argv)
 	QThread *emu_thread = new QThread;
 	emu_thread->setObjectName("rpcemu: emu");
 
-	Emulator *emulator = new Emulator;
+	emulator = new Emulator;
 	emulator->moveToThread(emu_thread);
 	QThread::connect(emu_thread, &QThread::started, emulator, &Emulator::mainemuloop);
 	QThread::connect(emulator, &Emulator::finished, emu_thread, &QThread::quit);
@@ -438,10 +450,8 @@ Emulator::mainemuloop()
 	const int32_t iomd_timer_interval = 2000000; // 2000000 ns = 2 ms (500 Hz)
 	video_timer_interval = 1000000000 / config.refresh;
 
-	qint64 iomd_timer_next = (qint64) iomd_timer_interval; // Time after which the IOMD timer should trigger
-	qint64 video_timer_next = (qint64) video_timer_interval;
-
-	QElapsedTimer elapsed_timer;
+	iomd_timer_next = (qint64) iomd_timer_interval; // Time after which the IOMD timer should trigger
+	video_timer_next = (qint64) video_timer_interval;
 
 	elapsed_timer.start();
 
@@ -479,6 +489,34 @@ Emulator::mainemuloop()
 	endrpcemu();
 
 	emit finished();
+}
+
+/**
+ * Process events for the CPU idle routine.
+ */
+void
+Emulator::idle_process_events()
+{
+	const int32_t iomd_timer_interval = 2000000; // 2000000 ns = 2 ms (500 Hz)
+
+	// Handle qt events and messages
+	QCoreApplication::processEvents();
+
+	const qint64 elapsed = elapsed_timer.nsecsElapsed();
+
+	// If we have passed the time the IOMD timer event should occur, trigger it
+	if (elapsed >= iomd_timer_next) {
+		iomd_timer_count.fetchAndAddRelease(1);
+		gentimerirq();
+		iomd_timer_next += (qint64) iomd_timer_interval;
+	}
+
+	// If we have passed the time the Video timer event should occur, trigger it
+	if (elapsed >= video_timer_next) {
+		video_timer_count.fetchAndAddRelease(1);
+		vblupdate();
+		video_timer_next += (qint64) video_timer_interval;
+	}
 }
 
 /**

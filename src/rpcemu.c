@@ -409,10 +409,8 @@ rpcemu_idle(void)
 				drawscre--;
 				if (drawscre > 5)
 					drawscre = 0;
-
-//				mouse_poll();
 			}
-//			keyboard_poll();
+			rpcemu_idle_process_events();
 		}
 	}
 }

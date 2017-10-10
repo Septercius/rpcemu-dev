@@ -40,6 +40,9 @@ class Emulator : public QObject {
 	Q_OBJECT
 public:
 	Emulator();
+
+	void idle_process_events();
+
 signals:
 	void finished();
 
@@ -99,7 +102,10 @@ public slots:
 	void config_updated(Config *new_config, Model new_model);
 
 private:
-	int32_t video_timer_interval; ///< Interval between video timer events (in nanoseconds)
+	QElapsedTimer elapsed_timer;
+	int32_t video_timer_interval;		///< Interval between video timer events (in nanoseconds)
+	qint64 iomd_timer_next;			///< Time after which the IOMD timer should trigger
+	qint64 video_timer_next;		///< Time after which the video timer should trigger
 };
 
 #endif /* RPC_QT5_H */

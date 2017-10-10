@@ -207,6 +207,7 @@ extern const char *rpcemu_file_get_extension(const char *filename);
 extern int rpcemu_config_is_reset_required(const Config *new_config, Model new_model);
 extern void rpcemu_config_apply_new_settings(Config *new_config, Model new_model);
 
+extern void rpcemu_idle_process_events(void);
 
 extern int drawscre;
 extern int quited;
