@@ -13,6 +13,7 @@ HEADERS =	../superio.h \
 		../cp15.h \
 		../fdc.h \
 		../hostfs.h \
+		../hostfs_internal.h \
 		../ide.h \
 		../iomd.h \
 		../keyboard.h \
@@ -61,6 +62,7 @@ win32 {
 	SOURCES +=	../win/cdrom-ioctl.c \
 			../win/network-win.c \
 			../network.c \
+			../hostfs-win.c \
 			network_dialog.cpp \
 			../win/tap-win32.c \
 			../win/rpc-win.c \
@@ -82,6 +84,7 @@ linux {
 
 unix {
 	SOURCES +=	keyboard_x.c \
+			../hostfs-unix.c \
 			../rpc-linux.c
 }
 
