@@ -31,7 +31,6 @@
 #else
 #include <unistd.h>
 #endif
-#include <utime.h>
 #include <sys/stat.h>
 #include <limits.h>
 #include <stdint.h>
@@ -39,6 +38,7 @@
 #include "arm.h"
 #include "mem.h"
 #include "hostfs.h"
+#include "hostfs_internal.h"
 
 #define HOSTFS_PROTOCOL_VERSION	3
 
@@ -60,12 +60,6 @@ typedef enum {
   HOSTFS_STATE_REGISTERED,	/**< Module successfully registered */
   HOSTFS_STATE_IGNORE,		/**< Ignoring activity after failing to register */
 } HostFSState;
-
-enum OBJECT_TYPE {
-  OBJECT_TYPE_NOT_FOUND = 0,
-  OBJECT_TYPE_FILE      = 1,
-  OBJECT_TYPE_DIRECTORY = 2,
-};
 
 enum OPEN_MODE {
   OPEN_MODE_READ               = 0,
@@ -97,14 +91,6 @@ enum RISC_OS_FILE_TYPE {
   RISC_OS_FILE_TYPE_DATA = 0xffd,
   RISC_OS_FILE_TYPE_TEXT = 0xfff,
 };
-
-typedef struct {
-  ARMword type;
-  ARMword load;
-  ARMword exec;
-  ARMword length;
-  ARMword attribs;
-} risc_os_object_info;
 
 /**
  * Type used to cache information about a directory entry.
@@ -241,35 +227,6 @@ put_string(ARMul_State *state, ARMword address, const char *str)
 }
 
 /**
-  * @param load RISC OS load address (assumed to be time-stamped)
-  * @param exec RISC OS exec address (assumed to be time-stamped)
-  * @return Time converted to time_t format
-  *
-  * Code adapted from fs/adfs/inode.c from Linux licensed under GPL2.
-  * Copyright (C) 1997-1999 Russell King
-  */
-static time_t
-hostfs_adfs2host_time(ARMword load, ARMword exec)
-{
-  ARMword high = load << 24;
-  ARMword low  = exec;
-
-  high |= low >> 8;
-  low &= 0xff;
-
-  if (high < 0x3363996a) {
-    /* Too early */
-    return 0;
-  } else if (high >= 0x656e9969) {
-    /* Too late */
-    return 0x7ffffffd;
-  }
-
-  high -= 0x336e996a;
-  return (((high % 100) << 8) + low) / 100 + (high / 100 << 8);
-}
-
-/**
  * If the supplied Load and Exec addreses are time-stamped,
  * apply the timestamp to the supplied host object
  *
@@ -282,11 +239,7 @@ hostfs_object_set_timestamp(const char *host_path, ARMword load, ARMword exec)
 {
   /* Test if Load and Exec contain time-stamp */
   if ((load & 0xfff00000u) == 0xfff00000u) {
-    struct utimbuf t;
-
-    t.actime = t.modtime = hostfs_adfs2host_time(load, exec);
-    utime(host_path, &t);
-    /* TODO handle error in utime() */
+    hostfs_object_set_timestamp_platform(host_path, load, exec);
   }
 }
 
@@ -456,7 +409,6 @@ hostfs_read_object_info(const char *host_pathname,
                         char *ro_leaf,
                         risc_os_object_info *object_info)
 {
-  struct stat info;
   ARMword file_type;
   bool is_timestamped = true; /* Assume initially it has timestamp/filetype */
   bool truncate_name = false; /* Whether to truncate for leaf
@@ -466,35 +418,9 @@ hostfs_read_object_info(const char *host_pathname,
   assert(host_pathname);
   assert(object_info);
 
-  if (stat(host_pathname, &info)) {
-    /* Error reading info about the object */
+  hostfs_read_object_info_platform(host_pathname, object_info);
 
-    switch (errno) {
-    case ENOENT: /* Object not found */
-    case ENOTDIR: /* A path component is not a directory */
-      object_info->type = OBJECT_TYPE_NOT_FOUND;
-      break;
-
-    default:
-      /* Other error */
-      fprintf(stderr,
-              "hostfs_read_object_info() could not stat() \'%s\': %s %d\n",
-              host_pathname, strerror(errno), errno);
-      object_info->type = OBJECT_TYPE_NOT_FOUND;
-      break;
-    }
-
-    return;
-  }
-
-  /* We were able to read about the object */
-  if (S_ISREG(info.st_mode)) {
-    object_info->type = OBJECT_TYPE_FILE;
-  } else if (S_ISDIR(info.st_mode)) {
-    object_info->type = OBJECT_TYPE_DIRECTORY;
-  } else {
-    /* Treat types other than file or directory as not found */
-    object_info->type = OBJECT_TYPE_NOT_FOUND;
+  if (object_info->type == OBJECT_TYPE_NOT_FOUND) {
     return;
   }
 
@@ -529,6 +455,7 @@ hostfs_read_object_info(const char *host_pathname,
           ARMword load, exec;
 
           if (sscanf(comma + 1, "%8x-%8x", &load, &exec) == 2) {
+            /* Replace timestamp information with load-exec addresses */
             object_info->load = load;
             object_info->exec = exec;
             is_timestamped = false;
@@ -546,14 +473,10 @@ hostfs_read_object_info(const char *host_pathname,
 
   /* If the file has timestamp/filetype, instead of load-exec, then fill in */
   if (is_timestamped) {
-    ARMword low  = (ARMword) ((info.st_mtime & 255) * 100);
-    ARMword high = (ARMword) ((info.st_mtime / 256) * 100 + (low >> 8) + 0x336e996a);
-
-    object_info->load = 0xfff00000 | (file_type << 8) | (high >> 24);
-    object_info->exec = (low & 255) | (high << 8);
+    /* Merge in the file_type */
+    object_info->load |= 0xfff00000 | (file_type << 8);
   }
 
-  object_info->length  = info.st_size;
   object_info->attribs = DEFAULT_ATTRIBUTES;
 
   if (ro_leaf) {
