@@ -66,10 +66,6 @@ config_load(Config * config)
 	sText = settings.value("mem_size", "16").toString();
 	ba = sText.toUtf8();
         p = ba.data();
-/*	p = get_config_string(NULL, "mem_size", NULL);
-	if (p == NULL) {
-		config.mem_size = 16;
-	} else */
 	if (!strcmp(p, "4")) {
 		config->mem_size = 4;
 	} else if (!strcmp(p, "8")) {
@@ -152,19 +148,35 @@ config_load(Config * config)
 	   later */
 	sText = settings.value("username", "").toString();
 	ba = sText.toUtf8();
-	config->username = strdup(ba.data());
-
+	if(strlen(ba.data()) != 0) {
+		config->username = strdup(ba.data());
+	} else {
+		config->username = NULL;
+	}
+	
 	sText = settings.value("ipaddress", "").toString();
 	ba = sText.toUtf8();
-	config->ipaddress = strdup(ba.data());
+	if(strlen(ba.data()) != 0) {
+		config->ipaddress = strdup(ba.data());
+	} else {
+		config->ipaddress = NULL;
+	}
 
 	sText = settings.value("macaddress", "").toString();
 	ba = sText.toUtf8();
-	config->macaddress = strdup(ba.data());
+	if(strlen(ba.data()) != 0) {
+		config->macaddress = strdup(ba.data());
+	} else {
+		config->macaddress = NULL;
+	}
 
 	sText = settings.value("bridgename", "").toString();
 	ba = sText.toUtf8();
-	config->bridgename = strdup(ba.data());
+	if(strlen(ba.data()) != 0) {
+		config->bridgename = strdup(ba.data());
+	} else {
+		config->bridgename = NULL;
+	}
 
 	config->cpu_idle = 0;
 	config->cpu_idle = settings.value("cpu_idle", "0").toInt();
