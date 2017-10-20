@@ -1041,7 +1041,7 @@ MainWindow::mips_timer_timeout()
 		capture_text = "";
 	}
 
-#if 0
+#if 1
 	// Update window title
 	window_title = QString("RPCEmu - MIPS: %1 AVG: %2%3")
 	    .arg(mips, 0, 'f', 1)
