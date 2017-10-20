@@ -1031,12 +1031,6 @@ MainWindow::mips_timer_timeout()
 	// Calculate Average
 	const double average = (double) mips_total_instructions / ((double) mips_seconds * 1000000.0);
 
-	// Read  (and zero atomically) the IOMD timer count from the emulator core
-	const int icount = iomd_timer_count.fetchAndStoreRelease(0);
-
-	// Read  (and zero atomically) the Video timer count from the emulator core
-	const int vcount = video_timer_count.fetchAndStoreRelease(0);
-
 	if(!pconfig_copy->mousehackon) {
 		if(mouse_captured) {
 			capture_text = " Press CTRL-END to release mouse";
@@ -1047,13 +1041,29 @@ MainWindow::mips_timer_timeout()
 		capture_text = "";
 	}
 
+#if 0
 	// Update window title
+	window_title = QString("RPCEmu - MIPS: %1 AVG: %2%3")
+	    .arg(mips, 0, 'f', 1)
+	    .arg(average, 0, 'f', 1)
+	    .arg(capture_text);
+
+#else
+	// Read  (and zero atomically) the IOMD timer count from the emulator core
+	const int icount = iomd_timer_count.fetchAndStoreRelease(0);
+
+	// Read  (and zero atomically) the Video timer count from the emulator core
+	const int vcount = video_timer_count.fetchAndStoreRelease(0);
+
+	// Update window title (including timer information, for debug purposes)
 	window_title = QString("RPCEmu - MIPS: %1 AVG: %2, ITimer: %3, VTimer: %4%5")
 	    .arg(mips, 0, 'f', 1)
 	    .arg(average, 0, 'f', 1)
 	    .arg(icount)
 	    .arg(vcount)
 	    .arg(capture_text);
+#endif
+
 	setWindowTitle(window_title);
 }
 
