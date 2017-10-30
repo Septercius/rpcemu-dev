@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#undef UNICODE
 #include <Windows.h>
 
 #include "hostfs_internal.h"
