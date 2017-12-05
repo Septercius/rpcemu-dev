@@ -93,7 +93,10 @@ protected:
 	void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
 	void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
 	void keyReleaseEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
-
+#if defined(Q_OS_WIN32)
+	bool nativeEvent(const QByteArray &eventType, void *message, long *result) Q_DECL_OVERRIDE;
+#endif /* Q_OS_WIN32 */
+	
 private slots:
 	void menu_reset();
 	void menu_loaddisc0();

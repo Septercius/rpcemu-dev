@@ -812,10 +812,10 @@ void
 MainWindow::create_actions()
 {
 	// Actions on File menu
-	reset_action = new QAction(tr("&Reset"), this);
+	reset_action = new QAction(tr("Reset"), this);
 	connect(reset_action, &QAction::triggered, this, &MainWindow::menu_reset);
 
-	exit_action = new QAction(tr("E&xit"), this);
+	exit_action = new QAction(tr("Exit"), this);
 	exit_action->setShortcuts(QKeySequence::Quit);
 	exit_action->setStatusTip(tr("Exit the application"));
 	connect(exit_action, &QAction::triggered, this, &QMainWindow::close);
@@ -827,34 +827,34 @@ MainWindow::create_actions()
 	connect(loaddisc1_action, &QAction::triggered, this, &MainWindow::menu_loaddisc1);
 
 	// Actions on Settings menu
-	configure_action = new QAction(tr("&Configure..."), this);
+	configure_action = new QAction(tr("Configure..."), this);
 	connect(configure_action, &QAction::triggered, this, &MainWindow::menu_configure);
 #ifdef RPCEMU_NETWORKING
-	networking_action = new QAction(tr("&Networking..."), this);
+	networking_action = new QAction(tr("Networking..."), this);
 	connect(networking_action, &QAction::triggered, this, &MainWindow::menu_networking);
 #endif /* RPCEMU_NETWORKING */
-	fullscreen_action = new QAction(tr("&Fullscreen mode"), this);
+	fullscreen_action = new QAction(tr("Fullscreen mode"), this);
 	fullscreen_action->setCheckable(true);
 	connect(fullscreen_action, &QAction::triggered, this, &MainWindow::menu_fullscreen);
-	cpu_idle_action = new QAction(tr("&Reduce CPU usage"), this);
+	cpu_idle_action = new QAction(tr("Reduce CPU usage"), this);
 	cpu_idle_action->setCheckable(true);
 	connect(cpu_idle_action, &QAction::triggered, this, &MainWindow::menu_cpu_idle);
 
 	// Actions on the Settings->CD ROM Menu
-	cdrom_disabled_action = new QAction(tr("&Disabled"), this);
+	cdrom_disabled_action = new QAction(tr("Disabled"), this);
 	cdrom_disabled_action->setCheckable(true);
 	connect(cdrom_disabled_action, &QAction::triggered, this, &MainWindow::menu_cdrom_disabled);
 
-	cdrom_empty_action = new QAction(tr("&Empty"), this);
+	cdrom_empty_action = new QAction(tr("Empty"), this);
 	cdrom_empty_action->setCheckable(true);
 	connect(cdrom_empty_action, &QAction::triggered, this, &MainWindow::menu_cdrom_empty);
 
-	cdrom_iso_action = new QAction(tr("&Iso Image..."), this);
+	cdrom_iso_action = new QAction(tr("Iso Image..."), this);
 	cdrom_iso_action->setCheckable(true);
 	connect(cdrom_iso_action, &QAction::triggered, this, &MainWindow::menu_cdrom_iso);
 
 #if defined(Q_OS_LINUX)
-	cdrom_ioctl_action = new QAction(tr("&Host CD/DVD Drive"), this);
+	cdrom_ioctl_action = new QAction(tr("Host CD/DVD Drive"), this);
 	cdrom_ioctl_action->setCheckable(true);
 	connect(cdrom_ioctl_action, &QAction::triggered, this, &MainWindow::menu_cdrom_ioctl);
 #endif /* linux */
@@ -880,21 +880,21 @@ MainWindow::create_actions()
 #endif
 
 	// Actions on the Settings->Mouse menu
-	mouse_hack_action = new QAction(tr("&Follow host mouse"), this);
+	mouse_hack_action = new QAction(tr("Follow host mouse"), this);
 	mouse_hack_action->setCheckable(true);
 	connect(mouse_hack_action, &QAction::triggered, this, &MainWindow::menu_mouse_hack);
 
-	mouse_twobutton_action = new QAction(tr("&Two-button Mouse Mode"), this);
+	mouse_twobutton_action = new QAction(tr("Two-button Mouse Mode"), this);
 	mouse_twobutton_action->setCheckable(true);
 	connect(mouse_twobutton_action, &QAction::triggered, this, &MainWindow::menu_mouse_twobutton);
 
 	// Actions on About menu
-	online_manual_action = new QAction(tr("Online &Manual..."), this);
+	online_manual_action = new QAction(tr("Online Manual..."), this);
 	connect(online_manual_action, &QAction::triggered, this, &MainWindow::menu_online_manual);
-	visit_website_action = new QAction(tr("Visit &Website..."), this);
+	visit_website_action = new QAction(tr("Visit Website..."), this);
 	connect(visit_website_action, &QAction::triggered, this, &MainWindow::menu_visit_website);
 
-	about_action = new QAction(tr("&About RPCEmu..."), this);
+	about_action = new QAction(tr("About RPCEmu..."), this);
 	about_action->setStatusTip(tr("Show the application's About box"));
 	connect(about_action, &QAction::triggered, this, &MainWindow::menu_about);
 
@@ -910,18 +910,18 @@ void
 MainWindow::create_menus()
 {
 	// File menu
-	file_menu = menuBar()->addMenu(tr("&File"));
+	file_menu = menuBar()->addMenu(tr("File"));
 	file_menu->addAction(reset_action);
 	file_menu->addSeparator();
 	file_menu->addAction(exit_action);
 
 	// Disc menu
-	disc_menu = menuBar()->addMenu(tr("&Disc"));
+	disc_menu = menuBar()->addMenu(tr("Disc"));
 	disc_menu->addAction(loaddisc0_action);
 	disc_menu->addAction(loaddisc1_action);
 
 	// Settings menu (and submenus)
-	settings_menu = menuBar()->addMenu(tr("&Settings"));
+	settings_menu = menuBar()->addMenu(tr("Settings"));
 	settings_menu->addAction(configure_action);
 #ifdef RPCEMU_NETWORKING
 	settings_menu->addAction(networking_action);
@@ -930,9 +930,9 @@ MainWindow::create_menus()
 	settings_menu->addAction(fullscreen_action);
 	settings_menu->addAction(cpu_idle_action);
 	settings_menu->addSeparator();
-	cdrom_menu = settings_menu->addMenu(tr("&CD-ROM"));
+	cdrom_menu = settings_menu->addMenu(tr("CD-ROM"));
 	settings_menu->addSeparator();
-	mouse_menu = settings_menu->addMenu(tr("&Mouse"));
+	mouse_menu = settings_menu->addMenu(tr("Mouse"));
 
 	// CD-ROM submenu
 	cdrom_menu->addAction(cdrom_disabled_action);
@@ -1135,3 +1135,35 @@ MainWindow::cdrom_menu_selection_update(const QAction *cdrom_action)
 #endif
 	}
 }
+
+#if defined(Q_OS_WIN32)
+/**
+ * windows pre event handler used by us to modify some default behaviour
+ *
+ * Disable the use of the virtual menu key (alt) that otherwise goes off
+ * every time someone presses alt in the emulated OS
+ *
+ * @param eventType unused
+ * @param message window event MSG struct
+ * @param result unused
+ * @return bool of whether we've handled the event (true) or windows/qt should deal with it (false) 
+ */
+bool
+MainWindow::nativeEvent(const QByteArray &eventType, void *message, long *result)
+{
+	Q_UNUSED(result);
+	Q_UNUSED(eventType);
+
+	MSG *msg = static_cast<MSG*>(message);
+
+	// Swallow 'alt' key presses that select the menu
+	if((msg->message == WM_SYSKEYDOWN || msg->message == WM_SYSKEYUP)
+	    && (msg->wParam == VK_MENU))
+	{
+		return true;
+	}
+
+	// Anything else should be handled by the regular qt and windows handlers
+	return false;
+}
+#endif // Q_OS_WIN32
