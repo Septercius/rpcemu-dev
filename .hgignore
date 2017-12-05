@@ -34,8 +34,36 @@ src/qt5/Makefile.Debug
 src/qt5/Makefile.Release
 src/qt5/debug
 src/qt5/release
+
 # Generated when running windows qmake
 src/qt5/RPCEmu-Interpreter-debug_resource.rc
 src/qt5/RPCEmu-Interpreter_resource.rc
+src/qt5/RPCEmu-Recompiler-debug_resource.rc
+src/qt5/RPCEmu-Recompiler_resource.rc
 src/qt5/object_script.RPCEmu-Interpreter-debug.Debug
 src/qt5/object_script.RPCEmu-Interpreter.Release
+src/qt5/object_script.RPCEmu-Recompiler-debug.Debug
+src/qt5/object_script.RPCEmu-Recompiler.Release
+
+# windows qt5 distro files
+makedistro.cmd
+imageformats/*
+mediaservice/*
+audio/*
+bearer/*
+iconengines/*
+platforms/*
+playlistformats/*
+Qt5Core.dll
+Qt5Gui.dll
+Qt5Multimedia.dll
+Qt5Network.dll
+Qt5Svg.dll
+Qt5Widgets.dll
+D3Dcompiler_47.dll
+libEGL.dll
+libGLESV2.dll
+libgcc_s_dw2-1.dll
+libstdc++-6.dll
+libwinpthread-1.dll
+opengl32sw.dll
