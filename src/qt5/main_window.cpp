@@ -955,7 +955,7 @@ MainWindow::create_menus()
 	menuBar()->addSeparator();
 
 	// Help menu
-	help_menu = menuBar()->addMenu(tr("&Help"));
+	help_menu = menuBar()->addMenu(tr("Help"));
 	help_menu->addAction(online_manual_action);
 	help_menu->addAction(visit_website_action);
 	help_menu->addSeparator();
