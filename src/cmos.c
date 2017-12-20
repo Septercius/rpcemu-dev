@@ -166,11 +166,10 @@ cmos_update_checksum(void)
 }
 
 /**
- * Load CMOS data from cmos.ram file on file system, and update it with
- * dynamic settings.
+ * Load CMOS data from cmos.ram file on file system
  */
 void
-loadcmos(void)
+cmos_init(void)
 {
         char fn[512];
         FILE *cmosf;
@@ -193,15 +192,24 @@ loadcmos(void)
                 memset(cmosram, 0, 256);
         }
 
+
+}
+
+/**
+ * called on emulated machine reset, apply changes that vary with machine changes
+ */
+void
+cmos_reset(void)
+{
 	/* Dynamically update CMOS settings */
 	cmos_update_settings();
 
-        /* Update the checksum used by RISC OS, as updating values above will
-           probably have invalidated it */
-        cmos_update_checksum();
+	/* Update the checksum used by RISC OS, as updating values above will
+	   probably have invalidated it */
+	cmos_update_checksum();
 
-        /* Clear the bytes that correspond to registers (i.e. not NVRAM) */
-        memset(cmosram, 0, 16);
+	/* Clear the bytes that correspond to registers (i.e. not NVRAM) */
+	memset(cmosram, 0, 16);
 }
 
 /**

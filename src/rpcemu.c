@@ -196,6 +196,7 @@ resetrpc(void)
         resetide();
         superio_reset(machine.super_type);
 	i8042_reset();
+	cmos_reset();
         podules_reset();
         podulerom_reset(); // must be called after podules_reset()
         hostfs_reset();
@@ -302,7 +303,7 @@ rpcemu_start(void)
 	cp15_init();
 	arm_init();
 	loadroms();
-        loadcmos();
+        cmos_init();
         fdc_adf_load("boot.adf",0);
         fdc_adf_load("notboot.adf",1);
         initvideo();
