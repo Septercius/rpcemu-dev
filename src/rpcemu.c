@@ -527,7 +527,12 @@ rpcemu_config_is_reset_required(const Config *new_config, Model new_model)
 		needs_reset = 1;
 	}
 
-	if(config.vrammask != new_config->vrammask) {
+	/* vram size has changed on a machine without fixed vram size */
+	if(config.vrammask != new_config->vrammask
+	   && (machine.model != Model_A7000 &&
+	       machine.model != Model_A7000plus &&
+	       machine.model != Model_Phoebe))
+	{
 		needs_reset = 1;
 	}
 
