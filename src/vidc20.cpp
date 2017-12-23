@@ -218,10 +218,18 @@ closevideo(void)
 	vidcendthread();
 }
 
+/**
+ * Arrange RGB values for placing directly in QImage.
+ *
+ * @param r Red value
+ * @param g Green value
+ * @param b Blue value
+ * @return Combined RGB value
+ */
 static uint32_t
-makecol(int r, int g, int b)
+makecol(uint32_t r, uint32_t g, uint32_t b)
 {
-	return (uint32_t) qRgb(r, g, b);
+	return (0xff << 24) | (r << 16) | (g << 8) | b;
 }
 
 static void
@@ -409,7 +417,7 @@ vidcthread(void)
 {
 	const uint32_t vidstart = thr.iomd_vidstart & 0x7ffff0;
 	uint32_t vidend;
-	QRgb *vidp = NULL;
+	uint32_t *vidp = NULL;
 	int drawit = 0;
 	int x, y;
 	const uint8_t *ramp;
@@ -454,7 +462,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				vidp = (uint32_t *) thr.bitmap.scanLine(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 8) {
@@ -485,7 +493,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (QRgb *) thr.bitmap.scanLine(y);
+						vidp = (uint32_t *) thr.bitmap.scanLine(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -511,7 +519,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				vidp = (uint32_t *) thr.bitmap.scanLine(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 4) {
@@ -538,7 +546,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (QRgb *) thr.bitmap.scanLine(y);
+						vidp = (uint32_t *) thr.bitmap.scanLine(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -564,7 +572,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				vidp = (uint32_t *) thr.bitmap.scanLine(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 32) {
@@ -600,7 +608,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (QRgb *) thr.bitmap.scanLine(y);
+						vidp = (uint32_t *) thr.bitmap.scanLine(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -626,7 +634,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				vidp = (uint32_t *) thr.bitmap.scanLine(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 16) {
@@ -654,7 +662,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (QRgb *) thr.bitmap.scanLine(y);
+						vidp = (uint32_t *) thr.bitmap.scanLine(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -680,7 +688,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				vidp = (uint32_t *) thr.bitmap.scanLine(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 8) {
@@ -712,7 +720,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (QRgb *) thr.bitmap.scanLine(y);
+						vidp = (uint32_t *) thr.bitmap.scanLine(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -738,7 +746,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (QRgb *) thr.bitmap.scanLine(y);
+				vidp = (uint32_t *) thr.bitmap.scanLine(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 4) {
@@ -760,7 +768,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (QRgb *) thr.bitmap.scanLine(y);
+						vidp = (uint32_t *) thr.bitmap.scanLine(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -799,7 +807,7 @@ vidcthread(void)
 				break;
 			}
 			if ((y + thr.cursory) >= 0) {
-				vidp = (QRgb *) thr.bitmap.scanLine(y + thr.cursory);
+				vidp = (uint32_t *) thr.bitmap.scanLine(y + thr.cursory);
 				for (x = 0; x < 32; x += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
 					addr ^= 3;
