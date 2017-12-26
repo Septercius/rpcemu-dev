@@ -112,6 +112,18 @@ uint8_t *dirtybuffer = dirtybuffer1;
 extern MainWindow * pMainWin;
 
 /**
+ * Obtain pointer to given row of image data buffer.
+ *
+ * @param row Row of image
+ * @return Pointer to data
+ */
+static uint32_t *
+video_image_scanline(int row)
+{
+	return (uint32_t *) thr.bitmap.scanLine(row);
+}
+
+/**
  * Prepare and send a video update message to the GUI.
  *
  * thread: video
@@ -333,10 +345,18 @@ drawscr(int needredraw)
 		if ((thr.iomd_vidcr & 0x20) == 0 || vidc.vdsr > vidc.vder) {
 			lastframeborder = 1;
 			if (dirtybuffer[0] || vidc.palchange) {
+				uint32_t *p;
+				int i;
+
 				dirtybuffer[0] = 0;
 				vidc.palchange = 0;
 
-				thr.bitmap.fill(thr.border_colour);
+				// Fill the bitmap with the border colour
+				p = (uint32_t *) thr.bitmap.bits();
+				for (i = 0; i < current_sizex * current_sizey; i++) {
+					p[i] = thr.border_colour;
+				}
+
 				video_update(0, thr.vidc_ysize);
 			}
 			needredraw = 0;
@@ -462,7 +482,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (uint32_t *) thr.bitmap.scanLine(y);
+				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 8) {
@@ -493,7 +513,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (uint32_t *) thr.bitmap.scanLine(y);
+						vidp = video_image_scanline(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -519,7 +539,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (uint32_t *) thr.bitmap.scanLine(y);
+				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 4) {
@@ -546,7 +566,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (uint32_t *) thr.bitmap.scanLine(y);
+						vidp = video_image_scanline(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -572,7 +592,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (uint32_t *) thr.bitmap.scanLine(y);
+				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 32) {
@@ -608,7 +628,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (uint32_t *) thr.bitmap.scanLine(y);
+						vidp = video_image_scanline(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -634,7 +654,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (uint32_t *) thr.bitmap.scanLine(y);
+				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 16) {
@@ -662,7 +682,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (uint32_t *) thr.bitmap.scanLine(y);
+						vidp = video_image_scanline(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -688,7 +708,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (uint32_t *) thr.bitmap.scanLine(y);
+				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 8) {
@@ -720,7 +740,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (uint32_t *) thr.bitmap.scanLine(y);
+						vidp = video_image_scanline(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -746,7 +766,7 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = (uint32_t *) thr.bitmap.scanLine(y);
+				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 4) {
@@ -768,7 +788,7 @@ vidcthread(void)
 				}
 				if ((addr & 0xfff) == 0) {
 					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = (uint32_t *) thr.bitmap.scanLine(y);
+						vidp = video_image_scanline(y);
 					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
@@ -807,7 +827,7 @@ vidcthread(void)
 				break;
 			}
 			if ((y + thr.cursory) >= 0) {
-				vidp = (uint32_t *) thr.bitmap.scanLine(y + thr.cursory);
+				vidp = video_image_scanline(y + thr.cursory);
 				for (x = 0; x < 32; x += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
 					addr ^= 3;
