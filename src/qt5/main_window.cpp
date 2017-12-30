@@ -27,7 +27,6 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPainter>
-#include <QShortcut>
 
 #if defined(Q_OS_WIN32)
 #include "Windows.h"
@@ -816,7 +815,6 @@ MainWindow::create_actions()
 	connect(reset_action, &QAction::triggered, this, &MainWindow::menu_reset);
 
 	exit_action = new QAction(tr("Exit"), this);
-	exit_action->setShortcuts(QKeySequence::Quit);
 	exit_action->setStatusTip(tr("Exit the application"));
 	connect(exit_action, &QAction::triggered, this, &QMainWindow::close);
 
