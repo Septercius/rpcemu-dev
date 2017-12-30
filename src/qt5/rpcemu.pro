@@ -42,7 +42,7 @@ SOURCES =	../superio.c \
 		../romload.c \
 		../rpcemu.c \
 		../sound.c \
-		../vidc20.cpp \
+		../vidc20.c \
 		../podules.c \
 		../podulerom.c \
 		../icside.c \

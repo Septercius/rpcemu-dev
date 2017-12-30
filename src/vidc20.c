@@ -33,11 +33,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <QColor>
-#include <QImage>
-
-#include "main_window.h"
-
 #include "rpcemu.h"
 #include "cp15.h"
 #include "vidc20.h"
@@ -76,7 +71,7 @@ static struct cached_state {
         {
                 uint32_t r,g,b;
         } pal[256];
-	QImage bitmap;
+	uint32_t *bitmap;
         uint32_t palette[256];		/**< Video Palette */
         uint32_t border_colour;		/**< Border Colour */
         uint32_t cursor_palette[3];	/**< Cursor Palette */
@@ -109,8 +104,6 @@ static uint8_t dirtybuffer2[512 * 4];
 uint8_t *dirtybuffer = dirtybuffer1;
 
 
-extern MainWindow * pMainWin;
-
 /**
  * Obtain pointer to given row of image data buffer.
  *
@@ -120,7 +113,7 @@ extern MainWindow * pMainWin;
 static uint32_t *
 video_image_scanline(int row)
 {
-	return (uint32_t *) thr.bitmap.scanLine(row);
+	return thr.bitmap + (row * current_sizex);
 }
 
 /**
@@ -134,18 +127,8 @@ video_image_scanline(int row)
 static void
 video_update(int yl, int yh)
 {
-	VideoUpdate video_update;
-
-	// Prepare update message
-	video_update.image = thr.bitmap;
-	video_update.yl = yl;
-	video_update.yh = yh;
-	video_update.double_size = thr.doublesize;
-	video_update.host_xsize = thr.host_xsize;
-	video_update.host_ysize = thr.host_ysize;
-
-	// Send update message to GUI
-	emit pMainWin->main_display_signal(video_update);
+	rpcemu_video_update(thr.bitmap, current_sizex, current_sizey,
+	    yl, yh, thr.doublesize, thr.host_xsize, thr.host_ysize);
 }
 
 void
@@ -216,10 +199,7 @@ resizedisplay(int x, int y)
 	current_sizex = x;
 	current_sizey = y;
 
-	fprintf(stderr, "resize bit8 %u\n", vidc.bit8);
-	fprintf(stderr, "Buffer Size %u %u\n", x, y);
-
-	thr.bitmap = QImage(x, y, QImage::Format_RGB32);
+	thr.bitmap = realloc(thr.bitmap, x * y * sizeof(uint32_t));
 
 	resetbuffer();
 }
@@ -352,7 +332,7 @@ drawscr(int needredraw)
 				vidc.palchange = 0;
 
 				// Fill the bitmap with the border colour
-				p = (uint32_t *) thr.bitmap.bits();
+				p = thr.bitmap;
 				for (i = 0; i < current_sizex * current_sizey; i++) {
 					p[i] = thr.border_colour;
 				}
