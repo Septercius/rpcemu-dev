@@ -198,6 +198,7 @@ extern void rpcemu_prestart(void);
 extern void rpcemu_start(void);
 extern void execrpcemu(void);
 extern void rpcemu_idle(void);
+extern void rpcemu_video_update(const uint32_t *buffer, int xsize, int ysize, int yl, int yh, int double_size, int host_xsize, int host_ysize);
 extern void endrpcemu(void);
 extern void resetrpc(void);
 extern void rpcemu_floppy_load(int drive, const char *filename);

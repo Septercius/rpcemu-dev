@@ -58,7 +58,7 @@ extern void ioctl_init(void);
 #endif /* __cplusplus */
 #endif /* linux */
 
-MainWindow *pMainWin = NULL; ///< Reference to main GUI window
+static MainWindow *pMainWin = NULL; ///< Reference to main GUI window
 static QThread *gui_thread = NULL; ///< copy of reference to GUI thread
 
 QAtomicInt instruction_count; ///< Instruction counter shared between Emulator and GUI threads
@@ -328,6 +328,38 @@ vidcreleasemutex(void)
 	if(pthread_mutex_unlock(&video_mutex)) {
 		fatal("Releasing vidc mutex failed");
 	}
+}
+
+/**
+ * Prepare and send a video update message to the GUI.
+ *
+ * @param buffer      Pointer to image buffer
+ * @param xsize       X size of buffer
+ * @param ysize       Y size of buffer
+ * @param yl          Y low range of area to update
+ * @param yh          Y high range of area to update
+ * @param double_size Current state of doubling X/Y values
+ * @param host_xsize  X pixel size of display including any double_size doubling
+ * @param host_ysize  Y pixel size of display including any double_size doubling
+ */
+void
+rpcemu_video_update(const uint32_t *buffer, int xsize, int ysize,
+                    int yl, int yh, int double_size, int host_xsize, int host_ysize)
+{
+	VideoUpdate video_update;
+
+	// Prepare update message
+	//   Wrap the buffer in a QImage container:
+	video_update.image = QImage((uchar *) buffer,
+	    xsize, ysize, QImage::Format_RGB32);
+	video_update.yl = yl;
+	video_update.yh = yh;
+	video_update.double_size = double_size;
+	video_update.host_xsize = host_xsize;
+	video_update.host_ysize = host_ysize;
+
+	// Send update message to GUI
+	emit pMainWin->main_display_signal(video_update);
 }
 
 /**
