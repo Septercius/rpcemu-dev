@@ -1154,10 +1154,21 @@ MainWindow::nativeEvent(const QByteArray &eventType, void *message, long *result
 
 	MSG *msg = static_cast<MSG*>(message);
 
-	// Swallow 'alt' key presses that select the menu
+	// Handle 'alt' key presses that would select the menu
+	// Fake 'alt' key press and release and then tell windows/qt to
+	// not handle it
 	if((msg->message == WM_SYSKEYDOWN || msg->message == WM_SYSKEYUP)
 	    && (msg->wParam == VK_MENU))
 	{
+		// Use the code from the qt key press and release handlers
+		// 0x38 is the windows native keycode for alt
+		if(msg->message == WM_SYSKEYDOWN) {
+			held_keys.insert(held_keys.end(), 0x38);
+			emit this->emulator.key_press_signal(0x38);
+		} else {
+			held_keys.remove(0x38);
+			emit this->emulator.key_release_signal(0x38);
+		}
 		return true;
 	}
 
