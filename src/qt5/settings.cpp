@@ -33,8 +33,6 @@
 void
 config_load(Config * config)
 {
-
-
 	char filename[512];
 	const char *p;
 	Model model;
@@ -43,29 +41,19 @@ config_load(Config * config)
 	QByteArray ba;
 
 	snprintf(filename, sizeof(filename), "%srpc.cfg", rpcemu_get_datadir());
-//	set_config_file(filename);
 
 	QSettings settings("rpc.cfg", QSettings::IniFormat);
 
-
 	/* Copy the contents of the configfile to the log */
-/*
-	{
-		const char **entries = NULL;
-		int n = list_config_entries(NULL, &entries);
-		int i;
-
-		for (i = 0; i < n; i++) {
-			rpclog("loadconfig: %s = \"%s\"\n", entries[i],
-			       get_config_string(NULL, entries[i], "-"));
-		}
-		free_config_entries(&entries);
+	QStringList keys = settings.childKeys();
+	foreach (const QString &key, settings.childKeys()) {
+		sText = QString("config_load: %1 = \"%2\"\n").arg(key, settings.value(key).toString());
+		rpclog(sText.toLocal8Bit().constData());
 	}
-*/
 
 	sText = settings.value("mem_size", "16").toString();
 	ba = sText.toUtf8();
-        p = ba.data();
+	p = ba.data();
 	if (!strcmp(p, "4")) {
 		config->mem_size = 4;
 	} else if (!strcmp(p, "8")) {
@@ -93,7 +81,7 @@ config_load(Config * config)
 
 	sText = settings.value("model", "").toString();
 	ba = sText.toUtf8();
-        p = ba.data();
+	p = ba.data();
 	model = Model_RPCARM710;
 	if (p != NULL) {
 		for (i = 0; i < Model_MAX; i++) {
@@ -124,9 +112,12 @@ config_load(Config * config)
 
 	sText = settings.value("cdrom_iso", "").toString();
 	ba = sText.toUtf8();
-        p = ba.data();
-        if (!p) strcpy(config->isoname, "");
-        else    strcpy(config->isoname, p);
+	p = ba.data();
+	if (!p) {
+		strcpy(config->isoname, "");
+	} else {
+		strcpy(config->isoname, p);
+	}
 
 	config->mousehackon = settings.value("mouse_following", "1").toInt();
 	config->mousetwobutton = settings.value("mouse_twobutton", "0").toInt();
@@ -199,18 +190,19 @@ config_save(Config *config)
 
 	QSettings settings("rpc.cfg", QSettings::IniFormat);
 
-        char s[256];
+	char s[256];
 
 	sprintf(s, "%u", config->mem_size);
-//	set_config_string(NULL, "mem_size", s);
 	settings.setValue("mem_size", s);
 
 	sprintf(s, "%s", models[machine.model].name_config);
-//	set_config_string(NULL, "model", s);
 	settings.setValue("model", s);
 
-        if (config->vrammask) settings.setValue("vram_size", "2");
-        else                 settings.setValue("vram_size", "0");
+	if (config->vrammask) {
+		 settings.setValue("vram_size", "2");
+	} else {
+		settings.setValue("vram_size", "0");
+	}
 
 	settings.setValue("sound_enabled",   config->soundenabled);
 	settings.setValue("refresh_rate",    config->refresh);
