@@ -46,16 +46,17 @@
 
 #if defined(Q_OS_WIN32)
 #include "cdrom-ioctl.h"
+
+extern "C" {
+extern int handle_sigio; /**< bool to indicate new network data is received  (windows only) */
+extern void sig_io(int sig);
+} /* extern "C" */
 #endif /* win32 */
 
 #if defined(Q_OS_LINUX)
-#ifdef __cplusplus
 extern "C" {
-#endif /* __cplusplus */
 extern void ioctl_init(void);
-#ifdef __cplusplus
 } /* extern "C" */
-#endif /* __cplusplus */
 #endif /* linux */
 
 static MainWindow *pMainWin = NULL; ///< Reference to main GUI window
@@ -494,6 +495,14 @@ Emulator::mainemuloop()
 		// Run some instructions in the emulator
 		execrpcemu();
 
+		// Handle windows networking receiving data
+#if defined(Q_OS_WIN32)
+		if (handle_sigio) {
+			handle_sigio = 0;
+			sig_io(1);
+		}
+#endif // defined(Q_OS_WIN32);
+		
 		const qint64 elapsed = elapsed_timer.nsecsElapsed();
 
 		// If we have passed the time the IOMD timer event should occur, trigger it
