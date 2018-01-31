@@ -475,9 +475,7 @@ static int tap_win32_write(tap_win32_overlapped_t *overlapped,
         {
         case ERROR_IO_PENDING:
 #ifndef TUN_ASYNCHRONOUS_WRITES
-	    rpclog("Tap-Win32: ERROR_IO_PENDING - before");
             WaitForSingleObject(overlapped->write_event, INFINITE);
-	    rpclog("Tap-Win32: ERROR_IO_PENDING - after");
 #endif
             break;
         default:
