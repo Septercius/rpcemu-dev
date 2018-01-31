@@ -912,6 +912,39 @@ keyboard_key_release(const uint8_t *scan_codes)
 /* Mousehack functions */
 
 /**
+ * Given OS Units for X and Y convert to position within host display
+ *
+ * @param osx OS unit coordinate
+ * @param osy OS unit coordinate
+ * @param x filled in with host display coordinate
+ * @param y filled in with host display coordinate 
+ */
+static void
+mouse_osunits_to_host(int osx, int osy, int *x, int *y)
+{
+	int32_t xeig = 1;
+	int32_t yeig = 1;
+	int double_x;
+	int double_y;
+
+	assert(x);
+	assert(y);
+
+	/* Are we doubling up any directions in the host display? */
+	vidc_get_doublesize(&double_x, &double_y);
+
+	if (double_x) {
+		xeig = 2;
+	}
+	if (double_y) {
+		yeig = 2;
+	}
+
+	*x = osx >> xeig;
+	*y = ((vidc_get_ysize() << yeig) - osy) >> yeig;
+}
+
+/**
  * Get the x and y coords in VIDC and OS units.
  *
  * @param x Mouse x position in vidc units
@@ -994,8 +1027,7 @@ mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 		    || (mouse_hack.boundbox.bottom >= 0)
 		    || (mouse_hack.boundbox.top < screen_osy))
 		{
-			// I'm not sure we should do this in mousehack mode, it feels more mouse capturey
-//			position_mouse(host_x, host_y); /* Allegro */
+			rpcemu_move_host_mouse(host_x, host_y);
 		}
 	}
 }
@@ -1003,7 +1035,7 @@ mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 /**
  * OS_Word 21, 4 Read unbuffered mouse position
  *
- * Called from arm.c/ArmDynarec.c SWI handler
+ * Called from arm_common.c SWI handler
  *
  * @param a Address of OS_Word 21 parameter block (to be filled in)
  */
@@ -1057,7 +1089,7 @@ mouse_hack_get_pos(int *x, int *y)
 /**
  * OS_Word 21, 0 Define pointer size, shape and active point
  *
- * Called from arm.c/ArmDynarec.c SWI handler
+ * Called from arm_common.c SWI handler
  *
  * @param a Address of OS_Word 21 parameter block
  */
@@ -1080,7 +1112,7 @@ mouse_hack_osword_21_0(uint32_t a)
 /**
  * OS_Byte 106 Select pointer / activate mouse
  *
- * Called from arm.c/ArmDynarec.c SWI handler
+ * Called from arm_common.c SWI handler
  *
  * @param a Pointer shape and linkage flag
  */
@@ -1118,7 +1150,7 @@ mouse_hack_osbyte_106(uint32_t a)
  *
  * Fill in SWI return values with x, y and button info
  *
- * Called from arm.c/ArmDynarec.c SWI handler on OS_Mouse
+ * Called from arm_common.c SWI handler on OS_Mouse
  */
 void
 mouse_hack_osmouse(void)
@@ -1187,7 +1219,7 @@ mouse_hack_osmouse(void)
 /**
  * OS_Word 21, 1 Define Mouse Coordinate bounding box
  *
- * Called from arm.c/ArmDynarec.c SWI handler
+ * Called from arm_common.c SWI handler
  *
  * @param a Address of OS_Word 21 parameter block
  */
@@ -1200,4 +1232,29 @@ mouse_hack_osword_21_1(uint32_t a)
 	mouse_hack.boundbox.bottom = mem_read8(a + 3) | (mem_read8(a + 4) << 8);
 	mouse_hack.boundbox.right  = mem_read8(a + 5) | (mem_read8(a + 6) << 8);
 	mouse_hack.boundbox.top    = mem_read8(a + 7) | (mem_read8(a + 8) << 8);
+}
+
+/**
+ * OS_Word 21, 3 Move mouse position
+ *
+ * Called from arm_common.c SWI handler
+ *
+ * @param a Address of OS_Word 21 parameter block
+ */
+void
+mouse_hack_osword_21_3(uint32_t a)
+{
+	int16_t osx;
+	int16_t osy;
+	int x;
+	int y;
+
+	assert(mousehack);
+
+	osx = mem_read8(a + 1) | (mem_read8(a + 2) << 8);
+	osy = mem_read8(a + 3) | (mem_read8(a + 4) << 8);
+
+	mouse_osunits_to_host(osx, osy, &x, &y);
+
+	rpcemu_move_host_mouse(x, y);
 }

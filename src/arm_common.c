@@ -386,6 +386,10 @@ opSWI(uint32_t opcode)
 			/* OS_Word 21, 4 Read unbuffered mouse position */
 			mouse_hack_osword_21_4(arm.reg[1]);
 			return;
+		} else if (mem_read8(arm.reg[1]) == 3) {
+			/* OS_Word 21, 3 Move mouse */
+			mouse_hack_osword_21_3(arm.reg[1]);
+			return;
 		} else {
 			goto realswi;
 		}

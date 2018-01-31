@@ -52,6 +52,7 @@ extern void mouse_mouse_release(int buttons);
 
 extern void mouse_hack_osword_21_0(uint32_t a);
 extern void mouse_hack_osword_21_1(uint32_t a);
+extern void mouse_hack_osword_21_3(uint32_t a);
 extern void mouse_hack_osword_21_4(uint32_t a);
 extern void mouse_hack_osbyte_106(uint32_t a);
 extern void mouse_hack_osmouse(void);

@@ -378,6 +378,9 @@ MainWindow::application_state_changed(Qt::ApplicationState state)
 		}
 
 		held_keys.clear();
+		infocus = false;
+	} else {
+		infocus = true;
 	}
 }
 
@@ -863,9 +866,6 @@ MainWindow::create_actions()
 	for (char c = 'A'; c <= 'Z'; c++) {
 		sprintf(s, "%c:\\", c);
 		if (GetDriveTypeA(s) == DRIVE_CDROM) {
-			sprintf(s, "Host CD/DVD Drive (%c:)", c);
-			rpclog(s);
-			
 			QAction *new_action = new QAction(s, this);
 			new_action->setCheckable(true);
 			new_action->setData(c);
@@ -898,6 +898,7 @@ MainWindow::create_actions()
 
 	connect(this, &MainWindow::main_display_signal, this, &MainWindow::main_display_update, Qt::BlockingQueuedConnection);
 //	connect(this, &MainWindow::main_display_signal, this, &MainWindow::main_display_update);
+	connect(this, &MainWindow::move_host_mouse_signal, this, &MainWindow::move_host_mouse);
 
 	// Connections for displaying error messages in the GUI
 	connect(this, &MainWindow::error_signal, this, &MainWindow::error);
@@ -1001,6 +1002,35 @@ MainWindow::main_display_update(VideoUpdate video_update)
 	// Copy image data
 	display->update_image(video_update.image, video_update.yl, video_update.yh,
 	    video_update.double_size);
+}
+
+/**
+ * Received a request from the emulator thread to position the host mouse pointer
+ * Used in sections of Follows host mouse/mousehack code
+ *
+ * @param mouse_update message struct containing desired mouse coordinates
+ */
+void
+MainWindow::move_host_mouse(MouseMoveUpdate mouse_update)
+{
+	QPoint pos;
+
+	// Do not move the mouse if rpcemu window doesn't have the focus
+	if(false == infocus) {
+		return;
+	}
+
+	// Don't move the mouse if the display widget is not directly under the mouse
+	// This handles the mouse being moved away from rpcemu or the mouse over one of our
+	// menus or configuration dialog boxes.
+	if(false == display->underMouse()) {
+		return;
+	}
+
+	pos.setX(mouse_update.x);
+	pos.setY(mouse_update.y);
+
+	QCursor::setPos(display->mapToGlobal(pos));
 }
 
 /**
