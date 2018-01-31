@@ -33,6 +33,10 @@
 #include "rpcemu.h"
 
 
+/**
+ * Used to pass data from Emulator thread to GUI thread
+ * when the main display needs to be updated
+ */
 struct VideoUpdate {
 	QImage		image;
 	int		yl;
@@ -43,6 +47,14 @@ struct VideoUpdate {
 	int		host_ysize;
 };
 
+/**
+ * Used to pass data from Emulator thread to GUI thread
+ * when in mousehack wants to move the host mouse
+ */
+struct MouseMoveUpdate {
+	int16_t x;
+	int16_t y;
+};
 
 class MainDisplay : public QWidget
 {
@@ -119,6 +131,7 @@ private slots:
 	void menu_about();
 
 	void main_display_update(VideoUpdate video_update);
+	void move_host_mouse(MouseMoveUpdate mouse_update);
 
 	// MIPS counting
 	void mips_timer_timeout();
@@ -126,6 +139,7 @@ private slots:
 	void application_state_changed(Qt::ApplicationState state);
 signals:
 	void main_display_signal(VideoUpdate video_update);
+	void move_host_mouse_signal(MouseMoveUpdate mouse_update);
 
 	void error_signal(QString error);
 	void fatal_signal(QString error);
@@ -207,6 +221,8 @@ private:
 	
 	// List of keys currently held down, released when window loses focus
 	std::list<quint32> held_keys;
+
+	bool infocus; ///< Does the main window currently have the focus
 };
 
 #endif

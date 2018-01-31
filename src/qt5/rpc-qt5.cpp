@@ -364,6 +364,26 @@ rpcemu_video_update(const uint32_t *buffer, int xsize, int ysize,
 }
 
 /**
+ * Prepare and send a message from the emulator thread to the GUI
+ * thread that we want to move the host OS mouse pointer
+ * Used in Follows host mouse/mousehack
+ *
+ * @param x X coordinate relative to host display widget
+ * @param y Y coordinate relative to host display widget
+ */
+void
+rpcemu_move_host_mouse(uint16_t x, uint16_t y)
+{
+	MouseMoveUpdate mouse_update;
+
+	mouse_update.x = x;
+	mouse_update.y = y;
+
+	// Send message to GUI
+	emit pMainWin->move_host_mouse_signal(mouse_update);
+}
+
+/**
  * Helper function to call the idle_process_events() method on the
  * Emulator object from C.
  */
@@ -402,6 +422,7 @@ int main (int argc, char ** argv)
 	// Allow additional types to be passed in slots and signals
 	qRegisterMetaType<Model>("Model");
 	qRegisterMetaType<VideoUpdate>("VideoUpdate");
+	qRegisterMetaType<MouseMoveUpdate>("MouseMoveUpdate");
 
 	// Create Emulator Thread and Object
 	QThread *emu_thread = new QThread;
