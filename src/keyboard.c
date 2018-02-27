@@ -941,7 +941,7 @@ mouse_osunits_to_host(int osx, int osy, int *x, int *y)
 	}
 
 	*x = osx >> xeig;
-	*y = ((vidc_get_ysize() << yeig) - osy) >> yeig;
+	*y = (((vidc_get_ysize() - 1) << yeig) - osy) >> yeig;
 }
 
 /**
