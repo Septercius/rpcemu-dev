@@ -1226,7 +1226,10 @@ mouse_hack_osmouse(void)
 void
 mouse_hack_osword_21_1(uint32_t a)
 {
-	assert(mousehack);
+	/* This is called regardless of whether or not we're in mousehack
+	   as it allows 'fullscreen' or 'mouse capture mode' risc os mode changes
+	   to have their boxes cached, allowing mousehack to work when you change
+	   back to it */
 
 	mouse_hack.boundbox.left   = mem_read8(a + 1) | (mem_read8(a + 2) << 8);
 	mouse_hack.boundbox.bottom = mem_read8(a + 3) | (mem_read8(a + 4) << 8);

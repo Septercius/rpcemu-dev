@@ -377,12 +377,18 @@ opSWI(uint32_t opcode)
 		}
 	}
 
-	if (mousehack && swinum == SWI_OS_Word && arm.reg[0] == 21) {
-		if (mem_read8(arm.reg[1]) == 1) {
+	/* This is called regardless of whether or not we're in mousehack
+	   as it allows 'fullscreen' or 'mouse capture mode' risc os mode changes
+	   to have their boxes cached, allowing mousehack to work when you change
+	   back to it */
+	if (swinum == SWI_OS_Word && arm.reg[0] == 21 && mem_read8(arm.reg[1]) == 1) {
 			/* OS_Word 21, 1 Define Mouse Coordinate bounding box */
 			mouse_hack_osword_21_1(arm.reg[1]);
 			return;
-		} else if (mem_read8(arm.reg[1]) == 4) {
+	}
+	
+	if (mousehack && swinum == SWI_OS_Word && arm.reg[0] == 21) {
+		if (mem_read8(arm.reg[1]) == 4) {
 			/* OS_Word 21, 4 Read unbuffered mouse position */
 			mouse_hack_osword_21_4(arm.reg[1]);
 			return;
