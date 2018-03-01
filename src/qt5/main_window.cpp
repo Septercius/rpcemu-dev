@@ -287,6 +287,16 @@ MainDisplay::calculate_scaling()
 	}
 }
 
+/**
+ * Is the display currently doubling in either direction
+ * needed in MainWindow to adjust mouse coordinates from the emulator
+ */
+int
+MainDisplay::get_double_size()
+{
+	return double_size;
+}
+
 
 MainWindow::MainWindow(Emulator &emulator)
     : full_screen(false),
@@ -1014,6 +1024,7 @@ void
 MainWindow::move_host_mouse(MouseMoveUpdate mouse_update)
 {
 	QPoint pos;
+	int double_size = display->get_double_size();
 
 	// Do not move the mouse if rpcemu window doesn't have the focus
 	if(false == infocus) {
@@ -1029,6 +1040,20 @@ MainWindow::move_host_mouse(MouseMoveUpdate mouse_update)
 
 	pos.setX(mouse_update.x);
 	pos.setY(mouse_update.y);
+
+	// The mouse coordinates from the backend do not know about frontend double sizing
+	// Add that on if necessary
+	if(double_size == VIDC_DOUBLE_X
+	   || double_size == VIDC_DOUBLE_BOTH)
+	{
+		pos.setX(mouse_update.x * 2);
+	}
+
+	if(double_size == VIDC_DOUBLE_Y
+	   || double_size == VIDC_DOUBLE_BOTH)
+	{
+		pos.setY(mouse_update.y * 2);
+	}
 
 	QCursor::setPos(display->mapToGlobal(pos));
 }

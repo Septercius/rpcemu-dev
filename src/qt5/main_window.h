@@ -66,6 +66,7 @@ public:
 	void get_host_size(int& host_xsize, int& host_ysize) const;
 	void set_full_screen(bool full_screen);
 	void update_image(const QImage& img, int yl, int yh, int double_size);
+	int get_double_size();
 
 protected:
 	void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
