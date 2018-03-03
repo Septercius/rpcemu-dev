@@ -987,14 +987,14 @@ mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 	}
 	*x = *osx >> xeig;
 
-	*osy = (vidc_get_ysize() << yeig) - (lmouse_y << 1);
+	*osy = ((vidc_get_ysize() -1) << yeig) - (lmouse_y << 1);
 	if (*osy < mouse_hack.boundbox.bottom) {
 		*osy = mouse_hack.boundbox.bottom;
 	}
 	if (*osy > mouse_hack.boundbox.top) {
 		*osy = mouse_hack.boundbox.top;
 	}
-	*y = ((vidc_get_ysize() << yeig) - *osy) >> yeig;
+	*y = (((vidc_get_ysize() -1) << yeig) - *osy) >> yeig;
 
 	/* Where should we place the host pointer, based on the position inside the RO bounding box? */
 	host_x = *x;
@@ -1005,11 +1005,9 @@ mouse_get_osxy(int *x, int *y, int *osx, int *osy)
 	vidc_y = lmouse_y;
 
 	if (double_x) {
-		host_x <<= 1;
 		vidc_x >>= 1;
 	}
 	if (double_y) {
-		host_y <<= 1;
 		vidc_y >>= 1;
 	}
 

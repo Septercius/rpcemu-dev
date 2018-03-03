@@ -1055,6 +1055,16 @@ MainWindow::move_host_mouse(MouseMoveUpdate mouse_update)
 		pos.setY(mouse_update.y * 2);
 	}
 
+	// Due to the front end and backend vidc doublesize values being
+	// potentially out of sync on mode change, as a temporary HACK, cap the
+	// mouse pos to under the main display widget
+	if(pos.x() > (display->width() - 1)) {
+		pos.setX(display->width() - 1);
+	}
+	if(pos.y() > (display->height() - 1)) {
+		pos.setY(display->height() - 1);
+	}
+
 	QCursor::setPos(display->mapToGlobal(pos));
 }
 
