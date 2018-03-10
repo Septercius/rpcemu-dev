@@ -683,7 +683,10 @@ void callbackide(void)
                 }
                 addr = ide_get_sector() * 512;
                 fseeko64(ide.hdfile[ide.drive], addr, SEEK_SET);
-                fread(ide.buffer, 512, 1, ide.hdfile[ide.drive]);
+                if (fread(ide.buffer, 1, 512, ide.hdfile[ide.drive]) != 512) {
+                        // Beyond current extent of file - return zero data
+                        memset(ide.buffer, 0, 512);
+                }
                 ide.pos=0;
                 ide.atastat = DRQ_STAT;
                 ide_irq_raise();
