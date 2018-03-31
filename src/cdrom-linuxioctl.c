@@ -34,14 +34,23 @@ static int ioctl_empty = 0;
 static int ioctl_ready(void)
 {
 	int cdrom=open("/dev/cdrom",O_RDONLY|O_NONBLOCK);
-        if (cdrom<=0) return 0;
+
+	if (cdrom < 0) {
+		return 0;
+	}
+
+	close(cdrom);
 	return 1;
 }
 
 static void ioctl_readsector(uint8_t *b, int sector)
 {
 	int cdrom=open("/dev/cdrom",O_RDONLY|O_NONBLOCK);
-        if (cdrom<=0) return;
+
+	if (cdrom < 0) {
+		return;
+	}
+
         lseek(cdrom,sector*2048,SEEK_SET);
         read(cdrom,b,2048);
 	close(cdrom);
@@ -53,7 +62,11 @@ static int ioctl_readtoc(unsigned char *b, unsigned char starttrack, int msf)
         int len=4;
         int blocks;
 	int cdrom=open("/dev/cdrom",O_RDONLY|O_NONBLOCK);
-        if (cdrom<=0) return 0;
+
+	if (cdrom < 0) {
+		return 0;
+	}
+
 	close(cdrom);
         blocks=(600*1024*1024)/2048;
         if (starttrack <= 1) {
