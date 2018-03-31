@@ -22,6 +22,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdio.h>
 
 #include <iostream>
 
@@ -771,7 +772,11 @@ Emulator::cdrom_load_iso(QString discname)
 	ba = discname.toUtf8();
 	p = ba.data();
 
-	strcpy(config.isoname, p);
+	if (snprintf(config.isoname, sizeof(config.isoname), "%s", p) >= (int) sizeof(config.isoname)) {
+		error("ISO image disk path \'%s\' too long", p);
+		return;
+	}
+
 	atapi->exit();
 	iso_open(config.isoname);
 }
