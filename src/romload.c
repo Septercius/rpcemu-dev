@@ -168,7 +168,7 @@ void loadroms(void)
         /* Load files */
         for (c = 0; c < number_of_files; c++) {
                 FILE *f;
-                int len;
+                long len;
                 char filepath[512];
 
                 snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, romfilenames[c]);
@@ -183,20 +183,25 @@ void loadroms(void)
                 fseek(f, 0, SEEK_END);
                 len = ftell(f);
 
-                if (pos + len > ROMSIZE) {
+                if (len < 0) {
+                        fatal("Error reading size of ROM file '%s': %s",
+                              romfilenames[c], strerror(errno));
+                }
+
+                if (len > ROMSIZE || pos + len > ROMSIZE) {
                         fatal("ROM files larger than 8MB");
                 }
 
                 /* Read file data */
                 rewind(f);
-                if (fread(&romb[pos], len, 1, f) != 1) {
+                if (fread(&romb[pos], (size_t) len, 1, f) != 1) {
                         fatal("Error reading from ROM file '%s': %s",
                               romfilenames[c], strerror(errno));
                 }
 
                 fclose(f);
 
-		rpclog("romload: Loaded '%s' %d bytes\n", romfilenames[c], len);
+		rpclog("romload: Loaded '%s' %ld bytes\n", romfilenames[c], len);
 
                 pos += len;
 
