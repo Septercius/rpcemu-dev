@@ -181,6 +181,10 @@ initpodulerom(void)
 		}
 		fseek(f, 0, SEEK_END);
 		len = ftell(f);
+		if (len < 0) {
+			fatal("initpodulerom: Error reading size of podule ROM file '%s': %s",
+			      romfns[i], strerror(errno));
+		}
 		if (len > 4096 * 1024) {
 			fatal("initpodulerom: Cannot have files larger than 4MB in podule ROM: '%s'", romfns[i]);
 		}
