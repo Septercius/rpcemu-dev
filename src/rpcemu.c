@@ -474,8 +474,14 @@ rpcemu_floppy_load(int drive, const char *filename)
 	assert(*filename);
 
 	fdc_adf_save(discname[drive], drive);
-	strncpy(discname[drive], filename, 260);
-	fdc_adf_load(discname[drive], drive);
+
+	if (strlen(filename) > sizeof(discname[drive]) - 1) {
+		// New ADF path too long
+		error("ADF disk path \'%s\' too long", filename);
+	} else {
+		strcpy(discname[drive], filename);
+		fdc_adf_load(discname[drive], drive);
+	}
 }
 
 /**
