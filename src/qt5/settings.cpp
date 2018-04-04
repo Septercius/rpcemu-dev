@@ -112,11 +112,10 @@ config_load(Config * config)
 
 	sText = settings.value("cdrom_iso", "").toString();
 	ba = sText.toUtf8();
-	p = ba.data();
-	if (!p) {
-		strcpy(config->isoname, "");
-	} else {
-		strcpy(config->isoname, p);
+	if (snprintf(config->isoname, sizeof(config->isoname), "%s", ba.constData()) >= (int) sizeof(config->isoname)) {
+		// Path in config file longer then buffer
+		rpclog("config_load: cdrom_iso path too long - ignored\n");
+		config->isoname[0] = '\0';
 	}
 
 	config->mousehackon = settings.value("mouse_following", "1").toInt();
