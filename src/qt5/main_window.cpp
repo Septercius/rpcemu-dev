@@ -361,6 +361,11 @@ MainWindow::MainWindow(Emulator &emulator)
 	
 	// App losing/gaining focus
 	connect(qApp, &QGuiApplication::applicationStateChanged, this, &MainWindow::application_state_changed);
+	
+	// Workaround for for qt bug https://bugreports.qt.io/browse/QTBUG-67239
+	// Prevents the menu code stealing the keyboard focus and preventing keys
+	// like escape from working, when opening more than one menu on the menubar
+	this->setFocus();
 }
 
 MainWindow::~MainWindow()
