@@ -152,8 +152,6 @@ ConfigureDialog::~ConfigureDialog()
 void
 ConfigureDialog::keyPressEvent(QKeyEvent *evt)
 {
-	std::cout << "keyPressEvent()" << std::endl;
-
 	if (evt->key() == Qt::Key_Enter || evt->key() == Qt::Key_Return) {
 		return;
 	}
