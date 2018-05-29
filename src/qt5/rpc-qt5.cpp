@@ -591,6 +591,9 @@ void
 Emulator::key_press(unsigned scan_code)
 {
 	const uint8_t *scan_codes = keyboard_map_key(scan_code);
+	if (scan_codes == NULL) {
+		rpclog("Unknown keyboard mapping for host keycode 0x%08x\n", scan_code);
+	}
 	keyboard_key_press(scan_codes);
 }
 
