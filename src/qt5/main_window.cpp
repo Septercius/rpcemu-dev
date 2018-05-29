@@ -1225,19 +1225,21 @@ MainWindow::nativeEvent(const QByteArray &eventType, void *message, long *result
 	MSG *msg = static_cast<MSG*>(message);
 
 	// Handle 'alt' key presses that would select the menu
-	// Fake 'alt' key press and release and then tell windows/qt to
+	// Handle 'shift-f10' key presses that would select the context-menu
+	// Fake 'normal' key press and release and then tell windows/qt to
 	// not handle it
-	if((msg->message == WM_SYSKEYDOWN || msg->message == WM_SYSKEYUP)
-	    && (msg->wParam == VK_MENU))
+	if ((msg->message == WM_SYSKEYDOWN || msg->message == WM_SYSKEYUP)
+	    && (msg->wParam == VK_MENU || msg->wParam == VK_F10))
 	{
+		unsigned scan_code = (unsigned) (msg->lParam >> 16) & 0xff;
+
 		// Use the code from the qt key press and release handlers
-		// 0x38 is the windows native keycode for alt
-		if(msg->message == WM_SYSKEYDOWN) {
-			held_keys.insert(held_keys.end(), 0x38);
-			emit this->emulator.key_press_signal(0x38);
+		if (msg->message == WM_SYSKEYDOWN) {
+			held_keys.insert(held_keys.end(), scan_code);
+			emit this->emulator.key_press_signal(scan_code);
 		} else {
-			held_keys.remove(0x38);
-			emit this->emulator.key_release_signal(0x38);
+			held_keys.remove(scan_code);
+			emit this->emulator.key_release_signal(scan_code);
 		}
 		return true;
 	}
