@@ -1287,7 +1287,7 @@ MainWindow::nativeEvent(const QByteArray &eventType, void *message, long *result
 	if ((msg->message == WM_SYSKEYDOWN || msg->message == WM_SYSKEYUP)
 	    && (msg->wParam == VK_MENU || msg->wParam == VK_F10))
 	{
-		unsigned scan_code = (unsigned) (msg->lParam >> 16) & 0xff;
+		unsigned scan_code = (unsigned) (msg->lParam >> 16) & 0x1ff;
 
 		if (msg->message == WM_SYSKEYDOWN) {
 			native_keypress_event(scan_code);
