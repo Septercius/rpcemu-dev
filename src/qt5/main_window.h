@@ -155,6 +155,10 @@ private:
 
 	void cdrom_menu_selection_update(const QAction *cdrom_action);
 
+	void native_keypress_event(unsigned scan_code);
+	void native_keyrelease_event(unsigned scan_code);
+	void release_held_keys();
+
 	bool full_screen;
 	bool reenable_mousehack; ///< Did we disable mousehack entering fullscreen and have to reenable it on leaving fullscreen?
 

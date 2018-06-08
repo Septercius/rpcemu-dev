@@ -388,15 +388,27 @@ MainWindow::application_state_changed(Qt::ApplicationState state)
 	// If the application loses focus, release all the keys
 	// that are pressed down. Prevents key stuck down repeats in emulator
 	if(state != Qt::ApplicationActive) {
-		for (std::list<quint32>::reverse_iterator it = held_keys.rbegin(); it != held_keys.rend(); ++it) {
-			emit this->emulator.key_release_signal(*it);
-		}
-
-		held_keys.clear();
+		release_held_keys();
 		infocus = false;
 	} else {
 		infocus = true;
 	}
+}
+
+/**
+ * Generate a key-release message for each key recorded as held down, and then
+ * clear this list of held keys.
+ */
+void
+MainWindow::release_held_keys()
+{
+	// Release keys in the emulator
+	for (std::list<quint32>::reverse_iterator it = held_keys.rbegin(); it != held_keys.rend(); ++it) {
+		emit this->emulator.key_release_signal(*it);
+	}
+
+	// Clear the list of keys considered to be held in the host
+	held_keys.clear();
 }
 
 /**
@@ -474,11 +486,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 
 	// Regular case pass key press onto the emulator
 	if (!event->isAutoRepeat()) {
-		// Add the key to the list of held_keys, that will be released
-		// when the window loses the focus
-		held_keys.insert(held_keys.end(), event->nativeScanCode());
-	
-		emit this->emulator.key_press_signal(event->nativeScanCode());
+		native_keypress_event(event->nativeScanCode());
 	}
 }
 
@@ -493,11 +501,49 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
 
 	// Regular case pass key release onto the emulator
 	if (!event->isAutoRepeat()) {
+		native_keyrelease_event(event->nativeScanCode());
+	}
+}
+
+/**
+ * Called by us with native scan-code to forward key-press to the emulator
+ *
+ * @param scan_code Native scan code of key
+ */
+void
+MainWindow::native_keypress_event(unsigned scan_code)
+{
+	// Check the key isn't already marked as held down (else ignore)
+	// (to deal with potentially inconsistent host messages)
+	bool found = (std::find(held_keys.begin(), held_keys.end(), scan_code) != held_keys.end());
+
+	if (!found) {
+		// Add the key to the list of held_keys, that will be released
+		// when the window loses the focus
+		held_keys.insert(held_keys.end(), scan_code);
+
+		emit this->emulator.key_press_signal(scan_code);
+	}
+}
+
+/**
+ * Called by us with native scan-code to forward key-release to the emulator
+ *
+ * @param scan_code Native scan code of key
+ */
+void
+MainWindow::native_keyrelease_event(unsigned scan_code)
+{
+	// Check the key is marked as held down (else ignore)
+	// (to deal with potentially inconsistent host messages)
+	bool found = (std::find(held_keys.begin(), held_keys.end(), scan_code) != held_keys.end());
+
+	if (found) {
 		// Remove the key from the list of held_keys, that will be released
 		// when the window loses the focus
-		held_keys.remove(event->nativeScanCode());
+		held_keys.remove(scan_code);
 
-		emit this->emulator.key_release_signal(event->nativeScanCode());
+		emit this->emulator.key_release_signal(scan_code);
 	}
 }
 
@@ -1233,13 +1279,10 @@ MainWindow::nativeEvent(const QByteArray &eventType, void *message, long *result
 	{
 		unsigned scan_code = (unsigned) (msg->lParam >> 16) & 0xff;
 
-		// Use the code from the qt key press and release handlers
 		if (msg->message == WM_SYSKEYDOWN) {
-			held_keys.insert(held_keys.end(), scan_code);
-			emit this->emulator.key_press_signal(scan_code);
+			native_keypress_event(scan_code);
 		} else {
-			held_keys.remove(scan_code);
-			emit this->emulator.key_release_signal(scan_code);
+			native_keyrelease_event(scan_code);
 		}
 		return true;
 	}
