@@ -560,7 +560,21 @@ MainWindow::native_keyrelease_event(unsigned scan_code)
 void
 MainWindow::menu_reset()
 {
-	emit this->emulator.reset_signal();
+	QMessageBox msgBox;
+	msgBox.setText("This will reset RPCEmu!\nOkay to continue?");
+	msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+	msgBox.setDefaultButton(QMessageBox::Cancel);
+	int ret = msgBox.exec();
+
+	switch (ret) {
+	case QMessageBox::Ok:
+		emit this->emulator.reset_signal();
+		break;
+
+	case QMessageBox::Cancel:
+	default:
+		break;
+	}
 }
 
 void 
