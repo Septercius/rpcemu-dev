@@ -67,6 +67,7 @@ public:
 	void set_full_screen(bool full_screen);
 	void update_image(const QImage& img, int yl, int yh, int double_size);
 	int get_double_size();
+	bool save_screenshot(QString filename);
 
 protected:
 	void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
@@ -111,6 +112,7 @@ protected:
 #endif /* Q_OS_WIN32 */
 	
 private slots:
+	void menu_screenshot();
 	void menu_reset();
 	void menu_loaddisc0();
 	void menu_loaddisc1();
@@ -175,6 +177,7 @@ private:
 	QMenu *help_menu;
 
 	// Actions on File menu
+	QAction *screenshot_action;
 	QAction *reset_action;
 	QAction *exit_action;
 

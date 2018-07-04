@@ -297,6 +297,18 @@ MainDisplay::get_double_size()
 	return double_size;
 }
 
+/**
+ * Dump the current display to the file specified.
+ *
+ * @param filename Filename to save display image to
+ *
+ * @return bool of success or failure
+ */
+bool
+MainDisplay::save_screenshot(QString filename)
+{
+	return this->image->save(filename, "png");
+}
 
 MainWindow::MainWindow(Emulator &emulator)
     : full_screen(false),
@@ -554,6 +566,28 @@ MainWindow::native_keyrelease_event(unsigned scan_code)
 		held_keys.remove(scan_code);
 
 		emit this->emulator.key_release_signal(scan_code);
+	}
+}
+
+void
+MainWindow::menu_screenshot()
+{
+	QString fileName = QFileDialog::getSaveFileName(this,
+	                                                tr("Save Screenshot"),
+	                                                "screenshot.png",
+	                                                tr("PNG (*.png)"));
+
+	// fileName is NULL if user hit cancel
+	if (fileName != NULL) {
+		bool result = this->display->save_screenshot(fileName);
+
+		if (result == false) {
+			QMessageBox msgBox(this);
+			msgBox.setText("Error saving screenshot");
+			msgBox.setStandardButtons(QMessageBox::Ok);
+			msgBox.setDefaultButton(QMessageBox::Ok);
+			msgBox.exec();
+		}
 	}
 }
 
@@ -899,9 +933,10 @@ void
 MainWindow::create_actions()
 {
 	// Actions on File menu
+	screenshot_action = new QAction(tr("Take Screenshot..."), this);
+	connect(screenshot_action, &QAction::triggered, this, &MainWindow::menu_screenshot);
 	reset_action = new QAction(tr("Reset"), this);
 	connect(reset_action, &QAction::triggered, this, &MainWindow::menu_reset);
-
 	exit_action = new QAction(tr("Exit"), this);
 	exit_action->setStatusTip(tr("Exit the application"));
 	connect(exit_action, &QAction::triggered, this, &QMainWindow::close);
@@ -995,6 +1030,8 @@ MainWindow::create_menus()
 {
 	// File menu
 	file_menu = menuBar()->addMenu(tr("File"));
+	file_menu->addAction(screenshot_action);
+	file_menu->addSeparator();
 	file_menu->addAction(reset_action);
 	file_menu->addSeparator();
 	file_menu->addAction(exit_action);
