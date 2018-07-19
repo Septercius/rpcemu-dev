@@ -941,27 +941,13 @@ MainWindow::create_actions()
 	exit_action->setStatusTip(tr("Exit the application"));
 	connect(exit_action, &QAction::triggered, this, &QMainWindow::close);
 
-	// Actions on Disc menu
-	loaddisc0_action = new QAction(tr("Load Disc :0"), this);
+	// Actions on Disc->Floppy menu
+	loaddisc0_action = new QAction(tr("Load Disc :0..."), this);
 	connect(loaddisc0_action, &QAction::triggered, this, &MainWindow::menu_loaddisc0);
-	loaddisc1_action = new QAction(tr("Load Disc :1"), this);
+	loaddisc1_action = new QAction(tr("Load Disc :1..."), this);
 	connect(loaddisc1_action, &QAction::triggered, this, &MainWindow::menu_loaddisc1);
 
-	// Actions on Settings menu
-	configure_action = new QAction(tr("Configure..."), this);
-	connect(configure_action, &QAction::triggered, this, &MainWindow::menu_configure);
-#ifdef RPCEMU_NETWORKING
-	networking_action = new QAction(tr("Networking..."), this);
-	connect(networking_action, &QAction::triggered, this, &MainWindow::menu_networking);
-#endif /* RPCEMU_NETWORKING */
-	fullscreen_action = new QAction(tr("Fullscreen mode"), this);
-	fullscreen_action->setCheckable(true);
-	connect(fullscreen_action, &QAction::triggered, this, &MainWindow::menu_fullscreen);
-	cpu_idle_action = new QAction(tr("Reduce CPU usage"), this);
-	cpu_idle_action->setCheckable(true);
-	connect(cpu_idle_action, &QAction::triggered, this, &MainWindow::menu_cpu_idle);
-
-	// Actions on the Settings->CD ROM Menu
+	// Actions on the Disc->CD-ROM menu
 	cdrom_disabled_action = new QAction(tr("Disabled"), this);
 	cdrom_disabled_action->setCheckable(true);
 	connect(cdrom_disabled_action, &QAction::triggered, this, &MainWindow::menu_cdrom_disabled);
@@ -996,6 +982,20 @@ MainWindow::create_actions()
 		}
 	}
 #endif
+
+	// Actions on Settings menu
+	configure_action = new QAction(tr("Configure..."), this);
+	connect(configure_action, &QAction::triggered, this, &MainWindow::menu_configure);
+#ifdef RPCEMU_NETWORKING
+	networking_action = new QAction(tr("Networking..."), this);
+	connect(networking_action, &QAction::triggered, this, &MainWindow::menu_networking);
+#endif /* RPCEMU_NETWORKING */
+	fullscreen_action = new QAction(tr("Fullscreen mode"), this);
+	fullscreen_action->setCheckable(true);
+	connect(fullscreen_action, &QAction::triggered, this, &MainWindow::menu_fullscreen);
+	cpu_idle_action = new QAction(tr("Reduce CPU usage"), this);
+	cpu_idle_action->setCheckable(true);
+	connect(cpu_idle_action, &QAction::triggered, this, &MainWindow::menu_cpu_idle);
 
 	// Actions on the Settings->Mouse menu
 	mouse_hack_action = new QAction(tr("Follow host mouse"), this);
@@ -1038,24 +1038,14 @@ MainWindow::create_menus()
 
 	// Disc menu
 	disc_menu = menuBar()->addMenu(tr("Disc"));
-	disc_menu->addAction(loaddisc0_action);
-	disc_menu->addAction(loaddisc1_action);
+	floppy_menu = disc_menu->addMenu(tr("Floppy"));
+	cdrom_menu = disc_menu->addMenu(tr("CD-ROM"));
 
-	// Settings menu (and submenus)
-	settings_menu = menuBar()->addMenu(tr("Settings"));
-	settings_menu->addAction(configure_action);
-#ifdef RPCEMU_NETWORKING
-	settings_menu->addAction(networking_action);
-#endif /* RPCEMU_NETWORKING */
-	settings_menu->addSeparator();
-	settings_menu->addAction(fullscreen_action);
-	settings_menu->addAction(cpu_idle_action);
-	settings_menu->addSeparator();
-	cdrom_menu = settings_menu->addMenu(tr("CD-ROM"));
-	settings_menu->addSeparator();
-	mouse_menu = settings_menu->addMenu(tr("Mouse"));
+	// Disc->Floppy menu
+	floppy_menu->addAction(loaddisc0_action);
+	floppy_menu->addAction(loaddisc1_action);
 
-	// CD-ROM submenu
+	// Disc->CD-ROM menu
 	cdrom_menu->addAction(cdrom_disabled_action);
 	cdrom_menu->addAction(cdrom_empty_action);
 	cdrom_menu->addAction(cdrom_iso_action);
@@ -1068,10 +1058,21 @@ MainWindow::create_menus()
 	}
 #endif
 
+	// Settings menu
+	settings_menu = menuBar()->addMenu(tr("Settings"));
+	settings_menu->addAction(configure_action);
+#ifdef RPCEMU_NETWORKING
+	settings_menu->addAction(networking_action);
+#endif /* RPCEMU_NETWORKING */
+	settings_menu->addSeparator();
+	settings_menu->addAction(fullscreen_action);
+	settings_menu->addAction(cpu_idle_action);
+	settings_menu->addSeparator();
+	mouse_menu = settings_menu->addMenu(tr("Mouse"));
+
 	// Mouse submenu
 	mouse_menu->addAction(mouse_hack_action);
 	mouse_menu->addAction(mouse_twobutton_action);
-
 
 	menuBar()->addSeparator();
 

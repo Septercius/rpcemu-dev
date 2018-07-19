@@ -116,17 +116,17 @@ private slots:
 	void menu_reset();
 	void menu_loaddisc0();
 	void menu_loaddisc1();
+	void menu_cdrom_disabled();
+	void menu_cdrom_empty();
+	void menu_cdrom_iso();
+	void menu_cdrom_ioctl();
+	void menu_cdrom_win_ioctl();
 	void menu_configure();
 #ifdef RPCEMU_NETWORKING
 	void menu_networking();
 #endif /* RPCEMU_NETWORKING */
 	void menu_fullscreen();
 	void menu_cpu_idle();
-	void menu_cdrom_disabled();
-	void menu_cdrom_empty();
-	void menu_cdrom_iso();
-	void menu_cdrom_ioctl();
-	void menu_cdrom_win_ioctl();
 	void menu_mouse_hack();
 	void menu_mouse_twobutton();
 	void menu_online_manual();
@@ -171,8 +171,9 @@ private:
 	// Menus
 	QMenu *file_menu;
 	QMenu *disc_menu;
-	QMenu *settings_menu;
+	QMenu *floppy_menu;
 	QMenu *cdrom_menu;
+	QMenu *settings_menu;
 	QMenu *mouse_menu;
 	QMenu *help_menu;
 
@@ -181,17 +182,9 @@ private:
 	QAction *reset_action;
 	QAction *exit_action;
 
-	// Actions on Disc menu
+	// Actions on Disc menu (and submenus)
 	QAction *loaddisc0_action;
 	QAction *loaddisc1_action;
-
-	// Actions on Settings menu (and submenus)
-	QAction *configure_action;
-#ifdef RPCEMU_NETWORKING
-	QAction *networking_action;
-#endif /* RPCEMU_NETWORKING */
-	QAction *fullscreen_action;
-	QAction *cpu_idle_action;
 	QAction *cdrom_disabled_action;
 	QAction *cdrom_empty_action;
 #if defined(Q_OS_LINUX)
@@ -201,6 +194,14 @@ private:
 	std::vector<QAction *> cdrom_win_ioctl_actions;
 #endif /* win32 */
 	QAction *cdrom_iso_action;
+
+	// Actions on Settings menu (and submenus)
+	QAction *configure_action;
+#ifdef RPCEMU_NETWORKING
+	QAction *networking_action;
+#endif /* RPCEMU_NETWORKING */
+	QAction *fullscreen_action;
+	QAction *cpu_idle_action;
 	QAction *mouse_hack_action;
 	QAction *mouse_twobutton_action;
 
