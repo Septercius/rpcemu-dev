@@ -653,11 +653,42 @@ MainWindow::menu_networking()
 }
 #endif /* RPCEMU_NETWORKING */
 
+/**
+ * Handle clicking on the Settings->Fullscreen option
+ */
 void
 MainWindow::menu_fullscreen()
 {
 	if (!full_screen) {
 		// Change Windowed -> Full Screen
+
+		// Make sure people know how to exit full-screen
+		if (config.show_fullscreen_message) {
+			QCheckBox *checkBox = new QCheckBox("Do not show this message again");
+
+			QMessageBox msg_box(QMessageBox::Information,
+			    "RPCEmu - Full-screen mode",
+			    "<p>This window will now be switched to <b>full-screen</b> mode.</p>"
+			    "<p>To leave full-screen mode press <b>Ctrl-End</b>.</p>",
+			    QMessageBox::Ok | QMessageBox::Cancel,
+			    this);
+			msg_box.setDefaultButton(QMessageBox::Ok);
+			msg_box.setCheckBox(checkBox);
+
+			int ret = msg_box.exec();
+
+			// If they checked the box don't show this message again
+			if (msg_box.checkBox()->isChecked()) {
+				config.show_fullscreen_message = 0;
+			}
+
+			// If they didn't click OK, revert the tick on the menu item and return
+			if (ret != QMessageBox::Ok) {
+				// Keep tick of menu item in sync
+				fullscreen_action->setChecked(false);
+				return;
+			}
+		}
 
 		display->set_full_screen(true);
 
