@@ -170,6 +170,8 @@ config_load(Config * config)
 
 	config->cpu_idle = 0;
 	config->cpu_idle = settings.value("cpu_idle", "0").toInt();
+
+	config->show_fullscreen_message = settings.value("show_fullscreen_message", "1").toInt();
 }
 
 
@@ -245,4 +247,5 @@ config_save(Config *config)
 	}
 
 	settings.setValue("cpu_idle", config->cpu_idle);
+	settings.setValue("show_fullscreen_message", config->show_fullscreen_message);
 }

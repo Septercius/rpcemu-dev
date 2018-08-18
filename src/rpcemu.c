@@ -89,6 +89,7 @@ Config config = {
 	0,			/* mousetwobutton */
 	NetworkType_Off,	/* network_type */
 	0,			/* cpu_idle */
+	1,			/* show_fullscreen_message */
 };
 
 /* Performance measuring variables */

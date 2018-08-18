@@ -136,6 +136,7 @@ typedef struct {
 	                             buttons, for mice with two buttons */
 	NetworkType network_type;
 	int cpu_idle;		/**< Attempt to reduce CPU usage */
+	int show_fullscreen_message;	/**< Show explanation of how to leave fullscreen, on entering fullscreen */
 } Config;
 
 extern Config config;
