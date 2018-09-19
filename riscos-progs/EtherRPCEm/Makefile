@@ -17,26 +17,37 @@ Squeezeflags = -o $@
 
 
 # User-editable dependencies:
+clean:
+	remove h.ModHdr
+	remove o.intveneer
+	remove o.ModHdr
+	remove o.Module
 
 # Static dependencies:
 @.o.Module:   @.c.Module
         cc $(ccflags) -o @.o.Module @.c.Module 
 @.o.intveneer:   @.s.intveneer
         objasm $(objasmflags) -from @.s.intveneer -to @.o.intveneer
+
+# A dependency with dummy action, because the cmhg file produces two
+# outputs (h.ModHdr and o.ModHdr)
+h.ModHdr: cmhg.ModHdr
+	|echo
+
 @.o.ModHdr:   @.cmhg.ModHdr
         cmhg $(cmhgflags)  @.cmhg.ModHdr -o @.o.ModHdr 
 
 
 # Dynamic dependencies:
+o.intveneer: s.intveneer
+o.intveneer: h.Equates
 o.Module:	c.Module
 o.Module:	C:h.kernel
 o.Module:	C:h.swis
-o.Module:	h.modhdr
+o.Module:	h.ModHdr
 o.Module:	h.Defines
 o.Module:	h.Structs
 o.Module:	h.mbuf_c
 o.Module:	h.DCI
 o.Module:	h.Module
 o.Module:	h.DCI
-o.intveneer: s.intveneer
-o.intveneer: h.Equates
