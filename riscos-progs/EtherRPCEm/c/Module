@@ -367,16 +367,10 @@ void service_call(int service_number,_kernel_swi_regs * r,void * pw)
                                r->r[0] = rg.r[2];              // link our chaindib into the chain
                              }
                              break;
-                                                                      
+
     case Service_DCIProtocolStatus:
-                        if(r->r[2]==0)  // its protocol starting
-                        {
-                          rg.r[0]= (int)(CallBkVeneer);    // where to call
-                          rg.r[1]= (int)work;                // work pointer for this
-                          _kernel_swi(OS_AddCallBack,&rg,&rg);
-                        }
                              break;
-                                   
+
     case Service_MbufManagerStatus:
                  switch(r->r[0])
                  {
