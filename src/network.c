@@ -65,6 +65,69 @@ makechunk(uint8_t type, uint32_t filebase, uint32_t size)
 }
 
 /**
+ * Create the network podule ROM consisting of a description string and a
+ * driver module
+ */
+static void
+network_rom_init(void)
+{
+	FILE *f;
+	size_t module_file_size = 0;
+
+	// Build podule header
+	chunkbase = 0x10;
+	filebase = chunkbase + (8 * 2) + 4; // required size for two entries
+	poduleromsize = filebase + ((sizeof(description) + 3) & ~3u); // Word align description string
+
+	// Add on size for driver module if it can be opened successfully
+	f = fopen("netroms/EtherRPCEm,ffa", "rb");
+	if (f != NULL) {
+		long len;
+
+		fseek(f, 0, SEEK_END);
+		len = ftell(f);
+		if (len > 0 && len <= 128 * 1024) {
+			module_file_size = (size_t) len;
+			poduleromsize += ((uint32_t) len + 3) & ~3u; // Word-aligned size
+			rewind(f);
+		} else {
+			fclose(f);
+			f = NULL;
+		}
+	}
+
+	// Allocate memory
+	romdata = calloc(poduleromsize, 1);
+	if (romdata == NULL) {
+		fatal("Out of Memory");
+	}
+
+	romdata[0] = 0; // Acorn comformant card, not requesting FIQ, not requesting interupt, EcID = 0 = EcID is extended (8 bytes)
+	romdata[1] = 3; // Interrupt status has been relocated, chunk directories present, byte access
+	romdata[2] = 0; // Mandatory
+	romdata[3] = 3; // Product type, low,  Ethernet
+	romdata[4] = 0; // Product type, high, Ethernet
+	romdata[5] = 0; // Manufacturer, low,  Acorn UK
+	romdata[6] = 0; // Manufacturer, high, Acorn UK
+	romdata[7] = 0; // Reserved
+
+	memcpy(romdata + filebase, description, sizeof(description));
+	makechunk(0xf5, filebase, sizeof(description)); // 0xf5 = Device Data, Description
+	filebase += (sizeof(description) + 3) & ~3u;
+
+	// If the driver module was opened successfully, load it and add to the podule
+	if (f != NULL) {
+		size_t len = fread(romdata + filebase, 1, module_file_size, f);
+		fclose(f);
+
+		if (len == module_file_size) { // Load was OK
+			len = (len + 3) & ~3u;
+			makechunk(0x81, filebase, (uint32_t) len); // 0x81 = RISC OS, ROM
+		}
+	}
+}
+
+/**
  * Podule byte read function for Ethernet podule
  *
  * @param p    podule pointer (unused)
@@ -222,26 +285,9 @@ network_init(void)
 	       config.network_type == NetworkType_IPTunnelling);
 
 	/* Build podule header */
-	chunkbase = 0x10;
-	filebase = chunkbase + 8 ; /* 8 = makechunk() required size for one entry */
-	poduleromsize = filebase + ((sizeof(description) + 3) & ~3u); /* Word align description string */
-	romdata = malloc(poduleromsize);
-	if (romdata == NULL) {
-		fatal("Out of Memory");
+	if (romdata == NULL) { // If not previously initialised
+		network_rom_init();
 	}
-
-	memset(romdata, 0, poduleromsize);
-	romdata[0] = 0; /* Acorn comformant card, not requesting FIQ, not requesting interupt, EcID = 0 = EcID is extended (8 bytes) */
-	romdata[1] = 3; /* Interrupt status has been relocated, chunk directories present, byte access */
-	romdata[2] = 0; /* Mandatory */
-	romdata[3] = 3; /* Product type, low,  Ethernet */
-	romdata[4] = 0; /* Product type, high, Ethernet */
-	romdata[5] = 0; /* Manufacturer, low,  Acorn UK */
-	romdata[6] = 0; /* Manufacturer, high, Acorn UK */
-	romdata[7] = 0; /* Reserved */
-
-	memcpy(romdata + filebase, description, sizeof(description));
-	makechunk(0xf5, filebase, sizeof(description)); /* F = Device Data, 5 = description */
 
 	/* Call platform's initialisation code */
 	success = network_plt_init();
