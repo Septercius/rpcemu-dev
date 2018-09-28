@@ -12,7 +12,7 @@ Squeezeflags = -o $@
 
 
 # Final targets:
-@.!System.310.Modules.Network.EtherRPCEm:   @.o.Module @.o.intveneer @.o.ModHdr
+EtherRPCEm: @.o.Module @.o.intveneer @.o.ModHdr
         Link $(Linkflags) @.o.Module @.o.intveneer @.o.ModHdr C:o.stubsg
 
 
