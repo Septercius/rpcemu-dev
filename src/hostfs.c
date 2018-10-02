@@ -1325,6 +1325,7 @@ hostfs_file_8_create_dir(ARMul_State *state)
   char ro_path[PATH_MAX];
   char host_pathname[PATH_MAX];
   risc_os_object_info object_info;
+  enum FILECORE_ERROR error_detail;
 
   assert(state);
 
@@ -1344,11 +1345,15 @@ hostfs_file_8_create_dir(ARMul_State *state)
     return;
   }
 
-  hostfs_path_process(ro_path, host_pathname, &object_info);
+  error_detail = hostfs_path_process(ro_path, host_pathname, &object_info);
 
   if (object_info.type != OBJECT_TYPE_NOT_FOUND) {
     /* The object already exists (not necessarily as a directory).
        Return with no error */
+    return;
+  } else if (error_detail != 0) {
+    // Invalid disk name or path
+    state->Reg[9] = (uint32_t) error_detail;
     return;
   }
 
@@ -1507,6 +1512,7 @@ hostfs_func_8_rename(ARMul_State *state)
   char ro_path2[PATH_MAX], host_pathname2[PATH_MAX];
   risc_os_object_info object_info1, object_info2;
   char new_pathname[PATH_MAX];
+  enum FILECORE_ERROR error_detail;
 
   assert(state);
 
@@ -1533,7 +1539,7 @@ hostfs_func_8_rename(ARMul_State *state)
   get_string(state, state->Reg[2], ro_path2, sizeof(ro_path2));
   dbug_hostfs("\tPATH_NEW = %s\n", ro_path2);
 
-  hostfs_path_process(ro_path2, host_pathname2, &object_info2);
+  error_detail = hostfs_path_process(ro_path2, host_pathname2, &object_info2);
 
   dbug_hostfs("\tHOST_PATH_NEW = %s\n", host_pathname2);
 
@@ -1552,6 +1558,12 @@ hostfs_func_8_rename(ARMul_State *state)
       return;
     }
   } else {
+    if (error_detail != 0) {
+      // Invalid disk name or path
+      state->Reg[9] = (uint32_t) error_detail;
+      return;
+    }
+
     strcat(host_pathname2, "/");
   }
 
