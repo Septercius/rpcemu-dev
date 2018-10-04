@@ -18,10 +18,14 @@ EtherRPCEm: @.o.Module @.o.intveneer @.o.ModHdr
 
 # User-editable dependencies:
 clean:
+	remove c.AutoSense
 	remove h.ModHdr
 	remove o.intveneer
 	remove o.ModHdr
 	remove o.Module
+
+c.AutoSense: AutoSense.EtherRPCEm
+	bin2c -t "const unsigned char" -n autosense_file $? $@
 
 # Static dependencies:
 @.o.Module:   @.c.Module
@@ -51,3 +55,4 @@ o.Module:	h.mbuf_c
 o.Module:	h.DCI
 o.Module:	h.Module
 o.Module:	h.DCI
+o.Module:	c.AutoSense

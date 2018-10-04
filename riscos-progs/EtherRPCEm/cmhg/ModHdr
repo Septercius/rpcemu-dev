@@ -25,7 +25,7 @@ initialisation-code: initialise
 
 finalisation-code: finalise
 
-service-call-handler: service_call 0x9b 0x9f 0xa2
+service-call-handler: service_call 0x49 0x9b 0x9f 0xa2
 
 swi-chunk-base-number: 0x58CC0
 

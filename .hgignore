@@ -46,6 +46,7 @@ src/qt5/object_script.RPCEmu-Recompiler-debug.Debug
 src/qt5/object_script.RPCEmu-Recompiler.Release
 
 # Generated when building EtherRPCEm
+riscos-progs/EtherRPCEm/c/AutoSense
 riscos-progs/EtherRPCEm/h/ModHdr
 riscos-progs/EtherRPCEm/o/*,ffd
 

@@ -37,6 +37,9 @@
 
 #include "DCI.h"
 
+/// Directly include a binary version of the AutoSense file (as a C array)
+#include "AutoSense.c"
+
 #define  UNUSED(x)              (x = x)
 
 _kernel_oserror *networktxswi(struct mbuf *mbufs, int dest, int src, int frametype);
@@ -73,6 +76,59 @@ static struct mbuf *data_mbuf = NULL;
 
 #define MBUF_MANAGER_VERSION 100
 
+
+/// List of locations to try to install the AutoSense file
+static const char *autosense_locations[] = {
+	"<Boot$Dir>.Resources.Configure.!InetSetup.AutoSense.EtherRPCEm",
+	"<Boot$Dir>.RO420Hook.Res.Configure.!NetSetup.!IFSetup.AutoSense.EtherRPCEm",
+	"<Boot$Dir>.RO430Hook.Res.Configure.!NetSetup.!IFSetup.AutoSense.EtherRPCEm",
+	"<Boot$Dir>.RO440Hook.Res.Configure.!NetSetup.!IFSetup.AutoSense.EtherRPCEm",
+	NULL
+};
+
+/**
+ * Try to install the AutoSense file into the required location in the Boot
+ * sequence.
+ */
+static void
+autosense_install(void)
+{
+	_kernel_swi_regs r;
+	size_t i;
+
+	// Determine if Boot$Dir is set
+	r.r[0] = (int) "Boot$Dir";
+	r.r[1] = 0;
+	r.r[2] = -1;
+	r.r[3] = 0;
+	_kernel_swi(OS_ReadVarVal, &r, &r);
+	if (r.r[2] >= 0) {
+		// Boot$Dir is not set
+		return;
+	}
+
+	for (i = 0; autosense_locations[i] != NULL; i++) {
+		const char *location = autosense_locations[i];
+		_kernel_oserror *err;
+
+		// Read information about current autosense file (if it exists)
+		r.r[0] = 17;
+		r.r[1] = (int) location;
+		err = _kernel_swi(OS_File, &r, &r);
+		if (err != NULL || r.r[0] != 0) {
+			// Already exists (or an error occurred)
+			continue;
+		}
+
+		// Copy autosense data to location
+		r.r[0] = 10;
+		r.r[1] = (int) location;
+		r.r[2] = 0xffb;
+		r.r[4] = (int) autosense_file;
+		r.r[5] = (int) (autosense_file + sizeof(autosense_file));
+		_kernel_swi(OS_File, &r, &r);
+	}
+}
 
 // startstop = 0 for starting, 1 for stopping
 void SendServiceDCIDriverStatus(int startstop, workspace* work)
@@ -357,6 +413,10 @@ void service_call(int service_number,_kernel_swi_regs * r,void * pw)
 
   switch(service_number)
   {
+  case Service_StartWimp:
+    autosense_install();
+    break;
+
     case Service_EnumerateNetworkDrivers:  // on entry, r0-> chain of dibs
                              rg.r[0] = RMAClaim;
                              rg.r[3] = sizeof(chaindib);
