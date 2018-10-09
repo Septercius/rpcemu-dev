@@ -133,6 +133,10 @@ private slots:
 	void menu_visit_website();
 	void menu_about();
 
+	// Track menu show/hide
+	void menu_aboutToShow();
+	void menu_aboutToHide();
+
 	void main_display_update(VideoUpdate video_update);
 	void move_host_mouse(MouseMoveUpdate mouse_update);
 
@@ -151,6 +155,8 @@ private:
 	void create_actions();
 	void create_menus();
 	void create_tool_bars();
+
+	void add_menu_show_hide_handlers();
 
 	void readSettings();
 	void writeSettings();
@@ -230,6 +236,8 @@ private:
 	
 	// List of keys currently held down, released when window loses focus
 	std::list<quint32> held_keys;
+
+	bool menu_open; ///< Is there a menu open? Used to suppress key-presses
 
 	bool infocus; ///< Does the main window currently have the focus
 };
