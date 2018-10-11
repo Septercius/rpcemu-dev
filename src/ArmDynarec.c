@@ -35,7 +35,6 @@ int blockend;
 
 #include "rpcemu.h"
 #include "hostfs.h"
-//#include "codegen_x86.h"
 #include "keyboard.h"
 #include "mem.h"
 #include "iomd.h"
@@ -43,6 +42,14 @@ int blockend;
 #include "arm.h"
 #include "cp15.h"
 #include "fdc.h"
+
+#if defined __amd64__
+#	include "codegen_amd64.h"
+#elif defined i386 || defined __i386 || defined __i386__ || defined _X86_
+#	include "codegen_x86.h"
+#else
+#	error "Fatal error : no recompiler available for this architecture"
+#endif
 
 extern void removeblock(void); /* in codegen_*.c */
 	
@@ -610,15 +617,6 @@ static const OpFn opcodes[256]=
 };
 
 int linecyc=0;
-#ifdef __amd64__
-#include "codegen_amd64.h" 
-#else
-        #if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined WIN32 || defined _WIN32 || defined _WIN32
-        #include "codegen_x86.h"
-        #else
-                #error Fatal error : no recompiler available for your architecture
-        #endif
-#endif
 
 static inline int
 arm_opcode_may_abort(uint32_t opcode)
