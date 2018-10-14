@@ -432,6 +432,10 @@ MainWindow::release_held_keys()
 void
 MainWindow::closeEvent(QCloseEvent *event)
 {
+	// Disconnect the applicationStateChanged event, because our handler
+	// can generate messages the machine won't be able to handle when quit
+	disconnect(qApp, &QGuiApplication::applicationStateChanged, this, &MainWindow::application_state_changed);
+
 	// Inform the emulator thread that we're quitting
 	emit this->emulator.exit_signal();
 
