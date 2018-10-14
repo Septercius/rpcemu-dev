@@ -183,7 +183,7 @@ MainDisplay::update_image(const QImage& img, int yl, int yh, int double_size)
 
 	if (img.size() != image->size()) {
 		// Re-create image with new size and copy of data
-		*(this->image) = img;
+		*(this->image) = img.copy();
 
 		recalculate_needed = true;
 
