@@ -666,6 +666,13 @@ Emulator::mouse_release(int buttons)
 void
 Emulator::reset()
 {
+	// Obtain the Video mutex, to ensure the Video thread is idle
+	pthread_mutex_lock(&video_mutex);
+
+	// Promptly free the mutex again: the Video thread won't be active
+	// again until after the reset
+	pthread_mutex_unlock(&video_mutex);
+
 	resetrpc();
 }
 
