@@ -31,11 +31,6 @@
 #include "arm.h"
 #include "arm_common.h"
 
-#if defined __linux__ || defined __MACH__
-#include <sys/mman.h>
-#include <unistd.h>
-#endif
-
 void generateupdatepc(void);
 int linecyc;
 
@@ -115,12 +110,7 @@ void
 initcodeblocks(void)
 {
 	int c;
-#if defined __linux__ || defined __MACH__
-	void *start;
-	size_t len;
-	long pagesize = sysconf(_SC_PAGESIZE);
-	long pagemask = ~(pagesize - 1);
-#endif
+
 	/* Clear all blocks */
 	memset(codeblockpc, 0xff, sizeof(codeblockpc));
 	memset(blocks, 0xff, sizeof(blocks));
@@ -137,16 +127,9 @@ initcodeblocks(void)
                 lahftablesub[c]=lahftable[c]^0x20;
         }
 
-#if defined __linux__ || defined __MACH__
 	/* Set memory pages containing rcodeblock[]s executable -
 	   necessary when NX/XD feature is active on CPU(s) */
-	start = (void *)((long)rcodeblock & pagemask);
-	len = (sizeof rcodeblock + pagesize) & pagemask;
-	if (mprotect(start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
-		perror("mprotect");
-		exit(1);
-	}
-#endif
+	set_memory_executable(rcodeblock, sizeof(rcodeblock));
 }
 
 void
