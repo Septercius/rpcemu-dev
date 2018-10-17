@@ -33,6 +33,11 @@ int blockend;
 #include <stdint.h>
 #include <time.h>
 
+#if defined __linux__ || defined __MACH__
+#	include <unistd.h>
+#	include <sys/mman.h>
+#endif
+
 #include "rpcemu.h"
 #include "hostfs.h"
 #include "keyboard.h"
@@ -551,6 +556,43 @@ exception(uint32_t mmode, uint32_t address, uint32_t diff)
 	}
 	refillpipeline();
 }
+
+#if defined __linux__ || defined __MACH__
+/**
+ * Grant executable privilege to a region of memory (Unix)
+ *
+ * @param ptr Pointer to region of memory
+ * @param len Length of region of memory
+ */
+void
+set_memory_executable(void *ptr, size_t len)
+{
+	const long page_size = sysconf(_SC_PAGESIZE);
+	const long page_mask = ~(page_size - 1);
+	void *start;
+	long end;
+
+	start = (void *) ((long) ptr & page_mask);
+	end = ((long) ptr + len + page_size - 1) & page_mask;
+	len = (size_t) (end - (long) start);
+
+	if (mprotect(start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+		perror("mprotect");
+		exit(1);
+	}
+}
+
+#else
+/**
+ * Stub implementation for when another implementation does not apply.
+ */
+void
+set_memory_executable(void *ptr, size_t len)
+{
+	NOT_USED(ptr);
+	NOT_USED(len);
+}
+#endif
 
 #include "ArmDynarecOps.h"
 
