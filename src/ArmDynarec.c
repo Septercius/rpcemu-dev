@@ -36,6 +36,8 @@ int blockend;
 #if defined __linux__ || defined __MACH__
 #	include <unistd.h>
 #	include <sys/mman.h>
+#elif defined WIN32 || defined _WIN32
+#	include <Windows.h>
 #endif
 
 #include "rpcemu.h"
@@ -578,6 +580,24 @@ set_memory_executable(void *ptr, size_t len)
 
 	if (mprotect(start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
 		perror("mprotect");
+		exit(1);
+	}
+}
+
+#elif defined WIN32 || defined _WIN32
+/**
+ * Grant executable privilege to a region of memory (Windows)
+ *
+ * @param ptr Pointer to region of memory
+ * @param len Length of region of memory
+ */
+void
+set_memory_executable(void *ptr, size_t len)
+{
+	DWORD old_protect;
+
+	if (!VirtualProtect(ptr, len, PAGE_EXECUTE_READWRITE, &old_protect)) {
+		fprintf(stderr, "VirtualProtect() failed: error code 0x%lx\n", GetLastError());
 		exit(1);
 	}
 }

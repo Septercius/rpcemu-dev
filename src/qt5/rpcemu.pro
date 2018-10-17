@@ -71,6 +71,9 @@ win32 {
 			network_dialog.h
 
 	RC_ICONS = ../win/rpcemu.ico
+
+	# Enable Data Execution Prevention (DEP)
+	QMAKE_LFLAGS = -Wl,--nxcompat
 }
 
 linux {
