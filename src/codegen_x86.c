@@ -34,7 +34,7 @@
 void generateupdatepc(void);
 int linecyc;
 
-unsigned char rcodeblock[BLOCKS][1792+512+64];
+uint8_t rcodeblock[BLOCKS][1792+512+64] __attribute__ ((aligned (4096)));
 static const void *codeblockaddr[BLOCKS];
 uint32_t codeblockpc[0x8000];
 static unsigned char codeblockpresent[0x10000];

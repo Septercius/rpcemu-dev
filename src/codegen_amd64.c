@@ -35,7 +35,7 @@
 
 void generateupdatepc(void);
 int lastflagchange;
-unsigned char rcodeblock[BLOCKS][1792];
+uint8_t rcodeblock[BLOCKS][1792] __attribute__ ((aligned (4096)));
 static const void *codeblockaddr[BLOCKS];
 uint32_t codeblockpc[0x8000];
 int codeblocknum[0x8000];
