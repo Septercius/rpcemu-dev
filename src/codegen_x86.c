@@ -26,6 +26,8 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <string.h>
+
 #include "codegen_x86.h"
 #include "mem.h"
 #include "arm.h"
@@ -69,7 +71,7 @@ addbyte(uint32_t a)
 static inline void
 addlong(uint32_t a)
 {
-	*((uint32_t *) &rcodeblock[blockpoint2][codeblockpos]) = a;
+	memcpy(&rcodeblock[blockpoint2][codeblockpos], &a, sizeof(uint32_t));
 	codeblockpos += 4;
 }
 
