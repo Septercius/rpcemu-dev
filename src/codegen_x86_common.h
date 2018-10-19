@@ -167,10 +167,10 @@ gen_x86_jump_here(int jump_offset_pos)
 static inline void
 gen_x86_jump_here_long(int jump_offset_pos)
 {
-	int rel = codeblockpos - jump_offset_pos;
+	const int rel = codeblockpos - jump_offset_pos;
+	const uint32_t value = (uint32_t) (rel - 4);
 
-	*((uint32_t *) &rcodeblock[blockpoint2][jump_offset_pos]) =
-	    (uint32_t) (rel - 4);
+	memcpy(&rcodeblock[blockpoint2][jump_offset_pos], &value, sizeof(uint32_t));
 }
 
 /**

@@ -28,6 +28,8 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
+
 #include "codegen_amd64.h"
 #include "mem.h"
 #include "arm.h"
@@ -66,14 +68,14 @@ addbyte(uint32_t a)
 static inline void
 addlong(uint32_t a)
 {
-	*((uint32_t *) &rcodeblock[blockpoint2][codeblockpos]) = a;
+	memcpy(&rcodeblock[blockpoint2][codeblockpos], &a, sizeof(uint32_t));
 	codeblockpos += 4;
 }
 
 static inline void
 addptr64(const void *a)
 {
-	*((uint64_t *) &rcodeblock[blockpoint2][codeblockpos]) = (uint64_t) a;
+	memcpy(&rcodeblock[blockpoint2][codeblockpos], &a, sizeof(uint64_t));
 	codeblockpos += 8;
 }
 
