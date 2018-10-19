@@ -705,16 +705,16 @@ MainWindow::menu_fullscreen()
 
 			int ret = msg_box.exec();
 
-			// If they checked the box don't show this message again
-			if (msg_box.checkBox()->isChecked()) {
-				config.show_fullscreen_message = 0;
-			}
-
 			// If they didn't click OK, revert the tick on the menu item and return
 			if (ret != QMessageBox::Ok) {
 				// Keep tick of menu item in sync
 				fullscreen_action->setChecked(false);
 				return;
+			}
+
+			// If they checked the box don't show this message again
+			if (msg_box.checkBox()->isChecked()) {
+				config.show_fullscreen_message = 0;
 			}
 		}
 
