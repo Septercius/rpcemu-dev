@@ -46,6 +46,8 @@
    name clashes with Posix mkdir() function taking two. This
    macro allows us to use one API to work with both variants */
 #if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
+# include <direct.h>
+
 # define mkdir(name, mode) _mkdir(name)
 #endif
 
