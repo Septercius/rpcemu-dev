@@ -27,6 +27,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPainter>
+#include <QPushButton>
 
 #if defined(Q_OS_WIN32)
 #include "Windows.h"
@@ -432,6 +433,23 @@ MainWindow::release_held_keys()
 void
 MainWindow::closeEvent(QCloseEvent *event)
 {
+	// Request confirmation to exit
+	QMessageBox msgBox(QMessageBox::Question,
+	    "RPCEmu",
+	    "Are you sure you want to exit?",
+	    QMessageBox::Cancel,
+	    this);
+	QPushButton *exit_button = msgBox.addButton("Exit", QMessageBox::ActionRole);
+	msgBox.setDefaultButton(QMessageBox::Cancel);
+	msgBox.setInformativeText("Any unsaved data will be lost.");
+	msgBox.exec();
+
+	if (msgBox.clickedButton() != exit_button) {
+		// Prevent this close message triggering any more effects
+		event->ignore();
+		return;
+	}
+
 	// Disconnect the applicationStateChanged event, because our handler
 	// can generate messages the machine won't be able to handle when quit
 	disconnect(qApp, &QGuiApplication::applicationStateChanged, this, &MainWindow::application_state_changed);
