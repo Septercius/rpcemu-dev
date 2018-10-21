@@ -1022,9 +1022,9 @@ MainWindow::create_actions()
 	connect(exit_action, &QAction::triggered, this, &QMainWindow::close);
 
 	// Actions on Disc->Floppy menu
-	loaddisc0_action = new QAction(tr("Load Disc :0..."), this);
+	loaddisc0_action = new QAction(tr("Load Drive :0..."), this);
 	connect(loaddisc0_action, &QAction::triggered, this, &MainWindow::menu_loaddisc0);
-	loaddisc1_action = new QAction(tr("Load Disc :1..."), this);
+	loaddisc1_action = new QAction(tr("Load Drive :1..."), this);
 	connect(loaddisc1_action, &QAction::triggered, this, &MainWindow::menu_loaddisc1);
 
 	// Actions on the Disc->CD-ROM menu
@@ -1070,15 +1070,15 @@ MainWindow::create_actions()
 	networking_action = new QAction(tr("Networking..."), this);
 	connect(networking_action, &QAction::triggered, this, &MainWindow::menu_networking);
 #endif /* RPCEMU_NETWORKING */
-	fullscreen_action = new QAction(tr("Fullscreen mode"), this);
+	fullscreen_action = new QAction(tr("Full-screen Mode"), this);
 	fullscreen_action->setCheckable(true);
 	connect(fullscreen_action, &QAction::triggered, this, &MainWindow::menu_fullscreen);
-	cpu_idle_action = new QAction(tr("Reduce CPU usage"), this);
+	cpu_idle_action = new QAction(tr("Reduce CPU Usage"), this);
 	cpu_idle_action->setCheckable(true);
 	connect(cpu_idle_action, &QAction::triggered, this, &MainWindow::menu_cpu_idle);
 
 	// Actions on the Settings->Mouse menu
-	mouse_hack_action = new QAction(tr("Follow host mouse"), this);
+	mouse_hack_action = new QAction(tr("Follow Host Mouse"), this);
 	mouse_hack_action->setCheckable(true);
 	connect(mouse_hack_action, &QAction::triggered, this, &MainWindow::menu_mouse_hack);
 
@@ -1146,12 +1146,14 @@ MainWindow::create_menus()
 #endif /* RPCEMU_NETWORKING */
 	settings_menu->addSeparator();
 	settings_menu->addAction(fullscreen_action);
+	settings_menu->addSeparator();
 	settings_menu->addAction(cpu_idle_action);
 	settings_menu->addSeparator();
 	mouse_menu = settings_menu->addMenu(tr("Mouse"));
 
 	// Mouse submenu
 	mouse_menu->addAction(mouse_hack_action);
+	mouse_menu->addSeparator();
 	mouse_menu->addAction(mouse_twobutton_action);
 
 	menuBar()->addSeparator();
