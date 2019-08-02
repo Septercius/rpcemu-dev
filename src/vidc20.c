@@ -441,7 +441,10 @@ vidcthread(void)
 	} else {
 		/* Using VRAM for video */
 		ramp = (const uint8_t *) vram;
-		vidend = (thr.iomd_vidend + 2048) & 0x7ffff0;
+		vidend = (thr.iomd_vidend + 2048) & 0xfffff0;
+		if (vidend > 0x800000) {
+			vidend &= 0x7ffff0;
+		}
 	}
 
 	addr = thr.iomd_vidinit & 0x7fffff;
