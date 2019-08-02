@@ -421,7 +421,7 @@ vidcthread(void)
 	int drawit = 0;
 	int x, y;
 	const uint8_t *ramp;
-	int addr;
+	uint32_t addr;
 	int yl = -1, yh = -1;
 	static int oldcursorheight;
 	static int oldcursory;
@@ -488,7 +488,7 @@ vidcthread(void)
 				} else {
 					addr += 1;
 				}
-				if (addr == (int) vidend) {
+				if (addr == vidend) {
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
@@ -541,7 +541,7 @@ vidcthread(void)
 				} else {
 					addr += 1;
 				}
-				if (addr == (int) vidend) {
+				if (addr == vidend) {
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
@@ -603,7 +603,7 @@ vidcthread(void)
 				} else {
 					addr += 16;
 				}
-				if (addr == (int) vidend) {
+				if (addr == vidend) {
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
@@ -657,7 +657,7 @@ vidcthread(void)
 				} else {
 					addr += 16;
 				}
-				if (addr == (int) vidend) {
+				if (addr == vidend) {
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
@@ -715,7 +715,7 @@ vidcthread(void)
 				} else {
 					addr += 16;
 				}
-				if (addr == (int) vidend) {
+				if (addr == vidend) {
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
@@ -763,7 +763,7 @@ vidcthread(void)
 				} else {
 					addr += 16;
 				}
-				if (addr == (int) vidend) {
+				if (addr == vidend) {
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
