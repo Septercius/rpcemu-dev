@@ -643,9 +643,9 @@ void
 MainWindow::menu_loaddisc0()
 {
 	QString fileName = QFileDialog::getOpenFileName(this,
-	                                                tr("Open Disc Image"),
-	                                                "",
-	                                                tr("ADFS Disc Image (*.adf);;All Files (*.*)"));
+	    tr("Open Disc Image"),
+	    "",
+	    tr("All disc images (*.adf *.adl);;ADFS D/E/F Disc Image (*.adf);;ADFS L Disc Image (*.adl)"));
 
 	/* fileName is NULL if user hit cancel */
 	if(fileName != NULL) {
@@ -657,9 +657,9 @@ void
 MainWindow::menu_loaddisc1()
 {
 	QString fileName = QFileDialog::getOpenFileName(this,
-	                                                tr("Open Disc Image"),
-	                                                "",
-	                                                tr("ADFS Disc Image (*.adf);;All Files (*.*)"));
+	    tr("Open Disc Image"),
+	    "",
+	    tr("All disc images (*.adf *.adl);;ADFS D/E/F Disc Image (*.adf);;ADFS L Disc Image (*.adl)"));
 
 	/* fileName is NULL if user hit cancel */
 	if(fileName != NULL) {

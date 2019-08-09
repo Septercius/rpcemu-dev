@@ -305,8 +305,8 @@ rpcemu_start(void)
 	arm_init();
 	loadroms();
         cmos_init();
-        fdc_adf_load("boot.adf",0);
-        fdc_adf_load("notboot.adf",1);
+        fdc_image_load("boot.adf", 0);
+        fdc_image_load("notboot.adf", 1);
         initvideo();
 
         sound_init();
@@ -428,8 +428,8 @@ endrpcemu(void)
         sound_thread_close();
         closevideo();
         iomd_end();
-        fdc_adf_save(discname[0], 0);
-        fdc_adf_save(discname[1], 1);
+        fdc_image_save(discname[0], 0);
+        fdc_image_save(discname[1], 1);
         free(vram);
         free(ram00);
         free(ram01);
@@ -474,14 +474,14 @@ rpcemu_floppy_load(int drive, const char *filename)
 	assert(filename);
 	assert(*filename);
 
-	fdc_adf_save(discname[drive], drive);
+	fdc_image_save(discname[drive], drive);
 
 	if (strlen(filename) > sizeof(discname[drive]) - 1) {
-		// New ADF path too long
-		error("ADF disk path \'%s\' too long", filename);
+		// New disc image path too long
+		error("Disc image disc path \'%s\' too long", filename);
 	} else {
 		strcpy(discname[drive], filename);
-		fdc_adf_load(discname[drive], drive);
+		fdc_image_load(discname[drive], drive);
 	}
 }
 
