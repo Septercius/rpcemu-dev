@@ -120,6 +120,34 @@ static Drive drives[2];
 int fdccallback = 0;
 int motoron = 0;
 
+static inline void
+fdc_irq_raise(void)
+{
+	iomd.irqb.status |= IOMD_IRQB_FLOPPY;
+	updateirqs();
+}
+
+static inline void
+fdc_irq_lower(void)
+{
+	iomd.irqb.status &= ~IOMD_IRQB_FLOPPY;
+	updateirqs();
+}
+
+static inline void
+fdc_dma_raise(void)
+{
+	iomd.fiq.status |= IOMD_FIQ_FLOPPY_DMA_REQUEST;
+	updateirqs();
+}
+
+static inline void
+fdc_dma_lower(void)
+{
+	iomd.fiq.status &= ~IOMD_FIQ_FLOPPY_DMA_REQUEST;
+	updateirqs();
+}
+
 /**
  * Calculate the size code for a given length of sector
  *
@@ -466,8 +494,7 @@ fdc_read(uint32_t addr)
 {
 	switch (addr) {
 	case 0x3f4: /* Main Status Register (MSR) */
-		iomd.irqb.status &= ~IOMD_IRQB_FLOPPY;
-		updateirqs();
+		fdc_irq_lower();
 		return fdc.status;
 
 	case 0x3f5: /* Data (FIFO) */
@@ -495,8 +522,7 @@ fdcsend(uint8_t val)
 {
 	fdc.data   = val;
 	fdc.status = 0xd0;
-	iomd.irqb.status |= IOMD_IRQB_FLOPPY;
-	updateirqs();
+	fdc_irq_raise();
 }
 
 static void
@@ -510,16 +536,13 @@ static void
 fdcsenddata(uint8_t val)
 {
 	fdc.dmadat = val;
-	iomd.fiq.status |= IOMD_FIQ_FLOPPY_DMA_REQUEST;
-	updateirqs();
+	fdc_dma_raise();
 }
 
 void
 fdc_callback(void)
 {
 	if (fdc.reset) {
-		iomd.irqb.status |= IOMD_IRQB_FLOPPY;
-		updateirqs();
 		fdc.reset     = 0;
 		fdc.status    = 0x80;
 		fdc.incommand = 0;
@@ -528,6 +551,7 @@ fdc_callback(void)
 		fdc.curparam  = 0;
 		fdc.params    = 0;
 		fdc.rate      = 2;
+		fdc_irq_raise();
 		return;
 	}
 
@@ -560,9 +584,8 @@ fdc_callback(void)
 		fdc.params    = 0;
 		fdc.curparam  = 0;
 		// TODO set drive back to track 0
-		iomd.irqb.status |= IOMD_IRQB_FLOPPY;
-		updateirqs();
 		fdc.st0       = 0x20; // Seek End
+		fdc_irq_raise();
 		break;
 
 	case FD_CMD_SENSE_INTERRUPT_STATUS:
@@ -588,9 +611,8 @@ fdc_callback(void)
 		fdc.status    = 0x80;
 		fdc.params    = 0;
 		fdc.curparam  = 0;
-		iomd.irqb.status |= IOMD_IRQB_FLOPPY;
-		updateirqs();
 		fdc.st0       = 0x20;
+		fdc_irq_raise();
 		break;
 
 	case FD_CMD_CONFIGURE:
@@ -639,8 +661,7 @@ fdc_callback(void)
 					return;
 				}
 			} else {
-				iomd.fiq.status |= IOMD_FIQ_FLOPPY_DMA_REQUEST;
-				updateirqs();
+				fdc_dma_raise();
 			}
 			fdccallback = 0;
 		}
@@ -713,14 +734,13 @@ fdc_callback(void)
 		break;
 
 	case FD_CMD_READ_ID_FM:
-		iomd.irqb.status |= IOMD_IRQB_FLOPPY;
-		updateirqs();
 		fdc.st0       = 0x40 | (fdc.parameters[0] & 7);
 		fdc.st1       = 1;
 		fdc.st2       = 1;
 		fdc.incommand = 0;
 		fdc.params    = 0;
 		fdc.curparam  = 0;
+		fdc_irq_raise();
 		break;
 
 	case FD_CMD_FORMAT_TRACK_MFM:
@@ -774,8 +794,7 @@ fdc_callback(void)
 uint8_t
 fdc_dma_read(uint32_t addr)
 {
-	iomd.fiq.status &= ~IOMD_FIQ_FLOPPY_DMA_REQUEST;
-	updateirqs();
+	fdc_dma_lower();
 	fdccallback = 100;
 	if (!fdc.commandpos) {
 		fdccallback = 2000;
@@ -791,8 +810,7 @@ fdc_dma_read(uint32_t addr)
 void
 fdc_dma_write(uint32_t addr, uint8_t val)
 {
-	iomd.fiq.status &= ~IOMD_FIQ_FLOPPY_DMA_REQUEST;
-	updateirqs();
+	fdc_dma_lower();
 	fdccallback = 200;
 	if (!fdc.commandpos) {
 		fdccallback = 2000;
