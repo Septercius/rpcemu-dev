@@ -81,8 +81,8 @@ typedef enum {
 	DISC_FORMAT_ADFS_DE_800K,
 	DISC_FORMAT_ADFS_F_1600K,
 	DISC_FORMAT_ADFS_L_640K,
-/*	DISC_FORMAT_DOS_720K,
-	DISC_FORMAT_DOS_1440K, */
+	DISC_FORMAT_DOS_720K,
+	DISC_FORMAT_DOS_1440K,
 } DiscFormat;
 
 typedef struct {
@@ -92,16 +92,17 @@ typedef struct {
 	int tracks;
 	int sectors;
 	int sectorsize;
+	int sectorskew;		///< What is the first sector in a track? e.g 0-79 or 1-80
 	int density;
 } Format;
 
 /* This array must be kept in sync with the disc_format enumeration */
 static const Format formats[] = {
-	{ "ADFS D/E 800KB",   "adf", 2, 80,  5, 1024, 2 },
-	{ "ADFS F 1600KB",    "adf", 2, 80, 10, 1024, 0 },
-	{ "ADFS L 640KB",     "adl", 2, 80, 16,  256, 2 },
-/*	{ "DOS 720KB",        "img", 2, 80,  9,  512, 2 },
-	{ "DOS 1440KB",       "img", 2, 80, 18,  512, 0 }, */
+	{ "ADFS D/E 800KB",   "adf", 2, 80,  5, 1024, 0, 2 },
+	{ "ADFS F 1600KB",    "adf", 2, 80, 10, 1024, 0, 0 },
+	{ "ADFS L 640KB",     "adl", 2, 80, 16,  256, 0, 2 },
+	{ "DOS 720KB",        "img", 2, 80,  9,  512, 1, 2 },
+	{ "DOS 1440KB",       "img", 2, 80, 18,  512, 1, 0 }
 };
 
 /**
@@ -109,7 +110,7 @@ static const Format formats[] = {
  * image inside it
  */
 typedef struct {
-	uint8_t disc[2][80][18][1024]; /**< side, Track, Sector, Bytes, large enough to hold all format variants */
+	uint8_t disc[2][80][19][1024]; /**< side, Track, Sector (+ max skew), Bytes, large enough to hold all format variants */
 	const Format *format;
 	int discchanged;
 } Drive;
@@ -227,6 +228,12 @@ fdc_image_load(const char *fn, int drive)
 		}
 	} else if (strcasecmp(extension, ".adl") == 0) {
 		drives[drive].format = &formats[DISC_FORMAT_ADFS_L_640K];
+	} else if (strcasecmp(extension, ".img") == 0) {
+		if (ftell(f) > 1000000) {
+			drives[drive].format = &formats[DISC_FORMAT_DOS_1440K];
+		} else {
+			drives[drive].format = &formats[DISC_FORMAT_DOS_720K];
+		}
 	} else {
 		error("Unknown disc image file extension '%s', must be .adf or .adl", extension);
 		return;
@@ -239,13 +246,16 @@ fdc_image_load(const char *fn, int drive)
 
 	for (t = 0; t < drives[drive].format->tracks ; t++) {
 		for (h = 0; h < drives[drive].format->sides; h++) {
-			for (s = 0; s < drives[drive].format->sectors; s++) {
+			for (s = drives[drive].format->sectorskew; s < drives[drive].format->sectors + drives[drive].format->sectorskew; s++) {
 				for (b = 0; b < drives[drive].format->sectorsize; b++) {
 					drives[drive].disc[h][t][s][b] = fgetc(f);
 				}
 			}
 		}
 	}
+
+	// reset the sector to the first valid one
+	fdc.sector = drives[drive].format->sectorskew;
 
 	fclose(f);
 }
@@ -285,7 +295,7 @@ fdc_image_save(const char *fn, int drive)
 
 	for (t = 0; t < drives[drive].format->tracks; t++) {
 		for (h = 0; h < drives[drive].format->sides; h++) {
-			for (s = 0; s < drives[drive].format->sectors; s++) {
+			for (s = drives[drive].format->sectorskew; s < drives[drive].format->sectors + drives[drive].format->sectorskew; s++) {
 				for (b = 0; b < drives[drive].format->sectorsize; b++) {
 					putc(drives[drive].disc[h][t][s][b], f);
 				}
@@ -705,8 +715,9 @@ fdc_callback(void)
 		break;
 
 	case FD_CMD_READ_ID_MFM:
-		if (fdc.sector >= drives[fdc.st0 & 1].format->sectors) {
-			fdc.sector = 0;
+		if (fdc.sector >= drives[fdc.st0 & 1].format->sectors + drives[fdc.st0 & 1].format->sectorskew) {
+			// Reset back to first valid sector
+			fdc.sector = drives[fdc.st0 & 1].format->sectorskew;
 		}
 		switch (fdc.commandpos) {
 		case 0: fdcsend(fdc.st0); break;
@@ -725,8 +736,9 @@ fdc_callback(void)
 		if (fdc.commandpos == 7) {
 			fdc.incommand = 0;
 			fdc.sector++;
-			if (fdc.sector >= drives[fdc.st0 & 1].format->sectors) {
-				fdc.sector = 0;
+			if (fdc.sector >= drives[fdc.st0 & 1].format->sectors  + drives[fdc.st0 & 1].format->sectorskew) {
+				// Reset back to first valid sector
+				fdc.sector = drives[fdc.st0 & 1].format->sectorskew;
 			}
 			fdc.params   = 0;
 			fdc.curparam = 0;
