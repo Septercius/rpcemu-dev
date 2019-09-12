@@ -305,6 +305,7 @@ rpcemu_start(void)
 	arm_init();
 	loadroms();
         cmos_init();
+        fdc_init();
         fdc_image_load("boot.adf", 0);
         fdc_image_load("notboot.adf", 1);
         initvideo();

@@ -172,19 +172,18 @@ fdc_size_code_from_sector_size(int sectorsize)
 void
 fdc_reset(void)
 {
-	int d;
-
 	fdccallback = 0;
 	motoron = 0;
+}
+
+void
+fdc_init(void)
+{
+	int d;
 
 	for (d = 0; d < 2; d++) {
 		// Configure a default format
 		drives[d].format = &formats[DISC_FORMAT_ADFS_DE_800K];
-
-		// Clear disc contents
-		memset(&drives[d].disc, 0, sizeof(drives[d].disc));
-
-		drives[d].discchanged = 0;
 	}
 }
 

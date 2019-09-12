@@ -22,6 +22,7 @@
 #define FDC_H
 
 extern void fdc_reset(void);
+extern void fdc_init(void);
 extern void fdc_callback(void);
 extern uint8_t fdc_dma_read(uint32_t addr);
 extern void fdc_dma_write(uint32_t addr, uint8_t val);
