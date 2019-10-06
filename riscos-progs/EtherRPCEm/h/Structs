@@ -56,14 +56,19 @@ char  spare[2];                  // spare
 
 
 // workspace pointer.. holds allsorts..
-// first 3 (or 4 with the test area) entries MUST be there in that sequence
-typedef struct{           // structure holds pointer to any area passed to IRQ
-  void       *pwp;        // Module's PWP for C routine linkage
-  dci4_mbctl *mbctl;      // mbuf manager linkage
-  dib         base_dib;   // device info block
-  char dev_addr[20];
-  int flags;
-  claimbuf * claims; // linked list of all claims.
+// first 3 (or 4 with the test area) entries MUST be there in that sequence.
+// structure holds pointer to any area passed to IRQ
+typedef struct {
+	void		*pwp;		///< Module's PWP for C routine linkage
+	dci4_mbctl	*mbctl;		///< mbuf manager linkage
+	dib		base_dib;	///< device info block
+	char		dev_addr[20];
+	int		flags;
+	claimbuf	*claims;	///< linked list of all claims.
+
+	// Working copy of network statistics
+	unsigned long	st_tx_frames;
+	unsigned long	st_rx_frames;
 } workspace;
 
 

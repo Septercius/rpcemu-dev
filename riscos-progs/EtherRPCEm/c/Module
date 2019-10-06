@@ -77,9 +77,9 @@ static const eystatsset supported = {
 	0,		// st_excess_collisions
 	0,		// st_heartbeat_failures
 	0,		// st_not_listening
-	0,		// st_tx_frames
+	ULONG_MAX,	// st_tx_frames
 	0,		// st_tx_bytes
-	0,		// st_tx_general_errors
+	ULONG_MAX,	// st_tx_general_errors
 	{ 0, 0, 0, 0, 0, 0, 0, 0, },	// st_last_dest_addr
 
 	// Receive statistics
@@ -91,9 +91,9 @@ static const eystatsset supported = {
 	0,		// st_jabbers
 	0,		// st_late_events
 	0,		// st_unwanted_frames
-	0,		// st_rx_frames
+	ULONG_MAX,	// st_rx_frames
 	0,		// st_rx_bytes
-	0,		// st_rx_general_errors
+	ULONG_MAX,	// st_rx_general_errors
 	{ 0, 0, 0, 0, 0, 0, 0, 0 },	// st_last_src_addr
 };
 
@@ -378,6 +378,8 @@ callevery_handler(workspace *work)
 				sema = 0;
 				return NULL;
 			}
+			// Increment receive frames
+			work->st_rx_frames++;
 
 			if (1) {
 				// do stuff to make a new packet
@@ -583,6 +585,8 @@ swi_handler(int swi_no, _kernel_swi_regs *r, void *private_word)
 
 			if (err == NULL) {
 				err = networktxswi(mbufchain, r->r[4], (r->r[0] & 1) ? r->r[5] : 0, r->r[2]);
+				// Increment transmit frames
+				work->st_tx_frames++;
 			}
 
 			if ((r->r[0] & 2) == 0) {
@@ -737,13 +741,17 @@ claimframe:
 			// return actual stats
 			eystatsset *stats = (eystatsset *) r->r[2];
 
+			// Set all statistics to zero (including implemented error counters)
 			memset(stats, 0, sizeof(eystatsset));
+
 			stats->st_interface_type = 3; // 10BaseT
 			stats->st_link_status = (1 << 0) | // OK
 			                        (1 << 1) | // Active
 			                        (3 << 2) | // Promiscuous
 			                        (1 << 4);  // Full duplex
 			stats->st_link_polarity = 1; // Polarity correct
+			stats->st_tx_frames = work->st_tx_frames;
+			stats->st_rx_frames = work->st_rx_frames;
 		} else {
 			// indicate what's supported
 			memcpy((void *) r->r[2], &supported.st_interface_type, sizeof(eystatsset));
