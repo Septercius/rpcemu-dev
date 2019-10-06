@@ -21,7 +21,7 @@
 //
 //  Modifications for RPCEmu (C) 2007 Alex Waugh
 
-
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,12 +63,38 @@ static _kernel_oserror
 
 workspace *work;
 
-static eystatsset supported = {
-	(char) -1, (char) -1, (char) -1, (char) 0,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1,
-	(char) -1, (char) -1, (char) -1, (char) -1, (char) -1, (char) -1, (char) 0, (char) 0,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1,
-	(char) -1, (char) -1, (char) -1, (char) -1, (char) -1, (char) -1, (char) 0, (char) 0
+static const eystatsset supported = {
+	// General information
+	UCHAR_MAX,	// st_interface_type
+	UCHAR_MAX,	// st_link_status
+	UCHAR_MAX,	// st_link_polarity
+	0,		// st_blank1
+	0,		// st_link_failures
+	0,		// st_network_collisions
+
+	// Transmit statistics
+	0,		// st_collisions
+	0,		// st_excess_collisions
+	0,		// st_heartbeat_failures
+	0,		// st_not_listening
+	0,		// st_tx_frames
+	0,		// st_tx_bytes
+	0,		// st_tx_general_errors
+	{ 0, 0, 0, 0, 0, 0, 0, 0, },	// st_last_dest_addr
+
+	// Receive statistics
+	0,		// st_crc_failures
+	0,		// st_frame_alignment_errors
+	0,		// st_dropped_frames
+	0,		// st_runt_frames
+	0,		// st_overlong_frames
+	0,		// st_jabbers
+	0,		// st_late_events
+	0,		// st_unwanted_frames
+	0,		// st_rx_frames
+	0,		// st_rx_bytes
+	0,		// st_rx_general_errors
+	{ 0, 0, 0, 0, 0, 0, 0, 0 },	// st_last_src_addr
 };
 
 // Status word set to 1 by the emulated hardware when an IRQ generated
@@ -709,27 +735,18 @@ claimframe:
 	case SWIStats:
 		if ((r->r[0] & 1) != 0) {
 			// return actual stats
-			// fill in current state, then  return full info
-/*              lp->stat.st_link_status =0;
-              {
-                 char saved_bank;
-                 int a;
-                 _kernel_irqs_off();
-                 saved_bank = INB( work->basedev, BANK_SELECT );
-                 SMC_SELECT_BANK( work->basedev,0 );
+			eystatsset *stats = (eystatsset *) r->r[2];
 
-                 a=INW(work->basedev,RPC_REG);
-                 lp->stat.st_interface_type= (a&RPC_SPEED)?12:3;
-                 lp->stat.st_link_status |= (a&RPC_DPLX) ?1:0;
-                 SMC_SELECT_BANK( work->basedev,saved_bank );
-                 _kernel_irqs_on();
-              }
-              lp->stat.st_link_status |=(((work->basedev->flags)&3)<<2) |1 ;
-              lp->stat.st_link_status |=(work->basedev->claims)?2:0;
-              memcpy((void*)r->r[2],&work->basedev->priv->stat,sizeof(eystatsset)-4);*/
+			memset(stats, 0, sizeof(eystatsset));
+			stats->st_interface_type = 3; // 10BaseT
+			stats->st_link_status = (1 << 0) | // OK
+			                        (1 << 1) | // Active
+			                        (3 << 2) | // Promiscuous
+			                        (1 << 4);  // Full duplex
+			stats->st_link_polarity = 1; // Polarity correct
 		} else {
 			// indicate what's supported
-			memcpy((void *) r->r[2], &supported.st_interface_type, sizeof(eystatsset) - 4);
+			memcpy((void *) r->r[2], &supported.st_interface_type, sizeof(eystatsset));
 		}
 		break;
 

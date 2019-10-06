@@ -59,38 +59,38 @@ typedef struct  {
 }chaindib ;
 
 typedef struct {
-// general information
-unsigned char st_interface_type;
-unsigned char st_link_status;
-unsigned char st_link_polarity;
-unsigned char st_blank1;
-unsigned long st_link_failures;
-unsigned long st_network_collisions;
-// transmit statistics
-unsigned long st_collisions;
-unsigned long st_excess_collisions;
-unsigned long st_heartbeat_failures;
-unsigned long st_not_listening;
-/*unsigned long st_net_error;                    // not in current version
-*/unsigned long st_tx_frames;
-unsigned long st_tx_bytes;
-unsigned long st_tx_general_errors;
-unsigned char st_last_dest_addr[8];
-// receive statistics
-unsigned long st_crc_failures;
-unsigned long st_frame_alignment_errors;
-unsigned long st_dropped_frames;
-unsigned long st_runt_frames;
-unsigned long st_overlong_frames;
-unsigned long st_jabbers;
-unsigned long st_late_events;
-unsigned long st_unwanted_frames;
-unsigned long st_rx_frames;
-unsigned long st_rx_bytes;
-unsigned long st_rx_general_errors;
-unsigned char st_last_src_addr[8];
-unsigned long multicast;
-}eystatsset;
+	// general information
+	unsigned char st_interface_type;
+	unsigned char st_link_status;
+	unsigned char st_link_polarity;
+	unsigned char st_blank1;
+	unsigned long st_link_failures;
+	unsigned long st_network_collisions;
+
+	// transmit statistics
+	unsigned long st_collisions;
+	unsigned long st_excess_collisions;
+	unsigned long st_heartbeat_failures;
+	unsigned long st_not_listening;
+	unsigned long st_tx_frames;
+	unsigned long st_tx_bytes;
+	unsigned long st_tx_general_errors;
+	unsigned char st_last_dest_addr[8];
+
+	// receive statistics
+	unsigned long st_crc_failures;
+	unsigned long st_frame_alignment_errors;
+	unsigned long st_dropped_frames;
+	unsigned long st_runt_frames;
+	unsigned long st_overlong_frames;
+	unsigned long st_jabbers;
+	unsigned long st_late_events;
+	unsigned long st_unwanted_frames;
+	unsigned long st_rx_frames;
+	unsigned long st_rx_bytes;
+	unsigned long st_rx_general_errors;
+	unsigned char st_last_src_addr[8];
+} eystatsset;
 
 
 typedef struct                                 // in first mbuf of any rx packet
