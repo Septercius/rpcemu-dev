@@ -149,6 +149,21 @@ NetworkDialog::dialog_accepted()
 		// Emulator reset required
 		emit this->emulator.reset_signal();
 	}
+
+	// Apply configuration settings from Dialog to config_copy
+	config_copy->network_type = network_type;
+	if (config_copy->bridgename == NULL) {
+		config_copy->bridgename = strdup(bridgename);
+	} else if (strcmp(config_copy->bridgename, bridgename) != 0) {
+		free(config_copy->bridgename);
+		config_copy->bridgename = strdup(bridgename);
+	}
+	if (config_copy->ipaddress == NULL) {
+		config_copy->ipaddress = strdup(ipaddress);
+	} else if (strcmp(config_copy->ipaddress, ipaddress) != 0) {
+		free(config_copy->ipaddress);
+		config_copy->ipaddress = strdup(ipaddress);
+	}
 }
 
 /**
