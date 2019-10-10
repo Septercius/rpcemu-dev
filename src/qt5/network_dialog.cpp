@@ -202,7 +202,6 @@ NetworkDialog::applyConfig()
 			net_bridging->setChecked(false);
 			net_tunnelling->setChecked(true);
 			break;
-		default: fatal("Unhandled network type");
 	}
 
 	// Use the helper function to grey out the boxes of unselected

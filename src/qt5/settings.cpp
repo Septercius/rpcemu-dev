@@ -218,10 +218,6 @@ config_save(Config *config)
 	case NetworkType_Off:              sprintf(s, "off"); break;
 	case NetworkType_EthernetBridging: sprintf(s, "ethernetbridging"); break;
 	case NetworkType_IPTunnelling:     sprintf(s, "iptunnelling"); break;
-	default:
-		/* Forgotten to add a new network type to the switch()? */
-		fatal("saveconfig(): unknown networktype %d\n",
-		      config->network_type);
 	}
 	settings.setValue("network_type", s);
 
