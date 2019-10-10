@@ -364,7 +364,7 @@ MainWindow::MainWindow(Emulator &emulator)
 
 	configure_dialog = new ConfigureDialog(emulator, &config_copy, &model_copy, this);
 #ifdef RPCEMU_NETWORKING
-	network_dialog = new NetworkDialog(emulator, &config_copy, &model_copy, this);
+	network_dialog = new NetworkDialog(emulator, &config_copy, this);
 #endif /* RPCEMU_NETWORKING */
 	about_dialog = new AboutDialog(this);
 

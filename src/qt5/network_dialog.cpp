@@ -23,11 +23,10 @@
 
 #include "network.h"
 
-NetworkDialog::NetworkDialog(Emulator &emulator, Config *config_copy, Model *model_copy, QWidget *parent)
+NetworkDialog::NetworkDialog(Emulator &emulator, Config *config_copy, QWidget *parent)
     : QDialog(parent),
 	emulator(emulator),
-	config_copy(config_copy),
-	model_copy(model_copy)
+	config_copy(config_copy)
 {
 	setWindowTitle("Configure RPCEmu Networking");
 
