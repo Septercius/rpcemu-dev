@@ -91,7 +91,6 @@ typedef enum {
 	NetworkType_Off,
 	NetworkType_EthernetBridging,
 	NetworkType_IPTunnelling,
-	NetworkType_MAX
 } NetworkType;
 
 /** Selection of models that the emulator can emulate,

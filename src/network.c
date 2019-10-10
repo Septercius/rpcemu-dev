@@ -214,8 +214,6 @@ network_config_changed(NetworkType network_type, const char *bridgename,
 {
 	int restart_required = 0;
 
-	assert(network_type < NetworkType_MAX);
-
 	if (network_type != config.network_type) {
 		config.network_type = network_type;
 		restart_required = 1;
