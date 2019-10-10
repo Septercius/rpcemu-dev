@@ -35,7 +35,7 @@ class NetworkDialog : public QDialog
 	Q_OBJECT
 
 public:
-	NetworkDialog(Emulator &emulator, Config *config_copy, Model *model_copy, QWidget *parent = 0);
+	NetworkDialog(Emulator &emulator, Config *config_copy, QWidget *parent = 0);
 	virtual ~NetworkDialog();
 
 private slots:
@@ -64,7 +64,6 @@ private:
 
 	// Pointers to GUI thread copies of the emulator's config
 	Config *config_copy;
-	Model *model_copy;
 };
 
 #endif
