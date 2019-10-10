@@ -44,6 +44,7 @@
 #include "keyboard.h"
 #include "ide.h"
 #include "cdrom-iso.h"
+#include "network.h"
 
 #if defined(Q_OS_WIN32)
 #include "cdrom-ioctl.h"
@@ -424,6 +425,7 @@ int main (int argc, char ** argv)
 	qRegisterMetaType<Model>("Model");
 	qRegisterMetaType<VideoUpdate>("VideoUpdate");
 	qRegisterMetaType<MouseMoveUpdate>("MouseMoveUpdate");
+	qRegisterMetaType<NetworkType>("NetworkType");
 
 	// Create Emulator Thread and Object
 	QThread *emu_thread = new QThread;
@@ -494,6 +496,7 @@ Emulator::Emulator()
 	connect(this, &Emulator::mouse_hack_signal, this, &Emulator::mouse_hack);
 	connect(this, &Emulator::mouse_twobutton_signal, this, &Emulator::mouse_twobutton);
 	connect(this, &Emulator::config_updated_signal, this, &Emulator::config_updated);
+	connect(this, &Emulator::network_config_updated_signal, this, &Emulator::network_config_updated);
 }
 
 /**
@@ -861,6 +864,27 @@ Emulator::config_updated(Config *new_config, Model new_model)
 	// The new_config was created for the emulator thread in gui thread, this
 	// function must free it
 	free(new_config);
+}
+
+/**
+ * GUI is requesting setting of new network configuration
+ *
+ * @param network_type
+ * @param bridgename
+ * @param ipaddress
+ */
+void
+Emulator::network_config_updated(NetworkType network_type, QString bridgename, QString ipaddress)
+{
+	QByteArray ba_bridgename = bridgename.toUtf8();
+	const char *bridge_name = ba_bridgename.constData();
+
+	QByteArray ba_ipaddress = ipaddress.toUtf8();
+	const char *ip_address = ba_ipaddress.constData();
+
+	if (network_config_changed(network_type, bridge_name, ip_address)) {
+		this->reset();
+	}
 }
 
 #ifdef __cplusplus
