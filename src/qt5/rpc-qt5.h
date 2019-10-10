@@ -69,6 +69,7 @@ signals:
 	void mouse_hack_signal();
 	void mouse_twobutton_signal();
 	void config_updated_signal(Config *new_config, Model new_model);
+	void network_config_updated_signal(NetworkType network_type, QString bridgename, QString ipaddress);
 
 public slots:
 	void mainemuloop();
@@ -100,6 +101,7 @@ public slots:
 	void mouse_hack();
 	void mouse_twobutton();
 	void config_updated(Config *new_config, Model new_model);
+	void network_config_updated(NetworkType network_type, QString bridgename, QString ipaddress);
 
 private:
 	QElapsedTimer elapsed_timer;

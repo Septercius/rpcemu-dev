@@ -132,19 +132,15 @@ NetworkDialog::dialog_accepted()
 		network_type = NetworkType_IPTunnelling;
 	}
 
+	// Update network config in emulator thread
+	emit this->emulator.network_config_updated_signal(network_type,
+	    bridge_name->text(), tunnelling_name->text());
+
 	ba_bridgename = bridge_name->text().toUtf8();
 	bridgename = ba_bridgename.data();
 
 	ba_ipaddress = tunnelling_name->text().toUtf8();
 	ipaddress = ba_ipaddress.data();
-
-	// This is iffy thread safety, this function sets the networking
-	// config from the GUI thread, luckily the config is only read
-	// on emulator restart which happens in the emu thread.
-	if(network_config_changed(network_type, bridgename, ipaddress)) {
-		// Emulator reset required
-		emit this->emulator.reset_signal();
-	}
 
 	// Apply configuration settings from Dialog to config_copy
 	config_copy->network_type = network_type;
