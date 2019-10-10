@@ -97,21 +97,20 @@ NetworkDialog::~NetworkDialog()
 void
 NetworkDialog::radio_clicked()
 {
-	if (net_off->isChecked()) {
-		bridge_label->setEnabled(false);
-		bridge_name->setEnabled(false);
-		tunnelling_label->setEnabled(false);
-		tunnelling_name->setEnabled(false);
-	} else if(net_bridging->isChecked()) {
+	if (net_bridging->isChecked()) {
 		bridge_label->setEnabled(true);
 		bridge_name->setEnabled(true);
-		tunnelling_label->setEnabled(false);
-		tunnelling_name->setEnabled(false);
-	} else if(net_tunnelling->isChecked()) {
+	} else {
 		bridge_label->setEnabled(false);
 		bridge_name->setEnabled(false);
+	}
+
+	if (net_tunnelling->isChecked()) {
 		tunnelling_label->setEnabled(true);
 		tunnelling_name->setEnabled(true);
+	} else {
+		tunnelling_label->setEnabled(false);
+		tunnelling_name->setEnabled(false);
 	}
 }
 
@@ -126,13 +125,11 @@ NetworkDialog::dialog_accepted()
 	NetworkType network_type = NetworkType_Off;
 
 	// Fill in the choices from the dialog box
-	if(net_off->isChecked()) {
+	if (net_off->isChecked()) {
 		network_type = NetworkType_Off;
-	}
-	if(net_bridging->isChecked()) {
+	} else if (net_bridging->isChecked()) {
 		network_type = NetworkType_EthernetBridging;
-	}
-	if(net_tunnelling->isChecked()) {
+	} else if (net_tunnelling->isChecked()) {
 		network_type = NetworkType_IPTunnelling;
 	}
 
@@ -186,22 +183,19 @@ NetworkDialog::applyConfig()
 //	if windows and iptunnelling, net = off
 
 	// Select the correct radio button
-	switch(config_copy->network_type) {
-		case NetworkType_Off:
-			net_off->setChecked(true);
-			net_bridging->setChecked(false);
-			net_tunnelling->setChecked(false);
-			break;
-		case NetworkType_EthernetBridging:
-			net_off->setChecked(false);
-			net_bridging->setChecked(true);
-			net_tunnelling->setChecked(false);
-			break;
-		case NetworkType_IPTunnelling:
-			net_off->setChecked(false);
-			net_bridging->setChecked(false);
-			net_tunnelling->setChecked(true);
-			break;
+	net_off->setChecked(false);
+	net_bridging->setChecked(false);
+	net_tunnelling->setChecked(false);
+	switch (config_copy->network_type) {
+	case NetworkType_Off:
+		net_off->setChecked(true);
+		break;
+	case NetworkType_EthernetBridging:
+		net_bridging->setChecked(true);
+		break;
+	case NetworkType_IPTunnelling:
+		net_tunnelling->setChecked(true);
+		break;
 	}
 
 	// Use the helper function to grey out the boxes of unselected
