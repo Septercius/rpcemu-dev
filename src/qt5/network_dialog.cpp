@@ -34,6 +34,7 @@ NetworkDialog::NetworkDialog(Emulator &emulator, Config *config_copy, QWidget *p
 
 	// Create widgets and layout
 	net_off = new QRadioButton("Off");
+	net_nat = new QRadioButton("Network Address Translation (NAT)");
 	net_bridging = new QRadioButton("Ethernet Bridging");
 	net_tunnelling = new QRadioButton("IP Tunnelling");
 
@@ -60,6 +61,7 @@ NetworkDialog::NetworkDialog(Emulator &emulator, Config *config_copy, QWidget *p
 	// Main layout
 	vbox = new QVBoxLayout(this);
 	vbox->addWidget(net_off);
+	vbox->addWidget(net_nat);
 	vbox->addWidget(net_bridging);
 	vbox->addLayout(bridge_hbox);
 
@@ -73,6 +75,7 @@ NetworkDialog::NetworkDialog(Emulator &emulator, Config *config_copy, QWidget *p
 
 	// Connect actions to widgets
 	connect(net_off, &QRadioButton::clicked, this, &NetworkDialog::radio_clicked);
+	connect(net_nat, &QRadioButton::clicked, this, &NetworkDialog::radio_clicked);
 	connect(net_bridging, &QRadioButton::clicked, this, &NetworkDialog::radio_clicked);
 	connect(net_tunnelling, &QRadioButton::clicked, this, &NetworkDialog::radio_clicked);
 
@@ -126,6 +129,8 @@ NetworkDialog::dialog_accepted()
 	// Fill in the choices from the dialog box
 	if (net_off->isChecked()) {
 		network_type = NetworkType_Off;
+	} else if (net_nat->isChecked()) {
+		network_type = NetworkType_NAT;
 	} else if (net_bridging->isChecked()) {
 		network_type = NetworkType_EthernetBridging;
 	} else if (net_tunnelling->isChecked()) {
@@ -179,11 +184,15 @@ NetworkDialog::applyConfig()
 
 	// Select the correct radio button
 	net_off->setChecked(false);
+	net_nat->setChecked(false);
 	net_bridging->setChecked(false);
 	net_tunnelling->setChecked(false);
 	switch (config_copy->network_type) {
 	case NetworkType_Off:
 		net_off->setChecked(true);
+		break;
+	case NetworkType_NAT:
+		net_nat->setChecked(true);
 		break;
 	case NetworkType_EthernetBridging:
 		net_bridging->setChecked(true);

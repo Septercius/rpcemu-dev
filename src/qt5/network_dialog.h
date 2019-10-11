@@ -46,7 +46,10 @@ private slots:
 private:
 	void applyConfig();
 
-	QRadioButton *net_off, *net_bridging, *net_tunnelling;
+	QRadioButton *net_off;
+	QRadioButton *net_nat;
+	QRadioButton *net_bridging;
+	QRadioButton *net_tunnelling;
 
 	QLabel *bridge_label;
 	QLineEdit *bridge_name;
