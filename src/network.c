@@ -28,6 +28,7 @@
 #include "rpcemu.h"
 #include "mem.h"
 #include "network.h"
+#include "network-nat.h"
 #include "podules.h"
 
 /* Variables for supporting a podule header data */
@@ -279,7 +280,8 @@ network_init(void)
 {
 	int success;
 
-	assert(config.network_type == NetworkType_EthernetBridging ||
+	assert(config.network_type == NetworkType_NAT ||
+	       config.network_type == NetworkType_EthernetBridging ||
 	       config.network_type == NetworkType_IPTunnelling);
 
 	/* Build podule header */
@@ -287,17 +289,24 @@ network_init(void)
 		network_rom_init();
 	}
 
-	/* Call platform's initialisation code */
-	success = network_plt_init();
-
-	if (success) {
-		/* register podule handle */
-		network_poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, readpoduleetherrpcem, NULL, NULL, 0);
-		if (network_poduleinfo == NULL) {
-			error("No free podule for networking");
-		}
+	// Initialise networking
+	if (config.network_type == NetworkType_NAT) {
+		// Call NAT initialisation code
+		success = network_nat_init();
 	} else {
+		// Call platform's initialisation code
+		success = network_plt_init();
+	}
+
+	if (!success) {
 		error("Networking unavailable");
+		return;
+	}
+
+	// Register podule
+	network_poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, readpoduleetherrpcem, NULL, NULL, 0);
+	if (network_poduleinfo == NULL) {
+		error("No free podule for networking");
 	}
 }
 
@@ -310,15 +319,28 @@ network_init(void)
 void
 network_reset(void)
 {
-	/* Call platform's reset code */
-	network_plt_reset();
+	if (config.network_type == NetworkType_NAT) {
+		// Call NAT reset code
+		network_nat_reset();
+	} else {
+		// Call platform's reset code
+		network_plt_reset();
+	}
 }
 
 
-// r0: Reason code in r0
-// r1: Pointer to buffer for any error string
-// r2-r5: Reason code dependent
-// Returns 0 in r0 on success, non 0 otherwise and error buffer filled in
+/**
+ * @param      r0    Reason code in r0
+ * @param      r1    Pointer to buffer for any error string
+ * @param      r2    Reason code dependent
+ * @param      r3    Reason code dependent
+ * @param      r4    Reason code dependent
+ * @param      r5    Reason code dependent
+ * @param[out] retr0 Return of r0
+ * @param[out] retr1 Return of r1
+ *
+ * @return 0 in r0 on success, non-0 otherwise and error buffer filled in
+ */
 void
 network_swi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t *retr0, uint32_t *retr1)
 {
@@ -327,13 +349,25 @@ network_swi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4, uin
 #endif
 	switch (r0) {
 	case 0:
-		*retr0 = network_plt_tx(r1, r2, r3, r4, r5);
+		if (config.network_type == NetworkType_NAT) {
+			*retr0 = network_nat_tx(r1, r2, r3, r4, r5);
+		} else {
+			*retr0 = network_plt_tx(r1, r2, r3, r4, r5);
+		}
 		break;
 	case 1:
-		*retr0 = network_plt_rx(r1, r2, r3, retr1);
+		if (config.network_type == NetworkType_NAT) {
+			*retr0 = network_nat_rx(r1, r2, r3, retr1);
+		} else {
+			*retr0 = network_plt_rx(r1, r2, r3, retr1);
+		}
 		break;
 	case 2:
-		network_plt_setirqstatus(r2);
+		if (config.network_type == NetworkType_NAT) {
+			network_nat_setirqstatus(r2);
+		} else {
+			network_plt_setirqstatus(r2);
+		}
 		*retr0 = 0;
 		break;
 	case 3:

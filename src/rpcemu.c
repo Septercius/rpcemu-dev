@@ -90,6 +90,7 @@ Config config = {
 	NetworkType_Off,	/* network_type */
 	0,			/* cpu_idle */
 	1,			/* show_fullscreen_message */
+	NULL,			/* network_capture */
 };
 
 /* Performance measuring variables */
@@ -205,9 +206,7 @@ resetrpc(void)
 #ifdef RPCEMU_NETWORKING
 	network_reset();
 
-	if (config.network_type == NetworkType_EthernetBridging ||
-	    config.network_type == NetworkType_IPTunnelling)
-	{
+	if (config.network_type != NetworkType_Off) {
 		network_init();
 	}
 #endif

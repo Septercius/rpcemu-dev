@@ -89,6 +89,7 @@ extern "C" {
 /** The type of networking configured */
 typedef enum {
 	NetworkType_Off,
+	NetworkType_NAT,
 	NetworkType_EthernetBridging,
 	NetworkType_IPTunnelling,
 } NetworkType;
@@ -136,6 +137,7 @@ typedef struct {
 	NetworkType network_type;
 	int cpu_idle;		/**< Attempt to reduce CPU usage */
 	int show_fullscreen_message;	/**< Show explanation of how to leave fullscreen, on entering fullscreen */
+	char *network_capture;		///< Path to capture network traffic file, or NULL to disable
 } Config;
 
 extern Config config;

@@ -60,6 +60,58 @@ SOURCES =	../superio.c \
 		about_dialog.cpp \
 		plt_sound.cpp
 
+# NAT Networking
+linux | win32 {
+	HEADERS +=	../network-nat.h
+	SOURCES += 	../network-nat.c
+
+	HEADERS += 	../slirp/bootp.h \
+			../slirp/cutils.h \
+			../slirp/debug.h \
+			../slirp/if.h \
+			../slirp/ip.h \
+			../slirp/ip_icmp.h \
+			../slirp/libslirp.h \
+			../slirp/main.h \
+			../slirp/mbuf.h \
+			../slirp/misc.h \
+			../slirp/sbuf.h \
+			../slirp/slirp_config.h \
+			../slirp/slirp.h \
+			../slirp/socket.h \
+			../slirp/tcp.h \
+			../slirp/tcpip.h \
+			../slirp/tcp_timer.h \
+			../slirp/tcp_var.h \
+			../slirp/tftp.h \
+			../slirp/udp.h
+
+	SOURCES +=	../slirp/bootp.c \
+			../slirp/cksum.c \
+			../slirp/cutils.c \
+			../slirp/if.c \
+			../slirp/ip_icmp.c \
+			../slirp/ip_input.c \
+			../slirp/ip_output.c \
+			../slirp/mbuf.c \
+			../slirp/misc.c \
+			../slirp/sbuf.c \
+			../slirp/slirp.c \
+			../slirp/socket.c \
+			../slirp/tcp_input.c \
+			../slirp/tcp_output.c \
+			../slirp/tcp_subr.c \
+			../slirp/tcp_timer.c \
+			../slirp/udp.c
+
+	DEFINES += CONFIG_SLIRP
+
+	# Libraries needed for NAT Networking
+	win32 {
+		LIBS += -liphlpapi -lws2_32
+	}
+}
+
 RESOURCES =	icon.qrc
 
 win32 { 

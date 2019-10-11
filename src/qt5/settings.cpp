@@ -124,6 +124,8 @@ config_load(Config * config)
 	sText = settings.value("network_type", "off").toString();
 	if (!QString::compare(sText, "off", Qt::CaseInsensitive)) {
 		config->network_type = NetworkType_Off;
+	} else if (!QString::compare(sText, "nat", Qt::CaseInsensitive)) {
+		config->network_type = NetworkType_NAT;
 	} else if (!QString::compare(sText, "iptunnelling", Qt::CaseInsensitive)) {
 		config->network_type = NetworkType_IPTunnelling;
 	} else if (!QString::compare(sText, "ethernetbridging", Qt::CaseInsensitive)) {
@@ -172,6 +174,14 @@ config_load(Config * config)
 	config->cpu_idle = settings.value("cpu_idle", "0").toInt();
 
 	config->show_fullscreen_message = settings.value("show_fullscreen_message", "1").toInt();
+
+	sText = settings.value("network_capture", "").toString();
+	if (sText != "") {
+		ba = sText.toUtf8();
+		config->network_capture = strdup(ba.constData());
+	} else {
+		config->network_capture = NULL;
+	}
 }
 
 
@@ -216,6 +226,7 @@ config_save(Config *config)
 
 	switch (config->network_type) {
 	case NetworkType_Off:              sprintf(s, "off"); break;
+	case NetworkType_NAT:              sprintf(s, "nat"); break;
 	case NetworkType_EthernetBridging: sprintf(s, "ethernetbridging"); break;
 	case NetworkType_IPTunnelling:     sprintf(s, "iptunnelling"); break;
 	}
@@ -244,4 +255,8 @@ config_save(Config *config)
 
 	settings.setValue("cpu_idle", config->cpu_idle);
 	settings.setValue("show_fullscreen_message", config->show_fullscreen_message);
+
+	if (config->network_capture) {
+		settings.setValue("network_capture", config->network_capture);
+	}
 }

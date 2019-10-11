@@ -45,6 +45,7 @@
 #include "ide.h"
 #include "cdrom-iso.h"
 #include "network.h"
+#include "network-nat.h"
 
 #if defined(Q_OS_WIN32)
 #include "cdrom-ioctl.h"
@@ -513,6 +514,8 @@ Emulator::mainemuloop()
 
 	elapsed_timer.start();
 
+	unsigned network_nat_rate = 0;
+
 	while (!quited) {
 		// Handle qt events and messages
 		QCoreApplication::processEvents();
@@ -548,6 +551,14 @@ Emulator::mainemuloop()
 		if (inscount >= 100000) {
 			instruction_count.fetchAndAddRelease((int) inscount);
 			inscount = 0;
+		}
+
+		// If NAT networking, poll, but not too often
+		if (config.network_type == NetworkType_NAT) {
+			network_nat_rate++;
+			if ((network_nat_rate & 0x3) == 0) {
+				network_nat_poll();
+			}
 		}
 	}
 
