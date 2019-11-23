@@ -66,10 +66,13 @@ filetime_to_adfs_time(const FILETIME *ft, uint32_t *low, uint32_t *high)
 		*high = 0;
 		return;
 	}
-	if (ull.QuadPart > RISC_OS_TIME_LATEST) {
+	if (ull.QuadPart >= RISC_OS_TIME_LATEST) {
 		// Too late
-		*low = 0xffffffff;
+		// A return value of the latest time is interpreted as a
+		// load-exec pair, so return one less than the max
+		*low = 0xfffffffe;
 		*high = 0xff;
+		return;
 	}
 
 	// Subtract offset, and convert from 100-nanosecond intervals to centiseconds
