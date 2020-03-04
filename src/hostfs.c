@@ -273,6 +273,9 @@ riscos_path_to_host(const char *path, char *host_path)
     case '>':
       *host_path++ = '^';
       break;
+    case (char) 160:
+      *host_path++ = ' ';
+      break;
     default:
       *host_path++ = *path;
       break;
@@ -539,7 +542,7 @@ hostfs_path_scan(const char *host_dir_path,
   while ((entry = readdir(d)) != NULL) {
     char entry_path[PATH_MAX], ro_leaf[PATH_MAX];
 
-    /* Ignore the current directory and it's parent */
+    /* Ignore the current directory and its parent */
     if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
       continue;
     }
@@ -1650,7 +1653,7 @@ hostfs_cache_dir(const char *directory_name)
     char entry_path[PATH_MAX], ro_leaf[PATH_MAX];
     unsigned string_space;
 
-    /* Ignore the current directory and it's parent */
+    /* Ignore the current directory and its parent */
     if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
       continue;
     }
