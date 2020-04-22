@@ -7,6 +7,7 @@ The home page for RPCEmu can be found here: http://www.marutan.net/rpcemu/.
 This repository contains the following patches:
 
 * Version 4 of the main OS X patch.
+* A patch to change the magic key combination for exiting capture mouse mode.
 
 The sections below outline each patch in more detail.
 
@@ -21,3 +22,6 @@ This patch provides the following:
 * A non-Mac specific fix for an issue with locating the Ethernet driver (kindly provided by David Pitt).
 * A non-Mac specific fix for processing of mouse events when the application is terminating.
 
+## Magic key/capture mouse patch
+
+By default, the key combination for exiting mouse capture mode in RPCEmu is Ctrl+End.  There is no dedicated "End" key on Mac laptop keyboards, so this patch changes the magic keys to Ctrl+Command.
