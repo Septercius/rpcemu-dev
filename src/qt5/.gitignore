@@ -3,3 +3,7 @@ Makefile
 Makefile.*
 debug/
 release/
+moc_*.cpp
+moc_predefs.h
+qrc_icon.cpp
+*.xcodeproj
