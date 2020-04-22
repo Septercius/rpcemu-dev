@@ -506,7 +506,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 	// Special case, check for Ctrl-End, our multi purpose do clever things key
     if((Qt::Key_End == event->key()) && (event->modifiers() & Qt::ControlModifier))
     {
-        toggleFullScreen();
+        processMagicKeys();
 	}
 
 	// Regular case pass key press onto the emulator
@@ -1454,7 +1454,7 @@ MainWindow::cdrom_menu_selection_update(const QAction *cdrom_action)
 }
 
 void
-MainWindow::toggleFullScreen()
+MainWindow::processMagicKeys()
 {
     if(full_screen) {
         // Change Full Screen -> Windowed
@@ -1583,16 +1583,15 @@ MainWindow::nativeEvent(const QByteArray &eventType, void *message, long *result
     
     if (event->eventType == nativeEventTypeModifiersChanged)
     {
+        // Modifier key state has changed.
+        emit this->emulator.modifier_keys_changed_signal(event->modifierMask);
+        
         if (keyboard_check_special_keys())
         {
             // Magic key combination to release mouse capture.
-            toggleFullScreen();
+            processMagicKeys();
         }
-        else
-        {
-            // Modifier key state has changed.
-            emit this->emulator.modifier_keys_changed_signal(event->modifierMask);
-        }
+        
         free(event);
     }
     
