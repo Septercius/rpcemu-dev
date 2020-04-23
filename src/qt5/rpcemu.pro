@@ -2,7 +2,6 @@
 
 CONFIG += debug_and_release
 
-
 QT += core widgets gui multimedia
 INCLUDEPATH += ../
 
@@ -30,6 +29,7 @@ HEADERS =	../superio.h \
 		../vidc20.h \
 		../arm_common.h \
 		../arm.h \
+		../rpcemu.h \
 		main_window.h \
 		configure_dialog.h \
 		about_dialog.h \
@@ -229,5 +229,7 @@ macx {
 	LIBS += -framework coreFoundation -framework IOKit -framework Foundation -framework Carbon
 
 	QMAKE_INFO_PLIST = ../macosx/Info.plist
+	QMAKE_BUNDLE = rpcemu
+	QMAKE_TARGET_BUNDLE_PREFIX = org.marutan
 }
 
