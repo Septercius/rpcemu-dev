@@ -3,13 +3,15 @@
 #
 
 AS = armas
+CP = cp
+INSTALL = install
 LD = armld
 OBJCOPY = armobjcopy
-
-
-
+TARGETDIR = ../../poduleroms
 
 all: hostfs,ffa hostfsfiler,ffa
+	$(INSTALL) -d $(TARGETDIR)
+	install $^ $(TARGETDIR)
 
 %,ffa: %.elf
 	$(OBJCOPY) -O binary $< $@
