@@ -75,7 +75,7 @@ const Model_Details models[] = {
 
 Config config = {
 	0,			/* mem_size */
-	0,			/* vrammask */
+	0,			/* vram_size */
 	NULL,			/* username */
 	NULL,			/* ipaddress */
 	NULL,			/* macaddress */
@@ -188,7 +188,7 @@ resetrpc(void)
 {
 	rpclog("RPCEmu: Machine reset\n");
 
-        mem_reset(config.mem_size);
+        mem_reset(config.mem_size, config.vram_size);
         cp15_reset(machine.cpu_model);
         resetarm(machine.cpu_model);
         keyboard_reset();
@@ -536,13 +536,19 @@ rpcemu_config_is_reset_required(const Config *new_config, Model new_model)
 	}
 
 	/* vram size has changed on a machine without fixed vram size */
-	if(config.vrammask != new_config->vrammask
+	if (config.vram_size != new_config->vram_size
 	   && (machine.model != Model_A7000 &&
 	       machine.model != Model_A7000plus &&
 	       machine.model != Model_Phoebe))
 	{
 		needs_reset = 1;
 	}
+
+	if (config.network_type != new_config->network_type) {
+		needs_reset = 1;
+	}
+
+	// TODO Various network, MAC/IP/bridgename changes will also cause reset
 
 	return needs_reset;
 }
@@ -575,25 +581,28 @@ rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
 
 	/* If an A7000 or an A7000+ it does not have vram */
 	if (machine.model == Model_A7000 || machine.model == Model_A7000plus) {
-		new_config->vrammask = 0;
+		new_config->vram_size = 0;
 	}
 
 	/* If Phoebe, override some settings */
 	if (machine.model == Model_Phoebe) {
 		new_config->mem_size = 256;
-		new_config->vrammask = 0x3fffff;
+		new_config->vram_size = 4;
 	}
 
 	if (new_config->mem_size != config.mem_size) {
 		needs_reset = 1;
 	}
 
-	if (new_config->vrammask != config.vrammask) {
+	if (new_config->vram_size != config.vram_size) {
 		needs_reset = 1;
 	}
 
 	/* Copy new settings over */
 	memcpy(&config, new_config, sizeof(Config));
+
+	// Save the settings to the rpc.cfg file
+	config_save(&config);
 
 	if(sound_changed) {
 		if(config.soundenabled) {

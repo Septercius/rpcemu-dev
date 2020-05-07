@@ -44,6 +44,223 @@
 #define SWI_Portable_Idle		0x42fc6
 
 /**
+ * Perform a Store Halfword.
+ *
+ * This is part of the Load/Store Extensions added in ARMv4.
+ *
+ * On a real Risc PC, this can't always work reliably due to the memory system
+ * not supporting 16-bit data transfers. Rather than try to identify exactly
+ * when it could work, we implement it as always working correctly.
+ *
+ * @param opcode Opcode of instruction being emulated
+ */
+void
+arm_strh(uint32_t opcode)
+{
+	uint32_t addr, data, offset;
+
+	addr = GETADDR(RN);
+
+	// Calculate offset
+	if (opcode & (1u << 22)) {
+		offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
+	} else {
+		offset = arm.reg[RM];
+	}
+	if (!(opcode & (1u << 23))) {
+		offset = -offset;
+	}
+
+	// Pre-indexed
+	if (opcode & (1u << 24)) {
+		addr += offset;
+	}
+
+	// Store
+	data = GETREG(RD);
+	mem_write8(addr & ~1, (uint8_t) data);
+	mem_write8(addr | 1, (uint8_t) (data >> 8));
+
+	// Check for Abort
+	if (armirq & 0x40) {
+		return;
+	}
+
+	if (!(opcode & (1u << 24))) {
+		// Post-indexed
+		arm.reg[RN] = addr + offset;
+	} else if (opcode & (1u << 21)) {
+		// Pre-indexed with Writeback
+		arm.reg[RN] = addr;
+	}
+}
+
+/**
+ * Perform a Load Halfword.
+ *
+ * This is part of the Load/Store Extensions added in ARMv4.
+ *
+ * On a real Risc PC, this can't always work reliably due to the memory system
+ * not supporting 16-bit data transfers. Rather than try to identify exactly
+ * when it could work, we implement it as always working correctly.
+ *
+ * @param opcode Opcode of instruction being emulated
+ */
+void
+arm_ldrh(uint32_t opcode)
+{
+	uint32_t addr, data, offset;
+
+	addr = GETADDR(RN);
+
+	// Calculate offset
+	if (opcode & (1u << 22)) {
+		offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
+	} else {
+		offset = arm.reg[RM];
+	}
+	if (!(opcode & (1u << 23))) {
+		offset = -offset;
+	}
+
+	// Pre-indexed
+	if (opcode & (1u << 24)) {
+		addr += offset;
+	}
+
+	// Load
+	data = mem_read32(addr & ~3u);
+	if (addr & 2) {
+		data >>= 16;
+	} else {
+		data &= 0xffff;
+	}
+
+	// Check for Abort
+	if (armirq & 0x40) {
+		return;
+	}
+
+	if (!(opcode & (1u << 24))) {
+		// Post-indexed
+		arm.reg[RN] = addr + offset;
+	} else if (opcode & (1u << 21)) {
+		// Pre-indexed with Writeback
+		arm.reg[RN] = addr;
+	}
+
+	// Write Rd
+	LOADREG(RD, data);
+}
+
+/**
+ * Perform a Load Signed Halfword.
+ *
+ * This is part of the Load/Store Extensions added in ARMv4.
+ *
+ * On a real Risc PC, this can't always work reliably due to the memory system
+ * not supporting 16-bit data transfers. Rather than try to identify exactly
+ * when it could work, we implement it as always working correctly.
+ *
+ * @param opcode Opcode of instruction being emulated
+ */
+void
+arm_ldrsh(uint32_t opcode)
+{
+	uint32_t addr, data, offset;
+
+	addr = GETADDR(RN);
+
+	// Calculate offset
+	if (opcode & (1u << 22)) {
+		offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
+	} else {
+		offset = arm.reg[RM];
+	}
+	if (!(opcode & (1u << 23))) {
+		offset = -offset;
+	}
+
+	// Pre-indexed
+	if (opcode & (1u << 24)) {
+		addr += offset;
+	}
+
+	// Load
+	data = mem_read32(addr & ~3u);
+	if (addr & 2) {
+		data = (uint32_t) ((int32_t) data >> 16);
+	} else {
+		data = (uint32_t) (int32_t) (int16_t) data;
+	}
+
+	// Check for Abort
+	if (armirq & 0x40) {
+		return;
+	}
+
+	if (!(opcode & (1u << 24))) {
+		// Post-indexed
+		arm.reg[RN] = addr + offset;
+	} else if (opcode & (1u << 21)) {
+		// Pre-indexed with Writeback
+		arm.reg[RN] = addr;
+	}
+
+	// Write Rd
+	LOADREG(RD, data);
+}
+
+/**
+ * Perform a Load Signed Byte.
+ *
+ * This is part of the Load/Store Extensions added in ARMv4.
+ *
+ * @param opcode Opcode of instruction being emulated
+ */
+void
+arm_ldrsb(uint32_t opcode)
+{
+	uint32_t addr, data, offset;
+
+	addr = GETADDR(RN);
+
+	// Calculate offset
+	if (opcode & (1u << 22)) {
+		offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
+	} else {
+		offset = arm.reg[RM];
+	}
+	if (!(opcode & (1u << 23))) {
+		offset = -offset;
+	}
+
+	// Pre-indexed
+	if (opcode & (1u << 24)) {
+		addr += offset;
+	}
+
+	// Load
+	data = (uint32_t) (int32_t) (int8_t) mem_read8(addr);
+
+	// Check for Abort
+	if (armirq & 0x40) {
+		return;
+	}
+
+	if (!(opcode & (1u << 24))) {
+		// Post-indexed
+		arm.reg[RN] = addr + offset;
+	} else if (opcode & (1u << 21)) {
+		// Pre-indexed with Writeback
+		arm.reg[RN] = addr;
+	}
+
+	// Write Rd
+	LOADREG(RD, data);
+}
+
+/**
  * Perform a Store Multiple register operation when the S flag is clear.
  *
  * @param opcode    Opcode of instruction being emulated

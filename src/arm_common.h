@@ -22,11 +22,21 @@
 #define ARM_COMMON_H
 
 /* Functions in arm_common.c */
+extern void arm_ldrh(uint32_t opcode);
+extern void arm_ldrsh(uint32_t opcode);
+extern void arm_ldrsb(uint32_t opcode);
+extern void arm_strh(uint32_t opcode);
 extern void arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback);
 extern void arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback);
 extern void arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback);
 extern void arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback);
 extern void opSWI(uint32_t opcode);
+
+#define refillpipeline() blockend=1;
+
+#define LOADREG(r, v) if (r == 15) { arm.reg[15] = (arm.reg[15] & ~arm.r15_mask) | (((v) + 4) & arm.r15_mask); refillpipeline(); } else arm.reg[r] = (v);
+
+#define GETREG(r) ((r == 15) ? (arm.reg[15] + arm.r15_diff) : arm.reg[r])
 
 /** Evaulate to non-zero if 'mode' is a 32-bit mode */
 #define ARM_MODE_32(mode)	((mode) & 0x10)
@@ -34,8 +44,14 @@ extern void opSWI(uint32_t opcode);
 /** Evaluate to non-zero if 'mode' is a privileged mode */
 #define ARM_MODE_PRIV(mode)	((mode) & 0xf)
 
+/// Evaluate to non-zero if 'mode' has a SPSR (i.e. not USR26/USR32/Sys32)
+#define ARM_MODE_HAS_SPSR(mode)	(ARM_MODE_PRIV(mode) && ((mode) != 0x1f))
+
 #define checkneg(v)	(v & 0x80000000)
 #define checkpos(v)	(!(v & 0x80000000))
+
+/// Only certain bits within CPSR/SPSR can be modified on real hardware
+#define PSR_BITS_VALID	0xf00000df
 
 /** A table used by MSR instructions to determine which fields can be modified
     within a PSR */
@@ -336,7 +352,7 @@ arm_write_cpsr(uint32_t opcode, uint32_t value)
 	}
 
 	/* Look up which fields to write to CPSR */
-	field_mask = msrlookup[(opcode >> 16) & 0xf];
+	field_mask = msrlookup[(opcode >> 16) & 0xf] & PSR_BITS_VALID;
 
 	/* Write to CPSR */
 	arm.reg[16] = (arm.reg[16] & ~field_mask) | (value & field_mask);
@@ -364,6 +380,28 @@ arm_write_cpsr(uint32_t opcode, uint32_t value)
 }
 
 /**
+ * Handle reads from SPSR by MRS instruction.
+ *
+ * @return Value of SPSR (or CPSR if unavailable)
+ */
+static inline uint32_t
+arm_read_spsr(void)
+{
+	if (ARM_MODE_HAS_SPSR(arm.mode)) {
+		return arm.spsr[arm.mode & 0xf];
+	} else {
+		// Real hardware returns CPSR if the mode has no SPSR
+		if (ARM_MODE_32(arm.mode)) {
+			return arm.reg[16];
+		} else {
+			return (arm.reg[15] & 0xf0000000) |
+			       ((arm.reg[15] >> 20) & 0xc0) |
+			       (arm.reg[15] & 3);
+		}
+	}
+}
+
+/**
  * Handle writes to SPSR by MSR instruction
  *
  * Takes into account User/Privileged modes.
@@ -376,10 +414,10 @@ arm_write_spsr(uint32_t opcode, uint32_t value)
 {
 	uint32_t field_mask;
 
-	/* Only privileged modes have an SPSR */
-	if (ARM_MODE_PRIV(arm.mode)) {
+	// Only privileged modes have an SPSR (except Sys32)
+	if (ARM_MODE_HAS_SPSR(arm.mode)) {
 		/* Look up which fields to write to SPSR */
-		field_mask = msrlookup[(opcode >> 16) & 0xf];
+		field_mask = msrlookup[(opcode >> 16) & 0xf] & PSR_BITS_VALID;
 
 		/* Write to SPSR for current mode */
 		arm.spsr[arm.mode & 0xf] = (arm.spsr[arm.mode & 0xf] & ~field_mask) |

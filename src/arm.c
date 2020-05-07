@@ -36,17 +36,6 @@
   OpenTTD much the same.Desktop seems to have less gains, though Dhrystone has gone from
   40.4 DMIPS to 46 DMIPS*/
   
-/*There are bits and pieces of StrongARM emulation in this file. All of the
-  extra instructions have been identified, but only some of the long multiplication
-  instructions have been defined (enough to get AMPlayer working in SA mode).
-  Due to this, it has been defined out for now. Uncomment the following line to
-  emulate what is there for now
-  ArcQuake appears totally broken with this turned on, so there are obviously some
-  bugs in the new instructions
-
-  30/10/06 - Long multiplication instructions fixed, feel free to leave this in now!*/
-#define STRONGARM
-
 /*Preliminary FPA emulation. This works to an extent - !Draw works with it, !SICK
   seems to (FPA Whetstone scores are around 100x without), but !AMPlayer doesn't
   work, and GCC stuff tends to crash.*/
@@ -83,16 +72,17 @@ uint32_t *usrregs[16];
 int databort;
 int prog32;
 
+static int unpredictable_count = 1000; ///< Limit logging of unpredictable instructions
+
 #define NFSET	((arm.reg[cpsr] & NFLAG) ? 1u : 0)
 #define ZFSET	((arm.reg[cpsr] & ZFLAG) ? 1u : 0)
 #define CFSET	((arm.reg[cpsr] & CFLAG) ? 1u : 0)
 #define VFSET	((arm.reg[cpsr] & VFLAG) ? 1u : 0)
 
-#define GETADDR(r) ((r == 15) ? (arm.reg[15] & arm.r15_mask) : arm.reg[r])
-#define LOADREG(r,v) if (r == 15) { arm.reg[15] = (arm.reg[15] & ~arm.r15_mask) | (((v) + 4) & arm.r15_mask); } else arm.reg[r] = (v);
-#define GETREG(r) ((r == 15) ? (arm.reg[15] + arm.r15_diff) : arm.reg[r])
-
 #include "arm_common.h"
+
+#undef refillpipeline
+#define refillpipeline()
 
 uint32_t pccache;
 static const uint32_t *pccache2;
@@ -304,10 +294,12 @@ resetarm(CPUModel cpu_model)
 		arm.r15_diff = 0;
 		arm.abort_base_restored = 1;
 		arm.stm_writeback_at_end = 1;
+		arm.arch_v4 = 1;
 	} else {
 		arm.r15_diff = 4;
 		arm.abort_base_restored = 0;
 		arm.stm_writeback_at_end = 0;
+		arm.arch_v4 = 0;
 	}
 
 	cycles = 0;
@@ -516,14 +508,6 @@ shift4(uint32_t opcode)
 
 #define undefined() exception(UNDEFINED,8,4)
 
-static void bad_opcode(uint32_t opcode) 
-{
-     error("Bad opcode %02X %08X at %07X\n",(opcode >> 20) & 0xFF, opcode, PC);
-     rpclog("Bad opcode %02X %08X at %07X\n",(opcode >> 20) & 0xFF, opcode, PC);
-     dumpregs();
-     exit(EXIT_FAILURE);
-}
-
 void
 exception(uint32_t mmode, uint32_t address, uint32_t diff)
 {
@@ -564,6 +548,23 @@ exception(uint32_t mmode, uint32_t address, uint32_t diff)
 	}
 }
 
+/**
+ * An instruction with unpredictable behaviour has been encountered.
+ *
+ * On real hardware these can have very odd behaviour, so log these in case
+ * software is depending on them.
+ *
+ * @param opcode Opcode of instruction being emulated
+ */
+static void
+arm_unpredictable(uint32_t opcode)
+{
+	if (unpredictable_count != 0) {
+		unpredictable_count--;
+		rpclog("ARM: Unpredictable opcode %08x at %08x\n", opcode, PC);
+	}
+}
+
 void
 execarm(int cycs)
 {
@@ -592,15 +593,25 @@ execarm(int cycs)
 
 			if (flaglookup[opcode >> 28][(*pcpsr) >> 28] && !(armirq & 0x80)) //prefabort)
 			{
-#ifdef STRONGARM
-				if ((opcode & 0xe0000f0) == 0xb0) {
-					/* LDRH/STRH */
-					fatal("Bad LDRH/STRH opcode %08X\n", opcode);
-				} else if ((opcode & 0xe1000d0) == 0x1000d0) {
-					/* LDRS */
-					fatal("Bad LDRH/STRH opcode %08X\n", opcode);
-				} else {
-#endif
+				if (arm.arch_v4) {
+					if ((opcode & 0xe0000f0) == 0xb0) {
+						// LDRH/STRH
+						if (opcode & 0x100000) {
+							arm_ldrh(opcode);
+						} else {
+							arm_strh(opcode);
+						}
+						goto skip;
+					} else if ((opcode & 0xe1000d0) == 0x1000d0) {
+						// LDRSB/LDRSH
+						if ((opcode & 0xf0) == 0xd0) {
+							arm_ldrsb(opcode);
+						} else {
+							arm_ldrsh(opcode);
+						}
+						goto skip;
+					}
+				}
 
 				switch ((opcode >> 20) & 0xff) {
 				case 0x00: /* AND reg */
@@ -696,8 +707,7 @@ execarm(int cycs)
 					break;
 
 				case 0x08: /* ADD reg */
-#ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) {
+					if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 						/* UMULL */
 						uint64_t mula = (uint64_t) arm.reg[MULRS];
 						uint64_t mulb = (uint64_t) arm.reg[MULRM];
@@ -707,14 +717,12 @@ execarm(int cycs)
 						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 						break;
 					}
-#endif
 					dest = GETADDR(RN) + shift2(opcode);
 					arm_write_dest(opcode, dest);
 					break;
 
 				case 0x09: /* ADDS reg */
-#ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) {
+					if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 						/* UMULLS */
 						uint64_t mula = (uint64_t) arm.reg[MULRS];
 						uint64_t mulb = (uint64_t) arm.reg[MULRM];
@@ -725,7 +733,6 @@ execarm(int cycs)
 						arm_flags_long_multiply(mulres);
 						break;
 					}
-#endif
 					lhs = GETADDR(RN);
 					rhs = shift2(opcode);
 					dest = lhs + rhs;
@@ -738,8 +745,7 @@ execarm(int cycs)
 					break;
 
 				case 0x0a: /* ADC reg */
-#ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) {
+					if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 						/* UMLAL */
 						uint64_t mula = (uint64_t) arm.reg[MULRS];
 						uint64_t mulb = (uint64_t) arm.reg[MULRM];
@@ -751,14 +757,12 @@ execarm(int cycs)
 						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 						break;
 					}
-#endif
 					dest = GETADDR(RN) + shift2(opcode) + CFSET;
 					arm_write_dest(opcode, dest);
 					break;
 
 				case 0x0b: /* ADCS reg */
-#ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) {
+					if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 						/* UMLALS */
 						uint64_t mula = (uint64_t) arm.reg[MULRS];
 						uint64_t mulb = (uint64_t) arm.reg[MULRM];
@@ -771,7 +775,6 @@ execarm(int cycs)
 						arm_flags_long_multiply(mulres);
 						break;
 					}
-#endif
 					lhs = GETADDR(RN);
 					rhs = shift2(opcode);
 					dest = lhs + rhs + CFSET;
@@ -784,8 +787,7 @@ execarm(int cycs)
 					break;
 
 				case 0x0c: /* SBC reg */
-#ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) {
+					if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 						/* SMULL */
 						int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
 						int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
@@ -795,14 +797,12 @@ execarm(int cycs)
 						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 						break;
 					}
-#endif
 					dest = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
 					arm_write_dest(opcode, dest);
 					break;
 
 				case 0x0d: /* SBCS reg */
-#ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) {
+					if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 						/* SMULLS */
 						int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
 						int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
@@ -813,7 +813,6 @@ execarm(int cycs)
 						arm_flags_long_multiply(mulres);
 						break;
 					}
-#endif
 					lhs = GETADDR(RN);
 					rhs = shift2(opcode);
 					dest = lhs - rhs - (CFSET ? 0 : 1);
@@ -826,8 +825,7 @@ execarm(int cycs)
 					break;
 
 				case 0x0e: /* RSC reg */
-#ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) {
+					if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 						/* SMLAL */
 						int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
 						int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
@@ -839,14 +837,12 @@ execarm(int cycs)
 						arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 						break;
 					}
-#endif
 					dest = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
 					arm_write_dest(opcode, dest);
 					break;
 
 				case 0x0f: /* RSCS reg */
-#ifdef STRONGARM
-					if ((opcode & 0xf0) == 0x90) {
+					if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 						/* SMLALS */
 						int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
 						int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
@@ -859,7 +855,6 @@ execarm(int cycs)
 						arm_flags_long_multiply(mulres);
 						break;
 					}
-#endif
 					lhs = GETADDR(RN);
 					rhs = shift2(opcode);
 					dest = rhs - lhs - (CFSET ? 0 : 1);
@@ -872,7 +867,7 @@ execarm(int cycs)
 					break;
 
 				case 0x10: /* MRS reg,CPSR and SWP */
-					if ((opcode & 0xf0) == 0x90) {
+					if ((opcode & 0xff0) == 0x90) {
 						/* SWP */
 						if (RD != 15) {
 							addr = GETADDR(RN);
@@ -888,16 +883,17 @@ execarm(int cycs)
 							}
 							LOADREG(RD, dest);
 						}
-					} else if ((opcode & 0xfff) == 0) {
+					} else if ((opcode & 0xf0fff) == 0xf0000) {
 						/* MRS reg,CPSR */
 						if (!ARM_MODE_32(arm.mode)) {
 							arm.reg[16] = (arm.reg[15] & 0xf0000000) | (arm.reg[15] & 3);
 							arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
 						}
 						arm.reg[RD] = arm.reg[16];
-					} else {
+					} else if (arm.arch_v4) {
 						undefined();
-						// bad_opcode(opcode);
+					} else {
+						arm_unpredictable(opcode);
 					}
 					break;
 
@@ -912,10 +908,12 @@ execarm(int cycs)
 					break;
 
 				case 0x12: /* MSR CPSR,reg */
-					if ((RD == 15) && ((opcode & 0xff0) == 0)) {
+					if ((opcode & 0xf010) == 0xf000) {
 						arm_write_cpsr(opcode, arm.reg[RM]);
+					} else if (arm.arch_v4) {
+						undefined();
 					} else {
-						bad_opcode(opcode);
+						arm_unpredictable(opcode);
 					}
 					break;
 
@@ -930,7 +928,7 @@ execarm(int cycs)
 					break;
 
 				case 0x14: /* MRS reg,SPSR and SWPB */
-					if ((opcode & 0xf0) == 0x90) {
+					if ((opcode & 0xff0) == 0x90) {
 						/* SWPB */
 						if (RD != 15) {
 							addr = GETADDR(RN);
@@ -945,11 +943,13 @@ execarm(int cycs)
 							}
 							LOADREG(RD, dest);
 						}
-					} else if ((opcode & 0xfff) == 0) {
+					} else if ((opcode & 0xf0fff) == 0xf0000) {
 						/* MRS reg,SPSR */
-						arm.reg[RD] = arm.spsr[arm.mode & 0xf];
+						arm.reg[RD] = arm_read_spsr();
+					} else if (arm.arch_v4) {
+						undefined();
 					} else {
-						bad_opcode(opcode);
+						arm_unpredictable(opcode);
 					}
 					break;
 
@@ -966,10 +966,12 @@ execarm(int cycs)
 					break;
 
 				case 0x16: /* MSR SPSR,reg */
-					if ((RD == 15) && ((opcode & 0xff0) == 0)) {
+					if ((opcode & 0xf010) == 0xf000) {
 						arm_write_spsr(opcode, arm.reg[RM]);
+					} else if (arm.arch_v4) {
+						undefined();
 					} else {
-						bad_opcode(opcode);
+						arm_unpredictable(opcode);
 					}
 					break;
 
@@ -1192,8 +1194,10 @@ execarm(int cycs)
 				case 0x32: /* MSR CPSR,imm */
 					if (RD == 15) {
 						arm_write_cpsr(opcode, arm_imm(opcode));
+					} else if (arm.arch_v4) {
+						undefined();
 					} else {
-						bad_opcode(opcode);
+						arm_unpredictable(opcode);
 					}
 					break;
 
@@ -1216,6 +1220,16 @@ execarm(int cycs)
 						arm_compare_rd15(opcode, dest);
 					} else {
 						setsub(lhs, rhs, dest);
+					}
+					break;
+
+				case 0x36: /* MSR SPSR,imm */
+					if (RD == 15) {
+						arm_write_spsr(opcode, arm_imm(opcode));
+					} else if (arm.arch_v4) {
+						undefined();
+					} else {
+						arm_unpredictable(opcode);
 					}
 					break;
 
@@ -1291,10 +1305,15 @@ execarm(int cycs)
 					}
 					break;
 
-				case 0x42: /* STRT Rd, [Rn], #-imm   */
-				case 0x4a: /* STRT Rd, [Rn], #+imm   */
 				case 0x62: /* STRT Rd, [Rn], -reg... */
 				case 0x6a: /* STRT Rd, [Rn], +reg... */
+					if (opcode & 0x10) {
+						undefined();
+						break;
+					}
+					/* Fall-through */
+				case 0x42: /* STRT Rd, [Rn], #-imm   */
+				case 0x4a: /* STRT Rd, [Rn], #+imm   */
 					addr = GETADDR(RN);
 
 					/* Temp switch to user permissions */
@@ -1322,10 +1341,15 @@ execarm(int cycs)
 					arm.reg[RN] = addr;
 					break;
 
-				case 0x43: /* LDRT Rd, [Rn], #-imm   */
-				case 0x4b: /* LDRT Rd, [Rn], #+imm   */
 				case 0x63: /* LDRT Rd, [Rn], -reg... */
 				case 0x6b: /* LDRT Rd, [Rn], +reg... */
+					if (opcode & 0x10) {
+						undefined();
+						break;
+					}
+					/* Fall-through */
+				case 0x43: /* LDRT Rd, [Rn], #-imm   */
+				case 0x4b: /* LDRT Rd, [Rn], #+imm   */
 					addr = GETADDR(RN);
 
 					/* Temp switch to user permissions */
@@ -1363,10 +1387,15 @@ execarm(int cycs)
 					LOADREG(RD, data);
 					break;
 
-				case 0x46: /* STRBT Rd, [Rn], #-imm   */
-				case 0x4e: /* STRBT Rd, [Rn], #+imm   */
 				case 0x66: /* STRBT Rd, [Rn], -reg... */
 				case 0x6e: /* STRBT Rd, [Rn], +reg... */
+					if (opcode & 0x10) {
+						undefined();
+						break;
+					}
+					/* Fall-through */
+				case 0x46: /* STRBT Rd, [Rn], #-imm   */
+				case 0x4e: /* STRBT Rd, [Rn], #+imm   */
 					addr = GETADDR(RN);
 
 					/* Temp switch to user permissions */
@@ -1394,10 +1423,15 @@ execarm(int cycs)
 					arm.reg[RN] = addr;
 					break;
 
-				case 0x47: /* LDRBT Rd, [Rn], #-imm   */
-				case 0x4f: /* LDRBT Rd, [Rn], #+imm   */
 				case 0x67: /* LDRBT Rd, [Rn], -reg... */
 				case 0x6f: /* LDRBT Rd, [Rn], +reg... */
+					if (opcode & 0x10) {
+						undefined();
+						break;
+					}
+					/* Fall-through */
+				case 0x47: /* LDRBT Rd, [Rn], #-imm   */
+				case 0x4f: /* LDRBT Rd, [Rn], #+imm   */
 					addr = GETADDR(RN);
 
 					/* Temp switch to user permissions */
@@ -1856,13 +1890,17 @@ execarm(int cycs)
 					break;
 
 				default:
-					bad_opcode(opcode);
+					if (arm.arch_v4) {
+						undefined();
+					} else {
+						arm_unpredictable(opcode);
+					}
 					break;
 				}
 			}
-#ifdef STRONGARM
-			}
-#endif
+
+	// This label is used to skip the switch above
+skip:
 
 			if (/*databort|*/armirq)//|prefabort)
 			{

@@ -36,7 +36,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 /* Version number of RPCEmu */
-#define VERSION "0.9.2"
+#define VERSION "0.9.3"
 
 /* URLs used for the help menu weblinks */
 #define URL_MANUAL  "http://www.marutan.net/rpcemu/manual/"
@@ -121,7 +121,7 @@ typedef enum {
 /** The user's configuration of the emulator */
 typedef struct {
 	unsigned mem_size;	/**< Amount of RAM in megabytes */
-	int vrammask;
+	unsigned vram_size;	/**< Amount of VRAM in megabytes */
 	char *username;
 	char *ipaddress;
 	char *macaddress;

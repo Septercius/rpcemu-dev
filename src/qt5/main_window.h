@@ -103,6 +103,8 @@ public:
 	void error(QString error);
 	void fatal(QString error);
 
+	static int reset_question(QWidget *parent);
+
 protected:
 	void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
 	void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;

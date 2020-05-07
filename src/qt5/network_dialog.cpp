@@ -19,6 +19,9 @@
  */
 #include <iostream>
 
+#include <QMessageBox>
+
+#include "main_window.h"
 #include "network_dialog.h"
 
 #include "network.h"
@@ -126,6 +129,10 @@ NetworkDialog::dialog_accepted()
 	char *bridgename, *ipaddress;
 	NetworkType network_type = NetworkType_Off;
 
+	// Take a copy of the existing config
+	Config new_config;
+	memcpy(&new_config, config_copy, sizeof(Config));
+
 	// Fill in the choices from the dialog box
 	if (net_off->isChecked()) {
 		network_type = NetworkType_Off;
@@ -136,6 +143,21 @@ NetworkDialog::dialog_accepted()
 	} else if (net_tunnelling->isChecked()) {
 		network_type = NetworkType_IPTunnelling;
 	}
+
+	new_config.network_type = network_type;
+
+	// Compare against existing config and see if it will cause a reset
+	if (rpcemu_config_is_reset_required(&new_config, machine.model)) {
+		int ret = MainWindow::reset_question(parentWidget());
+
+		if (ret == QMessageBox::Cancel) {
+			// Set the values in the dialog back to the current settings
+			applyConfig();
+			return;
+		}
+	}
+
+	// By this point we either don't need to reset, or have the user's permission to reset
 
 	// Update network config in emulator thread
 	emit this->emulator.network_config_updated_signal(network_type,

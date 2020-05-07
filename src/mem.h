@@ -34,7 +34,7 @@ extern void writememfl(uint32_t addr, uint32_t val);
 
 extern void clearmemcache(void);
 extern void mem_init(void);
-extern void mem_reset(uint32_t ramsize);
+extern void mem_reset(uint32_t ramsize, uint32_t vram_size);
 
 extern uintptr_t vraddrl[0x100000];
 extern uint32_t vraddrls[1024],vraddrphys[1024];
@@ -58,6 +58,7 @@ extern int mmu,memmode;
 extern void cacheclearpage(uint32_t a);
 
 extern uint32_t mem_rammask;
+extern uint32_t mem_vrammask;
 
 /**
  * Read a 32-bit word from a virtual address.
