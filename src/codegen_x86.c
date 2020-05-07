@@ -1060,6 +1060,16 @@ recompile(uint32_t opcode, uint32_t *pcpsr)
 	uint32_t templ;
 	uint32_t offset;
 
+	if (arm.arch_v4) {
+		if ((opcode & 0xe0000f0) == 0xb0) {
+			// LDRH/STRH
+			return 0;
+		} else if ((opcode & 0xe1000d0) == 0x1000d0) {
+			// LDRSB/LDRSH
+			return 0;
+		}
+	}
+
 	switch ((opcode >> 20) & 0xff) {
 	case 0x00: /* AND reg */
 		if ((opcode & 0xf0) == 0x90) {

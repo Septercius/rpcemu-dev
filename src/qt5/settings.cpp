@@ -72,11 +72,11 @@ config_load(Config * config)
 
 	sText = settings.value("vram_size", "").toString();
 	if (!QString::compare(sText, "", Qt::CaseInsensitive)) {
-		config->vrammask = 0x7FFFFF;
+		config->vram_size = 8;
 	} else if (!QString::compare(sText, "0", Qt::CaseInsensitive)) {
-		config->vrammask = 0;
+		config->vram_size = 0;
 	} else {
-		config->vrammask = 0x7FFFFF;
+		config->vram_size = 8;
 	}
 
 	sText = settings.value("model", "").toString();
@@ -96,13 +96,13 @@ config_load(Config * config)
 
 	/* A7000 and A7000+ have no VRAM */
 	if (model == Model_A7000 || model == Model_A7000plus) {
-		config->vrammask = 0;
+		config->vram_size = 0;
 	}
 
 	/* If Phoebe, override some settings */
 	if (model == Model_Phoebe) {
 		config->mem_size = 256;
-		config->vrammask = 0x3fffff;
+		config->vram_size = 4;
 	}
 
 	config->soundenabled = settings.value("sound_enabled", "1").toInt();
@@ -209,8 +209,8 @@ config_save(Config *config)
 	sprintf(s, "%s", models[machine.model].name_config);
 	settings.setValue("model", s);
 
-	if (config->vrammask) {
-		 settings.setValue("vram_size", "2");
+	if (config->vram_size != 0) {
+		settings.setValue("vram_size", "2");
 	} else {
 		settings.setValue("vram_size", "0");
 	}

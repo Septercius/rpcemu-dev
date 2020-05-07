@@ -21,6 +21,7 @@
 #include "rpcemu.h"
 
 int blockend;
+#define STRONGARM
 
 /*Preliminary FPA emulation. This works to an extent - !Draw works with it, !SICK
   seems to (FPA Whetstone scores are around 100x without), but !AMPlayer doesn't
@@ -75,12 +76,14 @@ uint32_t *usrregs[16];
 int databort;
 int prog32;
 
-static int unpredictable_count = 1000; ///< Limit logging of unpredictable instructions
-
 #define NFSET	((arm.reg[cpsr] & NFLAG) ? 1u : 0)
 #define ZFSET	((arm.reg[cpsr] & ZFLAG) ? 1u : 0)
 #define CFSET	((arm.reg[cpsr] & CFLAG) ? 1u : 0)
 #define VFSET	((arm.reg[cpsr] & VFLAG) ? 1u : 0)
+
+#define GETADDR(r) ((r == 15) ? (arm.reg[15] & arm.r15_mask) : arm.reg[r])
+#define LOADREG(r,v) if (r == 15) { arm.reg[15] = (arm.reg[15] & ~arm.r15_mask) | (((v) + 4) & arm.r15_mask); refillpipeline(); } else arm.reg[r] = (v);
+#define GETREG(r) ((r == 15) ? (arm.reg[15] + arm.r15_diff) : arm.reg[r])
 
 #define refillpipeline() blockend=1;
 
@@ -296,12 +299,10 @@ resetarm(CPUModel cpu_model)
 		arm.r15_diff = 0;
 		arm.abort_base_restored = 1;
 		arm.stm_writeback_at_end = 1;
-		arm.arch_v4 = 1;
 	} else {
 		arm.r15_diff = 4;
 		arm.abort_base_restored = 0;
 		arm.stm_writeback_at_end = 0;
-		arm.arch_v4 = 0;
 	}
 
 	cycles = 0;
@@ -510,6 +511,13 @@ shift4(uint32_t opcode)
 
 #define undefined() exception(UNDEFINED,8,4)
 
+static void bad_opcode(uint32_t opcode) 
+{
+     error("Bad opcode %02X %08X at %07X\n",(opcode >> 20) & 0xFF, opcode, PC);
+     dumpregs();
+     exit(EXIT_FAILURE);
+}
+
 void
 exception(uint32_t mmode, uint32_t address, uint32_t diff)
 {
@@ -549,23 +557,6 @@ exception(uint32_t mmode, uint32_t address, uint32_t diff)
 		arm.reg[15] |= ((irq_disable << 20) | address);
 	}
 	refillpipeline();
-}
-
-/**
- * An instruction with unpredictable behaviour has been encountered.
- *
- * On real hardware these can have very odd behaviour, so log these in case
- * software is depending on them.
- *
- * @param opcode Opcode of instruction being emulated
- */
-static void
-arm_unpredictable(uint32_t opcode)
-{
-	if (unpredictable_count != 0) {
-		unpredictable_count--;
-		rpclog("ARM: Unpredictable opcode %08x at %08x\n", opcode, PC);
-	}
 }
 
 #if defined __linux__ || defined __MACH__
@@ -652,6 +643,12 @@ set_memory_executable(void *ptr, size_t len)
 
 #include "ArmDynarecOps.h"
 
+static void badopcode(uint32_t opcode)
+{
+        bad_opcode(opcode);
+        exit(-1);
+}
+
 static const unsigned char validforskip[64]=
 {
         1,        1,        1,        1,        1,       1,        1,       1,
@@ -674,7 +671,7 @@ static const OpFn opcodes[256]=
 
 	opANDimm, opANDimmS,opEORimm, opEORimmS,opSUBimm, opSUBimmS,opRSBimm, opRSBimmS, //20
 	opADDimm, opADDimmS,opADCimm, opADCimmS,opSBCimm, opSBCimmS,opRSCimm, opRSCimmS, //28
-	opUNALLOC,opTSTimm, opMSRcimm,opTEQimm, opUNALLOC,opCMPimm, opMSRsimm,opCMNimm,  //30
+	badopcode,opTSTimm, opMSRcimm,opTEQimm, badopcode,opCMPimm, badopcode,opCMNimm,  //30
 	opORRimm, opORRimmS,opMOVimm, opMOVimmS,opBICimm, opBICimmS,opMVNimm, opMVNimmS, //38
 
 	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRT,   (OpFn)opLDRT,   (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRBT,  (OpFn)opLDRBT,   //40
@@ -721,44 +718,7 @@ arm_opcode_may_abort(uint32_t opcode)
 	if ((opcode & 0x0fb000f0) == 0x01000090) {
 		return 1;
 	}
-	// Is this a load/store extension?
-	if (arm.arch_v4) {
-		if (((opcode & 0xe0000f0) == 0xb0) || ((opcode & 0xe1000d0) == 0x1000d0)) {
-			return 1;
-		}
-	}
-
 	return 0;
-}
-
-/**
- * Select and return pointer to opcode function.
- *
- * @param opcode Opcode
- * @return Pointer to function
- */
-static inline OpFn
-arm_opcode_fn(uint32_t opcode)
-{
-	if (arm.arch_v4) {
-		if ((opcode & 0xe0000f0) == 0xb0) {
-			// LDRH/STRH
-			if (opcode & 0x100000) {
-				return (OpFn) opLDRH;
-			} else {
-				return (OpFn) opSTRH;
-			}
-		} else if ((opcode & 0xe1000d0) == 0x1000d0) {
-			// LDRSB/LDRSH
-			if ((opcode & 0xf0) == 0xd0) {
-				return (OpFn) opLDRSB;
-			} else {
-				return (OpFn) opLDRSH;
-			}
-		}
-	}
-
-	return opcodes[(opcode >> 20) & 0xff];
 }
 
 void
@@ -796,8 +756,7 @@ execarm(int cycs)
 					if ((opcode & 0x0e108000) == 0x08108000) { blockend = 1; } /* End if R15 reloaded from LDM */
 					if ((opcode & 0x0c100000) == 0x04100000 && (RD == 15)) { blockend = 1; } /* End if R15 reloaded from LDR */
 					if (flaglookup[opcode >> 28][(*pcpsr) >> 28]) {// && !(armirq&0x80))
-						OpFn fn = arm_opcode_fn(opcode);
-						fn(opcode);
+						opcodes[(opcode >> 20) & 0xff](opcode);
 					}
 					// if ((opcode & 0x0e000000) == 0x0a000000) blockend = 1; /* Always end block on branches */
 					// if ((opcode & 0x0c000000) == 0x0c000000) blockend = 1; /* And SWIs and copro stuff */
@@ -871,7 +830,7 @@ execarm(int cycs)
 							} else {
 								lastflagchange = 0;
 							}
-							generatecall(arm_opcode_fn(opcode), opcode, pcpsr);
+							generatecall(opcodes[(opcode >> 20) & 0xff], opcode, pcpsr);
 #ifdef ABORTCHECKING
 							if (arm_opcode_may_abort(opcode)) {
 								generateirqtest();
@@ -883,8 +842,7 @@ execarm(int cycs)
 							if ((opcode & 0x0e108000) == 0x08108000) blockend = 1; /* End if R15 reloaded from LDM */
 							if ((opcode & 0x0c100000) == 0x04100000 && (RD == 15)) blockend=1; /* End if R15 reloaded from LDR */
 							if (flaglookup[opcode >> 28][(*pcpsr) >> 28]) { // && !(armirq&0x80))
-								OpFn fn = arm_opcode_fn(opcode);
-								fn(opcode);
+								opcodes[(opcode >> 20) & 0xff](opcode);
 							}
 						}
 						arm.reg[15] += 4;
