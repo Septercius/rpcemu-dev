@@ -22,6 +22,7 @@
 #include <QButtonGroup>
 #include <QMessageBox>
 
+#include "main_window.h"
 #include "configure_dialog.h"
 
 ConfigureDialog::ConfigureDialog(Emulator &emulator, Config *config_copy, Model *model_copy, QWidget *parent)
@@ -189,8 +190,8 @@ ConfigureDialog::dialog_accepted()
 	if(mem_256->isChecked()) new_config.mem_size = 256;
 
 	// VRAM
-	if(vram_0->isChecked()) new_config.vrammask = 0;
-	if(vram_2->isChecked()) new_config.vrammask = 0x7FFFFF;
+	if (vram_0->isChecked()) new_config.vram_size = 0;
+	if (vram_2->isChecked()) new_config.vram_size = 8;
 
 	// Sound
 	if(sound_checkbox->isChecked()) {
@@ -204,11 +205,7 @@ ConfigureDialog::dialog_accepted()
 
 	// Compare against existing config and see if it will cause a reboot
 	if(rpcemu_config_is_reset_required(&new_config, new_model)) {
-		QMessageBox msgBox;
-		msgBox.setText("This will reset RPCEmu!\nOkay to continue?");
-		msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
-		msgBox.setDefaultButton(QMessageBox::Cancel);
-		int ret = msgBox.exec();
+		int ret = MainWindow::reset_question(parentWidget());
 
 		if(ret == QMessageBox::Cancel) {
 			// Set the values in the dialog back to the current settings
@@ -280,11 +277,13 @@ ConfigureDialog::applyConfig()
 	vram_0->setChecked(false);
 	vram_2->setChecked(false);
 
-	switch(config_copy->vrammask) {
-	case        0: vram_0->setChecked(true); break;
-	case 0x7FFFFF: vram_2->setChecked(true); break;
-	// TODO Pheobe? cos it'll trip this defualt ...
-	default: fatal("configuredialog.cpp: unhandled vram size 0x%08x", config_copy->vrammask);
+	switch (config_copy->vram_size) {
+	case 0:
+		vram_0->setChecked(true);
+		break;
+	default:
+		vram_2->setChecked(true);
+		break;
 	}
 
 	// Sound

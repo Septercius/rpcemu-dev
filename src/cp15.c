@@ -232,7 +232,7 @@ cp15_write(uint32_t addr, uint32_t val, uint32_t opcode)
 		switch (cp15.translation_table & 0x1f000000) {
 		case 0x02000000: /* VRAM */
 			tlbram = vram;
-			tlbrammask = config.vrammask >> 2;
+			tlbrammask = mem_vrammask >> 2;
 			break;
 		case 0x10000000: /* SIMM 0 bank 0 */
 		case 0x11000000:
@@ -570,7 +570,7 @@ getpccache(uint32_t addr)
 	case 0x00000000: /* ROM */
 		return &rom[((uintptr_t) (phys_addr & 0x7ff000) - (uintptr_t) addr) >> 2];
 	case 0x02000000: /* VRAM */
-		return &vram[((uintptr_t) (phys_addr & config.vrammask) - (uintptr_t) addr) >> 2];
+		return &vram[((uintptr_t) (phys_addr & mem_vrammask) - (uintptr_t) addr) >> 2];
 	case 0x10000000: /* SIMM 0 bank 0 */
 	case 0x11000000:
 	case 0x12000000:

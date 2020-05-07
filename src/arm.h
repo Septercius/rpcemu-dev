@@ -41,6 +41,7 @@ typedef struct {
 	uint32_t	r15_diff;
 	uint8_t		abort_base_restored;
 	uint8_t		stm_writeback_at_end;
+	uint8_t		arch_v4;
 } ARMState;
 
 typedef void (*OpFn)(uint32_t opcode);
@@ -103,5 +104,15 @@ extern int countbitstable[65536];
 #define ABORT      7
 #define UNDEFINED  11
 #define SYSTEM     15
+
+static inline uint32_t
+GETADDR(uint32_t r)
+{
+	if (r == 15) {
+		return arm.reg[15] & arm.r15_mask;
+	} else {
+		return arm.reg[r];
+	}
+}
 
 #endif //__ARM__

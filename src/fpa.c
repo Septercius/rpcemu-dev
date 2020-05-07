@@ -42,8 +42,6 @@ void resetfpa(void)
 #define FD ((opcode>>12)&7)
 #define FN ((opcode>>16)&7)
 
-#define GETADDR(r) ((r == 15) ? (arm.reg[15] & arm.r15_mask) : arm.reg[r])
-
 static inline void setsubf(double op1, double op2)
 {
 	arm.reg[cpsr] &= 0xfffffff;

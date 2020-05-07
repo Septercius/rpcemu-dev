@@ -147,8 +147,7 @@ opADDreg(uint32_t opcode)
 {
 	uint32_t dest;
 
-#ifdef STRONGARM
-	if ((opcode & 0xf0) == 0x90) {
+	if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 		/* UMULL */
 		uint64_t mula = (uint64_t) arm.reg[MULRS];
 		uint64_t mulb = (uint64_t) arm.reg[MULRM];
@@ -158,7 +157,6 @@ opADDreg(uint32_t opcode)
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 		return;
 	}
-#endif
 	dest = GETADDR(RN) + shift2(opcode);
 	arm_write_dest(opcode, dest);
 }
@@ -168,8 +166,7 @@ opADDregS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
 
-#ifdef STRONGARM
-	if ((opcode & 0xf0) == 0x90) {
+	if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 		/* UMULLS */
 		uint64_t mula = (uint64_t) arm.reg[MULRS];
 		uint64_t mulb = (uint64_t) arm.reg[MULRM];
@@ -180,7 +177,6 @@ opADDregS(uint32_t opcode)
 		arm_flags_long_multiply(mulres);
 		return;
 	}
-#endif
 	lhs = GETADDR(RN);
 	rhs = shift2(opcode);
 	dest = lhs + rhs;
@@ -197,8 +193,7 @@ opADCreg(uint32_t opcode)
 {
 	uint32_t dest;
 
-#ifdef STRONGARM
-	if ((opcode & 0xf0) == 0x90) {
+	if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 		/* UMLAL */
 		uint64_t mula = (uint64_t) arm.reg[MULRS];
 		uint64_t mulb = (uint64_t) arm.reg[MULRM];
@@ -210,7 +205,6 @@ opADCreg(uint32_t opcode)
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 		return;
 	}
-#endif
 	dest = GETADDR(RN) + shift2(opcode) + CFSET;
 	arm_write_dest(opcode, dest);
 }
@@ -220,8 +214,7 @@ opADCregS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
 
-#ifdef STRONGARM
-	if ((opcode & 0xf0) == 0x90) {
+	if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 		/* UMLALS */
 		uint64_t mula = (uint64_t) arm.reg[MULRS];
 		uint64_t mulb = (uint64_t) arm.reg[MULRM];
@@ -234,7 +227,6 @@ opADCregS(uint32_t opcode)
 		arm_flags_long_multiply(mulres);
 		return;
 	}
-#endif
 	lhs = GETADDR(RN);
 	rhs = shift2(opcode);
 	dest = lhs + rhs + CFSET;
@@ -251,8 +243,7 @@ opSBCreg(uint32_t opcode)
 {
 	uint32_t dest;
 
-#ifdef STRONGARM
-	if ((opcode & 0xf0) == 0x90) {
+	if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 		/* SMULL */
 		int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
 		int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
@@ -262,7 +253,6 @@ opSBCreg(uint32_t opcode)
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 		return;
 	}
-#endif
 	dest = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
 	arm_write_dest(opcode, dest);
 }
@@ -272,8 +262,7 @@ opSBCregS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
 
-#ifdef STRONGARM
-	if ((opcode & 0xf0) == 0x90) {
+	if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 		/* SMULLS */
 		int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
 		int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
@@ -284,7 +273,6 @@ opSBCregS(uint32_t opcode)
 		arm_flags_long_multiply(mulres);
 		return;
 	}
-#endif
 	lhs = GETADDR(RN);
 	rhs = shift2(opcode);
 	dest = lhs - rhs - (CFSET ? 0 : 1);
@@ -301,8 +289,7 @@ opRSCreg(uint32_t opcode)
 {
 	uint32_t dest;
 
-#ifdef STRONGARM
-	if ((opcode & 0xf0) == 0x90) {
+	if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 		/* SMLAL */
 		int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
 		int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
@@ -314,7 +301,6 @@ opRSCreg(uint32_t opcode)
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 		return;
 	}
-#endif
 	dest = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
 	arm_write_dest(opcode, dest);
 }
@@ -324,8 +310,7 @@ opRSCregS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
 
-#ifdef STRONGARM
-	if ((opcode & 0xf0) == 0x90) {
+	if (arm.arch_v4 && (opcode & 0xf0) == 0x90) {
 		/* SMLALS */
 		int64_t mula = (int64_t) (int32_t) arm.reg[MULRS];
 		int64_t mulb = (int64_t) (int32_t) arm.reg[MULRM];
@@ -338,7 +323,6 @@ opRSCregS(uint32_t opcode)
 		arm_flags_long_multiply(mulres);
 		return;
 	}
-#endif
 	lhs = GETADDR(RN);
 	rhs = shift2(opcode);
 	dest = rhs - lhs - (CFSET ? 0 : 1);
@@ -355,7 +339,7 @@ opSWPword(uint32_t opcode)
 {
 	uint32_t addr, dest, data;
 
-	if ((opcode & 0xf0) == 0x90) {
+	if ((opcode & 0xff0) == 0x90) {
 		/* SWP */
 		if (RD != 15) {
 			addr = GETADDR(RN);
@@ -371,15 +355,17 @@ opSWPword(uint32_t opcode)
 			}
 			LOADREG(RD, dest);
 		}
-	} else if ((opcode & 0xfff) == 0) {
+	} else if ((opcode & 0xf0fff) == 0xf0000) {
 		/* MRS reg,CPSR */
 		if (!ARM_MODE_32(arm.mode)) {
 			arm.reg[16] = (arm.reg[15] & 0xf0000000) | (arm.reg[15] & 3);
 			arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
 		}
 		arm.reg[RD] = arm.reg[16];
-	} else {
+	} else if (arm.arch_v4) {
 		undefined();
+	} else {
+		arm_unpredictable(opcode);
 	}
 	return 0;
 }
@@ -401,11 +387,13 @@ opTSTreg(uint32_t opcode)
 static void
 opMSRcreg(uint32_t opcode)
 {
-	if ((RD == 15) && ((opcode & 0xff0) == 0)) {
+	if ((opcode & 0xf010) == 0xf000) {
 		/* MSR CPSR,reg */
 		arm_write_cpsr(opcode, arm.reg[RM]);
+	} else if (arm.arch_v4) {
+		undefined();
 	} else {
-		bad_opcode(opcode);
+		arm_unpredictable(opcode);
 	}
 }
 
@@ -428,7 +416,7 @@ opSWPbyte(uint32_t opcode)
 {
 	uint32_t addr, dest, data;
 
-	if ((opcode & 0xf0) == 0x90) {
+	if ((opcode & 0xff0) == 0x90) {
 		/* SWPB */
 		if (RD != 15) {
 			addr = GETADDR(RN);
@@ -443,11 +431,13 @@ opSWPbyte(uint32_t opcode)
 			}
 			LOADREG(RD, dest);
 		}
-	} else if ((opcode & 0xfff) == 0) {
+	} else if ((opcode & 0xf0fff) == 0xf0000) {
 		/* MRS reg,SPSR */
-		arm.reg[RD] = arm.spsr[arm.mode & 0xf];
+		arm.reg[RD] = arm_read_spsr();
+	} else if (arm.arch_v4) {
+		undefined();
 	} else {
-		bad_opcode(opcode);
+		arm_unpredictable(opcode);
 	}
 	return 0;
 }
@@ -471,11 +461,13 @@ opCMPreg(uint32_t opcode)
 static void
 opMSRsreg(uint32_t opcode)
 {
-	if ((RD == 15) && ((opcode & 0xff0) == 0)) {
+	if ((opcode & 0xf010) == 0xf000) {
 		/* MSR SPSR,reg */
 		arm_write_spsr(opcode, arm.reg[RM]);
+	} else if (arm.arch_v4) {
+		undefined();
 	} else {
-		bad_opcode(opcode);
+		arm_unpredictable(opcode);
 	}
 }
 
@@ -801,8 +793,10 @@ opMSRcimm(uint32_t opcode)
 	if (RD == 15) {
 		/* MSR CPSR,imm */
 		arm_write_cpsr(opcode, arm_imm(opcode));
+	} else if (arm.arch_v4) {
+		undefined();
 	} else {
-		bad_opcode(opcode);
+		arm_unpredictable(opcode);
 	}
 }
 
@@ -833,6 +827,19 @@ opCMPimm(uint32_t opcode)
 		arm_compare_rd15(opcode, dest);
 	} else {
 		setsub(lhs, rhs, dest);
+	}
+}
+
+static void
+opMSRsimm(uint32_t opcode)
+{
+	if (RD == 15) {
+		/* MSR SPSR,imm */
+		arm_write_spsr(opcode, arm_imm(opcode));
+	} else if (arm.arch_v4) {
+		undefined();
+	} else {
+		arm_unpredictable(opcode);
 	}
 }
 
@@ -945,6 +952,11 @@ opSTRT(uint32_t opcode)
 {
 	uint32_t addr, data, offset, templ;
 
+	if ((opcode & 0x2000010) == 0x2000010) {
+		undefined();
+		return 0;
+	}
+
 	addr = GETADDR(RN);
 
 	/* Temporarily switch to user permissions */
@@ -978,6 +990,11 @@ static int
 opLDRT(uint32_t opcode)
 {
 	uint32_t addr, data, offset, templ;
+
+	if ((opcode & 0x2000010) == 0x2000010) {
+		undefined();
+		return 0;
+	}
 
 	addr = GETADDR(RN);
 
@@ -1023,6 +1040,11 @@ opSTRBT(uint32_t opcode)
 {
 	uint32_t addr, data, offset, templ;
 
+	if ((opcode & 0x2000010) == 0x2000010) {
+		undefined();
+		return 0;
+	}
+
 	addr = GETADDR(RN);
 
 	/* Temporarily switch to user permissions */
@@ -1056,6 +1078,11 @@ static int
 opLDRBT(uint32_t opcode)
 {
 	uint32_t addr, data, offset, templ;
+
+	if ((opcode & 0x2000010) == 0x2000010) {
+		undefined();
+		return 0;
+	}
 
 	addr = GETADDR(RN);
 
@@ -1508,4 +1535,47 @@ opMRC(uint32_t opcode)
 	} else {
 		undefined();
 	}
+}
+
+/**
+ * This refers to the unallocated portions of the opcode space.
+ */
+static void
+opUNALLOC(uint32_t opcode)
+{
+	NOT_USED(opcode);
+
+	if (arm.arch_v4) {
+		undefined();
+	} else {
+		arm_unpredictable(opcode);
+	}
+}
+
+static int
+opLDRH(uint32_t opcode)
+{
+	arm_ldrh(opcode);
+	return (armirq & 0x40);
+}
+
+static int
+opLDRSB(uint32_t opcode)
+{
+	arm_ldrsb(opcode);
+	return (armirq & 0x40);
+}
+
+static int
+opLDRSH(uint32_t opcode)
+{
+	arm_ldrsh(opcode);
+	return (armirq & 0x40);
+}
+
+static int
+opSTRH(uint32_t opcode)
+{
+	arm_strh(opcode);
+	return (armirq & 0x40);
 }
