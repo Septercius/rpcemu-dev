@@ -46,6 +46,7 @@ int mmu = 0;     /**< Bool of whether the MMU is enabled */
 int memmode = 0; /**< Bool of whether ARM is in a privileged mode */
 
 uint32_t mem_rammask; /**< Mask used for SIMM Bank 0/1 to handle the repeating address space */
+uint32_t mem_vrammask; /**< Mask used for VRAM to handle the repeating address space */
 
 static uint8_t *ramb00 = NULL; /**< Byte pointer to SIMM 0 Bank 0 of physical RAM */
 static uint8_t *ramb01 = NULL; /**< Byte pointer to SIMM 0 Bank 1 of physical RAM */
@@ -83,8 +84,10 @@ void mem_init(void)
  * Initialise/reset RAM (called on startup and emulated machine reset)
  *
  * @param ramsize Amount of RAM in megabytes
+ * @param vram_size Amount of VRAM in megabytes
  */
-void mem_reset(uint32_t ramsize)
+void
+mem_reset(uint32_t ramsize, uint32_t vram_size)
 {
 	assert(ramsize >= 4); /* At least 4MB */
 	assert(ramsize <= 256); /* At most 256MB */
@@ -108,6 +111,13 @@ void mem_reset(uint32_t ramsize)
 
 	/* Calculate mem_rammask */
 	mem_rammask = (ramsize / 2) - 1;
+
+	/* Calculate mem_vramask */
+	if (vram_size != 0) {
+		mem_vrammask = (vram_size * 1024 * 1024) - 1;
+	} else {
+		mem_vrammask = 0;
+	}
 
 	ram00 = realloc(ram00, ramsize / 2);
 	ram01 = realloc(ram01, ramsize / 2);
@@ -176,9 +186,9 @@ mem_phys_read32(uint32_t addr)
 		return rom[(addr & 0x7fffff) >> 2];
 
 	case 0x02000000: /* VRAM */
-		if (config.vrammask == 0)
+		if (mem_vrammask == 0)
 			return 0xffffffff;
-		return vram[(addr & config.vrammask) >> 2];
+		return vram[(addr & mem_vrammask) >> 2];
 
 	case 0x03000000: /* IO */
 		if ((addr & 0xc00000) == 0) {
@@ -270,12 +280,12 @@ mem_phys_read8(uint32_t addr)
 		return romb[addr & 0x7fffff];
 
 	case 0x02000000: /* VRAM */
-		if (config.vrammask == 0)
+		if (mem_vrammask == 0)
 			return 0xff;
 #ifdef _RPCEMU_BIG_ENDIAN
 		addr ^= 3;
 #endif
-		return vramb[addr & config.vrammask];
+		return vramb[addr & mem_vrammask];
 
 	case 0x03000000: /* IO */
 		if ((addr & 0xc00000) == 0) {
@@ -373,10 +383,10 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 
 	switch (addr & (phys_space_mask & 0xff000000)) { /* Select in 16MB chunks */
 	case 0x02000000: /* VRAM */
-		if (config.vrammask == 0)
+		if (mem_vrammask == 0)
 			return;
-		vram[(addr & config.vrammask) >> 2] = val;
-		dirtybuffer[(addr & config.vrammask) >> 12] = 1;
+		vram[(addr & mem_vrammask) >> 2] = val;
+		dirtybuffer[(addr & mem_vrammask) >> 12] = 1;
 		break;
 
 	case 0x03000000: /* IO */
@@ -442,7 +452,7 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 		ram00[(addr & mem_rammask) >> 2] = val;
 		/* TODO fff00000 only allows blocks on 1MB boundaries not 8MB/16MB
 		   this suggests writes to > 1MB inside video mem in dram mode aren't updating dirtybuffer */
-		if ((config.vrammask == 0) && ((addr & 0xfff00000) == (iomd.vidstart & 0xfff00000))) {
+		if ((mem_vrammask == 0) && ((addr & 0xfff00000) == (iomd.vidstart & 0xfff00000))) {
 			dirtybuffer[(addr & mem_rammask) >> 12] = 1;
 		}
 		return;
@@ -482,13 +492,13 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 
 	switch (addr & (phys_space_mask & 0xff000000)) { /* Select in 16MB chunks */
 	case 0x02000000: /* VRAM */
-		if (config.vrammask == 0)
+		if (mem_vrammask == 0)
 			return;
 #ifdef _RPCEMU_BIG_ENDIAN
 		addr ^= 3;
 #endif
-		vramb[addr & config.vrammask] = val;
-		dirtybuffer[(addr & config.vrammask) >> 12] = 1;
+		vramb[addr & mem_vrammask] = val;
+		dirtybuffer[(addr & mem_vrammask) >> 12] = 1;
 		return;
 
 	case 0x03000000: /* IO */
@@ -556,7 +566,7 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 		ramb00[addr & mem_rammask] = val;
 		/* TODO fff00000 only allows blocks on 1MB boundaries not 8MB/16MB
 		   this suggests writes to > 1MB inside video mem in dram mode aren't updating dirtybuffer */
-		if ((config.vrammask == 0) && ((addr & 0xfff00000) == (iomd.vidstart & 0xfff00000))) {
+		if ((mem_vrammask == 0) && ((addr & 0xfff00000) == (iomd.vidstart & 0xfff00000))) {
 			dirtybuffer[(addr & mem_rammask) >> 12] = 1;
 		}
 		return;
@@ -613,8 +623,8 @@ readmemfl(uint32_t addr)
 			return *(const uint32_t *) ((vraddrl[addr >> 12] & ~3) + (addr & ~3u));
 
 		case 0x02000000: /* VRAM */
-			if (config.vrammask != 0) {
-				vradd(addr, &vram[((readmemcache2 & config.vrammask) - (uintptr_t) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
+			if (mem_vrammask != 0) {
+				vradd(addr, &vram[((readmemcache2 & mem_vrammask) - (uintptr_t) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
 				return *(const uint32_t *) (vraddrl[addr >> 12] + (addr & ~3u));
 			}
 			break;
@@ -653,8 +663,8 @@ readmemfl(uint32_t addr)
 			//vradd(addr, &rom[((addr & 0x7ff000) - (uintptr_t) (addr & ~0xfffu)) >> 2], 2, addr);
 			break;
 		case 0x02000000: /* VRAM */
-			if (config.vrammask != 0) {
-				vradd(addr, &vram[((addr & config.vrammask & ~0xfffu) - (uintptr_t) (addr & ~0xfffu)) >> 2], 0, addr);
+			if (mem_vrammask != 0) {
+				vradd(addr, &vram[((addr & mem_vrammask & ~0xfffu) - (uintptr_t) (addr & ~0xfffu)) >> 2], 0, addr);
 			}
 			break;
 		case 0x10000000: /* SIMM 0 bank 0 */
@@ -714,8 +724,8 @@ readmemfb(uint32_t addr)
 			return *(const uint8_t *) ((vraddrl[addr >> 12] & ~3) + addr);
 
 		case 0x02000000: /* VRAM */
-			if (config.vrammask != 0) {
-				vradd(addr, &vram[((readmemcache2 & config.vrammask) - (uintptr_t) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
+			if (mem_vrammask != 0) {
+				vradd(addr, &vram[((readmemcache2 & mem_vrammask) - (uintptr_t) (addr & ~0xfffu)) >> 2], 0, readmemcache2);
 #ifdef _RPCEMU_BIG_ENDIAN
 				addr ^= 3;
 #endif
@@ -784,8 +794,8 @@ writememfl(uint32_t addr, uint32_t val)
 		}
 		switch (writememcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
-			if (config.vrammask != 0) {
-				vwadd(addr, &vram[((writememcache2 & config.vrammask) - (uintptr_t) (addr & ~0xfffu)) >> 2], 0, writememcache2);
+			if (mem_vrammask != 0) {
+				vwadd(addr, &vram[((writememcache2 & mem_vrammask) - (uintptr_t) (addr & ~0xfffu)) >> 2], 0, writememcache2);
 			}
 			break;
 
@@ -840,8 +850,8 @@ writememfb(uint32_t addr, uint8_t val)
 		}
 		switch (writemembcache2 & (phys_space_mask & 0xff000000)) {
 		case 0x02000000: /* VRAM */
-			if (config.vrammask != 0) {
-				vwadd(addr, &vram[((writemembcache2 & config.vrammask) - (uintptr_t) (addr & ~0xfffu)) >> 2], 0, writemembcache2);
+			if (mem_vrammask != 0) {
+				vwadd(addr, &vram[((writemembcache2 & mem_vrammask) - (uintptr_t) (addr & ~0xfffu)) >> 2], 0, writemembcache2);
 			}
 			break;
 

@@ -276,6 +276,12 @@ pcf8583_write(void *dev, uint8_t data)
 
 		cmosram[pcf->reg_address] = data;
 
+		// RISC OS updates the checksum byte after any change, so if
+		// the write is to the RISC OS checksum byte, save the data
+		if (pcf->reg_address == 0x3f) {
+			savecmos();
+		}
+
 		pcf->reg_address = (pcf->reg_address + 1) & 0xff;
 	}
 	return I2C_ACK;

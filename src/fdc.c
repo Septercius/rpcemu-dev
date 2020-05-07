@@ -81,6 +81,7 @@ typedef enum {
 	DISC_FORMAT_ADFS_DE_800K,
 	DISC_FORMAT_ADFS_F_1600K,
 	DISC_FORMAT_ADFS_L_640K,
+	DISC_FORMAT_DOS_360K,
 	DISC_FORMAT_DOS_720K,
 	DISC_FORMAT_DOS_1440K,
 } DiscFormat;
@@ -101,6 +102,7 @@ static const Format formats[] = {
 	{ "ADFS D/E 800KB",   "adf", 2, 80,  5, 1024, 0, 2 },
 	{ "ADFS F 1600KB",    "adf", 2, 80, 10, 1024, 0, 0 },
 	{ "ADFS L 640KB",     "adl", 2, 80, 16,  256, 0, 2 },
+	{ "DOS 360KB",        "img", 2, 40,  9,  512, 1, 2 },
 	{ "DOS 720KB",        "img", 2, 80,  9,  512, 1, 2 },
 	{ "DOS 1440KB",       "img", 2, 80, 18,  512, 1, 0 }
 };
@@ -200,6 +202,7 @@ fdc_image_load(const char *fn, int drive)
 	FILE *f;
 	int h, t, s, b;
 	const char *extension;
+	long len;
 
 	assert(drive == 0 || drive == 1); // Only support two drives
 	assert(fn != NULL); // Must have filename
@@ -215,12 +218,19 @@ fdc_image_load(const char *fn, int drive)
 //		error("Unable to open disc image '%s'", fn);
 		return;
 	}
+
 	fseek(f, 0, SEEK_END);
+	len = ftell(f);
+	if (len < 0) {
+		error("Failed to read size of disc image file");
+		fclose(f);
+		return;
+	}
 
 	extension = fn + strlen(fn) - 4;
 
 	if (strcasecmp(extension, ".adf") == 0) {
-		if (ftell(f) > 1000000) {
+		if (len > 1000000) {
 			drives[drive].format = &formats[DISC_FORMAT_ADFS_F_1600K];
 		} else {
 			drives[drive].format = &formats[DISC_FORMAT_ADFS_DE_800K];
@@ -228,17 +238,20 @@ fdc_image_load(const char *fn, int drive)
 	} else if (strcasecmp(extension, ".adl") == 0) {
 		drives[drive].format = &formats[DISC_FORMAT_ADFS_L_640K];
 	} else if (strcasecmp(extension, ".img") == 0) {
-		if (ftell(f) > 1000000) {
+		if (len > 1250000) {
 			drives[drive].format = &formats[DISC_FORMAT_DOS_1440K];
-		} else {
+		} else if (len > 400000) {
 			drives[drive].format = &formats[DISC_FORMAT_DOS_720K];
+		} else {
+			drives[drive].format = &formats[DISC_FORMAT_DOS_360K];
 		}
 	} else {
 		error("Unknown disc image file extension '%s', must be .adf or .adl", extension);
+		fclose(f);
 		return;
 	}
 
-	rpclog("fdc_image_load: %s (%ld) loaded as '%s'\n", fn, ftell(f), drives[drive].format->name);
+	rpclog("fdc_image_load: %s (%ld) loaded as '%s'\n", fn, len, drives[drive].format->name);
 
 	drives[drive].discchanged = 0;
 	rewind(f);
