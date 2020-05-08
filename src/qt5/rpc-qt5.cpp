@@ -448,7 +448,7 @@ int main (int argc, char ** argv)
     
     // If there is not a data directory in the application preferences, prompt for one.
     // This will also prompt if the "Command" key is held down while the application loads.
-    if (promptForDataDirectory || (QApplication::queryKeyboardModifiers() & Qt::ControlModifier) != 0)
+    if (promptForDataDirectory || (QApplication::queryKeyboardModifiers() & Qt::ShiftModifier) != 0)
     {
         if (!rpcemu_choose_datadirectory())
         {
