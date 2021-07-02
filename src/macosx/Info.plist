@@ -5,11 +5,11 @@
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
 	<key>CFBundleGetInfoString</key>
-	<string>Created by Qt/QMake</string>
+	<string>${QMAKE_FULL_VERSION}</string>
 	<key>CFBundleIconFile</key>
 	<string>${ASSETCATALOG_COMPILER_APPICON_NAME}</string>
 	<key>CFBundleIdentifier</key>
-	<string>org.marutan.rpcemu</string>
+	<string>${PRODUCT_BUNDLE_IDENTIFIER}</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleSignature</key>
