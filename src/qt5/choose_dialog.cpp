@@ -32,7 +32,7 @@ ChooseDialog::ChooseDialog(QWidget *parent) : QDialog(parent)
   QString str = QString("<p>Before using RPCEmu for the first time, you must select the directory <br/>"
                         "that contains the folders and files required by the emulator, such as <br>"
                         "ROMs, hard drive images and the HostFS share.</p>"
-                        "<p>You can show this dialogue again by holding down the Command key <br/>"
+                        "<p>You can show this dialogue again by holding down the Shift key <br/>"
                         "whilst the application is loading.</p>");
 
   preamble_label = new QLabel(str);
