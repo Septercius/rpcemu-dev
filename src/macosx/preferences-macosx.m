@@ -31,7 +31,7 @@
 #include "rpcemu.h"
 
 bool promptForDataDirectory;
-NSString* const KeyDataDirectory = @"DataDirectory";
+static NSString* const KeyDataDirectory = @"DataDirectory";
 
 void init_preferences(void)
 {
@@ -44,14 +44,14 @@ void init_preferences(void)
   
   // Check to see if there is a proper path for the data directory.
   // If not, prompt for one.
-  NSString *dataDirectory = [defaults stringForKey: KeyDataDirectory];
-  if (dataDirectory == nil || [dataDirectory length] == 0)
+  NSURL *dataDirectory = [defaults URLForKey: KeyDataDirectory];
+  if (dataDirectory == nil || [dataDirectory checkResourceIsReachableAndReturnError:nil] == NO)
   {
     promptForDataDirectory = true;
   }
   else
   {
-    const char *str = [dataDirectory UTF8String];
+    const char *str = [dataDirectory fileSystemRepresentation];
 
     // Check the folder exists.
     DIR *ptr = opendir(str);
@@ -71,16 +71,19 @@ void init_preferences(void)
 
 void preferences_set_data_directory(const char *path)
 {
-  NSString *dataDirectory = [NSString stringWithUTF8String: path];
+  @autoreleasepool {
+  NSURL *dataDirectory = [NSURL fileURLWithFileSystemRepresentation:path 
+  isDirectory:YES relativeToURL:nil];
   
   NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-  [defaults setObject:dataDirectory forKey:KeyDataDirectory];
+  [defaults setURL:dataDirectory forKey:KeyDataDirectory];
+  }
 }
 
 const char* preferences_get_data_directory()
 {
   NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-  NSString *path = [defaults stringForKey: KeyDataDirectory];
+  NSURL *path = [defaults URLForKey: KeyDataDirectory];
   
-  return [path UTF8String];
+  return [path fileSystemRepresentation];
 }
