@@ -82,7 +82,7 @@ arm_strh(uint32_t opcode)
 	mem_write8(addr | 1, (uint8_t) (data >> 8));
 
 	// Check for Abort
-	if (armirq & 0x40) {
+	if (arm.event & 0x40) {
 		return;
 	}
 
@@ -137,7 +137,7 @@ arm_ldrh(uint32_t opcode)
 	}
 
 	// Check for Abort
-	if (armirq & 0x40) {
+	if (arm.event & 0x40) {
 		return;
 	}
 
@@ -195,7 +195,7 @@ arm_ldrsh(uint32_t opcode)
 	}
 
 	// Check for Abort
-	if (armirq & 0x40) {
+	if (arm.event & 0x40) {
 		return;
 	}
 
@@ -244,7 +244,7 @@ arm_ldrsb(uint32_t opcode)
 	data = (uint32_t) (int32_t) (int8_t) mem_read8(addr);
 
 	// Check for Abort
-	if (armirq & 0x40) {
+	if (arm.event & 0x40) {
 		return;
 	}
 
@@ -297,7 +297,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	}
 
 	/* Check for Abort from first Store */
-	if (armirq & 0x40) {
+	if (arm.event & 0x40) {
 		goto data_abort;
 	}
 
@@ -305,7 +305,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	for ( ; c < 15; c++) {
 		if (opcode & mask) {
 			mem_write32(addr, arm.reg[c]);
-			if (armirq & 0x40) {
+			if (arm.event & 0x40) {
 				goto data_abort;
 			}
 			addr += 4;
@@ -316,7 +316,7 @@ arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* Store R15 (if requested) */
 	if (opcode & (1 << 15)) {
 		mem_write32(addr, arm.reg[15] + arm.r15_diff);
-		if (armirq & 0x40) {
+		if (arm.event & 0x40) {
 			goto data_abort;
 		}
 	}
@@ -377,7 +377,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	}
 
 	/* Check for Abort from first Store */
-	if (armirq & 0x40) {
+	if (arm.event & 0x40) {
 		goto data_abort;
 	}
 
@@ -385,7 +385,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	for ( ; c < 15; c++) {
 		if (opcode & mask) {
 			mem_write32(addr, *usrregs[c]);
-			if (armirq & 0x40) {
+			if (arm.event & 0x40) {
 				goto data_abort;
 			}
 			addr += 4;
@@ -396,7 +396,7 @@ arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* Store R15 (if requested) */
 	if (opcode & (1 << 15)) {
 		mem_write32(addr, arm.reg[15] + arm.r15_diff);
-		if (armirq & 0x40) {
+		if (arm.event & 0x40) {
 			goto data_abort;
 		}
 	}
@@ -445,7 +445,7 @@ arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	for (c = 0; c < 15; c++) {
 		if (opcode & mask) {
 			temp = mem_read32(addr);
-			if (armirq & 0x40) {
+			if (arm.event & 0x40) {
 				goto data_abort;
 			}
 			arm.reg[c] = temp;
@@ -457,7 +457,7 @@ arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 	/* Load R15 (if requested) */
 	if (opcode & (1 << 15)) {
 		temp = mem_read32(addr);
-		if (armirq & 0x40) {
+		if (arm.event & 0x40) {
 			goto data_abort;
 		}
 		/* Only update R15 if no Data Abort occurred */
@@ -513,7 +513,7 @@ arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 		for (c = 0; c < 15; c++) {
 			if (opcode & mask) {
 				temp = mem_read32(addr);
-				if (armirq & 0x40) {
+				if (arm.event & 0x40) {
 					goto data_abort;
 				}
 				arm.reg[c] = temp;
@@ -524,7 +524,7 @@ arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 
 		/* Perform load of R15 and update CPSR/flags */
 		temp = mem_read32(addr);
-		if (armirq & 0x40) {
+		if (arm.event & 0x40) {
 			goto data_abort;
 		}
 		arm_write_r15(opcode, temp);
@@ -534,7 +534,7 @@ arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 		for (c = 0; c < 15; c++) {
 			if (opcode & mask) {
 				temp = mem_read32(addr);
-				if (armirq & 0x40) {
+				if (arm.event & 0x40) {
 					goto data_abort;
 				}
 				*usrregs[c] = temp;
@@ -564,13 +564,12 @@ data_abort:
  * Called from dynarec and interpreted code modes.
  *
  * @param opcode Opcode of instruction being emulated
+ * @return 0
  */
-void
+int
 opSWI(uint32_t opcode)
 {
 	uint32_t swinum = opcode & 0xdffff;
-
-	inscount++;
 
 	/* Get actual SWI number from OS_CallASWI and OS_CallASWIR12 */
 	if (swinum == SWI_OS_CallASWI) {
@@ -586,11 +585,11 @@ opSWI(uint32_t opcode)
 		case SWI_Portable_ReadFeatures:
 			arm.reg[1] = (1u << 4);	/* Idle supported flag */
 			arm.reg[cpsr] &= ~VFLAG;
-			return;
+			return 0;
 		case SWI_Portable_Idle:
 			rpcemu_idle();
 			arm.reg[cpsr] &= ~VFLAG;
-			return;
+			return 0;
 		}
 	}
 
@@ -601,18 +600,18 @@ opSWI(uint32_t opcode)
 	if (swinum == SWI_OS_Word && arm.reg[0] == 21 && mem_read8(arm.reg[1]) == 1) {
 			/* OS_Word 21, 1 Define Mouse Coordinate bounding box */
 			mouse_hack_osword_21_1(arm.reg[1]);
-			return;
+			return 0;
 	}
 	
 	if (mousehack && swinum == SWI_OS_Word && arm.reg[0] == 21) {
 		if (mem_read8(arm.reg[1]) == 4) {
 			/* OS_Word 21, 4 Read unbuffered mouse position */
 			mouse_hack_osword_21_4(arm.reg[1]);
-			return;
+			return 0;
 		} else if (mem_read8(arm.reg[1]) == 3) {
 			/* OS_Word 21, 3 Move mouse */
 			mouse_hack_osword_21_3(arm.reg[1]);
-			return;
+			return 0;
 		} else {
 			goto realswi;
 		}
@@ -651,5 +650,7 @@ realswi:
 		}
 		exception(SUPERVISOR, 0xc, 4);
 	}
+
+	return 0;
 }
 #endif /* ifndef TEST */

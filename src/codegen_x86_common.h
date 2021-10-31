@@ -45,6 +45,8 @@
 #define X86_OP_CMP	0x38
 
 /* x86 Condition Codes (for conditional instructions) */
+#define CC_O		0x0	// Overflow (OF=1)
+#define CC_NO		0x1	// Not Overflow (OF=0)
 #define CC_C		0x2	/* Carry (CF=1) */
 #define CC_NC		0x3	/* Not Carry (CF=0) */
 #define CC_Z		0x4	/* Zero (ZF=1) */
@@ -73,6 +75,7 @@ addrel32(const void *addr)
 }
 
 #define gen_x86_call(addr)	addbyte(0xe8); addrel32(addr)
+#define gen_x86_cmc()		addbyte(0xf5)
 #define gen_x86_int3()		addbyte(0xcc)
 #define gen_x86_lahf()		addbyte(0x9f)
 #define gen_x86_leave()		addbyte(0xc9)

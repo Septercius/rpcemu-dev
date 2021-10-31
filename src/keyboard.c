@@ -82,6 +82,9 @@
 
 #define PS2_QUEUE_SIZE 256
 
+int kcallback = 0;
+int mcallback = 0;
+
 typedef struct {
 	uint8_t	data[PS2_QUEUE_SIZE];
 	int	rptr, wptr, count;
@@ -613,7 +616,7 @@ mouse_send(uint8_t v)
  * Handle sending queued PS/2 mouse messages to the emulated machine; this is
  * to introduce a slight delay between sent packets.
  *
- * Called from within execarm() once the mcallback variable reaches 0.
+ * Called once the mcallback variable reaches 0.
  */
 void
 mouse_ps2_callback(void)
@@ -1204,11 +1207,13 @@ mouse_hack_osmouse(void)
 	}
     
 #ifdef __APPLE__
-    if (mouse.buttons & 2) {
+    if (mouse.buttons & 2)
+    {
         buttons |= 1;        /* Right button */
     }
-    if (mouse.buttons & 4) {
-        buttons |= 2;         /* Middle button */
+    if (mouse.buttons & 4)
+    {
+        buttons |= 2;        /* Middle button */
     }
 #else
 	if (config.mousetwobutton) {

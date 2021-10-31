@@ -380,6 +380,7 @@ MainWindow::MainWindow(Emulator &emulator)
 #ifdef RPCEMU_NETWORKING
 	network_dialog = new NetworkDialog(emulator, &config_copy, this);
 #endif /* RPCEMU_NETWORKING */
+	nat_list_dialog = new NatListDialog(emulator, this);
 	about_dialog = new AboutDialog(this);
 
 	// MIPS counting
@@ -400,6 +401,7 @@ MainWindow::~MainWindow()
 {
 #ifdef RPCEMU_NETWORKING
 	delete network_dialog;
+	delete nat_list_dialog;
 #endif /* RPCEMU_NETWORKING */
 	delete configure_dialog;
 	delete about_dialog;
@@ -460,8 +462,7 @@ MainWindow::release_held_keys()
     
 #if defined(Q_OS_MACOS)
     emit this->emulator.modifier_keys_reset_signal();
-#endif /* Q_OS_MACOS */
-    
+#endif
 }
 
 /**
@@ -524,18 +525,18 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 	}
 
 	// Special case, check for Ctrl-End, our multi purpose do clever things key
-    if((Qt::Key_End == event->key()) && (event->modifiers() & Qt::ControlModifier))
-    {
+	if((Qt::Key_End == event->key()) && (event->modifiers() & Qt::ControlModifier))
+	{
         processMagicKeys();
-	}
+    }
 
 	// Regular case pass key press onto the emulator
 	if (!event->isAutoRepeat()) {
-        #if defined(Q_OS_MACOS)
-                native_keypress_event(event->nativeVirtualKey(), event->nativeModifiers());
-        #else
-                native_keypress_event(event->nativeScanCode(), event->nativeModifiers());
-        #endif    /* Q_OS_MACOS */
+#if defined(Q_OS_MACOS)
+        native_keypress_event(event->nativeVirtualKey(), event->nativeModifiers());
+#else
+        native_keypress_event(event->nativeScanCode(), event->nativeModifiers());
+#endif
 	}
 }
 
@@ -587,7 +588,6 @@ MainWindow::native_keypress_event(unsigned scan_code, unsigned modifiers)
         }
     }
 #else
-    
 	// Check the key isn't already marked as held down (else ignore)
 	// (to deal with potentially inconsistent host messages)
 	bool found = (std::find(held_keys.begin(), held_keys.end(), scan_code) != held_keys.end());
@@ -597,7 +597,7 @@ MainWindow::native_keypress_event(unsigned scan_code, unsigned modifiers)
 		// when the window loses the focus
 		held_keys.insert(held_keys.end(), scan_code);
 
-
+		emit this->emulator.key_press_signal(scan_code);
 	}
 #endif
 }
@@ -611,7 +611,6 @@ void
 MainWindow::native_keyrelease_event(unsigned scan_code, unsigned modifiers)
 {
 #if defined(Q_OS_MACOS)
-    
     if (!(scan_code == 0 && modifiers == 0))
     {
         // Check the key is marked as held down (else ignore)
@@ -626,7 +625,6 @@ MainWindow::native_keyrelease_event(unsigned scan_code, unsigned modifiers)
             emit this->emulator.key_release_signal(scan_code);
         }
     }
-
 #else
 	// Check the key is marked as held down (else ignore)
 	// (to deal with potentially inconsistent host messages)
@@ -686,7 +684,7 @@ MainWindow::menu_loaddisc0()
 	QString fileName = QFileDialog::getOpenFileName(this,
 	    tr("Open Disc Image"),
 	    "",
-	    tr("All disc images (*.adf *.adl *.img);;ADFS D/E/F Disc Image (*.adf);;ADFS L Disc Image (*.adl);;DOS Disc Image (*.img)"));
+	    tr("All disc images (*.adf *.adl *.hfe *.img);;ADFS D/E/F Disc Image (*.adf);;ADFS L Disc Image (*.adl);;DOS Disc Image (*.img);;HFE Disc Image (*.hfe)"));
 
 	/* fileName is NULL if user hit cancel */
 	if(fileName != NULL) {
@@ -700,7 +698,7 @@ MainWindow::menu_loaddisc1()
 	QString fileName = QFileDialog::getOpenFileName(this,
 	    tr("Open Disc Image"),
 	    "",
-	    tr("All disc images (*.adf *.adl *.img);;ADFS D/E/F Disc Image (*.adf);;ADFS L Disc Image (*.adl);;DOS Disc Image (*.img)"));
+	    tr("All disc images (*.adf *.adl *.hfe *.img);;ADFS D/E/F Disc Image (*.adf);;ADFS L Disc Image (*.adl);;DOS Disc Image (*.img);;HFE Disc Image (*.hfe)"));
 
 	/* fileName is NULL if user hit cancel */
 	if(fileName != NULL) {
@@ -719,6 +717,19 @@ void
 MainWindow::menu_networking()
 {
 	network_dialog->exec(); // Modal
+
+	// Update the NAT Port Forwarding Rules menu item based on choice
+	if (config_copy.network_type == NetworkType_NAT) {
+		nat_list_action->setEnabled(true);
+	} else {
+		nat_list_action->setEnabled(false);
+	}
+}
+
+void
+MainWindow::menu_nat_list()
+{
+	nat_list_dialog->exec(); // Modal
 }
 #endif /* RPCEMU_NETWORKING */
 
@@ -1087,6 +1098,8 @@ MainWindow::create_actions()
 #ifdef RPCEMU_NETWORKING
 	networking_action = new QAction(tr("Networking..."), this);
 	connect(networking_action, &QAction::triggered, this, &MainWindow::menu_networking);
+	nat_list_action = new QAction(tr("NAT Port Forwarding Rules..."), this);
+	connect(nat_list_action, &QAction::triggered, this, &MainWindow::menu_nat_list);
 #endif /* RPCEMU_NETWORKING */
 	fullscreen_action = new QAction(tr("Full-screen Mode"), this);
 	fullscreen_action->setCheckable(true);
@@ -1117,6 +1130,7 @@ MainWindow::create_actions()
 	connect(this, &MainWindow::main_display_signal, this, &MainWindow::main_display_update, Qt::BlockingQueuedConnection);
 //	connect(this, &MainWindow::main_display_signal, this, &MainWindow::main_display_update);
 	connect(this, &MainWindow::move_host_mouse_signal, this, &MainWindow::move_host_mouse);
+	connect(this, &MainWindow::send_nat_rule_to_gui_signal, this, &MainWindow::send_nat_rule_to_gui);
 
 	// Connections for displaying error messages in the GUI
 	connect(this, &MainWindow::error_signal, this, &MainWindow::error);
@@ -1161,6 +1175,10 @@ MainWindow::create_menus()
 	settings_menu->addAction(configure_action);
 #ifdef RPCEMU_NETWORKING
 	settings_menu->addAction(networking_action);
+	settings_menu->addAction(nat_list_action);
+	if (this->config_copy.network_type != NetworkType_NAT) {
+		nat_list_action->setEnabled(false);
+	}
 #endif /* RPCEMU_NETWORKING */
 	settings_menu->addSeparator();
 	settings_menu->addAction(fullscreen_action);
@@ -1309,6 +1327,12 @@ MainWindow::move_host_mouse(MouseMoveUpdate mouse_update)
 	QCursor::setPos(display->mapToGlobal(pos));
 }
 
+void
+MainWindow::send_nat_rule_to_gui(PortForwardRule rule)
+{
+	nat_list_dialog->add_nat_rule(rule);
+}
+
 /**
  * Called each time the mips_timer times out.
  *
@@ -1323,13 +1347,14 @@ MainWindow::mips_timer_timeout()
 	assert(pconfig_copy);
 
 	// Read (and zero atomically) the instruction count from the emulator core
+	// 'instruction_count' is in multiples of 65536
 	const unsigned count = (unsigned) instruction_count.fetchAndStoreRelease(0);
 
 	// Calculate MIPS
-	const double mips = (double) count / 1000000.0;
+	const double mips = (double) count * 65536.0 / 1000000.0;
 
 	// Update variables used for average
-	mips_total_instructions += (uint64_t) count;
+	mips_total_instructions += (uint64_t) count << 16;
 	mips_seconds++;
 
 	// Calculate Average
@@ -1337,13 +1362,11 @@ MainWindow::mips_timer_timeout()
 
 	if(!pconfig_copy->mousehackon) {
 		if(mouse_captured) {
-            
 #if defined(Q_OS_MACOS)
             capture_text = " Press CTRL-COMMAND to release mouse";
 #else
 			capture_text = " Press CTRL-END to release mouse";
 #endif
-            
 		} else {
 			capture_text = " Click to capture mouse";
 		}
@@ -1445,7 +1468,7 @@ MainWindow::cdrom_menu_selection_update(const QAction *cdrom_action)
 #endif
 	}
 }
-
+    
 void
 MainWindow::processMagicKeys()
 {
@@ -1466,20 +1489,20 @@ MainWindow::processMagicKeys()
 
         // Request redraw of display
         display->update();
-        
+
         // If we were in mousehack mode before entering fullscreen
         // return to it now
         if(reenable_mousehack) {
             emit this->emulator.mouse_hack_signal();
         }
         reenable_mousehack = false;
-        
+
         // If we were in mouse capture mode before entering fullscreen
         // and we hadn't captured the mouse, display the host cursor now
         if(!config_copy.mousehackon && !mouse_captured) {
             this->display->setCursor(Qt::ArrowCursor);
         }
-        
+
         return;
     } else if(!pconfig_copy->mousehackon && mouse_captured) {
         // Turn off mouse capture
@@ -1566,30 +1589,30 @@ MainWindow::nativeEvent(const QByteArray &eventType, void *message, long *result
 {
     Q_UNUSED(eventType);
     Q_UNUSED(result);
-    
+
     NativeEvent *event = handle_native_event(message);
     if (!event->processed)
     {
         free(event);
         return false;
     }
-    
+
     if (event->eventType == nativeEventTypeModifiersChanged)
     {
         // Modifier key state has changed.
         emit this->emulator.modifier_keys_changed_signal(event->modifierMask);
-        
+
         if (keyboard_check_special_keys())
         {
             // Magic key combination to release mouse capture.
             processMagicKeys();
         }
-        
+
         free(event);
     }
-    
+
     return true;
 }
 
 #endif /* Q_OS_MACOS */
-
+    

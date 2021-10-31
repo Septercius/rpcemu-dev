@@ -18,7 +18,7 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static void
+static int
 opANDreg(uint32_t opcode)
 {
 	uint32_t dest;
@@ -31,9 +31,10 @@ opANDreg(uint32_t opcode)
 		dest = GETADDR(RN) & shift2(opcode);
 		arm_write_dest(opcode, dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opANDregS(uint32_t opcode)
 {
 	uint32_t lhs, dest;
@@ -42,7 +43,7 @@ opANDregS(uint32_t opcode)
 		/* MULS */
 		arm.reg[MULRD] = (MULRD == MULRM) ? 0 :
 		    (arm.reg[MULRM] * arm.reg[MULRS]);
-		setzn(arm.reg[MULRD]);
+		arm_flags_logical(arm.reg[MULRD]);
 	} else {
 		lhs = GETADDR(RN);
 		if (RD == 15) {
@@ -50,12 +51,13 @@ opANDregS(uint32_t opcode)
 		} else {
 			dest = lhs & shift(opcode);
 			arm.reg[RD] = dest;
-			setzn(dest);
+			arm_flags_logical(dest);
 		}
 	}
+	return 0;
 }
 
-static void
+static int
 opEORreg(uint32_t opcode)
 {
 	uint32_t dest;
@@ -68,9 +70,10 @@ opEORreg(uint32_t opcode)
 		dest = GETADDR(RN) ^ shift2(opcode);
 		arm_write_dest(opcode, dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opEORregS(uint32_t opcode)
 {
 	uint32_t lhs, dest;
@@ -79,7 +82,7 @@ opEORregS(uint32_t opcode)
 		/* MLAS */
 		arm.reg[MULRD] = (MULRD == MULRM) ? 0 :
 		    (arm.reg[MULRM] * arm.reg[MULRS]) + arm.reg[MULRN];
-		setzn(arm.reg[MULRD]);
+		arm_flags_logical(arm.reg[MULRD]);
 	} else {
 		lhs = GETADDR(RN);
 		if (RD == 15) {
@@ -87,21 +90,23 @@ opEORregS(uint32_t opcode)
 		} else {
 			dest = lhs ^ shift(opcode);
 			arm.reg[RD] = dest;
-			setzn(dest);
+			arm_flags_logical(dest);
 		}
 	}
+	return 0;
 }
 
-static void
+static int
 opSUBreg(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = GETADDR(RN) - shift2(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opSUBregS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -112,21 +117,23 @@ opSUBregS(uint32_t opcode)
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
 	} else {
-		setsub(lhs, rhs, dest);
+		arm_flags_sub(lhs, rhs, dest);
 		arm.reg[RD] = dest;
 	}
+	return 0;
 }
 
-static void
+static int
 opRSBreg(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = shift2(opcode) - GETADDR(RN);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opRSBregS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -137,12 +144,13 @@ opRSBregS(uint32_t opcode)
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
 	} else {
-		setsub(rhs, lhs, dest);
+		arm_flags_sub(rhs, lhs, dest);
 		arm.reg[RD] = dest;
 	}
+	return 0;
 }
 
-static void
+static int
 opADDreg(uint32_t opcode)
 {
 	uint32_t dest;
@@ -155,13 +163,14 @@ opADDreg(uint32_t opcode)
 
 		arm.reg[MULRN] = (uint32_t) mulres;
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-		return;
+		return 0;
 	}
 	dest = GETADDR(RN) + shift2(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opADDregS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -175,7 +184,7 @@ opADDregS(uint32_t opcode)
 		arm.reg[MULRN] = (uint32_t) mulres;
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 		arm_flags_long_multiply(mulres);
-		return;
+		return 0;
 	}
 	lhs = GETADDR(RN);
 	rhs = shift2(opcode);
@@ -183,12 +192,13 @@ opADDregS(uint32_t opcode)
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
 	} else {
-		setadd(lhs, rhs, dest);
+		arm_flags_add(lhs, rhs, dest);
 		arm.reg[RD] = dest;
 	}
+	return 0;
 }
 
-static void
+static int
 opADCreg(uint32_t opcode)
 {
 	uint32_t dest;
@@ -203,13 +213,14 @@ opADCreg(uint32_t opcode)
 
 		arm.reg[MULRN] = (uint32_t) mulres;
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-		return;
+		return 0;
 	}
 	dest = GETADDR(RN) + shift2(opcode) + CFSET;
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opADCregS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -225,7 +236,7 @@ opADCregS(uint32_t opcode)
 		arm.reg[MULRN] = (uint32_t) mulres;
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 		arm_flags_long_multiply(mulres);
-		return;
+		return 0;
 	}
 	lhs = GETADDR(RN);
 	rhs = shift2(opcode);
@@ -233,12 +244,13 @@ opADCregS(uint32_t opcode)
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
 	} else {
-		setadc(lhs, rhs, dest);
+		arm_flags_adc(lhs, rhs, dest);
 		arm.reg[RD] = dest;
 	}
+	return 0;
 }
 
-static void
+static int
 opSBCreg(uint32_t opcode)
 {
 	uint32_t dest;
@@ -251,13 +263,14 @@ opSBCreg(uint32_t opcode)
 
 		arm.reg[MULRN] = (uint32_t) mulres;
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-		return;
+		return 0;
 	}
 	dest = GETADDR(RN) - shift2(opcode) - ((CFSET) ? 0 : 1);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opSBCregS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -271,7 +284,7 @@ opSBCregS(uint32_t opcode)
 		arm.reg[MULRN] = (uint32_t) mulres;
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 		arm_flags_long_multiply(mulres);
-		return;
+		return 0;
 	}
 	lhs = GETADDR(RN);
 	rhs = shift2(opcode);
@@ -279,12 +292,13 @@ opSBCregS(uint32_t opcode)
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
 	} else {
-		setsbc(lhs, rhs, dest);
+		arm_flags_sbc(lhs, rhs, dest);
 		arm.reg[RD] = dest;
 	}
+	return 0;
 }
 
-static void
+static int
 opRSCreg(uint32_t opcode)
 {
 	uint32_t dest;
@@ -299,13 +313,14 @@ opRSCreg(uint32_t opcode)
 
 		arm.reg[MULRN] = (uint32_t) mulres;
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
-		return;
+		return 0;
 	}
 	dest = shift2(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opRSCregS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -321,7 +336,7 @@ opRSCregS(uint32_t opcode)
 		arm.reg[MULRN] = (uint32_t) mulres;
 		arm.reg[MULRD] = (uint32_t) (mulres >> 32);
 		arm_flags_long_multiply(mulres);
-		return;
+		return 0;
 	}
 	lhs = GETADDR(RN);
 	rhs = shift2(opcode);
@@ -329,9 +344,10 @@ opRSCregS(uint32_t opcode)
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
 	} else {
-		setsbc(rhs, lhs, dest);
+		arm_flags_sbc(rhs, lhs, dest);
 		arm.reg[RD] = dest;
 	}
+	return 0;
 }
 
 static int
@@ -345,12 +361,12 @@ opSWPword(uint32_t opcode)
 			addr = GETADDR(RN);
 			data = GETREG(RM);
 			dest = mem_read32(addr & ~3u);
-			if (armirq & 0x40) {
+			if (arm.event & 0x40) {
 				return 1;
 			}
 			dest = arm_ldr_rotate(dest, addr);
 			mem_write32(addr & ~3u, data);
-			if (armirq & 0x40) {
+			if (arm.event & 0x40) {
 				return 1;
 			}
 			LOADREG(RD, dest);
@@ -363,14 +379,14 @@ opSWPword(uint32_t opcode)
 		}
 		arm.reg[RD] = arm.reg[16];
 	} else if (arm.arch_v4) {
-		undefined();
+		arm_exception_undefined();
 	} else {
 		arm_unpredictable(opcode);
 	}
 	return 0;
 }
 
-static void
+static int
 opTSTreg(uint32_t opcode)
 {
 	uint32_t lhs;
@@ -380,24 +396,26 @@ opTSTreg(uint32_t opcode)
 		/* TSTP reg */
 		arm_compare_rd15(opcode, lhs & shift2(opcode));
 	} else {
-		setzn(lhs & shift(opcode));
+		arm_flags_logical(lhs & shift(opcode));
 	}
+	return 0;
 }
 
-static void
+static int
 opMSRcreg(uint32_t opcode)
 {
 	if ((opcode & 0xf010) == 0xf000) {
 		/* MSR CPSR,reg */
 		arm_write_cpsr(opcode, arm.reg[RM]);
 	} else if (arm.arch_v4) {
-		undefined();
+		arm_exception_undefined();
 	} else {
 		arm_unpredictable(opcode);
 	}
+	return 0;
 }
 
-static void
+static int
 opTEQreg(uint32_t opcode)
 {
 	uint32_t lhs;
@@ -407,8 +425,9 @@ opTEQreg(uint32_t opcode)
 		/* TEQP reg */
 		arm_compare_rd15(opcode, lhs ^ shift2(opcode));
 	} else {
-		setzn(lhs ^ shift(opcode));
+		arm_flags_logical(lhs ^ shift(opcode));
 	}
+	return 0;
 }
 
 static int
@@ -422,11 +441,11 @@ opSWPbyte(uint32_t opcode)
 			addr = GETADDR(RN);
 			data = GETREG(RM);
 			dest = mem_read8(addr);
-			if (armirq & 0x40) {
+			if (arm.event & 0x40) {
 				return 1;
 			}
 			mem_write8(addr, data);
-			if (armirq & 0x40) {
+			if (arm.event & 0x40) {
 				return 1;
 			}
 			LOADREG(RD, dest);
@@ -435,14 +454,14 @@ opSWPbyte(uint32_t opcode)
 		/* MRS reg,SPSR */
 		arm.reg[RD] = arm_read_spsr();
 	} else if (arm.arch_v4) {
-		undefined();
+		arm_exception_undefined();
 	} else {
 		arm_unpredictable(opcode);
 	}
 	return 0;
 }
 
-static void
+static int
 opCMPreg(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -454,24 +473,26 @@ opCMPreg(uint32_t opcode)
 		/* CMPP reg */
 		arm_compare_rd15(opcode, dest);
 	} else {
-		setsub(lhs, rhs, dest);
+		arm_flags_sub(lhs, rhs, dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opMSRsreg(uint32_t opcode)
 {
 	if ((opcode & 0xf010) == 0xf000) {
 		/* MSR SPSR,reg */
 		arm_write_spsr(opcode, arm.reg[RM]);
 	} else if (arm.arch_v4) {
-		undefined();
+		arm_exception_undefined();
 	} else {
 		arm_unpredictable(opcode);
 	}
+	return 0;
 }
 
-static void
+static int
 opCMNreg(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -483,20 +504,22 @@ opCMNreg(uint32_t opcode)
 		/* CMNP reg */
 		arm_compare_rd15(opcode, dest);
 	} else {
-		setadd(lhs, rhs, dest);
+		arm_flags_add(lhs, rhs, dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opORRreg(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = GETADDR(RN) | shift2(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opORRregS(uint32_t opcode)
 {
 	uint32_t lhs, dest;
@@ -507,40 +530,44 @@ opORRregS(uint32_t opcode)
 	} else {
 		dest = lhs | shift(opcode);
 		arm.reg[RD] = dest;
-		setzn(dest);
+		arm_flags_logical(dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opMOVreg(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = shift2(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opMOVregS(uint32_t opcode)
 {
 	if (RD == 15) {
 		arm_write_r15(opcode, shift2(opcode));
 	} else {
 		arm.reg[RD] = shift(opcode);
-		setzn(arm.reg[RD]);
+		arm_flags_logical(arm.reg[RD]);
 	}
+	return 0;
 }
 
-static void
+static int
 opBICreg(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = GETADDR(RN) & ~shift2(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opBICregS(uint32_t opcode)
 {
 	uint32_t lhs, dest;
@@ -551,40 +578,44 @@ opBICregS(uint32_t opcode)
 	} else {
 		dest = lhs & ~shift(opcode);
 		arm.reg[RD] = dest;
-		setzn(dest);
+		arm_flags_logical(dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opMVNreg(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = ~shift2(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opMVNregS(uint32_t opcode)
 {
 	if (RD == 15) {
 		arm_write_r15(opcode, ~shift2(opcode));
 	} else {
 		arm.reg[RD] = ~shift(opcode);
-		setzn(arm.reg[RD]);
+		arm_flags_logical(arm.reg[RD]);
 	}
+	return 0;
 }
 
-static void
+static int
 opANDimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = GETADDR(RN) & arm_imm(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opANDimmS(uint32_t opcode)
 {
 	uint32_t lhs, dest;
@@ -595,20 +626,22 @@ opANDimmS(uint32_t opcode)
 	} else {
 		dest = lhs & arm_imm_cflag(opcode);
 		arm.reg[RD] = dest;
-		setzn(dest);
+		arm_flags_logical(dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opEORimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = GETADDR(RN) ^ arm_imm(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opEORimmS(uint32_t opcode)
 {
 	uint32_t lhs, dest;
@@ -619,20 +652,22 @@ opEORimmS(uint32_t opcode)
 	} else {
 		dest = lhs ^ arm_imm_cflag(opcode);
 		arm.reg[RD] = dest;
-		setzn(dest);
+		arm_flags_logical(dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opSUBimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = GETADDR(RN) - arm_imm(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opSUBimmS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -644,20 +679,22 @@ opSUBimmS(uint32_t opcode)
 		arm_write_r15(opcode, dest);
 	} else {
 		arm.reg[RD] = dest;
-		setsub(lhs, rhs, dest);
+		arm_flags_sub(lhs, rhs, dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opRSBimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = arm_imm(opcode) - GETADDR(RN);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opRSBimmS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -668,21 +705,23 @@ opRSBimmS(uint32_t opcode)
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
 	} else {
-		setsub(rhs, lhs, dest);
+		arm_flags_sub(rhs, lhs, dest);
 		arm.reg[RD] = dest;
 	}
+	return 0;
 }
 
-static void
+static int
 opADDimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = GETADDR(RN) + arm_imm(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opADDimmS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -693,21 +732,23 @@ opADDimmS(uint32_t opcode)
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
 	} else {
-		setadd(lhs, rhs, dest);
+		arm_flags_add(lhs, rhs, dest);
 		arm.reg[RD] = dest;
 	}
+	return 0;
 }
 
-static void
+static int
 opADCimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = GETADDR(RN) + arm_imm(opcode) + CFSET;
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opADCimmS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -718,21 +759,23 @@ opADCimmS(uint32_t opcode)
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
 	} else {
-		setadc(lhs, rhs, dest);
+		arm_flags_adc(lhs, rhs, dest);
 		arm.reg[RD] = dest;
 	}
+	return 0;
 }
 
-static void
+static int
 opSBCimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = GETADDR(RN) - arm_imm(opcode) - ((CFSET) ? 0 : 1);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opSBCimmS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -743,21 +786,23 @@ opSBCimmS(uint32_t opcode)
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
 	} else {
-		setsbc(lhs, rhs, dest);
+		arm_flags_sbc(lhs, rhs, dest);
 		arm.reg[RD] = dest;
 	}
+	return 0;
 }
 
-static void
+static int
 opRSCimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = arm_imm(opcode) - GETADDR(RN) - ((CFSET) ? 0 : 1);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opRSCimmS(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -768,12 +813,13 @@ opRSCimmS(uint32_t opcode)
 	if (RD == 15) {
 		arm_write_r15(opcode, dest);
 	} else {
-		setsbc(rhs, lhs, dest);
+		arm_flags_sbc(rhs, lhs, dest);
 		arm.reg[RD] = dest;
 	}
+	return 0;
 }
 
-static void
+static int
 opTSTimm(uint32_t opcode)
 {
 	uint32_t lhs;
@@ -783,24 +829,26 @@ opTSTimm(uint32_t opcode)
 		/* TSTP imm */
 		arm_compare_rd15(opcode, lhs & arm_imm(opcode));
 	} else {
-		setzn(lhs & arm_imm_cflag(opcode));
+		arm_flags_logical(lhs & arm_imm_cflag(opcode));
 	}
+	return 0;
 }
 
-static void
+static int
 opMSRcimm(uint32_t opcode)
 {
 	if (RD == 15) {
 		/* MSR CPSR,imm */
 		arm_write_cpsr(opcode, arm_imm(opcode));
 	} else if (arm.arch_v4) {
-		undefined();
+		arm_exception_undefined();
 	} else {
 		arm_unpredictable(opcode);
 	}
+	return 0;
 }
 
-static void
+static int
 opTEQimm(uint32_t opcode)
 {
 	uint32_t lhs;
@@ -810,11 +858,12 @@ opTEQimm(uint32_t opcode)
 		/* TEQP imm */
 		arm_compare_rd15(opcode, lhs ^ arm_imm(opcode));
 	} else {
-		setzn(lhs ^ arm_imm_cflag(opcode));
+		arm_flags_logical(lhs ^ arm_imm_cflag(opcode));
 	}
+	return 0;
 }
 
-static void
+static int
 opCMPimm(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -826,24 +875,26 @@ opCMPimm(uint32_t opcode)
 		/* CMPP imm */
 		arm_compare_rd15(opcode, dest);
 	} else {
-		setsub(lhs, rhs, dest);
+		arm_flags_sub(lhs, rhs, dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opMSRsimm(uint32_t opcode)
 {
 	if (RD == 15) {
 		/* MSR SPSR,imm */
 		arm_write_spsr(opcode, arm_imm(opcode));
 	} else if (arm.arch_v4) {
-		undefined();
+		arm_exception_undefined();
 	} else {
 		arm_unpredictable(opcode);
 	}
+	return 0;
 }
 
-static void
+static int
 opCMNimm(uint32_t opcode)
 {
 	uint32_t lhs, rhs, dest;
@@ -855,20 +906,22 @@ opCMNimm(uint32_t opcode)
 		/* CMNP imm */
 		arm_compare_rd15(opcode, dest);
 	} else {
-		setadd(lhs, rhs, dest);
+		arm_flags_add(lhs, rhs, dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opORRimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = GETADDR(RN) | arm_imm(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opORRimmS(uint32_t opcode)
 {
 	uint32_t lhs, dest;
@@ -879,40 +932,44 @@ opORRimmS(uint32_t opcode)
 	} else {
 		dest = lhs | arm_imm_cflag(opcode);
 		arm.reg[RD] = dest;
-		setzn(dest);
+		arm_flags_logical(dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opMOVimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = arm_imm(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opMOVimmS(uint32_t opcode)
 {
 	if (RD == 15) {
 		arm_write_r15(opcode, arm_imm(opcode));
 	} else {
 		arm.reg[RD] = arm_imm_cflag(opcode);
-		setzn(arm.reg[RD]);
+		arm_flags_logical(arm.reg[RD]);
 	}
+	return 0;
 }
 
-static void
+static int
 opBICimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = GETADDR(RN) & ~arm_imm(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opBICimmS(uint32_t opcode)
 {
 	uint32_t lhs, dest;
@@ -923,51 +980,51 @@ opBICimmS(uint32_t opcode)
 	} else {
 		dest = lhs & ~arm_imm_cflag(opcode);
 		arm.reg[RD] = dest;
-		setzn(dest);
+		arm_flags_logical(dest);
 	}
+	return 0;
 }
 
-static void
+static int
 opMVNimm(uint32_t opcode)
 {
 	uint32_t dest;
 
 	dest = ~arm_imm(opcode);
 	arm_write_dest(opcode, dest);
+	return 0;
 }
 
-static void
+static int
 opMVNimmS(uint32_t opcode)
 {
 	if (RD == 15) {
 		arm_write_r15(opcode, ~arm_imm(opcode));
 	} else {
 		arm.reg[RD] = ~arm_imm_cflag(opcode);
-		setzn(arm.reg[RD]);
+		arm_flags_logical(arm.reg[RD]);
 	}
+	return 0;
 }
 
 static int
 opSTRT(uint32_t opcode)
 {
-	uint32_t addr, data, offset, templ;
+	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
-		undefined();
+		arm_exception_undefined();
 		return 0;
 	}
 
 	addr = GETADDR(RN);
 
-	/* Temporarily switch to user permissions */
-	templ = memmode;
-	memmode = 0;
+	// Store with User mode privileges
 	data = GETREG(RD);
-	mem_write32(addr & ~3u, data);
-	memmode = templ;
+	mem_user_write32(addr & ~3u, data);
 
 	/* Check for Abort */
-	if (arm.abort_base_restored && (armirq & 0x40)) {
+	if (arm.abort_base_restored && (arm.event & 0x40)) {
 		return 1;
 	}
 
@@ -983,29 +1040,26 @@ opSTRT(uint32_t opcode)
 	addr += offset;
 	arm.reg[RN] = addr;
 
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
 opLDRT(uint32_t opcode)
 {
-	uint32_t addr, data, offset, templ;
+	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
-		undefined();
+		arm_exception_undefined();
 		return 0;
 	}
 
 	addr = GETADDR(RN);
 
-	/* Temporarily switch to user permissions */
-	templ = memmode;
-	memmode = 0;
-	data = mem_read32(addr & ~3u);
-	memmode = templ;
+	// Load with User mode privileges
+	data = mem_user_read32(addr & ~3u);
 
 	/* Check for Abort */
-	if (arm.abort_base_restored && (armirq & 0x40)) {
+	if (arm.abort_base_restored && (arm.event & 0x40)) {
 		return 1;
 	}
 
@@ -1025,7 +1079,7 @@ opLDRT(uint32_t opcode)
 	arm.reg[RN] = addr;
 
 	/* Check for Abort (before writing Rd) */
-	if (armirq & 0x40) {
+	if (arm.event & 0x40) {
 		return 1;
 	}
 
@@ -1038,24 +1092,21 @@ opLDRT(uint32_t opcode)
 static int
 opSTRBT(uint32_t opcode)
 {
-	uint32_t addr, data, offset, templ;
+	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
-		undefined();
+		arm_exception_undefined();
 		return 0;
 	}
 
 	addr = GETADDR(RN);
 
-	/* Temporarily switch to user permissions */
-	templ = memmode;
-	memmode = 0;
+	// Store with User mode privileges
 	data = GETREG(RD);
-	mem_write8(addr, data);
-	memmode = templ;
+	mem_user_write8(addr, data);
 
 	/* Check for Abort */
-	if (arm.abort_base_restored && (armirq & 0x40)) {
+	if (arm.abort_base_restored && (arm.event & 0x40)) {
 		return 1;
 	}
 
@@ -1071,29 +1122,26 @@ opSTRBT(uint32_t opcode)
 	addr += offset;
 	arm.reg[RN] = addr;
 
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
 opLDRBT(uint32_t opcode)
 {
-	uint32_t addr, data, offset, templ;
+	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
-		undefined();
+		arm_exception_undefined();
 		return 0;
 	}
 
 	addr = GETADDR(RN);
 
-	/* Temporarily switch to user permissions */
-	templ = memmode;
-	memmode = 0;
-	data = mem_read8(addr);
-	memmode = templ;
+	// Load with User mode privileges
+	data = mem_user_read8(addr);
 
 	/* Check for Abort */
-	if (arm.abort_base_restored && (armirq & 0x40)) {
+	if (arm.abort_base_restored && (arm.event & 0x40)) {
 		return 1;
 	}
 
@@ -1110,7 +1158,7 @@ opLDRBT(uint32_t opcode)
 	arm.reg[RN] = addr;
 
 	/* Check for Abort (before writing Rd) */
-	if (armirq & 0x40) {
+	if (arm.event & 0x40) {
 		return 1;
 	}
 
@@ -1126,7 +1174,7 @@ opSTR(uint32_t opcode)
 	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
-		undefined();
+		arm_exception_undefined();
 		return 0;
 	}
 
@@ -1152,7 +1200,7 @@ opSTR(uint32_t opcode)
 	mem_write32(addr & ~3u, data);
 
 	/* Check for Abort */
-	if (arm.abort_base_restored && (armirq & 0x40)) {
+	if (arm.abort_base_restored && (arm.event & 0x40)) {
 		return 1;
 	}
 
@@ -1165,7 +1213,7 @@ opSTR(uint32_t opcode)
 		arm.reg[RN] = addr;
 	}
 
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
@@ -1174,7 +1222,7 @@ opLDR(uint32_t opcode)
 	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
-		undefined();
+		arm_exception_undefined();
 		return 0;
 	}
 
@@ -1199,7 +1247,7 @@ opLDR(uint32_t opcode)
 	data = mem_read32(addr & ~3u);
 
 	/* Check for Abort */
-	if (arm.abort_base_restored && (armirq & 0x40)) {
+	if (arm.abort_base_restored && (arm.event & 0x40)) {
 		return 1;
 	}
 
@@ -1216,7 +1264,7 @@ opLDR(uint32_t opcode)
 	}
 
 	/* Check for Abort (before writing Rd) */
-	if (armirq & 0x40) {
+	if (arm.event & 0x40) {
 		return 1;
 	}
 
@@ -1232,7 +1280,7 @@ opSTRB(uint32_t opcode)
 	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
-		undefined();
+		arm_exception_undefined();
 		return 0;
 	}
 
@@ -1258,7 +1306,7 @@ opSTRB(uint32_t opcode)
 	mem_write8(addr, data);
 
 	/* Check for Abort */
-	if (arm.abort_base_restored && (armirq & 0x40)) {
+	if (arm.abort_base_restored && (arm.event & 0x40)) {
 		return 1;
 	}
 
@@ -1271,7 +1319,7 @@ opSTRB(uint32_t opcode)
 		arm.reg[RN] = addr;
 	}
 
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
@@ -1280,7 +1328,7 @@ opLDRB(uint32_t opcode)
 	uint32_t addr, data, offset;
 
 	if ((opcode & 0x2000010) == 0x2000010) {
-		undefined();
+		arm_exception_undefined();
 		return 0;
 	}
 
@@ -1305,7 +1353,7 @@ opLDRB(uint32_t opcode)
 	data = mem_read8(addr);
 
 	/* Check for Abort */
-	if (arm.abort_base_restored && (armirq & 0x40)) {
+	if (arm.abort_base_restored && (arm.event & 0x40)) {
 		return 1;
 	}
 
@@ -1319,7 +1367,7 @@ opLDRB(uint32_t opcode)
 	}
 
 	/* Check for Abort (before writing Rd) */
-	if (armirq & 0x40) {
+	if (arm.event & 0x40) {
 		return 1;
 	}
 
@@ -1342,7 +1390,7 @@ opSTMD(uint32_t opcode)
 		addr += 4;
 	}
 	arm_store_multiple(opcode, addr, writeback);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
@@ -1358,7 +1406,7 @@ opSTMI(uint32_t opcode)
 		addr += 4;
 	}
 	arm_store_multiple(opcode, addr, writeback);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
@@ -1374,7 +1422,7 @@ opSTMDS(uint32_t opcode)
 		addr += 4;
 	}
 	arm_store_multiple_s(opcode, addr, writeback);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
@@ -1390,7 +1438,7 @@ opSTMIS(uint32_t opcode)
 		addr += 4;
 	}
 	arm_store_multiple_s(opcode, addr, writeback);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
@@ -1406,7 +1454,7 @@ opLDMD(uint32_t opcode)
 		addr += 4;
 	}
 	arm_load_multiple(opcode, addr, writeback);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
@@ -1422,7 +1470,7 @@ opLDMI(uint32_t opcode)
 		addr += 4;
 	}
 	arm_load_multiple(opcode, addr, writeback);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
@@ -1438,7 +1486,7 @@ opLDMDS(uint32_t opcode)
 		addr += 4;
 	}
 	arm_load_multiple_s(opcode, addr, writeback);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
@@ -1454,10 +1502,10 @@ opLDMIS(uint32_t opcode)
 		addr += 4;
 	}
 	arm_load_multiple_s(opcode, addr, writeback);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
-static void
+static int
 opB(uint32_t opcode)
 {
 	uint32_t offset;
@@ -1469,9 +1517,10 @@ opB(uint32_t opcode)
 	arm.reg[15] = ((arm.reg[15] + offset + 4) & arm.r15_mask) |
 	              (arm.reg[15] & ~arm.r15_mask);
 	blockend = 1;
+	return 0;
 }
 
-static void
+static int
 opBL(uint32_t opcode)
 {
 	uint32_t offset;
@@ -1484,98 +1533,103 @@ opBL(uint32_t opcode)
 	arm.reg[15] = ((arm.reg[15] + offset + 4) & arm.r15_mask) |
 	              (arm.reg[15] & ~arm.r15_mask);
 	refillpipeline();
+	return 0;
 }
 
-static void
+static int
 opcopro(uint32_t opcode)
 {
 #ifdef FPA
 	if ((opcode & 0xf00) == 0x100 || (opcode & 0xf00) == 0x200) {
 		fpaopcode(opcode);
-		return;
+		return 0;
 	}
 #endif
 	NOT_USED(opcode);
 
-	undefined();
+	arm_exception_undefined();
+	return 0;
 }
 
-static void
+static int
 opMCR(uint32_t opcode)
 {
 #ifdef FPA
 	if ((opcode & 0xf00) == 0x100) {
 		fpaopcode(opcode);
-		return;
+		return 0;
 	}
 #endif
-	if ((opcode & 0xf10) == 0xf10) {
-		cp15_write(RN, arm.reg[RD], opcode);
+	if ((opcode & 0xf10) == 0xf10 && ARM_MODE_PRIV(arm.mode)) {
+		cp15_write(opcode, arm.reg[RD]);
 	} else {
-		undefined();
+		arm_exception_undefined();
 	}
+	return 0;
 }
 
-static void
+static int
 opMRC(uint32_t opcode)
 {
 #ifdef FPA
 	if ((opcode & 0xf00) == 0x100) {
 		fpaopcode(opcode);
-		return;
+		return 0;
 	}
 #endif
-	if ((opcode & 0xf10) == 0xf10) {
+	if ((opcode & 0xf10) == 0xf10 && ARM_MODE_PRIV(arm.mode)) {
 		if (RD == 15) {
 			arm.reg[RD] = (arm.reg[RD] & arm.r15_mask) |
-				      (cp15_read(RN) & ~arm.r15_mask);
+				      (cp15_read(opcode) & ~arm.r15_mask);
 		} else {
-			arm.reg[RD] = cp15_read(RN);
+			arm.reg[RD] = cp15_read(opcode);
 		}
 	} else {
-		undefined();
+		arm_exception_undefined();
 	}
+	return 0;
 }
 
 /**
  * This refers to the unallocated portions of the opcode space.
  */
-static void
+static int
 opUNALLOC(uint32_t opcode)
 {
 	NOT_USED(opcode);
 
 	if (arm.arch_v4) {
-		undefined();
+		arm_exception_undefined();
 	} else {
 		arm_unpredictable(opcode);
 	}
+	return 0;
 }
 
 static int
 opLDRH(uint32_t opcode)
 {
 	arm_ldrh(opcode);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
 opLDRSB(uint32_t opcode)
 {
 	arm_ldrsb(opcode);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
 opLDRSH(uint32_t opcode)
 {
 	arm_ldrsh(opcode);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }
 
 static int
 opSTRH(uint32_t opcode)
 {
 	arm_strh(opcode);
-	return (armirq & 0x40);
+	return (arm.event & 0x40);
 }

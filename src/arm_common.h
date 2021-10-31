@@ -30,7 +30,7 @@ extern void arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t write
 extern void arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback);
 extern void arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback);
 extern void arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback);
-extern void opSWI(uint32_t opcode);
+extern int opSWI(uint32_t opcode);
 
 #define refillpipeline() blockend=1;
 
@@ -47,9 +47,6 @@ extern void opSWI(uint32_t opcode);
 /// Evaluate to non-zero if 'mode' has a SPSR (i.e. not USR26/USR32/Sys32)
 #define ARM_MODE_HAS_SPSR(mode)	(ARM_MODE_PRIV(mode) && ((mode) != 0x1f))
 
-#define checkneg(v)	(v & 0x80000000)
-#define checkpos(v)	(!(v & 0x80000000))
-
 /// Only certain bits within CPSR/SPSR can be modified on real hardware
 #define PSR_BITS_VALID	0xf00000df
 
@@ -61,6 +58,19 @@ static const uint32_t msrlookup[16] = {
 	0xff000000, 0xff0000ff, 0xff00ff00, 0xff00ffff,
 	0xffff0000, 0xffff00ff, 0xffffff00, 0xffffffff
 };
+
+/**
+ * Perform a rotate-right operation on a 32-bit integer.
+ *
+ * @param x Value to rotate
+ * @param n Number of bit positions to rotate by
+ * @return Rotated value
+ */
+static inline uint32_t
+rotate_right32(uint32_t x, uint32_t n)
+{
+	return (x >> n) | (x << (32 - n));
+}
 
 /**
  * Return the immediate operand in an opcode.
@@ -77,7 +87,7 @@ arm_imm(uint32_t opcode)
 	uint32_t val = opcode & 0xff;
 	uint32_t amount = ((opcode >> 8) & 0xf) << 1;
 
-	return (val >> amount) | (val << (32 - amount));
+	return rotate_right32(val, amount);
 }
 
 /**
@@ -107,16 +117,24 @@ arm_imm_cflag(uint32_t opcode)
 	return result;
 }
 
+/**
+ * Update the NZCV flags following an add instruction.
+ *
+ * @param op1 The left operand
+ * @param op2 The right operand
+ * @param result The result of the operation
+ */
 static inline void
-setadd(uint32_t op1, uint32_t op2, uint32_t result)
+arm_flags_add(uint32_t op1, uint32_t op2, uint32_t result)
 {
-	uint32_t flags = 0;
+	uint32_t flags;
 
 	if (result == 0) {
 		flags = ZFLAG;
-	} else if (checkneg(result)) {
-		flags = NFLAG;
+	} else {
+		flags = 0;
 	}
+	flags |= result & NFLAG;
 	if (result < op1) {
 		flags |= CFLAG;
 	}
@@ -126,16 +144,24 @@ setadd(uint32_t op1, uint32_t op2, uint32_t result)
 	arm.reg[cpsr] = (arm.reg[cpsr] & 0x0fffffff) | flags;
 }
 
+/**
+ * Update the NZCV flags following a sub instruction.
+ *
+ * @param op1 The left operand
+ * @param op2 The right operand
+ * @param result The result of the operation
+ */
 static inline void
-setsub(uint32_t op1, uint32_t op2, uint32_t result)
+arm_flags_sub(uint32_t op1, uint32_t op2, uint32_t result)
 {
-	uint32_t flags = 0;
+	uint32_t flags;
 
 	if (result == 0) {
 		flags = ZFLAG;
-	} else if (checkneg(result)) {
-		flags = NFLAG;
+	} else {
+		flags = 0;
 	}
+	flags |= result & NFLAG;
 	if (result <= op1) {
 		flags |= CFLAG;
 	}
@@ -145,64 +171,79 @@ setsub(uint32_t op1, uint32_t op2, uint32_t result)
 	arm.reg[cpsr] = (arm.reg[cpsr] & 0x0fffffff) | flags;
 }
 
+/**
+ * Update the NZCV flags following an adc instruction.
+ *
+ * @param op1 The left operand
+ * @param op2 The right operand
+ * @param result The result of the operation
+ */
 static inline void
-setsbc(uint32_t op1, uint32_t op2, uint32_t result)
-{
-	arm.reg[cpsr] &= ~0xf0000000;
-
-	if (result == 0) {
-		arm.reg[cpsr] |= ZFLAG;
-	} else if (checkneg(result)) {
-		arm.reg[cpsr] |= NFLAG;
-	}
-	if ((checkneg(op1) && checkpos(op2)) ||
-	    (checkneg(op1) && checkpos(result)) ||
-	    (checkpos(op2) && checkpos(result)))
-	{
-		arm.reg[cpsr] |= CFLAG;
-	}
-	if ((checkneg(op1) && checkpos(op2) && checkpos(result)) ||
-	    (checkpos(op1) && checkneg(op2) && checkneg(result)))
-	{
-		arm.reg[cpsr] |= VFLAG;
-	}
-}
-
-static inline void
-setadc(uint32_t op1, uint32_t op2, uint32_t result)
-{
-	arm.reg[cpsr] &= ~0xf0000000;
-
-	if (result == 0) {
-		arm.reg[cpsr] |= ZFLAG;
-	} else if (checkneg(result)) {
-		arm.reg[cpsr] |= NFLAG;
-	}
-	if ((checkneg(op1) && checkneg(op2)) ||
-	    (checkneg(op1) && checkpos(result)) ||
-	    (checkneg(op2) && checkpos(result)))
-	{
-		arm.reg[cpsr] |= CFLAG;
-	}
-	if ((checkneg(op1) && checkneg(op2) && checkpos(result)) ||
-	    (checkpos(op1) && checkpos(op2) && checkneg(result)))
-	{
-		arm.reg[cpsr] |= VFLAG;
-	}
-}
-
-static inline void
-setzn(uint32_t op)
+arm_flags_adc(uint32_t op1, uint32_t op2, uint32_t result)
 {
 	uint32_t flags;
 
-	if (op == 0) {
+	if (result == 0) {
 		flags = ZFLAG;
-	} else if (checkneg(op)) {
-		flags = NFLAG;
 	} else {
 		flags = 0;
 	}
+	flags |= result & NFLAG;
+	if (((op1 & op2) | ((op1 | op2) & ~result)) & 0x80000000) {
+		flags |= CFLAG;
+	}
+	if (((op1 ^ result) & (op2 ^ result)) & 0x80000000) {
+		flags |= VFLAG;
+	}
+	arm.reg[cpsr] = (arm.reg[cpsr] & 0x0fffffff) | flags;
+}
+
+/**
+ * Update the NZCV flags following a sbc instruction.
+ *
+ * @param op1 The left operand
+ * @param op2 The right operand
+ * @param result The result of the operation
+ */
+static inline void
+arm_flags_sbc(uint32_t op1, uint32_t op2, uint32_t result)
+{
+	uint32_t flags;
+
+	if (result == 0) {
+		flags = ZFLAG;
+	} else {
+		flags = 0;
+	}
+	flags |= result & NFLAG;
+	if (((op1 & ~op2) | ((op1 | ~op2) & ~result)) & 0x80000000) {
+		flags |= CFLAG;
+	}
+	if (((op1 ^ op2) & (op1 ^ result)) & 0x80000000) {
+		flags |= VFLAG;
+	}
+	arm.reg[cpsr] = (arm.reg[cpsr] & 0x0fffffff) | flags;
+}
+
+/**
+ * Update the N and Z flags following a logical or multiply instruction.
+ *
+ * The Z flag will be set if the result equals 0.
+ * The N flag will be set if the result has bit 31 set.
+ *
+ * @param result The result of the operation
+ */
+static inline void
+arm_flags_logical(uint32_t result)
+{
+	uint32_t flags;
+
+	if (result == 0) {
+		flags = ZFLAG;
+	} else {
+		flags = 0;
+	}
+	flags |= result & NFLAG;
 	arm.reg[cpsr] = (arm.reg[cpsr] & 0x3fffffff) | flags;
 }
 
@@ -437,7 +478,7 @@ arm_ldr_rotate(uint32_t value, uint32_t addr)
 {
 	uint32_t rotate = (addr & 3) * 8;
 
-	return (value >> rotate) | (value << (32 - rotate));
+	return rotate_right32(value, rotate);
 }
 
 /**

@@ -7,3 +7,6 @@ moc_*.cpp
 moc_predefs.h
 qrc_icon.cpp
 *.xcodeproj
+.xcode
+Info.plist
+

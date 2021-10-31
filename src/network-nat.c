@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -29,6 +30,8 @@ static struct {
 	size_t		buffer_len;
 
 	FILE		*capture;	///< Handle for debug capture file, or NULL if not in use
+
+	struct in_addr	forward_addr;	///< Which IP address to apply NAT forward rules to
 } nat;
 
 static void
@@ -166,12 +169,26 @@ network_nat_open(void)
 	dns.s_addr = htonl(0x0a0a0a03); // 10.10.10.3
 	dhcp.s_addr = htonl(0x0a0a0a0a); // 10.10.10.10
 
+	// Port Forwarding
+	nat.forward_addr.s_addr = dhcp.s_addr; // Which address to apply port forwards to (same as address given out by DHCP)
+
 	// Initialise, but only once
 	if (nat.slirp == NULL) {
+		int i;
+
 		nat.slirp = slirp_init(restricted,
 		    net_addr, mask, host, vhostname, "", bootfile, dhcp, dns, NULL);
 
 		// TODO log NAT details
+
+		// Forwarded Ports
+		for (i = 0; i < MAX_PORT_FORWARDS; i++) {
+			if (port_forward_rules[i].type != PORT_FORWARD_NONE) {
+				network_nat_forward_add(port_forward_rules[i]);
+
+				rpcemu_send_nat_rule_to_gui(port_forward_rules[i]);
+			}
+		}
 	}
 }
 
@@ -353,4 +370,53 @@ void
 network_nat_setirqstatus(uint32_t address)
 {
 	nat.irq_status = address;
+}
+
+/**
+ * Add a forwarding rule to the NAT, and activate it
+ *
+ * @param rule Details of NAT rule
+ */
+void
+network_nat_forward_add(PortForwardRule rule)
+{
+	struct in_addr bind = { 0 };
+	int retval;
+
+	// Inform SLIRP of the rule added
+	retval = slirp_add_hostfwd(nat.slirp, rule.type == PORT_FORWARD_UDP ? 1 : 0,
+	    bind, rule.host_port, nat.forward_addr, rule.emu_port);
+	if (retval != 0) {
+		error("Failed to add NAT Network port forwarding rule, %s emu_port %u host_port %u, %d %d %s",
+		    rule.type == PORT_FORWARD_UDP ? "UDP" : "TCP", rule.emu_port, rule.host_port,
+		    retval, errno, strerror(errno));
+	}
+}
+
+/**
+ * Remove a forwarding rule in the NAT, and deactivate it
+ *
+ * @param rule Details of NAT rule
+ */
+void
+network_nat_forward_remove(PortForwardRule rule)
+{
+	struct in_addr bind = { 0 };
+
+	// Inform SLIRP of the rule removal
+	slirp_remove_hostfwd(nat.slirp, rule.type == PORT_FORWARD_UDP ? 1 : 0,
+	    bind, rule.host_port);
+}
+
+/**
+ * Edit an existing forwarding rule in the NAT, and deactivate and reactive it
+ *
+ * @param old_rule Details of NAT rule being replaced
+ * @param new_rule Details of NAT rule replacement
+ */
+void
+network_nat_forward_edit(PortForwardRule old_rule, PortForwardRule new_rule)
+{
+	network_nat_forward_remove(old_rule);
+	network_nat_forward_add(new_rule);
 }
