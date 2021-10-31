@@ -52,6 +52,10 @@
 #include "podules.h"
 #include "fdc.h"
 #include "hostfs.h"
+#include "disc.h"
+#include "disc_adf.h"
+#include "disc_hfe.h"
+#include "disc_mfm_common.h"
 
 #ifdef RPCEMU_NETWORKING
 #include "network.h"
@@ -104,12 +108,14 @@ Perf perf = {
 	0.0f  /* mips_total */
 };
 
-int cyccount = 0;
+PortForwardRule port_forward_rules[MAX_PORT_FORWARDS]; ///< Port forward rules accross the NAT
+
 int drawscre = 0;
 int quited = 0;
 
 static FILE *arclog; /* Log file handle */
 
+static int cycles;
 
 #ifdef _DEBUG
 /**
@@ -190,7 +196,7 @@ resetrpc(void)
 
         mem_reset(config.mem_size, config.vram_size);
         cp15_reset(machine.cpu_model);
-        resetarm(machine.cpu_model);
+	arm_reset(machine.cpu_model);
         keyboard_reset();
 	iomd_reset(machine.iomd_type);
 
@@ -210,6 +216,8 @@ resetrpc(void)
 		network_init();
 	}
 #endif
+
+	cycles = 0;
 
 	rpclog("RPCEmu: Machine reset complete\n");
 }
@@ -305,6 +313,9 @@ rpcemu_start(void)
 	loadroms();
         cmos_init();
         fdc_init();
+        adf_init();
+        hfe_init();
+        mfm_init();
         fdc_image_load("boot.adf", 0);
         fdc_image_load("notboot.adf", 1);
         initvideo();
@@ -331,17 +342,51 @@ rpcemu_start(void)
 void
 execrpcemu(void)
 {
-//	static int c;
-//	printf("Exec %i\n",c);
-//c++;
-        execarm(20000);
-        drawscr(drawscre);
-        if (drawscre>0)
-        {
-//                rpclog("Drawscre %i\n",drawscre);
-                drawscre--;
-                if (drawscre>5) drawscre=0;
-        }
+	cycles += 20000;
+
+	while (cycles > 0) {
+		cycles -= arm_exec();
+
+		if (kcallback) {
+			kcallback--;
+			if (kcallback <= 0) {
+				kcallback = 0;
+				keyboard_callback_rpcemu();
+			}
+		}
+		if (mcallback) {
+			mcallback -= 10;
+			if (mcallback <= 0) {
+				mcallback = 0;
+				mouse_ps2_callback();
+			}
+		}
+		if (fdccallback) {
+			fdccallback -= 100;
+			if (fdccallback <= 0) {
+				fdccallback = 0;
+				fdc_callback();
+			}
+		}
+		if (idecallback) {
+			idecallback -= 10;
+			if (idecallback <= 0) {
+				idecallback = 0;
+				callbackide();
+			}
+		}
+		if (motoron) {
+			disc_poll();
+		}
+	}
+
+	if (drawscre > 0) {
+		drawscr();
+		drawscre--;
+		if (drawscre > 5) {
+			drawscre = 0;
+		}
+	}
 }
 
 /**
@@ -353,10 +398,8 @@ execrpcemu(void)
 void
 rpcemu_idle(void)
 {
-	int hostupdate = 0;
-
 	/* Loop while no interrupts pending */
-	while (!armirq) {
+	while (!arm.event) {
 		/* Run down any callback timers */
 		if (kcallback) {
 			kcallback--;
@@ -373,7 +416,7 @@ rpcemu_idle(void)
 			}
 		}
 		if (fdccallback) {
-			fdccallback -= 10;
+			fdccallback -= 100;
 			if (fdccallback <= 0) {
 				fdccallback = 0;
 				fdc_callback();
@@ -392,7 +435,7 @@ rpcemu_idle(void)
 			updateirqs();
 		}
 		/* Sleep if no interrupts pending */
-		if (!armirq) {
+		if (!arm.event) {
 #ifdef RPCEMU_WIN
 			Sleep(1);
 #else
@@ -404,13 +447,13 @@ rpcemu_idle(void)
 #endif
 		}
 		/* Run other periodic actions */
-		if (!armirq && !(++hostupdate > 20)) {
-			hostupdate = 0;
-			drawscr(drawscre);
+		if (!arm.event) {
 			if (drawscre > 0) {
+				drawscr();
 				drawscre--;
-				if (drawscre > 5)
+				if (drawscre > 5) {
 					drawscre = 0;
+				}
 			}
 			rpcemu_idle_process_events();
 		}
@@ -617,4 +660,77 @@ rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
 	if(needs_reset) {
 		resetrpc();
 	}
+}
+
+/**
+ * Add a forwarding rule to the NAT
+ *
+ * @param type      TCP or UDP
+ * @param emu_port  port number on emulated machine
+ * @param host_port port number on host machine
+ */
+void
+rpcemu_nat_forward_add(PortForwardRule rule)
+{
+	int i;
+
+	rpclog("Config: Adding NAT forwarding rule %d %u %u\n", rule.type, rule.emu_port, rule.host_port);
+
+	// Detect duplicate rules
+	for (i = 0; i < MAX_PORT_FORWARDS; i++) {
+		if (port_forward_rules[i].type == rule.type
+		    && port_forward_rules[i].emu_port == rule.emu_port)
+		{
+			rpclog("Config: Discarding duplicate NAT forwarding rule for type %d emu_port %u\n",
+			    rule.type, rule.emu_port);
+			return;
+		}
+		if (port_forward_rules[i].type == rule.type
+		    && port_forward_rules[i].host_port == rule.host_port)
+		{
+			rpclog("Config: Discarding duplicate NAT forwarding rule for type %d host_port %u\n",
+			    rule.type, rule.host_port);
+			return;
+		}
+	}
+
+	// Find an empty slot and fill it in
+	for (i = 0; i < MAX_PORT_FORWARDS; i++) {
+		if (port_forward_rules[i].type == PORT_FORWARD_NONE) {
+			port_forward_rules[i] = rule;
+			return;
+		}
+	}
+
+	// No slot found for rule
+	rpclog("Config: Ran out of space for NAT port forward rules\n");
+}
+
+/**
+ * Remove a forwarding rule in the NAT
+ *
+ * @param type      TCP or UDP
+ * @param emu_port  port number on emulated machine
+ * @param host_port port number on host machine
+ */
+void
+rpcemu_nat_forward_remove(PortForwardRule rule)
+{
+	int i;
+
+	for (i = 0; i < MAX_PORT_FORWARDS; i++) {
+		if (port_forward_rules[i].type == rule.type
+		    && port_forward_rules[i].emu_port == rule.emu_port
+		    && port_forward_rules[i].host_port == rule.host_port)
+		{
+			port_forward_rules[i].type      = PORT_FORWARD_NONE;
+			port_forward_rules[i].emu_port  = 0;
+			port_forward_rules[i].host_port = 0;
+
+			return;
+		}
+	}
+
+	// rule not found, should be impossible
+	assert(0);
 }

@@ -46,6 +46,8 @@ public:
 signals:
 	void finished();
 
+	void video_flyback_signal();
+
 	void key_press_signal(unsigned scan_code);
 
 	void key_release_signal(unsigned scan_code);
@@ -54,7 +56,7 @@ signals:
     void modifier_keys_changed_signal(unsigned mask);
     void modifier_keys_reset_signal();
 #endif /* Q_OS_MACOS */
-
+    
 	void mouse_move_signal(int x, int y);
 	void mouse_move_relative_signal(int dx, int dy);
 	void mouse_press_signal(int buttons);
@@ -76,19 +78,24 @@ signals:
 	void config_updated_signal(Config *new_config, Model new_model);
 	void network_config_updated_signal(NetworkType network_type, QString bridgename, QString ipaddress);
 	void show_fullscreen_message_off_signal();
+	void nat_rule_add_signal(PortForwardRule rule);
+	void nat_rule_edit_signal(PortForwardRule old_rule, PortForwardRule new_rule);
+	void nat_rule_remove_signal(PortForwardRule rule);
 
 public slots:
 	void mainemuloop();
 
+	void video_flyback();
+
 	void key_press(unsigned scan_code);
 
 	void key_release(unsigned scan_code);
-    
+   
 #if defined(Q_OS_MACOS)
     void modifier_keys_changed(unsigned mask);
     void modifier_keys_reset();
 #endif /* Q_OS_MACOS */
-
+    
 	void mouse_move(int x, int y);
 	void mouse_move_relative(int dx, int dy);
 	void mouse_press(int buttons);
@@ -114,6 +121,9 @@ public slots:
 	void config_updated(Config *new_config, Model new_model);
 	void network_config_updated(NetworkType network_type, QString bridgename, QString ipaddress);
 	void show_fullscreen_message_off();
+	void nat_rule_add(PortForwardRule rule);
+	void nat_rule_edit(PortForwardRule old_rule, PortForwardRule new_rule);
+	void nat_rule_remove(PortForwardRule rule);
 
 private:
 	QElapsedTimer elapsed_timer;

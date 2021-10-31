@@ -29,6 +29,8 @@ typedef struct {
 	uint32_t	mmask;
 	uint32_t	r15_mask;
 
+	uint32_t	event;
+
 	/* Banked registers */
 	uint32_t	user_reg[15];
 	uint32_t	fiq_reg[15];
@@ -44,7 +46,7 @@ typedef struct {
 	uint8_t		arch_v4;
 } ARMState;
 
-typedef void (*OpFn)(uint32_t opcode);
+typedef int (*OpFn)(uint32_t opcode);
 
 extern void updatemode(uint32_t m);
 extern void resetcodeblocks(void);
@@ -59,7 +61,6 @@ extern void endblock(uint32_t opcode);
 extern void initcodeblock(uint32_t l);
 
 extern uint32_t *usrregs[16];
-extern uint32_t armirq;
 extern int cpsr;
 extern uint32_t pccache;
 
@@ -67,17 +68,17 @@ extern uint32_t pccache;
 
 extern int arm_is_dynarec(void); 
 extern void arm_init(void);
-extern void resetarm(CPUModel cpu_model);
-extern void execarm(int cycles);
-extern void dumpregs(void);
+extern void arm_reset(CPUModel cpu_model);
+extern int arm_exec(void);
+extern void arm_dump(void);
 extern void exception(uint32_t mmode, uint32_t address, uint32_t diff);
 extern void set_memory_executable(void *ptr, size_t len);
 
 extern ARMState arm;
 
-extern int databort,prefabort;
 extern int prog32;
 extern int blockend;
+extern int linecyc;
 
 extern int lastflagchange;
 
@@ -113,6 +114,15 @@ GETADDR(uint32_t r)
 	} else {
 		return arm.reg[r];
 	}
+}
+
+/**
+ * Generate an Undefined Instruction exception.
+ */
+static inline void
+arm_exception_undefined(void)
+{
+	exception(UNDEFINED, 8, 4);
 }
 
 #endif //__ARM__

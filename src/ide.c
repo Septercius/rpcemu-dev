@@ -1069,7 +1069,7 @@ static void atapicommand(void)
                         rpclog("Packet data :\n");
                         for (c=0;c<12;c++)
                             rpclog("%02X\n",idebufferb[c]);
-                        dumpregs();
+                        arm_dump();
                         exit(-1);
                 }
                 pos=0;

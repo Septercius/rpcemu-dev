@@ -58,6 +58,8 @@ extern void mouse_hack_osbyte_106(uint32_t a);
 extern void mouse_hack_osmouse(void);
 extern void mouse_hack_get_pos(int *x, int *y);
 
+extern int kcallback;
+extern int mcallback;
 extern int mouse_b;
 
 #ifdef __cplusplus

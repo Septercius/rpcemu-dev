@@ -21,6 +21,70 @@
 
 #include "rpcemu.h"
 
+/**
+ * Parse and load NAT port forwarding rules into the global list
+ */
+static void
+config_nat_rules_load(QSettings &settings)
+{
+	const int size = settings.beginReadArray("nat_port_forward_rules");
+
+	for (int i = 0; i < size; i++) {
+		PortForwardRule rule;
+
+		settings.setArrayIndex(i);
+
+		QString rule_type_name = settings.value("type", "").toString();
+		if (rule_type_name == "TCP") {
+			rule.type = PORT_FORWARD_TCP;
+		} else if (rule_type_name == "UDP") {
+			rule.type = PORT_FORWARD_UDP;
+		} else {
+			error("Unknown port forward type, must be TCP or UDP");
+			continue; // Give up on this entry
+		}
+
+		const unsigned emu_port = settings.value("emu_port", 0).toUInt();
+		const unsigned host_port = settings.value("host_port", 0).toUInt();
+
+		if (emu_port == 0 || emu_port > 65535) {
+			error("Invalid port forward emu port");
+			continue;
+		}
+		if (host_port == 0 || host_port > 65535) {
+			error("Invalid port forward host port");
+			continue;
+		}
+
+		rule.emu_port  = (uint16_t) emu_port;
+		rule.host_port = (uint16_t) host_port;
+
+		rpcemu_nat_forward_add(rule);
+	}
+	settings.endArray();
+}
+
+/**
+ * Store NAT port forwarding rules from the global list
+ */
+static void
+config_nat_rules_save(QSettings &settings)
+{
+	int itemnum = 0;
+
+	settings.beginWriteArray("nat_port_forward_rules");
+	for (int i = 0; i < MAX_PORT_FORWARDS; i++) {
+		if (port_forward_rules[i].type != PORT_FORWARD_NONE) {
+			settings.setArrayIndex(itemnum);
+			settings.setValue("type",      port_forward_rules[i].type == PORT_FORWARD_TCP ? "TCP" : "UDP");
+			settings.setValue("emu_port",  port_forward_rules[i].emu_port);
+			settings.setValue("host_port", port_forward_rules[i].host_port);
+			itemnum++;
+		}
+	}
+	settings.endArray();
+}
+
 
 /**
  * Load the user's previous chosen configuration. Will fill in sensible
@@ -48,7 +112,7 @@ config_load(Config * config)
 	QStringList keys = settings.childKeys();
 	foreach (const QString &key, settings.childKeys()) {
 		sText = QString("config_load: %1 = \"%2\"\n").arg(key, settings.value(key).toString());
-		rpclog(sText.toLocal8Bit().constData());
+		rpclog("%s", sText.toLocal8Bit().constData());
 	}
 
 	sText = settings.value("mem_size", "16").toString();
@@ -182,6 +246,8 @@ config_load(Config * config)
 	} else {
 		config->network_capture = NULL;
 	}
+
+	config_nat_rules_load(settings);
 }
 
 
@@ -200,6 +266,7 @@ config_save(Config *config)
 	snprintf(filename, sizeof(filename), "%srpc.cfg", rpcemu_get_datadir());
 
 	QSettings settings(filename, QSettings::IniFormat);
+	settings.clear();
 
 	char s[256];
 
@@ -259,4 +326,6 @@ config_save(Config *config)
 	if (config->network_capture) {
 		settings.setValue("network_capture", config->network_capture);
 	}
+
+	config_nat_rules_save(settings);
 }
