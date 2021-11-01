@@ -38,7 +38,7 @@ extern int vidc_get_xsize(void);
 extern int vidc_get_ysize(void);
 extern void resetbuffer(void);
 extern void writevidc20(uint32_t val);
-extern void drawscr(int needredraw);
+extern void drawscr(void);
 extern void vidcthread(void);
 extern void vidc_get_doublesize(int *double_x, int *double_y);
 
