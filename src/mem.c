@@ -450,9 +450,8 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 	case 0x12000000:
 	case 0x13000000:
 		ram00[(addr & mem_rammask) >> 2] = val;
-		/* TODO fff00000 only allows blocks on 1MB boundaries not 8MB/16MB
-		   this suggests writes to > 1MB inside video mem in dram mode aren't updating dirtybuffer */
-		if ((mem_vrammask == 0) && ((addr & 0xfff00000) == (iomd.vidstart & 0xfff00000))) {
+		/* In 0MB VRAM modes allow up to 4MB of writes to DRAM video data to update the dirty buffer */
+		if ((mem_vrammask == 0) && ((addr & 0xffc00000) == (iomd.vidstart & 0xffc00000))) {
 			dirtybuffer[(addr & mem_rammask) >> 12] = 1;
 		}
 		return;
@@ -564,9 +563,8 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 		addr ^= 3;
 #endif
 		ramb00[addr & mem_rammask] = val;
-		/* TODO fff00000 only allows blocks on 1MB boundaries not 8MB/16MB
-		   this suggests writes to > 1MB inside video mem in dram mode aren't updating dirtybuffer */
-		if ((mem_vrammask == 0) && ((addr & 0xfff00000) == (iomd.vidstart & 0xfff00000))) {
+		/* In 0MB VRAM modes allow up to 4MB of writes to DRAM video data to update the dirty buffer */
+		if ((mem_vrammask == 0) && ((addr & 0xffc00000) == (iomd.vidstart & 0xffc00000))) {
 			dirtybuffer[(addr & mem_rammask) >> 12] = 1;
 		}
 		return;
@@ -609,9 +607,8 @@ readmemfl(uint32_t addr)
 			phys_addr = readmemcache2 + (addr & 0xfff);
 		} else {
 			readmemcache = addr >> 12;
-			armirq &= ~0x40u;
 			phys_addr = translateaddress(addr, 0, 0);
-			if (armirq & 0x40) {
+			if (arm.event & 0x40) {
 				vraddrl[addr >> 12] = readmemcache = 0xffffffff;
 				return 0;
 			}
@@ -707,9 +704,8 @@ readmemfb(uint32_t addr)
 			phys_addr = readmemcache2 + (addr & 0xfff);
 		} else {
 			readmemcache = addr >> 12;
-			armirq &= ~0x40u;
 			phys_addr = translateaddress(addr, 0, 0);
-			if (armirq & 0x40) {
+			if (arm.event & 0x40) {
 				readmemcache = 0xffffffff;
 				return 0;
 			}
@@ -784,9 +780,8 @@ writememfl(uint32_t addr, uint32_t val)
 			phys_addr = writememcache2 + (addr & 0xfff);
 		} else {
 			writememcache = addr >> 12;
-			armirq &= ~0x40u;
 			phys_addr = translateaddress(addr, 1, 0);
-			if (armirq & 0x40) {
+			if (arm.event & 0x40) {
 				writememcache = 0xffffffff;
 				return;
 			}
@@ -840,9 +835,8 @@ writememfb(uint32_t addr, uint8_t val)
 			phys_addr = writemembcache2 + (addr & 0xfff);
 		} else {
 			writemembcache = addr >> 12;
-			armirq &= ~0x40u;
 			phys_addr = translateaddress(addr, 1, 0);
-			if (armirq & 0x40) {
+			if (arm.event & 0x40) {
 				writemembcache = 0xffffffff;
 				return;
 			}

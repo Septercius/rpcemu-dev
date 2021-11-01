@@ -41,7 +41,7 @@ static uint32_t poduleromsize = 0;
 static uint32_t chunkbase;
 static uint32_t filebase;
 
-static const char description[] = "RPCEmu additional ROM";
+static const char description[] = "RPCEmu Support";
 
 /**
  *
@@ -73,7 +73,7 @@ makechunk(uint8_t type, uint32_t filebase, uint32_t size)
  * @return Contents of byte
  */
 static uint8_t
-readpodulerom(podule *p, int easi, uint32_t addr)
+podulerom_read8(podule *p, int easi, uint32_t addr)
 {
 	NOT_USED(p);
 
@@ -95,7 +95,7 @@ readpodulerom(podule *p, int easi, uint32_t addr)
 void
 podulerom_reset(void)
 {
-	addpodule(NULL, NULL, NULL, NULL, NULL, readpodulerom, NULL, NULL, 0);
+	addpodule(NULL, NULL, NULL, NULL, NULL, podulerom_read8, NULL, NULL, 0);
 }
 
 /**
@@ -208,6 +208,4 @@ initpodulerom(void)
 		makechunk(0x81, filebase, len); /* 8 = Mandatory, Acorn Operating System #0 (RISC OS), 1 = BBC ROM */
 		filebase += ((uint32_t) len + 3) & ~3u;
 	}
-
-	addpodule(NULL, NULL, NULL, NULL, NULL, readpodulerom, NULL, NULL, 0);
 }

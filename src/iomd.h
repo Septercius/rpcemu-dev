@@ -137,8 +137,6 @@ struct iomd
 
 extern struct iomd iomd;
 
-extern  int kcallback,mcallback;
-
 extern  uint32_t cinit;
 
 extern void iomd_reset(IOMDType type);
@@ -146,7 +144,7 @@ extern void iomd_end(void);
 extern uint32_t iomd_read(uint32_t addr);
 extern void iomd_write(uint32_t addr, uint32_t val);
 extern uint32_t iomd_mouse_buttons_read(void);
-extern void iomd_vsync(int vsync);
+extern void iomd_flyback(int flyback_new);
 
 extern void gentimerirq(void);
 

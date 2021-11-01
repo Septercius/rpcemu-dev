@@ -270,11 +270,11 @@ riscos_path_to_host(const char *path, char *host_path)
     case '<':
       *host_path++ = '$';
       break;
-    case '>':
-      *host_path++ = '^';
-      break;
     case (char) 160:
       *host_path++ = ' ';
+      break;
+    case '>':
+      *host_path++ = '^';
       break;
     default:
       *host_path++ = *path;

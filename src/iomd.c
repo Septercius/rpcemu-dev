@@ -178,7 +178,6 @@
 
 struct iomd iomd;
 
-int kcallback = 0, mcallback = 0;
 uint32_t cinit = 0; /**< Cursor DMA Init */
 
 /**
@@ -207,22 +206,23 @@ static IOMDType iomd_type; /**< The current type of IOMD we're emulating */
 static int sndon = 0;
 static int flyback=0;
 
-void updateirqs(void)
+void
+updateirqs(void)
 {
-        if ((iomd.irqa.status & iomd.irqa.mask) ||
-            (iomd.irqb.status & iomd.irqb.mask) ||
-            (iomd.irqd.status & iomd.irqd.mask) ||
-            (iomd.irqdma.status & iomd.irqdma.mask))
-        {
-                armirq |= 1;
-        } else {
-                armirq &= ~1u;
-        }
-        if (iomd.fiq.status & iomd.fiq.mask) {
-                armirq |= 2;
-        } else {
-                armirq &= ~2u;
-        }
+	if ((iomd.irqa.status & iomd.irqa.mask) ||
+	    (iomd.irqb.status & iomd.irqb.mask) ||
+	    (iomd.irqd.status & iomd.irqd.mask) ||
+	    (iomd.irqdma.status & iomd.irqdma.mask))
+	{
+		arm.event |= 1;
+	} else {
+		arm.event &= ~1u;
+	}
+	if (iomd.fiq.status & iomd.fiq.mask) {
+		arm.event |= 2;
+	} else {
+		arm.event &= ~2u;
+	}
 }
 
 /**
@@ -840,7 +840,6 @@ iomd_mouse_buttons_read(void)
 	}
 	/* Middle */
 	if (mouse_buttons & 4) {
-        
 #ifdef __APPLE__
         temp |= 0x20;
 #else
@@ -939,8 +938,6 @@ iomd_reset(IOMDType type)
 		iomd.refcr = 0;      /* DRAM refresh */
 	}
 
-	kcallback = 0;
-	mcallback = 0;
 	cinit = 0;
 	sndon = 0;
 	flyback = 0;
@@ -955,19 +952,18 @@ iomd_end(void)
 {
 }
 
+/**
+ * Signal a change in the Flyback signal from VIDC
+ *
+ * @param flyback_new New value of Flyback signal
+ */
 void
-iomd_vsync(int vsync)
+iomd_flyback(int flyback_new)
 {
-        if (vsync)
-        {
-//                rpclog("Vsync high\n");
-                iomd.irqa.status |= IOMD_IRQA_FLYBACK;
-                updateirqs();
-                flyback=1;
-        }
-        else
-        {
-//                rpclog("Vsync low\n");
-                flyback=0;
-        }
+	flyback = flyback_new;
+
+	if (flyback) {
+		iomd.irqa.status |= IOMD_IRQA_FLYBACK;
+		updateirqs();
+	}
 }

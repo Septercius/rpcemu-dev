@@ -91,7 +91,6 @@ static struct cached_state {
         int doublesize;
         uint32_t bpp;
         uint8_t *dirtybuffer;
-        int needvsync;
         int threadpending;
 } thr;
 
@@ -249,102 +248,99 @@ vidc_palette_update(void)
 }
 
 /**
- * Called periodically from the machine thread. If needredraw is non-zero
- * then the refresh timer indicates it is time for a new frame.
+ * Called periodically from the machine thread when the refresh timer indicates
+ * it is time for a new frame.
  */
 void
-drawscr(int needredraw)
+drawscr(void)
 {
 	static int lastframeborder = 0;
 
-	/* Must get the mutex before altering the thread's state. */
+	// Must get the mutex before altering the thread's state.
 	if (!vidctrymutex()) {
 		return;
 	}
 
-	/* If the thread hasn't run since the last request then don't request it again */
+	// If the thread hasn't run since the last request then don't request it again
 	if (thr.threadpending) {
-		needredraw = 0;
+		goto unlock_mutex_return;
 	}
 
-	if (needredraw) {
-		thr.vidc_xsize = vidc.hder - vidc.hdsr;
-		thr.vidc_ysize = vidc.vder - vidc.vdsr;
+	thr.vidc_xsize = vidc.hder - vidc.hdsr;
+	thr.vidc_ysize = vidc.vder - vidc.vdsr;
 
-		thr.cursorx = vidc.hcsr - vidc.hdsr;
-		thr.cursory = vidc.vcsr - vidc.vdsr;
-		if (mousehack) {
-			mouse_hack_get_pos(&thr.cursorx, &thr.cursory);
-		}
-		thr.cursorheight = vidc.vcer - vidc.vcsr;
+	thr.cursorx = vidc.hcsr - vidc.hdsr;
+	thr.cursory = vidc.vcsr - vidc.vdsr;
+	if (mousehack) {
+		mouse_hack_get_pos(&thr.cursorx, &thr.cursory);
+	}
+	thr.cursorheight = vidc.vcer - vidc.vcsr;
 
-		if (vidc.palchange) {
-			vidc_palette_update();
-		}
+	if (vidc.palchange) {
+		vidc_palette_update();
+	}
 
-		thr.iomd_cinit = cinit;
-		thr.iomd_vidstart = iomd.vidstart;
-		thr.iomd_vidend = iomd.vidend;
-		thr.iomd_vidinit = iomd.vidinit;
-		thr.iomd_vidcr = iomd.vidcr;
-		thr.bpp = vidc.bit8;
+	thr.iomd_cinit = cinit;
+	thr.iomd_vidstart = iomd.vidstart;
+	thr.iomd_vidend = iomd.vidend;
+	thr.iomd_vidinit = iomd.vidinit;
+	thr.iomd_vidcr = iomd.vidcr;
+	thr.bpp = vidc.bit8;
 
-		if (thr.vidc_xsize < 2) {
-			thr.vidc_xsize = 2;
-		}
-		if (thr.vidc_ysize < 1) {
-			thr.vidc_ysize = 480;
-		}
+	if (thr.vidc_xsize < 2) {
+		thr.vidc_xsize = 2;
+	}
+	if (thr.vidc_ysize < 1) {
+		thr.vidc_ysize = 480;
+	}
 
-		/* Have we changed screen size since the last draw? */
-		if (thr.vidc_xsize != current_sizex || thr.vidc_ysize != current_sizey) {
-			resizedisplay(thr.vidc_xsize, thr.vidc_ysize);
-		}
+	// Have we changed screen size since the last draw?
+	if (thr.vidc_xsize != current_sizex || thr.vidc_ysize != current_sizey) {
+		resizedisplay(thr.vidc_xsize, thr.vidc_ysize);
+	}
 
-		thr.host_xsize = thr.vidc_xsize;
-		thr.host_ysize = thr.vidc_ysize;
-		thr.doublesize = VIDC_DOUBLE_NONE;
+	thr.host_xsize = thr.vidc_xsize;
+	thr.host_ysize = thr.vidc_ysize;
+	thr.doublesize = VIDC_DOUBLE_NONE;
 
-		/* Modes below certain sizes are scaled up, e.g. 320x256. Modes with rectangular
-		   pixels, e.g. 640x256, are doubled up in the Y direction to look better on
-		   square pixel hosts */
-		if (thr.vidc_xsize <= 448 || (thr.vidc_xsize <= 480 && thr.vidc_ysize <= 352)) {
-			thr.host_xsize = thr.vidc_xsize << 1;
-			thr.doublesize |= VIDC_DOUBLE_X;
-		}
-		if (thr.vidc_ysize <= 352) {
-			thr.host_ysize = thr.vidc_ysize << 1;
-			thr.doublesize |= VIDC_DOUBLE_Y;
-		}
+	// Modes below certain sizes are scaled up, e.g. 320x256. Modes with rectangular
+	// pixels, e.g. 640x256, are doubled up in the Y direction to look better on
+	// square pixel hosts
+	if (thr.vidc_xsize <= 448 || (thr.vidc_xsize <= 480 && thr.vidc_ysize <= 352)) {
+		thr.host_xsize = thr.vidc_xsize << 1;
+		thr.doublesize |= VIDC_DOUBLE_X;
+	}
+	if (thr.vidc_ysize <= 352) {
+		thr.host_ysize = thr.vidc_ysize << 1;
+		thr.doublesize |= VIDC_DOUBLE_Y;
+	}
 
-		/* Store the value of this screen's pixel doubling, used in keyboard.c for mousehack */
-		doublesize = thr.doublesize;
+	// Store the value of this screen's pixel doubling, used in keyboard.c for mousehack
+	doublesize = thr.doublesize;
 
-		/* Handle full screen border plotting */
-		/* If not Video cursor DMA enabled or vertical start > vertical end */
-		if ((thr.iomd_vidcr & 0x20) == 0 || vidc.vdsr > vidc.vder) {
-			lastframeborder = 1;
-			if (dirtybuffer[0] || vidc.palchange) {
-				uint32_t *p;
-				int i;
+	// Handle full screen border plotting
+	// If not Video cursor DMA enabled or vertical start > vertical end
+	if ((thr.iomd_vidcr & 0x20) == 0 || vidc.vdsr > vidc.vder) {
+		lastframeborder = 1;
+		if (dirtybuffer[0] || vidc.palchange) {
+			uint32_t *p;
+			int i;
 
-				dirtybuffer[0] = 0;
-				vidc.palchange = 0;
+			dirtybuffer[0] = 0;
+			vidc.palchange = 0;
 
-				// Fill the bitmap with the border colour
-				p = thr.bitmap;
-				for (i = 0; i < current_sizex * current_sizey; i++) {
-					p[i] = thr.border_colour;
-				}
-
-				video_update(0, thr.vidc_ysize);
+			// Fill the bitmap with the border colour
+			p = thr.bitmap;
+			for (i = 0; i < current_sizex * current_sizey; i++) {
+				p[i] = thr.border_colour;
 			}
-			needredraw = 0;
-			thr.needvsync = 1;
+
+			video_update(0, thr.vidc_ysize);
 		}
+		goto unlock_mutex_return;
 	}
 
-	if (needredraw) {
+	{
 		int x, y;
 		int c;
 		int lastblock;
@@ -378,30 +374,23 @@ drawscr(int needredraw)
 		dirtybuffer = (dirtybuffer == dirtybuffer1) ? dirtybuffer2 : dirtybuffer1;
 	}
 
-	if (needredraw) {
-		uint32_t invalidate = thr.iomd_vidinit & 0x1f000000;
+	{
+		const uint32_t invalidate = thr.iomd_vidinit & 0x1f000000;
 
-		/* Invalidate Write-TLB entries corresponding to the screen memory,
-		   so that writes to this region will cause the dirtybuffer[] to be modified. */
+		// Invalidate Write-TLB entries corresponding to the screen memory,
+		// so that writes to this region will cause the dirtybuffer[] to be modified.
 		cp15_tlb_invalidate_physical(invalidate);
-
-		thr.threadpending = 1;
 	}
 
-	if (thr.needvsync) {
-		iomd_vsync(1);
-		thr.needvsync = 0;
-	}
+	thr.threadpending = 1;
 
-	if (needredraw) {
-		iomd_vsync(0);
-	}
+	iomd_flyback(0);
 
+	vidcwakeupthread();
+
+unlock_mutex_return:
+	// Unlock the mutex before leaving the function
 	vidcreleasemutex();
-
-	if (needredraw) {
-		vidcwakeupthread();
-	}
 }
 
 /**
@@ -417,7 +406,6 @@ vidcthread(void)
 {
 	const uint32_t vidstart = thr.iomd_vidstart & 0x7ffff0;
 	uint32_t vidend;
-	uint32_t *vidp = NULL;
 	int drawit = 0;
 	int x, y;
 	const uint8_t *ramp;
@@ -457,6 +445,8 @@ vidcthread(void)
 	switch (thr.bpp) {
 	case 0: /* 1 bpp on 32 bpp */
 		for (y = 0; y < thr.vidc_ysize; y++) {
+			uint32_t *vidp = video_image_scanline(y);
+
 			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 				drawit = 1;
 				yh = y + 8;
@@ -465,7 +455,6 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 8) {
@@ -495,9 +484,6 @@ vidcthread(void)
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
-					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = video_image_scanline(y);
-					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 						drawit = 1;
@@ -514,6 +500,8 @@ vidcthread(void)
 		break;
 	case 1: /* 2 bpp on 32 bpp */
 		for (y = 0; y < thr.vidc_ysize; y++) {
+			uint32_t *vidp = video_image_scanline(y);
+
 			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 				drawit = 1;
 				yh = y + 8;
@@ -522,7 +510,6 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 4) {
@@ -548,9 +535,6 @@ vidcthread(void)
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
-					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = video_image_scanline(y);
-					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 						drawit = 1;
@@ -567,6 +551,8 @@ vidcthread(void)
 		break;
 	case 2: /* 4 bpp on 32 bpp */
 		for (y = 0; y < thr.vidc_ysize; y++) {
+			uint32_t *vidp = video_image_scanline(y);
+
 			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 				drawit = 1;
 				yh = y + 8;
@@ -575,7 +561,6 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 32) {
@@ -610,9 +595,6 @@ vidcthread(void)
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
-					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = video_image_scanline(y);
-					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 						drawit = 1;
@@ -629,6 +611,8 @@ vidcthread(void)
 		break;
 	case 3: /* 8 bpp on 32 bpp */
 		for (y = 0; y < thr.vidc_ysize; y++) {
+			uint32_t *vidp = video_image_scanline(y);
+
 			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 				drawit = 1;
 				yh = y + 8;
@@ -637,7 +621,6 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 16) {
@@ -664,9 +647,6 @@ vidcthread(void)
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
-					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = video_image_scanline(y);
-					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 						drawit = 1;
@@ -683,6 +663,8 @@ vidcthread(void)
 		break;
 	case 4: /* 16 bpp on 32 bpp */
 		for (y = 0; y < thr.vidc_ysize; y++) {
+			uint32_t *vidp = video_image_scanline(y);
+
 			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 				drawit = 1;
 				yh = y + 8;
@@ -691,7 +673,6 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 8) {
@@ -722,9 +703,6 @@ vidcthread(void)
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
-					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = video_image_scanline(y);
-					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 						drawit = 1;
@@ -741,6 +719,8 @@ vidcthread(void)
 		break;
 	case 6: /* 32 bpp on 32 bpp */
 		for (y = 0; y < thr.vidc_ysize; y++) {
+			uint32_t *vidp = video_image_scanline(y);
+
 			if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 				drawit = 1;
 				yh = y + 8;
@@ -749,7 +729,6 @@ vidcthread(void)
 				}
 			}
 			if (drawit) {
-				vidp = video_image_scanline(y);
 				yh = y + 1;
 			}
 			for (x = 0; x < thr.vidc_xsize; x += 4) {
@@ -770,9 +749,6 @@ vidcthread(void)
 					addr = vidstart;
 				}
 				if ((addr & 0xfff) == 0) {
-					if (!drawit && thr.dirtybuffer[addr >> 12]) {
-						vidp = video_image_scanline(y);
-					}
 					drawit = thr.dirtybuffer[addr >> 12];
 					if (y < (oldcursorheight + oldcursory) && (y >= (oldcursory - 2))) {
 						drawit = 1;
@@ -810,7 +786,8 @@ vidcthread(void)
 				break;
 			}
 			if ((y + thr.cursory) >= 0) {
-				vidp = video_image_scanline(y + thr.cursory);
+				uint32_t *vidp = video_image_scanline(y + thr.cursory);
+
 				for (x = 0; x < 32; x += 4) {
 #ifdef _RPCEMU_BIG_ENDIAN
 					addr ^= 3;
@@ -853,18 +830,13 @@ vidcthread(void)
 
 	/* Clean the dirtybuffer now we have updated eveything in it */
 	memset(thr.dirtybuffer, 0, 512 * 4);
-	thr.needvsync = 1;
 
-	if (yl == -1 && yh == -1) {
+	if (yl == -1 || yh == -1) {
 		return;
 	}
 
 	if (yh > thr.vidc_ysize) {
 		yh = thr.vidc_ysize;
-	}
-
-	if (yl == -1) {
-		yl = 0;
 	}
 
 	if (yl >= thr.vidc_ysize) {

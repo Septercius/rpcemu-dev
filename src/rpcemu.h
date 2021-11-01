@@ -36,7 +36,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 /* Version number of RPCEmu */
-#define VERSION "0.9.3"
+#define VERSION "0.9.4"
 
 /* URLs used for the help menu weblinks */
 #define URL_MANUAL  "http://www.marutan.net/rpcemu/manual/"
@@ -80,11 +80,6 @@ extern "C" {
   for Linux port, however use mouse capturing if possible - mousehack has some
   bugs*/
 #define mousehack	(config.mousehackon)
-
-/*This enables abort checking after every LDR/STR/LDM/STM instruction in the
-  recompiler. Disabling this makes the recompiler check after every block
-  instead - this doesn't appear to break RISC OS, but you never know...*/
-#define ABORTCHECKING
 
 /** The type of networking configured */
 typedef enum {
@@ -166,8 +161,27 @@ typedef struct {
 
 extern Machine machine; /**< The details of the current model being emulated */
 
+typedef enum {
+	PORT_FORWARD_NONE = 0,		///< No valid rule stored
+	PORT_FORWARD_TCP  = 1,		///< A TCP rule
+	PORT_FORWARD_UDP  = 2,		///< A UDP rule
+	// All other values reserved
+} PortForwardType;
+
+typedef struct {
+	PortForwardType	type;		///< Which type of rule to use, or NONE for no rule
+	uint16_t	emu_port;	///< Port to connect to on the emulated machine
+	uint16_t	host_port;	///< Port to connect to on the host machine
+} PortForwardRule;
+
+#define MAX_PORT_FORWARDS 32
+
+extern PortForwardRule port_forward_rules[MAX_PORT_FORWARDS]; ///< Port forward rules accross the NAT
+
+extern void rpcemu_nat_forward_add(PortForwardRule rule);
+extern void rpcemu_nat_forward_remove(PortForwardRule rule);
+
 extern uint32_t inscount;
-extern int cyccount;
 
 #ifdef __APPLE__
 extern int rpcemu_set_datadir(const char *path);
@@ -184,8 +198,10 @@ typedef struct {
 	uint64_t	free;		/**< Free space on disk */
 } disk_info;
 
-extern void fatal(const char *format, ...) __attribute__((noreturn));
-extern void error(const char *format, ...);
+extern void fatal(const char *format, ...)
+	__attribute__((format(printf, 1, 2))) __attribute__((noreturn));
+extern void error(const char *format, ...)
+	__attribute__((format(printf, 1, 2)));
 
 extern int path_disk_info(const char *path, disk_info *d);
 
@@ -207,7 +223,8 @@ extern void rpcemu_idle(void);
 extern void endrpcemu(void);
 extern void resetrpc(void);
 extern void rpcemu_floppy_load(int drive, const char *filename);
-extern void rpclog(const char *format, ...);
+extern void rpclog(const char *format, ...)
+	__attribute__((format(printf, 1, 2)));
 extern void rpcemu_model_changed(Model model);
 extern const char *rpcemu_file_get_extension(const char *filename);
 extern int rpcemu_config_is_reset_required(const Config *new_config, Model new_model);
@@ -217,6 +234,7 @@ extern void rpcemu_config_apply_new_settings(Config *new_config, Model new_model
 extern void rpcemu_video_update(const uint32_t *buffer, int xsize, int ysize, int yl, int yh, int double_size, int host_xsize, int host_ysize);
 extern void rpcemu_move_host_mouse(uint16_t x, uint16_t y);
 extern void rpcemu_idle_process_events(void);
+extern void rpcemu_send_nat_rule_to_gui(PortForwardRule rule);
 
 extern int drawscre;
 extern int quited;
@@ -251,12 +269,14 @@ extern Perf perf;
     UNIMPLEMENTEDFL(__FILE__, __LINE__, (section), (format), ## args)
 
   void UNIMPLEMENTEDFL(const char *file, unsigned line,
-                       const char *section, const char *format, ...);
+                       const char *section, const char *format, ...)
+	__attribute__((format(printf, 4, 5)));
 #else
   /* This function has no corresponding body, the compiler
      is clever enough to use it to swallow the arguments to
      debugging calls */
-  void unimplemented_null(const char *section, const char *format, ...);
+  void unimplemented_null(const char *section, const char *format, ...)
+	__attribute__((format(printf, 2, 3)));
 
   #define UNIMPLEMENTED 1?(void)0:(void)unimplemented_null
 

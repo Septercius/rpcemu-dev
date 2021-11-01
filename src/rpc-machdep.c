@@ -35,7 +35,7 @@ int rpcemu_set_datadir(const char *path)
 {
   int len = strlen(path);
   if (len == 0) return 0;
-  
+
   if (path[len - 1] != '/')
   {
     snprintf(datadir, 512, "%s/", path);
@@ -44,14 +44,14 @@ int rpcemu_set_datadir(const char *path)
   {
     strncpy(datadir, path, 512);
   }
-  
+
   DIR *ptr = opendir(datadir);
   if (ptr)
   {
     closedir(ptr);
     return 1;
   }
-  
+
   return 0;
 }
 

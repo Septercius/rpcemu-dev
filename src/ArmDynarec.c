@@ -18,8 +18,6 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "rpcemu.h"
-
 int blockend;
 
 /*Preliminary FPA emulation. This works to an extent - !Draw works with it, !SICK
@@ -40,14 +38,9 @@ int blockend;
 #endif
 
 #include "rpcemu.h"
-#include "hostfs.h"
-#include "keyboard.h"
-#include "mem.h"
-#include "iomd.h"
-#include "ide.h"
 #include "arm.h"
 #include "cp15.h"
-#include "fdc.h"
+#include "mem.h"
 
 #if defined __amd64__
 #	include "codegen_amd64.h"
@@ -57,22 +50,15 @@ int blockend;
 #	error "Fatal error : no recompiler available for this architecture"
 #endif
 
-extern void removeblock(void); /* in codegen_*.c */
-	
 ARMState arm;
 
-static int fdci=0;
-static int cycles;
-int prefabort;
 uint32_t inscount;
-uint32_t armirq = 0;
 int cpsr;
 uint32_t *pcpsr;
 
 uint8_t flaglookup[16][16];
 
 uint32_t *usrregs[16];
-int databort;
 int prog32;
 
 static int unpredictable_count = 1000; ///< Limit logging of unpredictable instructions
@@ -275,11 +261,15 @@ arm_init(void)
 	}
 }
 
+/**
+ * Reset the ARM core to initial state. The CPU model must be selected at this
+ * point.
+ *
+ * @param cpu_model CPU model to emulate
+ */
 void
-resetarm(CPUModel cpu_model)
+arm_reset(CPUModel cpu_model)
 {
-//        atexit(dumpregs);
-
 	memset(&arm, 0, sizeof(arm));
 
         arm.r15_mask = 0x3fffffc;
@@ -303,31 +293,28 @@ resetarm(CPUModel cpu_model)
 		arm.stm_writeback_at_end = 0;
 		arm.arch_v4 = 0;
 	}
-
-	cycles = 0;
 }
 
-void dumpregs(void)
+void
+arm_dump(void)
 {
-        char s[1024];
+	char s[1024];
 
-        sprintf(s, "R 0=%08X R 4=%08X R 8=%08X R12=%08X\n"
-                   "R 1=%08X R 5=%08X R 9=%08X R13=%08X\n"
-                   "R 2=%08X R 6=%08X R10=%08X R14=%08X\n"
-                   "R 3=%08X R 7=%08X R11=%08X R15=%08X\n"
-                   "%s\n",
-                   arm.reg[0], arm.reg[4], arm.reg[8], arm.reg[12],
-                   arm.reg[1], arm.reg[5], arm.reg[9], arm.reg[13],
-                   arm.reg[2], arm.reg[6], arm.reg[10], arm.reg[14],
-                   arm.reg[3], arm.reg[7], arm.reg[11], arm.reg[15],
-                   mmu ? "MMU enabled" : "MMU disabled");
-        rpclog("%s",s);
-        printf("%s",s);
-
-        memmode=1;
+	sprintf(s, "r0 = %08x    r4 = %08x    r8  = %08x    r12 = %08x\n"
+	           "r1 = %08x    r5 = %08x    r9  = %08x    r13 = %08x\n"
+	           "r2 = %08x    r6 = %08x    r10 = %08x    r14 = %08x\n"
+	           "r3 = %08x    r7 = %08x    r11 = %08x    r15 = %08x\n"
+	           "pc = %08x\n"
+	           "%s\n",
+	           arm.reg[0], arm.reg[4], arm.reg[8], arm.reg[12],
+	           arm.reg[1], arm.reg[5], arm.reg[9], arm.reg[13],
+	           arm.reg[2], arm.reg[6], arm.reg[10], arm.reg[14],
+	           arm.reg[3], arm.reg[7], arm.reg[11], arm.reg[15],
+	           PC,
+	           mmu ? "MMU enabled" : "MMU disabled");
+	rpclog("%s", s);
+	printf("%s", s);
 }
-
-#define dumpregs()
 
 static uint32_t
 shift3(uint32_t opcode)
@@ -430,10 +417,10 @@ shift3(uint32_t opcode)
 			return temp;
 		}
 		shiftamount &= 0x1f;
-		if (((temp >> shiftamount) | (temp << (32 - shiftamount))) & 0x80000000) {
+		if (rotate_right32(temp, shiftamount) & 0x80000000) {
 			arm.reg[cpsr] |= CFLAG;
 		}
-		return (temp >> shiftamount) | (temp << (32 - shiftamount));
+		return rotate_right32(temp, shiftamount);
 	}
 }
 
@@ -475,7 +462,7 @@ shift5(uint32_t opcode, uint32_t shiftmode, uint32_t shiftamount, uint32_t rm)
 			return (CFSET << 31) | (rm >> 1);
 		}
 		shiftamount &= 0x1f;
-		return (rm >> shiftamount) | (rm << (32 - shiftamount));
+		return rotate_right32(rm, shiftamount);
 	}
 }
 
@@ -504,11 +491,9 @@ shift4(uint32_t opcode)
 	case 0x40: /* ASR */
 		return (uint32_t) ((int32_t) rm >> shiftamount);
 	default: /* ROR */
-		return (rm >> shiftamount) | (rm << (32 - shiftamount));
+		return rotate_right32(rm, shiftamount);
 	}
 }
-
-#define undefined() exception(UNDEFINED,8,4)
 
 void
 exception(uint32_t mmode, uint32_t address, uint32_t diff)
@@ -591,9 +576,9 @@ set_memory_executable(void *ptr, size_t len)
 #if __APPLE__
     // More up-to-date versions of OS X require "mmap" to be called prior to "mprotect".
     // Certain versions also require the MAP_JIT flag as well.
-    // Try without first, and if that fails, add the flag in.    
+    // Try without first, and if that fails, add the flag in.
     mmap_flags = MAP_PRIVATE | MAP_ANON | MAP_FIXED;
-    
+
     addr = mmap(NULL, page_size, PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANON, -1, 0);
     if (addr == MAP_FAILED)
     {
@@ -603,9 +588,9 @@ set_memory_executable(void *ptr, size_t len)
     {
         munmap(addr, page_size);
     }
-    
+
     addr = mmap(start, len, PROT_READ | PROT_WRITE | PROT_EXEC, mmap_flags, -1, 0);
-    
+
     if (addr == MAP_FAILED)
     {
         perror("mmap");
@@ -652,63 +637,71 @@ set_memory_executable(void *ptr, size_t len)
 
 #include "ArmDynarecOps.h"
 
-static const unsigned char validforskip[64]=
-{
-        1,        1,        1,        1,        1,       1,        1,       1,
-        1,        1,        1,        1,        1,       1,        1,       1,
-        0,        0,        0,        0,        0,       0,        0,       0,
-        1,        1,        0,        0,        1,       1,        1,       1,
-        
-        0,        0,        1,        0,        1,       0,        1,       0,
-        1,        0,        1,        0,        1,       0,        1,       0,
-        0,        0,        0,        0,        0,       0,        0,       0,
-        1,        0,        1,        0,        1,       0,        1,       0
-};
+static const OpFn opcodes[256] = {
+	opANDreg,  opANDregS, opEORreg,  opEORregS, opSUBreg,  opSUBregS, opRSBreg,  opRSBregS, // 00
+	opADDreg,  opADDregS, opADCreg,  opADCregS, opSBCreg,  opSBCregS, opRSCreg,  opRSCregS, // 08
+	opSWPword, opTSTreg,  opMSRcreg, opTEQreg,  opSWPbyte, opCMPreg,  opMSRsreg, opCMNreg,  // 10
+	opORRreg,  opORRregS, opMOVreg,  opMOVregS, opBICreg,  opBICregS, opMVNreg,  opMVNregS, // 18
 
-static const OpFn opcodes[256]=
-{
-	opANDreg, opANDregS,opEORreg, opEORregS,opSUBreg,opSUBregS,opRSBreg,opRSBregS,   //00
-	opADDreg, opADDregS,opADCreg, opADCregS,opSBCreg,opSBCregS,opRSCreg,opRSCregS,   //08
-	(OpFn)opSWPword,opTSTreg, opMSRcreg,opTEQreg, (OpFn)opSWPbyte,opCMPreg,opMSRsreg,opCMNreg,   //10
-	opORRreg, opORRregS,opMOVreg, opMOVregS,opBICreg,opBICregS,opMVNreg,opMVNregS,   //18
+	opANDimm,  opANDimmS, opEORimm,  opEORimmS, opSUBimm,  opSUBimmS, opRSBimm,  opRSBimmS, // 20
+	opADDimm,  opADDimmS, opADCimm,  opADCimmS, opSBCimm,  opSBCimmS, opRSCimm,  opRSCimmS, // 28
+	opUNALLOC, opTSTimm,  opMSRcimm, opTEQimm,  opUNALLOC, opCMPimm,  opMSRsimm, opCMNimm,  // 30
+	opORRimm,  opORRimmS, opMOVimm,  opMOVimmS, opBICimm,  opBICimmS, opMVNimm,  opMVNimmS, // 38
 
-	opANDimm, opANDimmS,opEORimm, opEORimmS,opSUBimm, opSUBimmS,opRSBimm, opRSBimmS, //20
-	opADDimm, opADDimmS,opADCimm, opADCimmS,opSBCimm, opSBCimmS,opRSCimm, opRSCimmS, //28
-	opUNALLOC,opTSTimm, opMSRcimm,opTEQimm, opUNALLOC,opCMPimm, opMSRsimm,opCMNimm,  //30
-	opORRimm, opORRimmS,opMOVimm, opMOVimmS,opBICimm, opBICimmS,opMVNimm, opMVNimmS, //38
+	opSTR,    opLDR,    opSTRT,   opLDRT,   opSTRB,   opLDRB,   opSTRBT,  opLDRBT,   // 40
+	opSTR,    opLDR,    opSTRT,   opLDRT,   opSTRB,   opLDRB,   opSTRBT,  opLDRBT,   // 48
+	opSTR,    opLDR,    opSTR,    opLDR,    opSTRB,   opLDRB,   opSTRB,   opLDRB,    // 50
+	opSTR,    opLDR,    opSTR,    opLDR,    opSTRB,   opLDRB,   opSTRB,   opLDRB,    // 58
 
-	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRT,   (OpFn)opLDRT,   (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRBT,  (OpFn)opLDRBT,   //40
-	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRT,   (OpFn)opLDRT,   (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRBT,  (OpFn)opLDRBT,   //48
-	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRB,   (OpFn)opLDRB,    //50
-	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRB,   (OpFn)opLDRB,    //58
+	opSTR,    opLDR,    opSTRT,   opLDRT,   opSTRB,   opLDRB,   opSTRBT,  opLDRBT,   // 60
+	opSTR,    opLDR,    opSTRT,   opLDRT,   opSTRB,   opLDRB,   opSTRBT,  opLDRBT,   // 68
+	opSTR,    opLDR,    opSTR,    opLDR,    opSTRB,   opLDRB,   opSTRB,   opLDRB,    // 70
+	opSTR,    opLDR,    opSTR,    opLDR,    opSTRB,   opLDRB,   opSTRB,   opLDRB,    // 78
 
-	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRT,   (OpFn)opLDRT,   (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRBT,  (OpFn)opLDRBT,   //60
-	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRT,   (OpFn)opLDRT,   (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRBT,  (OpFn)opLDRBT,   //68
-	(OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRB,   (OpFn)opLDRB,    //70
-        (OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTR,    (OpFn)opLDR,    (OpFn)opSTRB,   (OpFn)opLDRB,   (OpFn)opSTRB,   (OpFn)opLDRB,    //78
+	opSTMD,   opLDMD,   opSTMD,   opLDMD,   opSTMDS,  opLDMDS,  opSTMDS,  opLDMDS,   // 80
+	opSTMI,   opLDMI,   opSTMI,   opLDMI,   opSTMIS,  opLDMIS,  opSTMIS,  opLDMIS,   // 88
+	opSTMD,   opLDMD,   opSTMD,   opLDMD,   opSTMDS,  opLDMDS,  opSTMDS,  opLDMDS,   // 90
+	opSTMI,   opLDMI,   opSTMI,   opLDMI,   opSTMIS,  opLDMIS,  opSTMIS,  opLDMIS,   // 98
 
-	(OpFn)opSTMD,   (OpFn)opLDMD,   (OpFn)opSTMD,   (OpFn)opLDMD,   (OpFn)opSTMDS,  (OpFn)opLDMDS,  (OpFn)opSTMDS,  (OpFn)opLDMDS,   //80
-	(OpFn)opSTMI,   (OpFn)opLDMI,   (OpFn)opSTMI,   (OpFn)opLDMI,   (OpFn)opSTMIS,  (OpFn)opLDMIS,  (OpFn)opSTMIS,  (OpFn)opLDMIS,   //88
-	(OpFn)opSTMD,   (OpFn)opLDMD,   (OpFn)opSTMD,   (OpFn)opLDMD,   (OpFn)opSTMDS,  (OpFn)opLDMDS,  (OpFn)opSTMDS,  (OpFn)opLDMDS,   //90
-	(OpFn)opSTMI,   (OpFn)opLDMI,   (OpFn)opSTMI,   (OpFn)opLDMI,   (OpFn)opSTMIS,  (OpFn)opLDMIS,  (OpFn)opSTMIS,  (OpFn)opLDMIS,   //98
+	opB,      opB,      opB,      opB,      opB,      opB,      opB,      opB,       // a0
+	opB,      opB,      opB,      opB,      opB,      opB,      opB,      opB,       // a8
+	opBL,     opBL,     opBL,     opBL,     opBL,     opBL,     opBL,     opBL,      // b0
+	opBL,     opBL,     opBL,     opBL,     opBL,     opBL,     opBL,     opBL,      // b8
 
-	opB,	  opB,	    opB,      opB,      opB,      opB,      opB,      opB,       //A0
-	opB,	  opB,	    opB,      opB,      opB,      opB,      opB,      opB,       //A8
-	opBL,	  opBL,	    opBL,     opBL,     opBL,     opBL,     opBL,     opBL,      //B0
-	opBL,	  opBL,	    opBL,     opBL,     opBL,     opBL,     opBL,     opBL,      //B8
+	opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,   // c0
+	opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,   // c8
+	opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,   // d0
+	opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,   // d8
 
-	opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,   //C0
-	opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,   //C8
-	opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,   //D0
-	opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,  opcopro,   //D8
-
-	opMCR,    opMRC,    opMCR,    opMRC,    opMCR,    opMRC,    opMCR,    opMRC,     //E0
-	opMCR,    opMRC,    opMCR,    opMRC,    opMCR,    opMRC,    opMCR,    opMRC,     //E8
-	opSWI,	  opSWI,    opSWI,    opSWI,	opSWI,	  opSWI,    opSWI,    opSWI,     //F0
-	opSWI,	  opSWI,    opSWI,    opSWI,	opSWI,	  opSWI,    opSWI,    opSWI      //F8
+	opMCR,    opMRC,    opMCR,    opMRC,    opMCR,    opMRC,    opMCR,    opMRC,     // e0
+	opMCR,    opMRC,    opMCR,    opMRC,    opMCR,    opMRC,    opMCR,    opMRC,     // e8
+	opSWI,    opSWI,    opSWI,    opSWI,    opSWI,    opSWI,    opSWI,    opSWI,     // f0
+	opSWI,    opSWI,    opSWI,    opSWI,    opSWI,    opSWI,    opSWI,    opSWI      // f8
 };
 
 int linecyc=0;
+
+static inline int
+arm_opcode_needs_pc(uint32_t opcode)
+{
+	// Is this a load, store, branch, co-pro or SWI?
+	if (opcode & 0xc000000) {
+		return 1;
+	}
+	// Is this a swap, status register transfer, or unallocated instruction?
+	if ((opcode & 0xd900000) == 0x1000000) {
+		return 1;
+	}
+	// Is this a data-processing operation that uses PC?
+	if (RN == 15 || RD == 15 || ((opcode & 0x2000000) == 0 && (RM == 15))) {
+		return 1;
+	}
+	// Is this a load/store extension?
+	if (arm.arch_v4 && (((opcode & 0xe0000f0) == 0xb0) || ((opcode & 0xe1000d0) == 0x1000d0))) {
+		return 1;
+	}
+	return 0;
+}
 
 static inline int
 arm_opcode_may_abort(uint32_t opcode)
@@ -744,16 +737,16 @@ arm_opcode_fn(uint32_t opcode)
 		if ((opcode & 0xe0000f0) == 0xb0) {
 			// LDRH/STRH
 			if (opcode & 0x100000) {
-				return (OpFn) opLDRH;
+				return opLDRH;
 			} else {
-				return (OpFn) opSTRH;
+				return opSTRH;
 			}
 		} else if ((opcode & 0xe1000d0) == 0x1000d0) {
 			// LDRSB/LDRSH
 			if ((opcode & 0xf0) == 0xd0) {
-				return (OpFn) opLDRSB;
+				return opLDRSB;
 			} else {
-				return (OpFn) opLDRSH;
+				return opLDRSH;
 			}
 		}
 	}
@@ -761,220 +754,151 @@ arm_opcode_fn(uint32_t opcode)
 	return opcodes[(opcode >> 20) & 0xff];
 }
 
-void
-execarm(int cycs)
+/**
+ * Execute several ARM instructions.
+ *
+ * @return A hint roughly proportional to the amount of instructions executed.
+ */
+int
+arm_exec(void)
 {
-	int hash;
-	void (*gen_func)(void);
-	uint32_t opcode;
-	uint32_t templ;
+	for (linecyc = 256; linecyc >= 0; linecyc--) {
+		if (!isblockvalid(PC)) {
+			// Interpret block
+			if ((PC >> 12) != pccache) {
+				pccache = PC >> 12;
+				pccache2 = getpccache(PC);
+				if (pccache2 == NULL) {
+					// Prefetch Abort
+					pccache = 0xffffffff;
+					exception(ABORT, 0x10, 4);
+					arm.reg[15] += 4;
+					continue;
+				}
+			}
+			blockend = 0;
+			do {
+				const uint32_t opcode = pccache2[PC >> 2];
 
-	cycles += cycs;
-	linecyc = 256;
-	while (cycles > 0) {
-		// cyccount+=200;
-		while (linecyc-- >= 0) {
-			armirq &= ~0xc0u;
-			if (!isblockvalid(PC)) {
-				/* Interpret block */
-				blockend = 0;
+				if ((opcode & 0x0e000000) == 0x0a000000) { blockend = 1; } /* Always end block on branches */
+				if ((opcode & 0x0c000000) == 0x0c000000) { blockend = 1; } /* And SWIs and copro stuff */
+				if (!(opcode & 0x0c000000) && (RD == 15)) { blockend = 1; } /* End if R15 can be modified */
+				if ((opcode & 0x0e108000) == 0x08108000) { blockend = 1; } /* End if R15 reloaded from LDM */
+				if ((opcode & 0x0c100000) == 0x04100000 && (RD == 15)) { blockend = 1; } /* End if R15 reloaded from LDR */
+				if (flaglookup[opcode >> 28][(*pcpsr) >> 28]) {
+					OpFn fn = arm_opcode_fn(opcode);
+					fn(opcode);
+				}
+				// if ((opcode & 0x0e000000) == 0x0a000000) blockend = 1; /* Always end block on branches */
+				// if ((opcode & 0x0c000000) == 0x0c000000) blockend = 1; /* And SWIs and copro stuff */
+				arm.reg[15] += 4;
+				if ((PC & 0xffc) == 0) {
+					blockend = 1;
+				}
+				inscount++;
+			} while (!blockend && !(arm.event & 0x40));
+		} else {
+			const uint32_t hash = HASH(PC);
+			/* if (pagedirty[PC>>9])
+			{
+				pagedirty[PC>>9]=0;
+				cacheclearpage(PC>>9);
+			}
+			else */ if (codeblockpc[hash] == PC) {
+				const uint32_t templ = codeblocknum[hash];
+				void (*gen_func)(void);
+
+				gen_func = (void *) (&rcodeblock[templ][BLOCKSTART]);
+				// gen_func=(void *)(&codeblock[blocks[templ]>>24][blocks[templ]&0xFFF][4]);
+				gen_func();
+				if (arm.event & 0x40) {
+					arm.reg[15] += 4;
+				}
+				if ((arm.reg[cpsr] & arm.mmask) != arm.mode) {
+					updatemode(arm.reg[cpsr] & arm.mmask);
+				}
+			} else {
+				uint32_t opcode;
+
 				if ((PC >> 12) != pccache) {
+					pccache = PC >> 12;
 					pccache2 = getpccache(PC);
 					if (pccache2 == NULL) {
+						// Prefetch Abort
 						pccache = 0xffffffff;
-						armirq |= 0x80;
-					} else {
-						opcode = pccache2[PC >> 2];
-						pccache = PC >> 12;
+						exception(ABORT, 0x10, 4);
+						arm.reg[15] += 4;
+						continue;
 					}
 				}
-				while (!blockend && !(armirq & 0xc0)) {
+				initcodeblock(PC);
+				blockend = 0;
+				do {
 					opcode = pccache2[PC >> 2];
-					if ((opcode & 0x0e000000) == 0x0a000000) { blockend = 1; } /* Always end block on branches */
-					if ((opcode & 0x0c000000) == 0x0c000000) { blockend = 1; } /* And SWIs and copro stuff */
-					if (!(opcode & 0x0c000000) && (RD == 15)) { blockend = 1; } /* End if R15 can be modified */
-					if ((opcode & 0x0e108000) == 0x08108000) { blockend = 1; } /* End if R15 reloaded from LDM */
-					if ((opcode & 0x0c100000) == 0x04100000 && (RD == 15)) { blockend = 1; } /* End if R15 reloaded from LDR */
-					if (flaglookup[opcode >> 28][(*pcpsr) >> 28]) {// && !(armirq&0x80))
-						OpFn fn = arm_opcode_fn(opcode);
-						fn(opcode);
+					if ((opcode >> 28) == 0xf) {
+						// NV condition code
+						generatepcinc();
+					} else {
+						if (arm_opcode_needs_pc(opcode)) {
+							generateupdatepc();
+						}
+						generatepcinc();
+						if ((opcode & 0x0e000000) == 0x0a000000) {
+							generateupdateinscount();
+						}
+						if ((opcode >> 28) != 0xe) {
+							generateflagtestandbranch(opcode, pcpsr);//,flaglookup);
+						} else {
+							lastflagchange = 0;
+						}
+						generatecall(arm_opcode_fn(opcode), opcode, pcpsr);
+						if (arm_opcode_may_abort(opcode)) {
+							generateirqtest();
+						}
+						// if ((opcode & 0x0e000000) == 0x0a000000) blockend = 1; /* Always end block on branches */
+						if ((opcode & 0x0c000000) == 0x0c000000) blockend = 1; /* And SWIs and copro stuff */
+						if (!(opcode & 0x0c000000) && (RD == 15)) blockend = 1; /* End if R15 can be modified */
+						if ((opcode & 0x0e108000) == 0x08108000) blockend = 1; /* End if R15 reloaded from LDM */
+						if ((opcode & 0x0c100000) == 0x04100000 && (RD == 15)) blockend=1; /* End if R15 reloaded from LDR */
+						if (flaglookup[opcode >> 28][(*pcpsr) >> 28]) {
+							OpFn fn = arm_opcode_fn(opcode);
+							fn(opcode);
+						}
 					}
-					// if ((opcode & 0x0e000000) == 0x0a000000) blockend = 1; /* Always end block on branches */
-					// if ((opcode & 0x0c000000) == 0x0c000000) blockend = 1; /* And SWIs and copro stuff */
 					arm.reg[15] += 4;
 					if ((PC & 0xffc) == 0) {
 						blockend = 1;
 					}
-					// if (armirq) blockend=1;
-					inscount++;
-				}
-			} else {
-				hash = HASH(PC);
-				/* if (pagedirty[PC>>9])
-				{
-					pagedirty[PC>>9]=0;
-					cacheclearpage(PC>>9);
-				}
-				else */ if (codeblockpc[hash] == PC) {
-					templ = codeblocknum[hash];
-					gen_func = (void *) (&rcodeblock[templ][BLOCKSTART]);
-					// gen_func=(void *)(&codeblock[blocks[templ]>>24][blocks[templ]&0xFFF][4]);
-					gen_func();
-					if (armirq & 0x40) {
-						arm.reg[15] += 4;
-					}
-					if ((arm.reg[cpsr] & arm.mmask) != arm.mode) {
-						updatemode(arm.reg[cpsr] & arm.mmask);
-					}
-				} else {
-					blockend = 0;
-					/* Initialise 'opcode' to invalid value */
-					opcode = 0xffffffff;
-					if ((PC >> 12) != pccache) {
-						pccache2 = getpccache(PC);
-						if (pccache2 == NULL) {
-							pccache = 0xffffffff;
-							armirq |= 0x80;
-						} else {
-							opcode = pccache2[PC >> 2];
-							pccache = PC >> 12;
-						}
-					}
-					if (!(armirq & 0x80)) {
-						initcodeblock(PC);
-						//printf("New block %08X %04X %08X\n",PC,hash,codeblockpc[hash]);
-						//codeblockpc[hash]=PC;
-					}
-					while (!blockend && !(armirq & 0xc0)) {
-						opcode = pccache2[PC >> 2];
-						if ((opcode >> 28) == 0xf) {
-							/* NV */
-							generatepcinc();
-						} else {
-#ifdef ABORTCHECKING
-							generateupdatepc();
-#else
-							if ((opcode & 0x0e000000) == 0x00000000/* && (RN==15 || RD==15 || RM==15 || !validforskip[(opcode>>20)&63])*/) generateupdatepc();
-							if ((opcode & 0x0e000000) == 0x02000000/* && (RN==15 || RD==15 ||           !validforskip[(opcode>>20)&63])*/) generateupdatepc();
-							if ((opcode & 0x0c000000) == 0x04000000 && (RN == 15 || RD == 15 || RM == 15)) generateupdatepc();
-							if ((opcode & 0x0e000000) == 0x08000000 && ((opcode & 0x8000) || (RN == 15))) generateupdatepc();
-							if ((opcode & 0x0f000000) >= 0x0a000000) generateupdatepc();
-#endif
-							// if (((opcode + 0x06000000) & 0x0f000000) >= 0x0a000000) generateupdatepc();
-							// generateupdatepc();
-							generatepcinc();
-							if ((opcode & 0x0e000000) == 0x0a000000) {
-								generateupdateinscount();
-							}
-							if ((opcode >> 28) != 0xe) {
-								generateflagtestandbranch(opcode, pcpsr);//,flaglookup);
-							} else {
-								lastflagchange = 0;
-							}
-							generatecall(arm_opcode_fn(opcode), opcode, pcpsr);
-#ifdef ABORTCHECKING
-							if (arm_opcode_may_abort(opcode)) {
-								generateirqtest();
-							}
-#endif
-							// if ((opcode & 0x0e000000) == 0x0a000000) blockend = 1; /* Always end block on branches */
-							if ((opcode & 0x0c000000) == 0x0c000000) blockend = 1; /* And SWIs and copro stuff */
-							if (!(opcode & 0x0c000000) && (RD == 15)) blockend = 1; /* End if R15 can be modified */
-							if ((opcode & 0x0e108000) == 0x08108000) blockend = 1; /* End if R15 reloaded from LDM */
-							if ((opcode & 0x0c100000) == 0x04100000 && (RD == 15)) blockend=1; /* End if R15 reloaded from LDR */
-							if (flaglookup[opcode >> 28][(*pcpsr) >> 28]) { // && !(armirq&0x80))
-								OpFn fn = arm_opcode_fn(opcode);
-								fn(opcode);
-							}
-						}
-						arm.reg[15] += 4;
-						if ((PC & 0xffc) == 0) {
-							blockend = 1;
-						}
-						// blockend = 1;
-						// inscount++;
-					}
-					if (!(armirq & 0x80)) {
-						endblock(opcode);
-					} else {
-						removeblock();
-					}
-				}
+				} while (!blockend && !(arm.event & 0x40));
+				endblock(opcode);
+			}
+		}
+
+		if (arm.event != 0) {
+			if (!ARM_MODE_32(arm.mode)) {
+				arm.reg[16] &= ~0xc0u;
+				arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
 			}
 
-			if (/*databort|*/armirq & 0xc3)//|prefabort)
-			{
-				if (!ARM_MODE_32(arm.mode)) {
-					arm.reg[16] &= ~0xc0;
-					arm.reg[16] |= ((arm.reg[15] & 0xc000000) >> 20);
-				}
-
-				if (armirq & 0xc0) {
-					if (armirq & 0x80) { //prefabort)
-						/* Prefetch Abort */
-						arm.reg[15] -= 4;
-						exception(ABORT, 0x10, 4);
-						arm.reg[15] += 4;
-						armirq &= ~0xc0u;
-					} else if (armirq & 0x40) { //databort==1)
-						/* Data Abort */
-						arm.reg[15] -= 4;
-						exception(ABORT, 0x14, 0);
-						arm.reg[15] += 4;
-						armirq &= ~0xc0u;
-					}
-				} else if ((armirq & 2) && !(arm.reg[16] & 0x40)) {
-					/* FIQ */
-					arm.reg[15] -= 4;
-					exception(FIQ, 0x20, 0);
-					arm.reg[15] += 4;
-				} else if ((armirq & 1) && !(arm.reg[16] & 0x80)) {
-					/* IRQ */
-					arm.reg[15] -= 4;
-					exception(IRQ, 0x1c, 0);
-					arm.reg[15] += 4;
-				}
-			}
-			// armirq=(armirq&0xCC)|((armirq>>2)&3);
-		}
-		linecyc += 256;
-
-		if (kcallback) {
-			kcallback--;
-			if (kcallback <= 0) {
-				kcallback = 0;
-				keyboard_callback_rpcemu();
+			if (arm.event & 0x40) {
+				// Data Abort
+				arm.reg[15] -= 4;
+				exception(ABORT, 0x14, 0);
+				arm.reg[15] += 4;
+				arm.event &= ~0x40u;
+			} else if ((arm.event & 2) && !(arm.reg[16] & 0x40)) {
+				// FIQ
+				arm.reg[15] -= 4;
+				exception(FIQ, 0x20, 0);
+				arm.reg[15] += 4;
+			} else if ((arm.event & 1) && !(arm.reg[16] & 0x80)) {
+				// IRQ
+				arm.reg[15] -= 4;
+				exception(IRQ, 0x1c, 0);
+				arm.reg[15] += 4;
 			}
 		}
-		if (mcallback) {
-			mcallback -= 10;
-			if (mcallback <= 0) {
-				mcallback = 0;
-				mouse_ps2_callback();
-			}
-		}
-		if (fdccallback) {
-			fdccallback -= 100;
-			if (fdccallback <= 0) {
-				fdccallback = 0;
-				fdc_callback();
-			}
-		}
-		if (idecallback) {
-			idecallback -= 10;
-			if (idecallback <= 0) {
-				idecallback = 0;
-				callbackide();
-			}
-		}
-		if (motoron) {
-			fdci--;
-			if (fdci <= 0) {
-				fdci = 20000;
-				iomd.irqa.status |= IOMD_IRQA_FLOPPY_INDEX;
-				updateirqs();
-			}
-		}
-		cycles -= 1000;
 	}
+
+	return 1000;
 }

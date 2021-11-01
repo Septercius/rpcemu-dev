@@ -34,4 +34,14 @@ extern void fdc_write(uint32_t addr, uint32_t val);
 extern int fdccallback;
 extern int motoron;
 
+extern void fdc_data(uint8_t dat);
+extern void fdc_finishread(void);
+extern void fdc_notfound(void);
+extern void fdc_datacrcerror(void);
+extern void fdc_headercrcerror(void);
+extern void fdc_writeprotect(void);
+extern int fdc_getdata(int last);
+extern void fdc_sectorid(uint8_t track, uint8_t side, uint8_t sector, uint8_t size);
+extern void fdc_indexpulse(void);
+
 #endif /* FDC_H */
