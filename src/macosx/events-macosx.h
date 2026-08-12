@@ -33,7 +33,7 @@ typedef struct
 {
     bool processed;
     int eventType;
-    uint modifierMask;
+    unsigned long modifierMask;
 } NativeEvent;
     
 extern NativeEvent* handle_native_event(void *message);

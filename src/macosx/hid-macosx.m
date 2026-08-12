@@ -65,10 +65,16 @@ void processHIDCallback(void *context, IOReturn result, void *sender, IOHIDValue
     UNUSED(result);
     UNUSED(sender);
 
-    if (context != hidManager) return;
+    if (context != hidManager) 
+    {
+        return;
+    }
 
     IOHIDElementRef element = IOHIDValueGetElement(value);
-    if (IOHIDElementGetUsagePage(element) != kHIDPage_KeyboardOrKeypad || IOHIDElementGetUsage(element) != kHIDUsage_KeyboardCapsLock) return;
+    if (IOHIDElementGetUsagePage(element) != kHIDPage_KeyboardOrKeypad || IOHIDElementGetUsage(element) != kHIDUsage_KeyboardCapsLock) 
+    {
+        return;
+    }
 
     CFIndex pressed = IOHIDValueGetIntegerValue(value);
 
@@ -93,14 +99,20 @@ const char *getCurrentKeyboardLayoutName()
     NSString *layoutName = [inputSource substringFromIndex: lastIndex + 1];
     lastIndex = [layoutName rangeOfString:@" - "].location;
     
-    if (lastIndex != NSNotFound) layoutName = [layoutName substringToIndex: lastIndex];
+    if (lastIndex != NSNotFound) 
+    {
+        layoutName = [layoutName substringToIndex: lastIndex];
+    }
    
     return [layoutName UTF8String];
 }
 
 void terminate_hid_manager(void)
 {
-    if (!hidManager) return;
+    if (!hidManager) 
+    {
+        return;
+    }
     
     IOHIDManagerUnscheduleFromRunLoop(hidManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
     IOHIDManagerRegisterInputValueCallback(hidManager, NULL, NULL);
@@ -117,7 +129,10 @@ void init_hid_manager(void)
     keyboard_configure_layout(layoutName);
 
     hidManager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
-    if (!hidManager) return;
+    if (!hidManager) 
+    {
+        return;
+    }
 
     CFDictionaryRef keyboard = NULL, keypad = NULL;
     CFArrayRef matches = NULL;
@@ -152,6 +167,7 @@ void init_hid_manager(void)
     IOHIDManagerSetDeviceMatchingMultiple(hidManager, matches);
     IOHIDManagerRegisterInputValueCallback(hidManager, processHIDCallback, hidManager);
     IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
+    
     if (IOHIDManagerOpen(hidManager, kIOHIDOptionsTypeNone) != kIOReturnSuccess)
     {
         terminate_hid_manager();

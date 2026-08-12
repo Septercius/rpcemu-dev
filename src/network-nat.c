@@ -112,9 +112,7 @@ slirp_output(void *opaque, const uint8_t *pkt, int pkt_len)
 	memcpy(nat.buffer, pkt, pkt_len);
 	nat.buffer_len = pkt_len;
 
-	mem_write8(nat.irq_status, 1);
-	network_poduleinfo->irq = 1;
-	rethinkpoduleints();
+	network_irq_raise();
 }
 
 /**
@@ -218,7 +216,7 @@ network_nat_init(void)
 void
 network_nat_reset(void)
 {
-	nat.irq_status = 0;
+	network_irq_lower();
 	nat.buffer_len = 0;
 }
 
@@ -265,7 +263,7 @@ uint32_t
 network_nat_tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uint32_t frametype)
 {
 	uint8_t *buf = nat.buffer;
-	struct mbuf txb;
+	struct ro_mbuf_part txb;
 	uint32_t packet_length;
 
 	memcpytohost(buf, dest, 6);
@@ -282,8 +280,10 @@ network_nat_tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uin
 	*buf++ = (uint8_t) frametype;
 
 	packet_length = HEADERLEN;
+
+	// Copy the mbuf chain as the payload
 	while (mbufs != 0) {
-		memcpytohost(&txb, mbufs, sizeof(struct mbuf));
+		memcpytohost(&txb, mbufs, sizeof(txb));
 		packet_length += txb.m_len;
 		if (packet_length > sizeof(nat.buffer)) {
 			strcpyfromhost(errbuf, "RPCEmu: Packet too large to send");
@@ -305,24 +305,25 @@ network_nat_tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uin
 /**
  * Receive data from the network
  *
- * @param errbuf
- * @param mbuf
- * @param rxhdr
- * @param data_avail
+ * @param errbuf     Address of buffer to return error string
+ * @param mbuf       Address of mbuf to hold received payload
+ * @param rxhdr      Address of mbuf to hold received header
+ * @param data_avail Address of flag to return indication of data available
  *
- * @return
+ * @return errbuf on error, else zero
  */
 uint32_t
 network_nat_rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *data_avail)
 {
-	struct mbuf rxb;
+	struct ro_mbuf_part rxb;
 	struct rx_hdr hdr;
 	size_t packet_length;
 
 	*data_avail = 0;
 
 	if (nat.buffer_len == 0) {
-		return errbuf;
+		// No data
+		return 0;
 	}
 
 	memset(&hdr, 0, sizeof(hdr));
@@ -344,8 +345,7 @@ network_nat_rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *data_av
 		memcpytohost(&rxb, mbuf, sizeof(rxb));
 
 		if (packet_length > rxb.m_inilen) {
-			fprintf(stderr, "\tmbuff too small for received packet\n");
-			strcpyfromhost(errbuf, "RPCEmu: Mbuf too small for received packet");
+			// Mbuf too small for received packet
 			return errbuf;
 		}
 

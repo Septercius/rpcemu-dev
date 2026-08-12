@@ -33,26 +33,29 @@ static char datadir[512] = "";
 
 int rpcemu_set_datadir(const char *path)
 {
-  int len = strlen(path);
-  if (len == 0) return 0;
+    size_t len = strlen(path);
+    if (len == 0)
+    {
+        return 0;
+    }
 
-  if (path[len - 1] != '/')
-  {
-    snprintf(datadir, 512, "%s/", path);
-  }
-  else
-  {
-    strncpy(datadir, path, 512);
-  }
+    if (path[len - 1] != '/')
+    {
+            snprintf(datadir, 512, "%s/", path);
+    }
+    else
+    {
+        strncpy(datadir, path, 512);
+    }
 
-  DIR *ptr = opendir(datadir);
-  if (ptr)
-  {
-    closedir(ptr);
-    return 1;
-  }
-
-  return 0;
+    DIR *ptr = opendir(datadir);
+    if (ptr)
+    {
+        closedir(ptr);
+        return 1;
+    }
+    
+    return 0;
 }
 
 #else

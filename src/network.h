@@ -41,6 +41,9 @@ void network_init(void);
 void network_reset(void);
 
 /* Functions shared between each platform, in network.c */
+void network_irq_raise(void);
+void network_irq_lower(void);
+
 void memcpytohost(void *dest, uint32_t src, uint32_t len);
 void memcpyfromhost(uint32_t dest, const void *source, uint32_t len);
 void strcpyfromhost(uint32_t dest, const char *source);
@@ -60,24 +63,14 @@ void network_plt_setirqstatus(uint32_t address);
 extern podule *network_poduleinfo;
 extern unsigned char network_hwaddr[6];
 
-/* Structures to represent the RISC OS view of things */
-struct pkthdr {
-    uint32_t len;
-    uint32_t rcvif;
-};
-
-struct mbuf {
-    uint32_t m_next;
-    uint32_t m_list;
-    uint32_t m_off;
-    uint32_t m_len;
-    uint32_t m_inioff;
-    uint32_t m_inilen;
-    uint8_t m_type;
-    uint8_t m_sys1;
-    uint8_t m_sys2;
-    uint8_t m_flags;
-    struct pkthdr m_pkthdr;
+/// The subset of a RISC OS Mbuf that we're interested in
+struct ro_mbuf_part {
+	uint32_t	m_next;
+	uint32_t	m_list;
+	uint32_t	m_off;
+	uint32_t	m_len;
+	uint32_t	m_inioff;
+	uint32_t	m_inilen;
 };
 
 struct rx_hdr {

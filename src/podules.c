@@ -51,12 +51,12 @@ podules_reset(void)
 	/* Call any reset functions that an open podule may have to allow
 	   then to tidy open files etc */
 	for (c = 0; c < 8; c++) {
-		if (podules[c].reset) {
-                        podules[c].reset(&podules[c]);
-                }
+		if (podules[c].reset != NULL) {
+			podules[c].reset(&podules[c]);
+		}
 	}
 
-	/* Blank all 8 podules */
+	// Blank all 8 podules
 	memset(podules, 0, 8 * sizeof(podule));
 
 	freepodule = 0;
@@ -75,185 +75,244 @@ podules_reset(void)
  * @param timercallback
  * @param reset         Function pointer for the podule's reset function, called
  *                      at program startup and emulated machine reset
- * @param broken
  * @return Pointer to entry in the podules array, or NULL on failure
  */
 podule *
-addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
-              void (*writew)(podule *p, int easi, uint32_t addr, uint16_t val),
-              void (*writeb)(podule *p, int easi, uint32_t addr, uint8_t val),
-              uint32_t  (*readl)(podule *p, int easi, uint32_t addr),
-              uint16_t (*readw)(podule *p, int easi, uint32_t addr),
-              uint8_t  (*readb)(podule *p, int easi, uint32_t addr),
-              int (*timercallback)(podule *p),
-              void (*reset)(podule *p),
-              int broken)
+addpodule(void (*writel)(podule *p, PoduleIoType io_type, uint32_t addr, uint32_t val),
+          void (*writew)(podule *p, PoduleIoType io_type, uint32_t addr, uint16_t val),
+          void (*writeb)(podule *p, PoduleIoType io_type, uint32_t addr, uint8_t val),
+          uint32_t (*readl)(podule *p, PoduleIoType io_type, uint32_t addr),
+          uint16_t (*readw)(podule *p, PoduleIoType io_type, uint32_t addr),
+          uint8_t  (*readb)(podule *p, PoduleIoType io_type, uint32_t addr),
+          int (*timercallback)(podule *p),
+          void (*reset)(podule *p))
 {
-        if (freepodule==8) return NULL; /*All podules in use!*/
-        podules[freepodule].readl=readl;
-        podules[freepodule].readw=readw;
-        podules[freepodule].readb=readb;
-        podules[freepodule].writel=writel;
-        podules[freepodule].writew=writew;
-        podules[freepodule].writeb=writeb;
-        podules[freepodule].timercallback=timercallback;
-        podules[freepodule].reset=reset;
-        podules[freepodule].broken=broken;
-//        rpclog("Podule added at %i\n",freepodule);
-        freepodule++;
-        return &podules[freepodule-1];
+	if (freepodule == 8) {
+		return NULL; // All podules in use!
+	}
+
+	podules[freepodule].readl = readl;
+	podules[freepodule].readw = readw;
+	podules[freepodule].readb = readb;
+	podules[freepodule].writel = writel;
+	podules[freepodule].writew = writew;
+	podules[freepodule].writeb = writeb;
+	podules[freepodule].timercallback = timercallback;
+	podules[freepodule].reset = reset;
+
+	return &podules[freepodule++];
 }
 
 /**
  * Raise interrupts if any podules have requested them.
  */
-void
+static void
 rethinkpoduleints(void)
 {
-        int c;
-        iomd.irqb.status &= ~(IOMD_IRQB_PODULE | IOMD_IRQB_PODULE_FIQ_AS_IRQ);
-        iomd.fiq.status  &= ~IOMD_FIQ_PODULE;
-        for (c=0;c<8;c++)
-        {
-                if (podules[c].irq)
-                {
-//                        rpclog("Podule IRQ! %02X\n", iomd.irqb.mask);
-                        iomd.irqb.status |= IOMD_IRQB_PODULE;
-                }
-                if (podules[c].fiq)
-                {
-                        iomd.irqb.status |= IOMD_IRQB_PODULE_FIQ_AS_IRQ;
-                        iomd.fiq.status  |= IOMD_FIQ_PODULE;
-                }
-        }
-        updateirqs();
+	int c;
+
+	iomd.irqb.status &= ~(IOMD_IRQB_PODULE | IOMD_IRQB_PODULE_FIQ_AS_IRQ);
+	iomd.fiq.status  &= ~IOMD_FIQ_PODULE;
+
+	for (c = 0; c < 8; c++) {
+		if (podules[c].irq) {
+			iomd.irqb.status |= IOMD_IRQB_PODULE;
+		}
+		if (podules[c].fiq) {
+			iomd.irqb.status |= IOMD_IRQB_PODULE_FIQ_AS_IRQ;
+			iomd.fiq.status  |= IOMD_FIQ_PODULE;
+		}
+	}
+	updateirqs();
+}
+
+/**
+ * Raise FIQ for the specified podule.
+ *
+ * @param p Pointer to 'podule' struct for the specified Podule
+ */
+void
+podule_fiq_raise(podule *p)
+{
+	p->fiq = 1;
+	rethinkpoduleints();
+}
+
+/**
+ * Clear FIQ for the specified podule.
+ *
+ * @param p Pointer to 'podule' struct for the specified Podule
+ */
+void
+podule_fiq_lower(podule *p)
+{
+	p->fiq = 0;
+	rethinkpoduleints();
+}
+
+/**
+ * Raise IRQ for the specified podule.
+ *
+ * @param p Pointer to 'podule' struct for the specified Podule
+ */
+void
+podule_irq_raise(podule *p)
+{
+	p->irq = 1;
+	rethinkpoduleints();
+}
+
+/**
+ * Clear IRQ for the specified podule.
+ *
+ * @param p Pointer to 'podule' struct for the specified Podule
+ */
+void
+podule_irq_lower(podule *p)
+{
+	p->irq = 0;
+	rethinkpoduleints();
 }
 
 /**
  * Handle a 32-bit write to the podules memory map
  *
- * @param num   Podule number (0-7)
- * @param easi  Write to EASI space (true) or regular IO space (false)
- * @param addr  Address to write to
- * @param val   Value to write
+ * @param num     Podule number (0-7)
+ * @param io_type Write to IOC, MEMC or EASI space
+ * @param addr    Address to write to
+ * @param val     Value to write
  */
 void
-writepodulel(int num, int easi, uint32_t addr, uint32_t val)
+podules_write32(int num, PoduleIoType io_type, uint32_t addr, uint32_t val)
 {
-        int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
-        if (podules[num].writel)
-           podules[num].writel(&podules[num], easi,addr,val);
-        if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
+	const int oldirq = podules[num].irq;
+	const int oldfiq = podules[num].fiq;
+
+	if (podules[num].writel != NULL) {
+		podules[num].writel(&podules[num], io_type, addr, val);
+	}
+	if (podules[num].irq != oldirq || podules[num].fiq != oldfiq) {
+		rethinkpoduleints();
+	}
 }
 
 /**
  * Handle a 16-bit write to the podules memory map
  *
- * @param num   Podule number (0-7)
- * @param easi  Write to EASI space (true) or regular IO space (false)
- * @param addr  Address to write to
- * @param val   Value to write
+ * @param num     Podule number (0-7)
+ * @param io_type Write to IOC, MEMC or EASI space
+ * @param addr    Address to write to
+ * @param val     Value to write
  */
 void
-writepodulew(int num, int easi, uint32_t addr, uint32_t val)
+podules_write16(int num, PoduleIoType io_type, uint32_t addr, uint16_t val)
 {
-        int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
-        if (podules[num].writew)
-        {
-                if (podules[num].broken) podules[num].writel(&podules[num], easi,addr,val);
-                else                     podules[num].writew(&podules[num], easi,addr,val>>16);
-        }
-        if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
+	const int oldirq = podules[num].irq;
+	const int oldfiq = podules[num].fiq;
+
+	if (podules[num].writew != NULL) {
+		podules[num].writew(&podules[num], io_type, addr, val);
+	}
+	if (podules[num].irq != oldirq || podules[num].fiq != oldfiq) {
+		rethinkpoduleints();
+	}
 }
 
 /**
  * Handle an 8-bit write to the podules memory map
  *
- * @param num   Podule number (0-7)
- * @param easi  Write to EASI space (true) or regular IO space (false)
- * @param addr  Address to write to
- * @param val   Value to write
+ * @param num     Podule number (0-7)
+ * @param io_type Write to IOC, MEMC or EASI space
+ * @param addr    Address to write to
+ * @param val     Value to write
  */
 void
-writepoduleb(int num, int easi, uint32_t addr, uint8_t val)
+podules_write8(int num, PoduleIoType io_type, uint32_t addr, uint8_t val)
 {
-        int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
-        if (podules[num].writeb)
-           podules[num].writeb(&podules[num], easi,addr,val);
-        if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
+	const int oldirq = podules[num].irq;
+	const int oldfiq = podules[num].fiq;
+
+	if (podules[num].writeb != NULL) {
+		podules[num].writeb(&podules[num], io_type, addr, val);
+	}
+	if (podules[num].irq != oldirq || podules[num].fiq != oldfiq) {
+		rethinkpoduleints();
+	}
 }
 
 /**
  * Handle a 32-bit read from the podules memory map
  *
- * @param num   Podule number (0-7)
- * @param easi  Read from EASI space (true) or regular IO space (false)
- * @param addr  Address to read from
+ * @param num     Podule number (0-7)
+ * @param io_type Read from IOC, MEMC or EASI space
+ * @param addr    Address to read from
  * @return Value at memory address
  */
 uint32_t
-readpodulel(int num, int easi, uint32_t addr)
+podules_read32(int num, PoduleIoType io_type, uint32_t addr)
 {
-        int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
-        uint32_t temp;
-        if (podules[num].readl)
-        {
-//                if (num==2) rpclog("READ PODULEl 2 %08X\n",addr);
-                temp=podules[num].readl(&podules[num], easi, addr);
-//                if (num==2) printf("%08X\n",temp);
-                if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
-                return temp;
-        }
-        return 0xFFFFFFFF;
+	const int oldirq = podules[num].irq;
+	const int oldfiq = podules[num].fiq;
+	uint32_t temp;
+
+	if (podules[num].readl != NULL) {
+		temp = podules[num].readl(&podules[num], io_type, addr);
+		if (podules[num].irq != oldirq || podules[num].fiq != oldfiq) {
+			rethinkpoduleints();
+		}
+		return temp;
+	}
+	return 0xffffffff;
 }
 
 /**
  * Handle a 16-bit read from the podules memory map
  *
- * @param num   Podule number (0-7)
- * @param easi  Read from EASI space (true) or regular IO space (false)
- * @param addr  Address to read from
+ * @param num     Podule number (0-7)
+ * @param io_type Read from IOC, MEMC or EASI space
+ * @param addr    Address to read from
  * @return Value at memory address
  */
-uint32_t
-readpodulew(int num, int easi, uint32_t addr)
+uint16_t
+podules_read16(int num, PoduleIoType io_type, uint32_t addr)
 {
-        int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
-        uint32_t temp;
-        if (podules[num].readw)
-        {
-//                if (num==2) rpclog("READ PODULEw 2 %08X\n",addr);
-                if (podules[num].broken) temp=podules[num].readl(&podules[num],easi, addr);
-                else                     temp=podules[num].readw(&podules[num],easi, addr);
-                if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
-                return temp;
-        }
-        return 0xFFFF;
+	const int oldirq = podules[num].irq;
+	const int oldfiq = podules[num].fiq;
+	uint16_t temp;
+
+	if (podules[num].readw != NULL) {
+		temp = podules[num].readw(&podules[num], io_type, addr);
+		if (podules[num].irq != oldirq || podules[num].fiq != oldfiq) {
+			rethinkpoduleints();
+		}
+		return temp;
+	}
+	return 0xffff;
 }
 
 /**
  * Handle an 8-bit read from the podules memory map
  *
- * @param num   Podule number (0-7)
- * @param easi  Read from EASI space (true) or regular IO space (false)
- * @param addr  Address to read from
+ * @param num     Podule number (0-7)
+ * @param io_type Read from IOC, MEMC or EASI space
+ * @param addr    Address to read from
  * @return Value at memory address
  */
 uint8_t
-readpoduleb(int num, int easi, uint32_t addr)
+podules_read8(int num, PoduleIoType io_type, uint32_t addr)
 {
-        int oldirq=podules[num].irq,oldfiq=podules[num].fiq;
-        uint8_t temp;
-//        rpclog("READ PODULE %i %08X %02X %i\n",num,addr,temp,easi);
-        if (podules[num].readb)
-        {
-                temp=podules[num].readb(&podules[num], easi, addr);
-//                rpclog("READ PODULE %i %08X %02X\n",num,addr,temp);
-//                printf("%02X\n",temp);
-                if (oldirq!=podules[num].irq || oldfiq!=podules[num].fiq) rethinkpoduleints();
-                return temp;
-        }
-        return 0xFF;
+	const int oldirq = podules[num].irq;
+	const int oldfiq = podules[num].fiq;
+	uint8_t temp;
+
+	if (podules[num].readb != NULL) {
+		temp = podules[num].readb(&podules[num], io_type, addr);
+		if (podules[num].irq != oldirq || podules[num].fiq != oldfiq) {
+			rethinkpoduleints();
+		}
+		return temp;
+	}
+	return 0xff;
 }
 
 /**
@@ -264,33 +323,29 @@ readpoduleb(int num, int easi, uint32_t addr)
 void
 runpoduletimers(int t)
 {
-        int c,d;
+	int c, d;
 
-        /* Loop through podules, ignoring 0 (extn rom) */
-        /* This should really make use of the 'freepodule' variable to prevent
-           looping over podules that aren't registered */
-        for (c=1;c<8;c++)
-        {
-                if (podules[c].timercallback && podules[c].msectimer)
-                {
-                        podules[c].msectimer-=t;
-                        d=1;
-                        while (podules[c].msectimer<=0 && d)
-                        {
-                                int oldirq=podules[c].irq,oldfiq=podules[c].fiq;
-//                                rpclog("Callback! podule %i  %i %i  ",c,podules[c].irq,podules[c].fiq);
-                                d=podules[c].timercallback(&podules[c]);
-                                if (!d)
-                                {
-                                        podules[c].msectimer=0;
-                                }
-                                else podules[c].msectimer+=d;
-                                if (oldirq!=podules[c].irq || oldfiq!=podules[c].fiq)
-                                {
-//                                        rpclog("Now rethinking podule ints...\n");
-                                        rethinkpoduleints();
-                                }
-                        }
-                }
-        }
+	/* Loop through podules, ignoring 0 (extn rom) */
+	/* This should really make use of the 'freepodule' variable to prevent
+	   looping over podules that aren't registered */
+	for (c = 1; c < 8; c++) {
+		if (podules[c].timercallback != NULL && podules[c].msectimer != 0) {
+			podules[c].msectimer -= t;
+			d = 1;
+			while (podules[c].msectimer <= 0 && d != 0) {
+				const int oldirq = podules[c].irq;
+				const int oldfiq = podules[c].fiq;
+
+				d = podules[c].timercallback(&podules[c]);
+				if (d == 0) {
+					podules[c].msectimer = 0;
+				} else {
+					podules[c].msectimer += d;
+				}
+				if (podules[c].irq != oldirq || podules[c].fiq != oldfiq) {
+					rethinkpoduleints();
+				}
+			}
+		}
+	}
 }

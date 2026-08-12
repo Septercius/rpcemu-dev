@@ -56,6 +56,10 @@
 #include "keyboard_macosx.h"
 #endif /* Q_OS_MACOS */
 
+extern "C" {
+extern void podulerom_mouse_wheel_change(int dy);
+}
+
 #if defined(Q_OS_WIN32)
 #include "cdrom-ioctl.h"
 
@@ -423,19 +427,28 @@ rpcemu_idle_process_events(void)
 	emulator->idle_process_events();
 }
 
+/**
+ * Helper function to allow reading of the nanosecond timer
+ */
+uint64_t
+rpcemu_nsec_timer_ticks(void)
+{
+	return (uint64_t) emulator->get_elapsed_timer();
+}
+
 } // extern "C"
 
 #if defined(Q_OS_MACOS)
 
 int rpcemu_choose_datadirectory()
 {
-  ChooseDialog dialog;
-  if (dialog.exec() == QDialog::Accepted)
-  {
-    const char *path = preferences_get_data_directory();
-
-      return rpcemu_set_datadir(path);
-  }
+    ChooseDialog dialog;
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        const char *path = preferences_get_data_directory();
+        
+        return rpcemu_set_datadir(path);
+    }
 
   return 0;
 }
@@ -463,7 +476,7 @@ int main (int argc, char ** argv)
     
 #if defined(Q_OS_MACOS)
     init_preferences();
-
+    
     // If there is not a data directory in the application preferences, prompt for one.
     // This will also prompt if the "Shift" key is held down while the application loads.
     if (promptForDataDirectory || (QApplication::queryKeyboardModifiers() & Qt::ShiftModifier) != 0)
@@ -544,7 +557,7 @@ Emulator::Emulator()
 #if defined(Q_OS_MACOS)
     // Modifier keys on a Mac must be handled separately, as there is no way of telling
     // left or right from the key press and key release events due to a lack of scan codes.
-
+    
     connect(this, &Emulator::modifier_keys_changed_signal, this, &Emulator::modifier_keys_changed);
     connect(this, &Emulator::modifier_keys_reset_signal, this, &Emulator::modifier_keys_reset);
 #endif /* Q_OS_MACOS */
@@ -553,6 +566,7 @@ Emulator::Emulator()
 	connect(this, &Emulator::mouse_move_relative_signal, this, &Emulator::mouse_move_relative);
 	connect(this, &Emulator::mouse_press_signal, this, &Emulator::mouse_press);
 	connect(this, &Emulator::mouse_release_signal, this, &Emulator::mouse_release);
+	connect(this, &Emulator::mouse_wheel_signal, this, &Emulator::mouse_wheel);
 
 	// Signals from user GUI interactions to control parts of the emulator
 	connect(this, &Emulator::reset_signal, this, &Emulator::reset);
@@ -577,6 +591,8 @@ Emulator::Emulator()
 	connect(this, &Emulator::nat_rule_add_signal, this, &Emulator::nat_rule_add);
 	connect(this, &Emulator::nat_rule_edit_signal, this, &Emulator::nat_rule_edit);
 	connect(this, &Emulator::nat_rule_remove_signal, this, &Emulator::nat_rule_remove);
+
+	elapsed_timer.start();
 }
 
 /**
@@ -590,8 +606,6 @@ Emulator::mainemuloop()
 
 	iomd_timer_next = (qint64) iomd_timer_interval; // Time after which the IOMD timer should trigger
 	video_timer_next = (qint64) video_timer_interval;
-
-	elapsed_timer.start();
 
 	unsigned network_nat_rate = 0;
 
@@ -615,7 +629,7 @@ Emulator::mainemuloop()
 		// If we have passed the time the IOMD timer event should occur, trigger it
 		if (elapsed >= iomd_timer_next) {
 			iomd_timer_count.fetchAndAddRelease(1);
-			gentimerirq();
+			gentimerirq(elapsed);
 			iomd_timer_next += (qint64) iomd_timer_interval;
 		}
 
@@ -664,7 +678,7 @@ Emulator::idle_process_events()
 	// If we have passed the time the IOMD timer event should occur, trigger it
 	if (elapsed >= iomd_timer_next) {
 		iomd_timer_count.fetchAndAddRelease(1);
-		gentimerirq();
+		gentimerirq(elapsed);
 		iomd_timer_next += (qint64) iomd_timer_interval;
 	}
 
@@ -732,8 +746,8 @@ void Emulator::modifier_keys_changed(unsigned mask)
 }
 
 /**
- * Modifier keys reset
- */
+* Modifier keys reset
+*/
 void Emulator::modifier_keys_reset()
 {
     keyboard_reset_modifiers(true);
@@ -784,6 +798,17 @@ void
 Emulator::mouse_release(int buttons)
 {
 	mouse_mouse_release(buttons);
+}
+
+/**
+ * Mouse wheel changed
+ *
+ * @param dy Change in mouse wheel position
+ */
+void
+Emulator::mouse_wheel(int dy)
+{
+	podulerom_mouse_wheel_change(dy);
 }
 
 /**

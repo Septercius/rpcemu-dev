@@ -16,7 +16,7 @@
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
+*/
 
 #include <assert.h>
 #include <errno.h>
@@ -53,7 +53,8 @@ path_disk_info(const char *path, disk_info *d)
     assert(path != NULL);
     assert(d != NULL);
 
-    if ((ret = statvfs(path, &s)) != 0) {
+    if ((ret = statvfs(path, &s)) != 0) 
+    {
         return 0;
     }
 
@@ -75,7 +76,8 @@ rpcemu_log_os(void)
 {
     struct utsname u;
 
-    if (uname(&u) == -1) {
+    if (uname(&u) == -1) 
+    {
         rpclog("OS: Could not determine: %s\n", strerror(errno));
         return;
     }

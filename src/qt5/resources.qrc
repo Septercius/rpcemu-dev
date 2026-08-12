@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resources/blank-e-800.adf</file>
+        <file>resources/blank-f-1600.adf</file>
+        <file>resources/blank-l-640.adl</file>
+        <file>resources/blank-pc-720.img</file>
+        <file>resources/blank-pc-1440.img</file>
+    </qresource>
+</RCC>

@@ -206,6 +206,8 @@ static IOMDType iomd_type; /**< The current type of IOMD we're emulating */
 static int sndon = 0;
 static int flyback=0;
 
+static uint32_t old_timer_ticks;
+
 void
 updateirqs(void)
 {
@@ -225,16 +227,18 @@ updateirqs(void)
 	}
 }
 
-/**
- * Handle the regularly ticking interrupts, the two
- * IOMD timers, the sound interrupt and podule
- * interrupts
- *
- * Called (theoretically) 500 times a second IMPROVE.
- */
-void gentimerirq(void)
+static void
+updatetimers(uint64_t nsec_timer)
 {
-        iomd.t0.counter -= 4000; /* 4000 * 500Hz = 2MHz (the IO clock speed) */
+	const uint32_t new_timer_ticks = (uint32_t) (nsec_timer / 500); // Number of timer ticks since timer epoch
+	const int32_t ticks = (int32_t) (new_timer_ticks - old_timer_ticks);
+
+	if (ticks <= 0) {
+		return;
+	}
+	old_timer_ticks = new_timer_ticks;
+
+        iomd.t0.counter -= ticks;
         while (iomd.t0.counter < 0 && iomd.t0.in_latch)
         {
                 iomd.t0.counter += iomd.t0.in_latch;
@@ -242,13 +246,26 @@ void gentimerirq(void)
                 updateirqs();
         }
 
-        iomd.t1.counter -= 4000;
+        iomd.t1.counter -= ticks;
         while (iomd.t1.counter < 0 && iomd.t1.in_latch)
         {
                 iomd.t1.counter += iomd.t1.in_latch;
                 iomd.irqa.status |= IOMD_IRQA_TIMER_1;
                 updateirqs();
         }
+}
+
+/**
+ * Handle the regularly ticking interrupts, the two
+ * IOMD timers, the sound interrupt and podule
+ * interrupts
+ *
+ * Called (theoretically) 500 times a second IMPROVE.
+ */
+void
+gentimerirq(uint64_t nsec_timer)
+{
+	updatetimers(nsec_timer);
 
         if (soundinited && sndon)
         {
@@ -274,8 +291,6 @@ void gentimerirq(void)
 void
 iomd_write(uint32_t addr, uint32_t val)
 {
-        static int readinc = 0;
-
 	uint32_t reg;
 
 	if (iomd_type == IOMDType_IOMD2) {
@@ -353,17 +368,12 @@ iomd_write(uint32_t addr, uint32_t val)
                 iomd.t0.in_latch = (iomd.t0.in_latch & 0xff) | ((val & 0xff) << 8);
                 break;
         case IOMD_0x048_T0GO: /* Timer 0 Go command */
+                updatetimers(rpcemu_nsec_timer_ticks());
                 iomd.t0.counter = iomd.t0.in_latch - 1;
                 break;
         case IOMD_0x04C_T0LAT: /* Timer 0 Latch command */
-                readinc ^= 1;
+                updatetimers(rpcemu_nsec_timer_ticks());
                 iomd.t0.out_latch = iomd.t0.counter;
-                if (readinc) {
-                        iomd.t0.counter--;
-                        if (iomd.t0.counter < 0) {
-                                iomd.t0.counter += iomd.t0.in_latch;
-                        }
-                }
                 break;
 
         case IOMD_0x050_T1LOW: /* Timer 1 low bits */
@@ -373,17 +383,12 @@ iomd_write(uint32_t addr, uint32_t val)
                 iomd.t1.in_latch = (iomd.t1.in_latch & 0xff) | ((val & 0xff) << 8);
                 break;
         case IOMD_0x058_T1GO: /* Timer 1 Go command */
+                updatetimers(rpcemu_nsec_timer_ticks());
                 iomd.t1.counter = iomd.t1.in_latch - 1;
                 break;
         case IOMD_0x05C_T1LAT: /* Timer 1 Latch command */
-                readinc ^= 1;
+                updatetimers(rpcemu_nsec_timer_ticks());
                 iomd.t1.out_latch = iomd.t1.counter;
-                if (readinc) {
-                        iomd.t1.counter--;
-                        if (iomd.t1.counter < 0) {
-                                iomd.t1.counter += iomd.t1.in_latch;
-                        }
-                }
                 break;
 
         case IOMD_0x068_IRQMSKC: /* IRQC mask (ARM7500/FE) */
@@ -841,7 +846,7 @@ iomd_mouse_buttons_read(void)
 	/* Middle */
 	if (mouse_buttons & 4) {
 #ifdef __APPLE__
-        temp |= 0x20;
+        temp |= 0x20; // bit 5
 #else
 		if (config.mousetwobutton) {
 			temp |= 0x10; // bit 4
@@ -853,7 +858,7 @@ iomd_mouse_buttons_read(void)
 	/* Right */
 	if (mouse_buttons & 2) {
 #ifdef __APPLE__
-        temp |= 0x10;
+        temp |= 0x10; // bit 4
 #else
 		if (config.mousetwobutton) {
 			temp |= 0x20; // bit 5
@@ -941,7 +946,6 @@ iomd_reset(IOMDType type)
 	cinit = 0;
 	sndon = 0;
 	flyback = 0;
-
 }
 
 /**

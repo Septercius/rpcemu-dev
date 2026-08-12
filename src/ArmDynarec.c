@@ -565,20 +565,25 @@ set_memory_executable(void *ptr, size_t len)
 {
 	const long page_size = sysconf(_SC_PAGESIZE);
 	const long page_mask = ~(page_size - 1);
-	void *start, *addr;
-	long end;
+    
+#ifdef __APPLE__
+    void *start, *addr;
     int mmap_flags = 0;
+#else
+	void *start;
+#endif
+	long end;
 
 	start = (void *) ((long) ptr & page_mask);
 	end = ((long) ptr + len + page_size - 1) & page_mask;
 	len = (size_t) (end - (long) start);
     
 #if __APPLE__
-    // More up-to-date versions of OS X require "mmap" to be called prior to "mprotect".
+    // More recent versions of OS X require "mmap" to be called prior to "mprotect".
     // Certain versions also require the MAP_JIT flag as well.
     // Try without first, and if that fails, add the flag in.
     mmap_flags = MAP_PRIVATE | MAP_ANON | MAP_FIXED;
-
+    
     addr = mmap(NULL, page_size, PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANON, -1, 0);
     if (addr == MAP_FAILED)
     {
@@ -588,15 +593,15 @@ set_memory_executable(void *ptr, size_t len)
     {
         munmap(addr, page_size);
     }
-
+    
     addr = mmap(start, len, PROT_READ | PROT_WRITE | PROT_EXEC, mmap_flags, -1, 0);
-
+    
     if (addr == MAP_FAILED)
     {
         perror("mmap");
         exit(1);
     }
-
+    
 #endif
 
 	if (mprotect(start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {

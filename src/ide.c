@@ -26,6 +26,7 @@ void callbackide(void);
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
 #include <errno.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -128,6 +129,7 @@ static struct
         int reset;
         FILE *hdfile[2];
         int skip512[2];
+        int lba_cmd[2];
         uint16_t buffer[65536];
 } ide;
 
@@ -207,6 +209,7 @@ ide_identify(void)
 	ide_padstr((char *) (ide.buffer + 10), "", 20); /* Serial Number */
 	ide_padstr((char *) (ide.buffer + 23), "v1.0", 8); /* Firmware */
 	ide_padstr((char *) (ide.buffer + 27), "RPCEmuHD", 40); /* Model */
+//	ide.buffer[49] = 0x200; /* LBA supported */
 	ide.buffer[50] = 0x4000; /* Capabilities */
 }
 
@@ -277,18 +280,25 @@ ide_atapi_mode_sense(uint32_t pos)
 	return pos;
 }
 
-/*
+/**
  * Return the sector offset for the current register values
  */
 static off64_t
 ide_get_sector(void)
 {
-	int heads = ide.hpc[ide.drive];
-	int sectors = ide.spt[ide.drive];
-	int skip = ide.skip512[ide.drive];
+	if (ide.lba_cmd[ide.drive] && !ide.skip512[ide.drive]) {
+		// LBA Addressing
+		// from ATA-3 head is bits 27:24, cyl is 23:8, sec is 7:0
+		return (off64_t) ((ide.head << 24) | (ide.cylinder << 8) | ide.sector);
+	} else {
+		// CHS Addressing
+		const int heads = ide.hpc[ide.drive];
+		const int sectors = ide.spt[ide.drive];
+		const int skip = ide.skip512[ide.drive];
 
-	return ((((off64_t) ide.cylinder * heads) + ide.head) *
-	          sectors) + (ide.sector - 1) + skip;
+		return ((((off64_t) ide.cylinder * heads) + ide.head) *
+		    sectors) + (ide.sector - 1) + skip;
+	}
 }
 
 /**
@@ -297,17 +307,78 @@ ide_get_sector(void)
 static void
 ide_next_sector(void)
 {
-	ide.sector++;
-	if (ide.sector == (ide.spt[ide.drive] + 1)) {
-		ide.sector = 1;
-		ide.head++;
-		if (ide.head == ide.hpc[ide.drive]) {
-			ide.head = 0;
-			ide.cylinder++;
+	if (ide.lba_cmd[ide.drive] && !ide.skip512[ide.drive]) {
+		// LBA Addressing
+		uint32_t lba = (ide.head << 24) | (ide.cylinder << 8) | ide.sector;
+		lba++;
+		ide.head = (lba >> 24) & 0xf;
+		ide.cylinder = (lba >> 8) & 0xffff;
+		ide.sector = lba & 0xff;
+	} else {
+		// CHS Addressing
+		ide.sector++;
+		if (ide.sector == (ide.spt[ide.drive] + 1)) {
+			ide.sector = 1;
+			ide.head++;
+			if (ide.head == ide.hpc[ide.drive]) {
+				ide.head = 0;
+				ide.cylinder++;
+			}
 		}
 	}
 }
 
+/**
+ * Given an open harddisc image, attempt to use a heuristic to determine
+ * if the image is one of the 'bugged' (offset by 512 bytes/1 sector)
+ * and also fill in the sectors per track and heads per cylinder values from
+ * the image file (or use defaults if not valid)
+ *
+ * @param fh Open file handle
+ * @param d drive number
+ */
+static void
+ide_image_set_spt_hpc_skip512(FILE *fh, int d)
+{
+	int log2_sec_size;
+
+	ide.skip512[d] = 0;
+
+	// Check Wrong Offset first
+	fseeko64(fh, 0xfc0, SEEK_SET);
+	log2_sec_size = getc(ide.hdfile[d]);
+	ide.spt[d] = getc(ide.hdfile[d]);
+	ide.hpc[d] = getc(ide.hdfile[d]);
+
+	if ((ide.spt[d] == 0 || ide.spt[d] == EOF)
+	    || (ide.hpc[d] == 0 || ide.hpc[d] == EOF))
+	{
+		// Check the correct offset
+		fseeko64(ide.hdfile[d], 0xdc0, SEEK_SET);
+		log2_sec_size = getc(ide.hdfile[d]);
+		ide.spt[d] = getc(ide.hdfile[d]);
+		ide.hpc[d] = getc(ide.hdfile[d]);
+		if ((ide.spt[d] == 0 || ide.spt[d] == EOF)
+		    || (ide.hpc[d] == 0 || ide.hpc[d] == EOF))
+		{
+			// Nothing found at either location, set
+			// sensible defaults
+			ide.spt[d] = 63;
+			ide.hpc[d] = 16;
+		}
+	} else {
+		ide.skip512[d] = 1;
+	}
+	rpclog("IDE: drive %d: log2_sec_size %d, spt %d, hpc %d\n",
+	    d, log2_sec_size, ide.spt[d], ide.hpc[d]);
+}
+
+/**
+ * Prepare a hard disc image, open the file and attach it to the IDE device
+ *
+ * @param d drive number 0 or 1
+ * @param filename file containing HD image (relative to datadir)
+ */
 static void
 loadhd(int d, const char *filename)
 {
@@ -336,26 +407,17 @@ loadhd(int d, const char *filename)
 		}
 	}
 
-        fseek(ide.hdfile[d], 0xfc1, SEEK_SET);
-        ide.spt[d] = getc(ide.hdfile[d]);
-        ide.hpc[d] = getc(ide.hdfile[d]);
-        ide.skip512[d] = 1;
-//        rpclog("First check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
-        if (!ide.spt[d] || !ide.hpc[d])
-        {
-                fseek(ide.hdfile[d], 0xdc1, SEEK_SET);
-                ide.spt[d] = getc(ide.hdfile[d]);
-                ide.hpc[d] = getc(ide.hdfile[d]);
-//                rpclog("Second check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
-                ide.skip512[d] = 0;
-                if (!ide.spt[d] || !ide.hpc[d])
-                {
-                        ide.spt[d]=63;
-                        ide.hpc[d]=16;
-                        ide.skip512[d] = 1;
-//        rpclog("Final check - spt %i hpc %i\n",ide.spt[0],ide.hpc[0]);
-                }
-        }
+	fseeko64(ide.hdfile[d], 0, SEEK_END);
+	const off64_t filesize = ftello64(ide.hdfile[d]);
+
+	ide_image_set_spt_hpc_skip512(ide.hdfile[d], d);
+
+	rpclog("IDE: Loaded file '%s' as IDE disc %d, size %" PRId64 " MB (%" PRId64 ")%s\n",
+		filename,
+		d,
+		(int64_t) filesize / 1024 / 1024,
+		(int64_t) filesize,
+		ide.skip512[d] ? ", BUG 512b Skip enabled" : "");
 }
 
 void resetide(void)
@@ -472,6 +534,11 @@ void writeide(uint16_t addr, uint8_t val)
                         ide_irq_lower();
                 }
                 ide.drive=(val>>4)&1;
+		if (ide.lba_cmd[ide.drive] != (val & 0x40)) {
+			// prm bit 6 is LBA addressing flag, per command
+			ide.lba_cmd[ide.drive] = val & 0x40;
+			rpclog("IDE: Drive %d command using %s\n", ide.drive, ide.lba_cmd[ide.drive] ? "LBA Mode" : "CHS Mode");
+		}
                 ide.pos=0;
                 ide.atastat = READY_STAT;
                 return;

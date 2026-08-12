@@ -80,11 +80,11 @@ network_rom_init(void)
 	chunkbase = 0x10;
 	filebase = chunkbase + (8 * 2) + 4; // required size for two entries
 	poduleromsize = filebase + ((sizeof(description) + 3) & ~3u); // Word align description string
+    
+    snprintf(filename, 512, "%snetroms/EtherRPCEm,ffa", rpcemu_get_datadir());
+    rpclog("network_rom_init: Attempting to load Ethernet ROM from '%s'\n", filename);
 
 	// Add on size for driver module if it can be opened successfully
-    snprintf(filename,sizeof(filename), "%snetroms/EtherRPCEm,ffa", rpcemu_get_datadir());
-    rpclog("network_rom_init: Attempting to load Ethernet ROM from '%s'\n", filename);
-    
 	f = fopen(filename, "rb");
 	if (f != NULL) {
 		long len;
@@ -107,7 +107,7 @@ network_rom_init(void)
 		fatal("Out of Memory");
 	}
 
-	romdata[0] = 0; // Acorn comformant card, not requesting FIQ, not requesting interupt, EcID = 0 = EcID is extended (8 bytes)
+	romdata[0] = 0; // Acorn comformant card, EcID = 0 = EcID is extended (8 bytes)
 	romdata[1] = 3; // Interrupt status has been relocated, chunk directories present, byte access
 	romdata[2] = 0; // Mandatory
 	romdata[3] = 3; // Product type, low,  Ethernet
@@ -115,6 +115,8 @@ network_rom_init(void)
 	romdata[5] = 0; // Manufacturer, low,  Acorn UK
 	romdata[6] = 0; // Manufacturer, high, Acorn UK
 	romdata[7] = 0; // Reserved
+
+	romdata[12] = 1; // IRQ Status Bit Mask
 
 	memcpy(romdata + filebase, description, sizeof(description));
 	makechunk(0xf5, filebase, sizeof(description)); // 0xf5 = Device Data, Description
@@ -125,36 +127,65 @@ network_rom_init(void)
 		size_t len = fread(romdata + filebase, 1, module_file_size, f);
 		fclose(f);
 
-		if (len == module_file_size) { // Load was OK
-			len = (len + 3) & ~3u;
-			makechunk(0x81, filebase, (uint32_t) len); // 0x81 = RISC OS, ROM
-		}
-        
-        rpclog("network_rom_init: Successfuly loaded 'EtherRPCEm,ffa' into podulerom\n");
+        if (len == module_file_size) { // Load was OK
+            len = (len + 3) & ~3u;
+            makechunk(0x81, filebase, (uint32_t) len); // 0x81 = RISC OS, ROM
+            
+            rpclog("network_rom_init: Successfuly loaded 'EtherRPCEm,ffa' into podulerom\n");
+        }
 	}
 }
 
 /**
  * Podule byte read function for Ethernet podule
  *
- * @param p    podule pointer (unused)
- * @param easi Read from EASI space or from regular IO space
- * @param addr Address of byte to read
+ * @param p       podule pointer (unused)
+ * @param io_type Read from IOC, MEMC or EASI space
+ * @param addr    Address of byte to read
  * @return Contents of byte
  */
 static uint8_t
-readpoduleetherrpcem(podule *p, int easi, uint32_t addr)
+readpoduleetherrpcem(podule *p, PoduleIoType io_type, uint32_t addr)
 {
 	NOT_USED(p);
 
-	if (easi && (poduleromsize > 0)) {
+	if (io_type == PODULE_IO_TYPE_EASI) {
 		addr = (addr & 0xffffff) >> 2;
 		if (addr < poduleromsize) {
 			return romdata[addr];
 		}
 		return 0x00;
+	} else if (io_type == PODULE_IO_TYPE_IOC) {
+		if ((addr & 0x3ffc) == 0) {
+			// Interrupt status
+			return 0xfa | (p->irq ? 1 : 0);
+		} else {
+			return 0xff;
+		}
 	}
 	return 0xff;
+}
+
+/**
+ * Raise an interrupt request from the network podule.
+ */
+void
+network_irq_raise(void)
+{
+	if (network_poduleinfo != NULL) {
+		podule_irq_raise(network_poduleinfo);
+	}
+}
+
+/**
+ * Clear an interrupt request from the network podule.
+ */
+void
+network_irq_lower(void)
+{
+	if (network_poduleinfo != NULL) {
+		podule_irq_lower(network_poduleinfo);
+	}
 }
 
 /**
@@ -313,7 +344,7 @@ network_init(void)
 	}
 
 	// Register podule
-	network_poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, readpoduleetherrpcem, NULL, NULL, 0);
+	network_poduleinfo = addpodule(NULL, NULL, NULL, NULL, NULL, readpoduleetherrpcem, NULL, NULL);
 	if (network_poduleinfo == NULL) {
 		error("No free podule for networking");
 	}
@@ -357,14 +388,14 @@ network_swi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4, uin
 	rpclog("Network SWI r0 = %d, r2 = %08x\n", r0, r2);
 #endif
 	switch (r0) {
-	case 0:
+	case 0: // Transmit
 		if (config.network_type == NetworkType_NAT) {
 			*retr0 = network_nat_tx(r1, r2, r3, r4, r5);
 		} else {
 			*retr0 = network_plt_tx(r1, r2, r3, r4, r5);
 		}
 		break;
-	case 1:
+	case 1: // Receive
 		if (config.network_type == NetworkType_NAT) {
 			*retr0 = network_nat_rx(r1, r2, r3, retr1);
 		} else {
@@ -380,13 +411,14 @@ network_swi(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r4, uin
 		*retr0 = 0;
 		break;
 	case 3:
-		if (network_poduleinfo) {
-			network_poduleinfo->irq = r2;
+		if (r2 != 0) {
+			network_irq_raise();
+		} else {
+			network_irq_lower();
 		}
-		rethinkpoduleints();
 		*retr0 = 0;
 		break;
-	case 4:
+	case 4: // Hardware address
 		memcpyfromhost(r2, network_hwaddr, sizeof(network_hwaddr));
 		*retr0 = 0;
 		break;

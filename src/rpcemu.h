@@ -36,7 +36,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 /* Version number of RPCEmu */
-#define VERSION "0.9.4"
+#define VERSION "0.9.5"
 
 /* URLs used for the help menu weblinks */
 #define URL_MANUAL  "http://www.marutan.net/rpcemu/manual/"
@@ -235,6 +235,7 @@ extern void rpcemu_video_update(const uint32_t *buffer, int xsize, int ysize, in
 extern void rpcemu_move_host_mouse(uint16_t x, uint16_t y);
 extern void rpcemu_idle_process_events(void);
 extern void rpcemu_send_nat_rule_to_gui(PortForwardRule rule);
+extern uint64_t rpcemu_nsec_timer_ticks(void);
 
 extern int drawscre;
 extern int quited;

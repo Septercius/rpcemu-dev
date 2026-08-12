@@ -270,10 +270,10 @@ config_save(Config *config)
 
 	char s[256];
 
-	sprintf(s, "%u", config->mem_size);
+	snprintf(s, 256, "%u", config->mem_size);
 	settings.setValue("mem_size", s);
 
-	sprintf(s, "%s", models[machine.model].name_config);
+	snprintf(s, 256, "%s", models[machine.model].name_config);
 	settings.setValue("model", s);
 
 	if (config->vram_size != 0) {
@@ -292,10 +292,22 @@ config_save(Config *config)
 
 
 	switch (config->network_type) {
-	case NetworkType_Off:              sprintf(s, "off"); break;
-	case NetworkType_NAT:              sprintf(s, "nat"); break;
-	case NetworkType_EthernetBridging: sprintf(s, "ethernetbridging"); break;
-	case NetworkType_IPTunnelling:     sprintf(s, "iptunnelling"); break;
+        case NetworkType_Off:
+            snprintf(s, 256, "off");
+            break;
+
+        case NetworkType_NAT:
+            snprintf(s, 256, "nat");
+            break;
+            
+        case NetworkType_EthernetBridging:
+            snprintf(s, 256, "ethernetbridging");
+            break;
+
+        case NetworkType_IPTunnelling:
+            snprintf(s, 256, "iptunnelling");
+            break;
+            
 	}
 	settings.setValue("network_type", s);
 

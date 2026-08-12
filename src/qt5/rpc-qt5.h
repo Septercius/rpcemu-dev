@@ -43,6 +43,8 @@ public:
 
 	void idle_process_events();
 
+	int64_t get_elapsed_timer() const { return elapsed_timer.nsecsElapsed(); }
+
 signals:
 	void finished();
 
@@ -56,11 +58,12 @@ signals:
     void modifier_keys_changed_signal(unsigned mask);
     void modifier_keys_reset_signal();
 #endif /* Q_OS_MACOS */
-    
+
 	void mouse_move_signal(int x, int y);
 	void mouse_move_relative_signal(int dx, int dy);
 	void mouse_press_signal(int buttons);
 	void mouse_release_signal(int buttons);
+	void mouse_wheel_signal(int dy);
 
 	// GUI actions
 	void reset_signal();
@@ -90,16 +93,17 @@ public slots:
 	void key_press(unsigned scan_code);
 
 	void key_release(unsigned scan_code);
-   
+    
 #if defined(Q_OS_MACOS)
     void modifier_keys_changed(unsigned mask);
     void modifier_keys_reset();
 #endif /* Q_OS_MACOS */
-    
+
 	void mouse_move(int x, int y);
 	void mouse_move_relative(int dx, int dy);
 	void mouse_press(int buttons);
 	void mouse_release(int buttons);
+	void mouse_wheel(int dy);
 
 	// GUI actions
 	void reset();

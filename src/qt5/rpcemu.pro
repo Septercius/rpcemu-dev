@@ -7,7 +7,7 @@ QT += core widgets gui multimedia
 INCLUDEPATH += ../
 
 macx {
-  INCLUDEPATH += ../macosx
+	INCLUDEPATH += ../macosx
 }
 
 # -Werror=switch
@@ -27,6 +27,7 @@ HEADERS =	../superio.h \
 		../fdc.h \
 		../hostfs.h \
 		../hostfs_internal.h \
+		../i8042.h \
 		../ide.h \
 		../iomd.h \
 		../keyboard.h \
@@ -35,10 +36,15 @@ HEADERS =	../superio.h \
 		../vidc20.h \
 		../arm_common.h \
 		../arm.h \
+		../cdrom-ioctl.h \
 		../disc.h \
 		../disc_adf.h \
 		../disc_hfe.h \
 		../disc_mfm_common.h \
+		../podulerom.h \
+		../podules.h \
+		../romload.h \
+		../rpcemu.h \
 		main_window.h \
 		configure_dialog.h \
 		about_dialog.h \
@@ -163,15 +169,15 @@ linux {
 }
 
 !macx {
-  unix {
-	SOURCES +=	keyboard_x.c \
-			../hostfs-unix.c \
-			../rpc-linux.c
-  }
+	unix {
+		SOURCES +=	keyboard_x.c \
+				../hostfs-unix.c \
+				../rpc-linux.c
+	}
 }
 
 macx {
-  SOURCES +=		../network.c \
+	SOURCES +=	../network.c \
 			network_dialog.cpp \
 			keyboard_macosx.c \
 			../hostfs-macosx.c \
@@ -180,19 +186,17 @@ macx {
 			../macosx/events-macosx.m \
 			../macosx/preferences-macosx.m \
 			../macosx/network-macosx.c \
-			../macosx/system-macosx.m \
 			choose_dialog.cpp
 
-  HEADERS +=		../network.h \
+	HEADERS += 	../network.h \
 			network_dialog.h \
 			keyboard_macosx.h \
 			../macosx/hid-macosx.h \
 			../macosx/events-macosx.h \
 			../macosx/preferences-macosx.h \
-			../macosx/system-macosx.h \
 			choose_dialog.h
 
-  ICON =		../macosx/rpcemu.icns
+	ICON = 		../macosx/rpcemu.icns
 }
 
 # Place exes in top level directory
@@ -238,11 +242,15 @@ CONFIG(debug, debug|release) {
 }
 
 !macx {
-  LIBS +=
+	LIBS +=
 }
 
 macx {
 	LIBS += -framework coreFoundation -framework IOKit -framework Foundation -framework Carbon
 
 	QMAKE_INFO_PLIST = ../macosx/Info.plist
+	QMAKE_BUNDLE = rpcemu
+	QMAKE_TARGET_BUNDLE_PREFIX = org.marutan
 }
+
+RESOURCES +=	resources.qrc

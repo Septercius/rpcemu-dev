@@ -213,10 +213,10 @@ mem_phys_read32(uint32_t addr)
 				break;
 			case 4:
 				/* Podule space 0, 1, 2, 3 */
-				return readpodulew((addr >> 14) & 3, 0, addr & 0x3fff);
+				return podules_read16((addr >> 14) & 3, PODULE_IO_TYPE_IOC, addr & 0x3fff);
 			case 7:
 				/* Podule space 4, 5, 6, 7 */
-				return readpodulew(((addr >> 14) & 3) + 4, 0, addr & 0x3fff);
+				return podules_read16(((addr >> 14) & 3) + 4, PODULE_IO_TYPE_IOC, addr & 0x3fff);
 			}
 		}
 		if ((machine.model == Model_Phoebe) && (addr & 0xcffffc) == 0x8007c0) {
@@ -232,7 +232,7 @@ mem_phys_read32(uint32_t addr)
 	case 0x0d000000:
 	case 0x0e000000:
 	case 0x0f000000:
-		return readpodulel((addr >> 24) & 7, 1, addr & 0xffffff);
+		return podules_read32((addr >> 24) & 7, PODULE_IO_TYPE_EASI, addr & 0xffffff);
 
 	case 0x10000000: /* SIMM 0 bank 0 */
 	case 0x11000000:
@@ -313,10 +313,10 @@ mem_phys_read8(uint32_t addr)
 				break;
 			case 4:
 				/* Podule space 0, 1, 2, 3 */
-				return readpoduleb((addr >> 14) & 3, 0, addr & 0x3fff);
+				return podules_read8((addr >> 14) & 3, PODULE_IO_TYPE_IOC, addr & 0x3fff);
 			case 7:
 				/* Podule space 4, 5, 6, 7 */
-				return readpoduleb(((addr >> 14) & 3) + 4, 0, addr & 0x3fff);
+				return podules_read8(((addr >> 14) & 3) + 4, PODULE_IO_TYPE_IOC, addr & 0x3fff);
 			}
 		}
 		if ((machine.model == Model_Phoebe) && (addr & 0xcff000) == 0x800000) {
@@ -332,7 +332,7 @@ mem_phys_read8(uint32_t addr)
 	case 0x0d000000:
 	case 0x0e000000:
 	case 0x0f000000:
-		return readpoduleb((addr >> 24) & 7, 1, addr & 0xffffff);
+		return podules_read8((addr >> 24) & 7, PODULE_IO_TYPE_EASI, addr & 0xffffff);
 
 	case 0x10000000: /* SIMM 0 bank 0 */
 	case 0x11000000:
@@ -415,11 +415,11 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 				break;
 			case 4:
 				/* Podule space 0, 1, 2, 3 */
-				writepodulew((addr >> 14) & 3, 0, addr & 0x3fff, val >> 16);
+				podules_write16((addr >> 14) & 3, PODULE_IO_TYPE_IOC, addr & 0x3fff, val >> 16);
 				break;
 			case 7:
 				/* Podule space 4, 5, 6, 7 */
-				writepodulew(((addr >> 14) & 3) + 4, 0, addr & 0x3fff, val >> 16);
+				podules_write16(((addr >> 14) & 3) + 4, PODULE_IO_TYPE_IOC, addr & 0x3fff, val >> 16);
 				break;
 			}
 		}
@@ -442,7 +442,7 @@ mem_phys_write32(uint32_t addr, uint32_t val)
 	case 0x0d000000:
 	case 0x0e000000:
 	case 0x0f000000:
-		writepodulel((addr >> 24) & 7, 1, addr & 0xffffff, val);
+		podules_write32((addr >> 24) & 7, PODULE_IO_TYPE_EASI, addr & 0xffffff, val);
 		return;
 
 	case 0x10000000: /* SIMM 0 bank 0 */
@@ -530,11 +530,11 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 				break;
 			case 4:
 				/* Podule space 0, 1, 2, 3 */
-				writepoduleb((addr >> 14) & 3, 0, addr & 0x3fff, val);
+				podules_write8((addr >> 14) & 3, PODULE_IO_TYPE_IOC, addr & 0x3fff, val);
 				break;
 			case 7:
 				/* Podule space 4, 5, 6, 7 */
-				writepoduleb(((addr >> 14) & 3) + 4, 0, addr & 0x3fff, val);
+				podules_write8(((addr >> 14) & 3) + 4, PODULE_IO_TYPE_IOC, addr & 0x3fff, val);
 				break;
 			}
 		}
@@ -552,7 +552,7 @@ mem_phys_write8(uint32_t addr, uint8_t val)
 	case 0x0d000000:
 	case 0x0e000000:
 	case 0x0f000000:
-		writepoduleb((addr >> 24) & 7, 1, addr & 0xffffff, val);
+		podules_write8((addr >> 24) & 7, PODULE_IO_TYPE_EASI, addr & 0xffffff, val);
 		return;
 
 	case 0x10000000: /* SIMM 0 bank 0 */

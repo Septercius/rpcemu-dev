@@ -43,6 +43,11 @@ static uint32_t filebase;
 
 static const char description[] = "RPCEmu Support";
 
+// Variables for Support Podule functions (currently Scroll Wheel)
+static podule *self = NULL;
+static uint8_t message[2];
+static int enable = 0;
+
 /**
  *
  *
@@ -65,24 +70,60 @@ makechunk(uint8_t type, uint32_t filebase, uint32_t size)
 }
 
 /**
- * Podule byte read function for podulerom
+ * Podule byte write function for podulerom
  *
- * @param p    podule pointer (unused)
- * @param easi Read from EASI space or from regular IO space
- * @param addr Address of byte to read
- * @return Contents of byte
+ * @param p       podule pointer (unused)
+ * @param io_type Write to IOC, MEMC or EASI space
+ * @param addr    Address of byte to write
+ * @param val     Value of byte
  */
-static uint8_t
-podulerom_read8(podule *p, int easi, uint32_t addr)
+static void
+podulerom_write8(podule *p, PoduleIoType io_type, uint32_t addr, uint8_t val)
 {
 	NOT_USED(p);
 
-	if (easi && (poduleromsize > 0)) {
+	if (io_type == PODULE_IO_TYPE_IOC) {
+		switch (addr & 0x3ffc) {
+		case 0: // Interrupt clear
+			podule_irq_lower(p);
+			break;
+		case 4: // Enable
+			enable = (val != 0);
+			break;
+		}
+	}
+}
+
+/**
+ * Podule byte read function for podulerom
+ *
+ * @param p       podule pointer (unused)
+ * @param io_type Read from IOC, MEMC or EASI space
+ * @param addr    Address of byte to read
+ * @return Contents of byte
+ */
+static uint8_t
+podulerom_read8(podule *p, PoduleIoType io_type, uint32_t addr)
+{
+	NOT_USED(p);
+
+	if (io_type == PODULE_IO_TYPE_EASI && (poduleromsize > 0)) {
 		addr = (addr & 0x00ffffff) >> 2;
 		if (addr < poduleromsize) {
 			return podulerom[addr];
 		}
 		return 0x00;
+	} else if (io_type == PODULE_IO_TYPE_IOC) {
+		switch (addr & 0x3ffc) {
+		case 0: // Interrupt status
+			return 0xfa | (p->irq ? 1 : 0);
+		case 4: // Message (low)
+			return message[0];
+		case 8: // Message (high)
+			return message[1];
+		default:
+			return 0;
+		}
 	}
 	return 0xff;
 }
@@ -95,7 +136,12 @@ podulerom_read8(podule *p, int easi, uint32_t addr)
 void
 podulerom_reset(void)
 {
-	addpodule(NULL, NULL, NULL, NULL, NULL, podulerom_read8, NULL, NULL, 0);
+	self = addpodule(NULL, NULL, podulerom_write8,
+	                 NULL, NULL, podulerom_read8,
+	                 NULL, NULL);
+
+	enable = 0;
+	memset(message, 0, sizeof(message));
 }
 
 /**
@@ -148,23 +194,24 @@ initpodulerom(void)
 	chunkbase = 0x10;
 	filebase = chunkbase + 8 * file + 8;
 	poduleromsize = filebase + ((sizeof(description) + 3) & ~3u); /* Word align description string */
-	podulerom = malloc(poduleromsize);
+	podulerom = calloc(poduleromsize, 1);
 	if (podulerom == NULL) {
 		fatal("initpodulerom: Out of Memory");
 	}
 
-	memset(podulerom, 0, poduleromsize);
-	podulerom[0] = 0; /* Acorn comformant card, not requesting FIQ, not requesting interupt, EcID = 0 = EcID is extended (8 bytes) */
-	podulerom[1] = 3; /* Interrupt status has been relocated, chunk directories present, byte access */
-	podulerom[2] = 0; /* Mandatory */
-	podulerom[3] = 0; /* Product type, low,  ???? */
-	podulerom[4] = 0; /* Product type, high, ???? */
-	podulerom[5] = 0; /* Manufacturer, low,  Acorn UK */
-	podulerom[6] = 0; /* Manufacturer, high, Acorn UK */
-	podulerom[7] = 0; /* Reserved */
+	podulerom[0] = 0; // Acorn comformant card, EcID = 0 = EcID is extended (8 bytes)
+	podulerom[1] = 3; // Interrupt status has been relocated, chunk directories present, byte access
+	podulerom[2] = 0; // Mandatory
+	podulerom[3] = 0; // Product type, low,  ????
+	podulerom[4] = 0; // Product type, high, ????
+	podulerom[5] = 0; // Manufacturer, low,  Acorn UK
+	podulerom[6] = 0; // Manufacturer, high, Acorn UK
+	podulerom[7] = 0; // Reserved
+
+	podulerom[12] = 1; // IRQ Status Bit Mask
 
 	memcpy(podulerom + filebase, description, sizeof(description));
-	makechunk(0xf5, filebase, sizeof(description)); /* f = Device Data, 5 = description */
+	makechunk(0xf5, filebase, sizeof(description)); // 0xf5 = Device Data, Description
 	filebase += (sizeof(description) + 3) & ~3u;
 
 	/* Add each file into the podule's rom */
@@ -208,4 +255,34 @@ initpodulerom(void)
 		makechunk(0x81, filebase, len); /* 8 = Mandatory, Acorn Operating System #0 (RISC OS), 1 = BBC ROM */
 		filebase += ((uint32_t) len + 3) & ~3u;
 	}
+}
+
+/**
+ * Fill in mouse wheel message and generate IRQ (if enabled).
+ *
+ * Called with mouse wheel change from GUI.
+ *
+ * @param dy Change in mouse wheel
+ */
+void
+podulerom_mouse_wheel_change(int dy)
+{
+	if (self == NULL || !enable) {
+		// Unavailable or inactive
+		return;
+	}
+
+	// Fill in message details
+	if (dy > 0) {
+		message[0] = 1;
+		message[1] = 1;
+	} else if (dy < 0) {
+		message[0] = 1;
+		message[1] = 0xff;
+	} else {
+		message[0] = 0;
+	}
+
+	// Generate IRQ
+	podule_irq_raise(self);
 }

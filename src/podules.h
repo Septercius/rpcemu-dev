@@ -21,39 +21,52 @@
 #ifndef PODULES_H
 #define PODULES_H
 
-void writepodulel(int num, int easi, uint32_t addr, uint32_t val);
-void writepodulew(int num, int easi, uint32_t addr, uint32_t val);
-void writepoduleb(int num, int easi, uint32_t addr, uint8_t val);
-uint32_t  readpodulel(int num, int easi, uint32_t addr);
-uint32_t readpodulew(int num, int easi, uint32_t addr);
-uint8_t  readpoduleb(int num, int easi, uint32_t addr);
+#include <stdint.h>
 
-typedef struct podule
-{
-        void (*writeb)(struct podule *p, int easi, uint32_t addr, uint8_t val);
-        void (*writew)(struct podule *p, int easi, uint32_t addr, uint16_t val);
-        void (*writel)(struct podule *p, int easi, uint32_t addr, uint32_t val);
-        uint8_t  (*readb)(struct podule *p, int easi, uint32_t addr);
-        uint16_t (*readw)(struct podule *p, int easi, uint32_t addr);
-        uint32_t (*readl)(struct podule *p, int easi, uint32_t addr);
-        int (*timercallback)(struct podule *p);
-        void (*reset)(struct podule *p);
-        int irq,fiq;
-        int msectimer;
-        int broken;
+typedef enum {
+	/// Access is in IOC space
+	PODULE_IO_TYPE_IOC = 0,
+	/// Access is in MEMC space
+	PODULE_IO_TYPE_MEMC,
+	/// Access is in EASI space (not Archimedes)
+	PODULE_IO_TYPE_EASI,
+} PoduleIoType;
+
+void podules_write32(int num, PoduleIoType io_type, uint32_t addr, uint32_t val);
+void podules_write16(int num, PoduleIoType io_type, uint32_t addr, uint16_t val);
+void podules_write8(int num, PoduleIoType io_type, uint32_t addr, uint8_t val);
+uint32_t podules_read32(int num, PoduleIoType io_type, uint32_t addr);
+uint16_t podules_read16(int num, PoduleIoType io_type, uint32_t addr);
+uint8_t  podules_read8(int num, PoduleIoType io_type, uint32_t addr);
+
+typedef struct podule {
+	void (*writeb)(struct podule *p, PoduleIoType io_type, uint32_t addr, uint8_t val);
+	void (*writew)(struct podule *p, PoduleIoType io_type, uint32_t addr, uint16_t val);
+	void (*writel)(struct podule *p, PoduleIoType io_type, uint32_t addr, uint32_t val);
+	uint8_t  (*readb)(struct podule *p, PoduleIoType io_type, uint32_t addr);
+	uint16_t (*readw)(struct podule *p, PoduleIoType io_type, uint32_t addr);
+	uint32_t (*readl)(struct podule *p, PoduleIoType io_type, uint32_t addr);
+	int (*timercallback)(struct podule *p);
+	void (*reset)(struct podule *p);
+	int irq;
+	int fiq;
+	int msectimer;
 } podule;
 
-void rethinkpoduleints(void);
+void podule_fiq_raise(podule *p);
+void podule_fiq_lower(podule *p);
 
-podule *addpodule(void (*writel)(podule *p, int easi, uint32_t addr, uint32_t val),
-              void (*writew)(podule *p, int easi, uint32_t addr, uint16_t val),
-              void (*writeb)(podule *p, int easi, uint32_t addr, uint8_t val),
-              uint32_t (*readl)(podule *p, int easi, uint32_t addr),
-              uint16_t (*readw)(podule *p, int easi, uint32_t addr),
-              uint8_t  (*readb)(podule *p, int easi, uint32_t addr),
+void podule_irq_raise(podule *p);
+void podule_irq_lower(podule *p);
+
+podule *addpodule(void (*writel)(podule *p, PoduleIoType io_type, uint32_t addr, uint32_t val),
+              void (*writew)(podule *p, PoduleIoType io_type, uint32_t addr, uint16_t val),
+              void (*writeb)(podule *p, PoduleIoType io_type, uint32_t addr, uint8_t val),
+              uint32_t (*readl)(podule *p, PoduleIoType io_type, uint32_t addr),
+              uint16_t (*readw)(podule *p, PoduleIoType io_type, uint32_t addr),
+              uint8_t  (*readb)(podule *p, PoduleIoType io_type, uint32_t addr),
               int (*timercallback)(podule *p),
-              void (*reset)(podule *p),
-              int broken);
+              void (*reset)(podule *p));
 
 void runpoduletimers(int t);
 void podules_reset(void);

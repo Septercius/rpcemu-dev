@@ -21,22 +21,22 @@
 static time_t
 hostfs_adfs2host_time(uint32_t load, uint32_t exec)
 {
-	uint32_t high = load << 24;
-	uint32_t low  = exec;
+    uint32_t high = load << 24;
+    uint32_t low  = exec;
 
-	high |= low >> 8;
-	low &= 0xff;
+    high |= low >> 8;
+    low &= 0xff;
 
-	if (high < 0x3363996a) {
-		/* Too early */
-		return 0;
-	} else if (high >= 0x656e9969) {
-		/* Too late */
-		return 0x7ffffffd;
-	}
+    if (high < 0x3363996a) {
+        /* Too early */
+        return 0;
+    } else if (high >= 0x656e9969) {
+        /* Too late */
+        return 0x7ffffffd;
+    }
 
-	high -= 0x336e996a;
-	return (((high % 100) << 8) + low) / 100 + (high / 100 << 8);
+    high -= 0x336e996a;
+    return (((high % 100) << 8) + low) / 100 + (high / 100 << 8);
 }
 
 /**
@@ -49,11 +49,11 @@ void
 hostfs_read_object_info_platform(const char *host_pathname,
                                  risc_os_object_info *object_info)
 {
-	struct stat info;
-	uint32_t low, high;
+    struct stat info;
+    uint32_t low, high;
 
-	assert(host_pathname != NULL);
-	assert(object_info != NULL);
+    assert(host_pathname != NULL);
+    assert(object_info != NULL);
     
   // Ignore DS_Store files.
   if (strcasestr(host_pathname, ".DS_Store") != NULL)
@@ -62,45 +62,45 @@ hostfs_read_object_info_platform(const char *host_pathname,
       return;
   }
     
-	if (stat(host_pathname, &info)) {
-		/* Error reading info about the object */
-		switch (errno) {
-		case ENOENT: /* Object not found */
-		case ENOTDIR: /* A path component is not a directory */
-			object_info->type = OBJECT_TYPE_NOT_FOUND;
-			break;
+    if (stat(host_pathname, &info)) {
+        /* Error reading info about the object */
+        switch (errno) {
+        case ENOENT: /* Object not found */
+        case ENOTDIR: /* A path component is not a directory */
+            object_info->type = OBJECT_TYPE_NOT_FOUND;
+            break;
 
-		default:
-			/* Other error */
-			fprintf(stderr,
-			        "hostfs_read_object_info_platform() could not stat() \'%s\': %s %d\n",
-			        host_pathname, strerror(errno), errno);
-			object_info->type = OBJECT_TYPE_NOT_FOUND;
-			break;
-		}
+        default:
+            /* Other error */
+            fprintf(stderr,
+                    "hostfs_read_object_info_platform() could not stat() \'%s\': %s %d\n",
+                    host_pathname, strerror(errno), errno);
+            object_info->type = OBJECT_TYPE_NOT_FOUND;
+            break;
+        }
 
-		return;
-	}
+        return;
+    }
 
-	/* We were able to read about the object */
-	if (S_ISREG(info.st_mode)) {
-		object_info->type = OBJECT_TYPE_FILE;
-	} else if (S_ISDIR(info.st_mode)) {
-		object_info->type = OBJECT_TYPE_DIRECTORY;
-	} else {
-		/* Treat types other than file or directory as not found */
-		object_info->type = OBJECT_TYPE_NOT_FOUND;
-		return;
-	}
+    /* We were able to read about the object */
+    if (S_ISREG(info.st_mode)) {
+        object_info->type = OBJECT_TYPE_FILE;
+    } else if (S_ISDIR(info.st_mode)) {
+        object_info->type = OBJECT_TYPE_DIRECTORY;
+    } else {
+        /* Treat types other than file or directory as not found */
+        object_info->type = OBJECT_TYPE_NOT_FOUND;
+        return;
+    }
 
-	low  = (uint32_t) ((info.st_mtime & 255) * 100);
-	high = (uint32_t) ((info.st_mtime / 256) * 100 + (low >> 8) + 0x336e996a);
+    low  = (uint32_t) ((info.st_mtime & 255) * 100);
+    high = (uint32_t) ((info.st_mtime / 256) * 100 + (low >> 8) + 0x336e996a);
 
-	/* If the file has filetype and timestamp, additional values will need to be filled in later */
-	object_info->load = (high >> 24);
-	object_info->exec = (low & 0xff) | (high << 8);
+    /* If the file has filetype and timestamp, additional values will need to be filled in later */
+    object_info->load = (high >> 24);
+    object_info->exec = (low & 0xff) | (high << 8);
 
-	object_info->length = info.st_size;
+    object_info->length = (uint32_t) info.st_size;
 }
 
 /**
@@ -113,9 +113,9 @@ hostfs_read_object_info_platform(const char *host_pathname,
 void
 hostfs_object_set_timestamp_platform(const char *host_path, uint32_t load, uint32_t exec)
 {
-	struct utimbuf t;
+    struct utimbuf t;
 
-	t.actime = t.modtime = hostfs_adfs2host_time(load, exec);
-	utime(host_path, &t);
-	/* TODO handle error in utime() */
+    t.actime = t.modtime = hostfs_adfs2host_time(load, exec);
+    utime(host_path, &t);
+    /* TODO handle error in utime() */
 }

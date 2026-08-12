@@ -28,10 +28,11 @@
 unsigned char icsrom[8192];
 int icspage;
 
-uint8_t icsreadb(podule *p, int easi, uint32_t addr)
+uint8_t
+icsreadb(podule *p, PoduleIoType io_type, uint32_t addr)
 {
 	NOT_USED(p);
-	NOT_USED(easi);
+	NOT_USED(io_type);
 	NOT_USED(addr);
 /*        int temp;
 //        rpclog("Read ICSB %04X\n",addr);
@@ -46,24 +47,26 @@ uint8_t icsreadb(podule *p, int easi, uint32_t addr)
 	return 0;
 }
 
-uint16_t icsreadw(podule *p, int easi, uint32_t addr)
+uint16_t
+icsreadw(podule *p, PoduleIoType io_type, uint32_t addr)
 {
 	NOT_USED(p);
-	NOT_USED(easi);
+	NOT_USED(io_type);
 	NOT_USED(addr);
 /*        if ((addr&0x3000)==0x3000)
         {
 //                rpclog("Read IDEW\n");
                 return readidew();
         }
-        return icsreadb(p,easi,addr);*/
+        return icsreadb(p, io_type, addr);*/
 	return 0;
 }
 
-void icswriteb(podule *p, int easi, uint32_t addr, uint8_t val)
+void
+icswriteb(podule *p, PoduleIoType io_type, uint32_t addr, uint8_t val)
 {
 	NOT_USED(p);
-	NOT_USED(easi);
+	NOT_USED(io_type);
 	NOT_USED(addr);
 	NOT_USED(val);
 //        rpclog("Write ICSB %04X %02X\n",addr,val);
@@ -76,10 +79,11 @@ void icswriteb(podule *p, int easi, uint32_t addr, uint8_t val)
         }*/
 }
 
-void icswritew(podule *p, int easi, uint32_t addr, uint16_t val)
+void
+icswritew(podule *p, PoduleIoType io_type, uint32_t addr, uint16_t val)
 {
 	NOT_USED(p);
-	NOT_USED(easi);
+	NOT_USED(io_type);
 	NOT_USED(addr);
 	NOT_USED(val);
 /*        if ((addr&0x3000)==0x3000)
@@ -87,7 +91,7 @@ void icswritew(podule *p, int easi, uint32_t addr, uint16_t val)
 //                rpclog("WRITEIDEW\n");
                 return writeidew(val);
         }
-        icswriteb(p,easi,addr,val);*/
+        icswriteb(p, io_type, addr, val);*/
 }
 
 void initics(void)

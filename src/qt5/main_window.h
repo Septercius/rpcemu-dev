@@ -74,6 +74,7 @@ protected:
 	void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 	void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 	void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+	void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE;
 	void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
 	void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
 
@@ -119,6 +120,8 @@ private slots:
 	void menu_reset();
 	void menu_loaddisc0();
 	void menu_loaddisc1();
+	void menu_create_disc0();
+	void menu_create_disc1();
 	void menu_cdrom_disabled();
 	void menu_cdrom_empty();
 	void menu_cdrom_iso();
@@ -175,6 +178,9 @@ private:
     
     void processMagicKeys();
 
+	void load_disc(int drive);
+	void create_disc(int drive);
+
 	bool full_screen;
 	bool reenable_mousehack; ///< Did we disable mousehack entering fullscreen and have to reenable it on leaving fullscreen?
 
@@ -199,6 +205,8 @@ private:
 	// Actions on Disc menu (and submenus)
 	QAction *loaddisc0_action;
 	QAction *loaddisc1_action;
+	QAction *create_disc0_action;
+	QAction *create_disc1_action;
 	QAction *cdrom_disabled_action;
 	QAction *cdrom_empty_action;
 #if defined(Q_OS_LINUX)

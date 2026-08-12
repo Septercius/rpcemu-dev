@@ -353,6 +353,8 @@ fdc_write(uint32_t addr, uint32_t val)
 					fdc.st1        = 0;
 					fdc.st2        = 0;
 					fdc.drive      = fdc.st0 & 1;
+					fdc.side       = (fdc.st0 >> 2) & 1;
+					disc_format(fdc.st0 & 1, fdc.track, fdc.side, fdc.density);
 					break;
 
 				default:
