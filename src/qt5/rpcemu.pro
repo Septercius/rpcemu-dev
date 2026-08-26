@@ -49,7 +49,9 @@ HEADERS =	../superio.h \
 		configure_dialog.h \
 		about_dialog.h \
 		rpc-qt5.h \
-		plt_sound.h
+		plt_sound.h \
+		hostfs_dialog.h \
+		paths.h
 
 SOURCES =	../superio.c \
 		../cdrom-iso.c \
@@ -81,7 +83,9 @@ SOURCES =	../superio.c \
 		main_window.cpp \
 		configure_dialog.cpp \
 		about_dialog.cpp \
-		plt_sound.cpp
+		plt_sound.cpp \
+		hostfs_dialog.cpp \
+		paths.cpp
 
 # NAT Networking
 linux | win32 | macx {
@@ -249,7 +253,7 @@ macx {
 	LIBS += -framework coreFoundation -framework IOKit -framework Foundation -framework Carbon
 
 	QMAKE_INFO_PLIST = ../macosx/Info.plist
-	QMAKE_BUNDLE = rpcemu
+	QMAKE_BUNDLE = rpcemu.multihostfs
 	QMAKE_TARGET_BUNDLE_PREFIX = org.marutan
 }
 

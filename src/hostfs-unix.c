@@ -8,6 +8,10 @@
 #include <sys/stat.h>
 
 #include "hostfs_internal.h"
+#include "paths.h"
+#include "rpcemu.h"
+
+#define UNUSED(x) (void)(x)
 
 // Use 64-bit struct timespec for time conversion?
 // Currently enabled on 64-bit Linux.
@@ -259,8 +263,67 @@ hostfs_read_object_info_platform(const char *host_pathname,
 		return;
 	}
 
+	if (hostfs_is_systemfile_platform(host_pathname))
+	{
+		// A system file.  Should it be shown?
+		if (!config.show_systemfiles)
+		{
+			object_info->type = OBJECT_TYPE_NOT_FOUND;
+			return;
+		}
+	}
+	else if (hostfs_is_dotfile_platform(host_pathname))
+	{
+		// A dot file.  Should it be shown?
+		if (!config.show_dotfiles)
+		{
+			object_info->type = OBJECT_TYPE_NOT_FOUND;
+			return;
+		}
+	}
+
 	/* If the file has filetype and timestamp, additional values will need to be filled in later */
 	hostfs_struct_stat_to_risc_os_time(&info, object_info);
 
 	object_info->length = info.st_size;
 }
+
+/**
+ * Determines whether a file is a dot file.
+ *
+ * @param hostPath    Full path to object (file or dir) in host format
+ *
+ * @return            1 if the file is a dot file, otherwise 0.
+ */
+int
+hostfs_is_dotfile_platform(const char *hostPath)
+{
+  const char *fileName = path_extract_filename(hostPath);
+  if (fileName[0] == '.') return 1;
+  
+  return 0;
+}
+
+/**
+ * Determines whether a file is a system file.
+ *
+ * @param hostPath    Full path to object (file or dir) in host format
+ *
+ * @return            1 if the file is a system file, otherwise 0.
+ */
+int
+hostfs_is_systemfile_platform(const char *hostPath)
+{
+	size_t i;
+	
+	const char *fullPaths[] = { "/bin", "/boot", "/dev", "/etc", "/lib", "/lib32", "/lib64", "/libx32", "/lost+found", "/opt", "/proc", "/run", "/sbin", "/srv", "/swapfile", "/sys", "/tmp", "/usr", "/var" };
+	
+	// Check full paths.
+	for (i = 0; i < sizeof(fullPaths) / sizeof(fullPaths[0]); i += 1)
+	{
+		if (!strcasecmp(hostPath, fullPaths[i])) return 1;
+	}
+	
+	return 0;
+}
+

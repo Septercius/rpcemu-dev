@@ -42,6 +42,12 @@ extern "C" {
 #define URL_MANUAL  "http://www.marutan.net/rpcemu/manual/"
 #define URL_WEBSITE "http://www.marutan.net/rpcemu/"
 
+/* First HostFS drive. */
+#define HOSTFS_DRIVE_BASE 4
+
+/* Maximum number of HostFS drives. */
+#define HOSTFS_DRIVE_MAX 4
+
 #if !defined(_DEBUG) && !defined(NDEBUG)
 #define NDEBUG
 #endif
@@ -113,6 +119,16 @@ typedef enum {
 	CPUModel_ARM810
 } CPUModel;
 
+/** A drive configuration for HostFS. */
+typedef struct {
+    int id;
+    int bootOption;
+    int enabled;
+    char *driveName;
+    char *hostPath;
+    char *resolvedHostPath;
+} HostFSDrive;
+
 /** The user's configuration of the emulator */
 typedef struct {
 	unsigned mem_size;	/**< Amount of RAM in megabytes */
@@ -133,6 +149,14 @@ typedef struct {
 	int cpu_idle;		/**< Attempt to reduce CPU usage */
 	int show_fullscreen_message;	/**< Show explanation of how to leave fullscreen, on entering fullscreen */
 	char *network_capture;		///< Path to capture network traffic file, or NULL to disable
+    
+    int confirm_reset;
+    int confirm_quit;
+
+    int show_dotfiles;
+    int show_systemfiles;
+
+    HostFSDrive hostfs_drive[HOSTFS_DRIVE_MAX];
 } Config;
 
 extern Config config;
@@ -229,6 +253,7 @@ extern void rpcemu_model_changed(Model model);
 extern const char *rpcemu_file_get_extension(const char *filename);
 extern int rpcemu_config_is_reset_required(const Config *new_config, Model new_model);
 extern void rpcemu_config_apply_new_settings(Config *new_config, Model new_model);
+extern void rpcemu_config_apply_new_hostfs(Config *new_config);
 
 /* rpc-qt5.cpp */
 extern void rpcemu_video_update(const uint32_t *buffer, int xsize, int ysize, int yl, int yh, int double_size, int host_xsize, int host_ysize);

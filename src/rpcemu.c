@@ -95,6 +95,9 @@ Config config = {
 	0,			/* cpu_idle */
 	1,			/* show_fullscreen_message */
 	NULL,			/* network_capture */
+    0,          /* confirm_reset */
+    0,          /* confirm_quit */
+    .hostfs_drive = { {0, 0, 0, NULL, NULL, NULL}, {0, 0, 0, NULL, NULL, NULL}, {0, 0, 0, NULL, NULL, NULL}, {0, 0, 0, NULL, NULL, NULL} }
 };
 
 /* Performance measuring variables */
@@ -306,12 +309,12 @@ rpcemu_prestart(void)
 void
 rpcemu_start(void)
 {
-	hostfs_init();
 	mem_init();
 	cp15_init();
 	arm_init();
 	loadroms();
         cmos_init();
+        hostfs_init();
         fdc_init();
         adf_init();
         hfe_init();
@@ -734,3 +737,55 @@ rpcemu_nat_forward_remove(PortForwardRule rule)
 	// rule not found, should be impossible
 	assert(0);
 }
+
+/* Apply a new HostFS configuration and reset the emulator if required.
+ * @thread emulator
+ * @param new_config the new configuration
+ */
+void
+rpcemu_config_apply_new_hostfs(Config *new_config)
+{
+    int shouldReset = 0;
+    
+    for (int i = 0; i <= HOSTFS_DRIVE_MAX; i++)
+    {
+        HostFSDrive *oldDrive = &config.hostfs_drive[i];
+        HostFSDrive *newDrive = &new_config->hostfs_drive[i];
+        
+        // Has the enabled flag changed?
+        if (oldDrive->enabled != newDrive->enabled)
+        {
+            shouldReset = 1;
+            break;
+        }
+        
+        if (!newDrive->enabled) continue;
+        
+        // Has the drive name changed?
+        if (strcasecmp(oldDrive->driveName, newDrive->driveName) != 0)
+        {
+            shouldReset = 1;
+            break;
+        }
+        
+        // Has the host path changed?
+        if (strcasecmp(oldDrive->hostPath, newDrive->hostPath) != 0)
+        {
+            shouldReset = 1;
+            break;
+        }
+    }
+    
+    /* Copy the new settings over. */
+    memcpy(&config, new_config, sizeof(Config));
+    
+    // Save the settings to the rpc.cfg file
+    config_save(&config);
+    
+    // Trigger a reset if needed.
+    if (shouldReset)
+    {
+        resetrpc();
+    }
+}
+

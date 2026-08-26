@@ -39,6 +39,8 @@
 #include "mem.h"
 #include "hostfs.h"
 #include "hostfs_internal.h"
+#include "cmos.h"
+#include "paths.h"
 
 #define HOSTFS_PROTOCOL_VERSION	3
 
@@ -95,6 +97,54 @@ enum RISC_OS_FILE_TYPE {
   RISC_OS_FILE_TYPE_TEXT = 0xfff,
 };
 
+enum RISC_OS_DIRECTORY_CHANGE_TYPE
+{
+    RISC_OS_DIRECTORY_CHANGE_TYPE_CSD = 0,          /* Currently set directory. */
+    RISC_OS_DIRECTORY_CHANGE_TYPE_PSD = 1,          /* Previously set directory. */
+    RISC_OS_DIRECTORY_CHANGE_TYPE_URD = 2,          /* User root directory. */
+    RISC_OS_DIRECTORY_CHANGE_TYPE_LIB = 3           /* Library directory. */
+};
+
+enum RISCOS_FILE_ATTRIBUTE
+{
+    RISCOS_FILE_ATTRIBUTE_READ = (1 << 0),
+    RISCOS_FILE_ATTRIBUTE_WRITE = (1 << 1),
+    RISCOS_FILE_ATTRIBUTE_EXECUTE = (1 << 2),
+    RISCOS_FILE_ATTRIBUTE_LOCKED = (1 << 3),
+    RISCOS_FILE_ATTRIBUTE_READOTHER = (1 << 4),
+    RISCOS_FILE_ATTRIBUTE_WRITEOTHER = (1 << 5),
+    RISCOS_FILE_ATTRIBUTE_LOCKEDOTHER = (1 << 7)
+};
+
+enum HOSTFS_COMMAND_TYPE
+{
+    HOSTFS_COMMAND_TYPE_OPENDIR = 1,                /* Command to open a directory. */
+    HOSTFS_COMMAND_TYPE_FREE = 2,                   /* Command to show free space. */
+    HOSTFS_COMMAND_TYPE_BOOT = 3                    /* Command to perform boot action. */
+};
+
+enum HOSTFS_BOOT_OPTION
+{
+    HOSTFS_BOOT_OPTION_LOAD = 1,                    /* Load. */
+    HOSTFS_BOOT_OPTION_RUN = 2,                     /* Run. */
+    HOSTFS_BOOT_OPTION_EXEC = 3                     /* Execute. */
+};
+
+enum HOSTFS_FREE_OPERATION
+{
+    HOSTFS_FREE_OPERATION_GETDEVICENAME = 1,
+    HOSTFS_FREE_OPERATION_FREE32 = 2,
+    HOSTFS_FREE_OPERATION_FREE64 = 4
+};
+
+typedef struct
+{
+    char CSD[PATH_MAX];
+    char PSD[PATH_MAX];
+    char Lib[PATH_MAX];
+    char URD[PATH_MAX];
+} HostFSDirectoryState;
+
 /**
  * Type used to cache information about a directory entry.
  * Contains name and RISC OS object info
@@ -120,10 +170,7 @@ typedef struct {
 #define DEFAULT_FILE_TYPE   RISC_OS_FILE_TYPE_TEXT
 #define MINIMUM_BUFFER_SIZE 32768
 
-/** Disc name of default disc or if no disc name is present */
-static const char *disc_name_default = "HostFS";
-
-static char HOSTFS_ROOT[512];
+#define HOSTFS_FILING_SYSTEM 0x99
 
 static FILE *open_file[MAX_OPEN_FILES + 1]; /* array subscript 0 is never used */
 
@@ -136,6 +183,12 @@ static char *cache_names = NULL;
 
 /** Current registration state of HostFS module with backend code */
 static HostFSState hostfs_state = HOSTFS_STATE_UNREGISTERED;
+
+/** Directory state. */
+static HostFSDirectoryState directory_state;
+
+/** Configured drive. */
+static int hostfs_configured_drive;
 
 #ifdef NDEBUG
 static inline void dbug_hostfs(const char *format, ...) { NOT_USED(format); }
@@ -152,19 +205,85 @@ dbug_hostfs(const char *format, ...)
 #endif
 
 /**
- * Verify that the disc name is valid - currently match with the
- * default name only.
+ * Determines the drive for a specified name.
  *
- * @param disc_name Disc name
- * @return 1 if disc name is valid, 0 otherwise
+ * @param discName Disc name
+ * @return The index of the drive, or -1 if not found.
  */
 static int
-hostfs_disc_name_valid(const char *disc_name)
+hostfs_find_drive_from_name(char *discName)
 {
-  if (!STRCASEEQ(disc_name, disc_name_default)) {
-    return 0;
-  }
-  return 1;
+    HostFSDrive *drive = NULL;
+    
+    // First, try to match names.
+    for (int i = 0; i < HOSTFS_DRIVE_MAX ; i++)
+    {
+        drive = &config.hostfs_drive[i];
+        if (drive == NULL || !drive->enabled) continue;
+        
+        if (STRCASEEQ(drive->driveName, discName))
+        {
+            fprintf(stderr, "HostFS: matched disc name '%s' to drive %d.\n", discName, i + HOSTFS_DRIVE_BASE);
+            return i;
+        }
+    }
+    
+    // Second, try to match an identifier.
+    char id[2];
+    
+    for (int i = 0; i < HOSTFS_DRIVE_MAX ; i++)
+    {
+        drive = &config.hostfs_drive[i];
+        if (drive == NULL || !drive->enabled) continue;
+        
+        sprintf(id, "%d", drive->id);
+        if (strcmp(id, discName) == 0)
+        {
+            strcpy(discName, drive->driveName);
+            
+            fprintf(stderr, "HostFS: matched disc name '%s' to drive %d.\n", discName, i + HOSTFS_DRIVE_BASE);
+            return i;
+        }
+    }
+    
+    fprintf(stderr, "HostFS: unable to match disc name '%s'.\n", discName);
+    
+    return -1;
+}
+
+/**
+ * Determines the drive for a specified path.
+ *
+ * @param ro_path   The RISC OS path for which the drive is required.
+ * @return          The index of the drive, or -1 if not found.
+ */
+static int
+hostfs_find_drive_from_path(const char *ro_path)
+{
+    char driveName[13];
+    int i = 0;
+    
+    assert((char) *ro_path == ':');
+    
+    // Skip past the leading colon.
+    ro_path++;
+    
+    while (*ro_path && i < 12)
+    {
+        if ((char) *ro_path == '.')
+        {
+            // Jump past the dot following the drive name.
+            ro_path++;
+            break;
+        }
+        
+        driveName[i++] = (char) *ro_path;
+        ro_path++;
+    }
+
+    driveName[i] = '\0';
+
+    return hostfs_find_drive_from_name(driveName);
 }
 
 /**
@@ -193,15 +312,16 @@ hostfs_ensure_buffer_size(size_t buffer_size_needed)
 static void
 get_string(ARMul_State *state, ARMword address, char *buf, size_t bufsize)
 {
-  assert(state);
-  assert(buf);
+    assert(state);
+    assert(buf);
 
-  /* TODO Ensure we do not overrun the end of the passed-in space,
-     using the bufsize parameter */
-  while ((*buf = ARMul_LoadByte(state, address)) != '\0') {
-    buf++;
-    address++;
-  }
+    size_t count = 0;
+
+    while ((*buf = ARMul_LoadByte(state, address)) != '\0' && count < bufsize) {
+        buf++;
+        address++;
+        count++;
+    }
 }
 
 /**
@@ -247,43 +367,79 @@ hostfs_object_set_timestamp(const char *host_path, ARMword load, ARMword exec)
 }
 
 static void
-riscos_path_to_host(const char *path, char *host_path)
+riscos_path_to_host(const char *path, char *host_path, bool leaf)
 {
-  assert(path);
-  assert(host_path);
-
-  while (*path) {
-    switch (*path) {
-    case '$':
-      strcpy(host_path, HOSTFS_ROOT);
-      host_path += strlen(host_path);
-      break;
-    case '.':
-      *host_path++ = '/';
-      break;
-    case '/':
-      *host_path++ = '.';
-      break;
-    case '?':
-      *host_path++ = '#';
-      break;
-    case '<':
-      *host_path++ = '$';
-      break;
-    case '>':
-      *host_path++ = '^';
-      break;
-    case (char) 160:
-      *host_path++ = ' ';
-      break;
-    default:
-      *host_path++ = *path;
-      break;
+    assert(path);
+    assert(host_path);
+    
+    char driveName[13];
+    int i = 0, drive;
+    
+    if (!leaf)
+    {
+        // The input should be something in the format ':<drive>.$.<folder>.<file>'.
+        assert((char) *path == '.');
+        path++;
+        
+        while (*path && i < 13)
+        {
+            if ((char) *path == '.')
+            {
+                // Stop after the first dot.
+                path++;
+                break;
+            }
+            
+            driveName[i++] = (char) *path;
+            path++;
+        }
+        
+        driveName[i] = '\0';
+        drive = hostfs_find_drive_from_name(driveName);
+        
+        assert(drive != -1);
     }
-    path++;
-  }
+    
+    while (*path)
+    {
+        if (!leaf)
+        {
+            if (*path == '$')
+            {
+                strcpy(host_path, config.hostfs_drive[drive].resolvedHostPath);
+                host_path += strlen(host_path);
+            }
+        }
+        else
+        {
+            switch (*path) {
+                case '.':
+                    *host_path++ = '/';
+                    break;
+                case '/':
+                    *host_path++ = '.';
+                    break;
+                case '?':
+                    *host_path++ = '#';
+                    break;
+                case '<':
+                    *host_path++ = '$';
+                    break;
+                case '>':
+                    *host_path++ = '^';
+                    break;
+                case (char) 160:
+                    *host_path++ = ' ';
+                    break;
+                default:
+                    *host_path++ = *path;
+                    break;
+            }
+        }
+        path++;
+    }
 
-  *host_path = '\0';
+    *host_path = '\0';
 }
 
 /**
@@ -382,7 +538,7 @@ path_construct(const char *old_path, const char *ro_path,
     }
 
     /* Place new leaf */
-    riscos_path_to_host(ro_leaf, new_leaf);
+    riscos_path_to_host(ro_leaf, new_leaf, true);
   }
 
   /* Calculate where to place new comma suffix */
@@ -547,9 +703,7 @@ hostfs_path_scan(const char *host_dir_path,
       continue;
     }
 
-    strcpy(entry_path, host_dir_path);
-    strcat(entry_path, "/");
-    strcat(entry_path, entry->d_name);
+    path_join(host_dir_path, entry->d_name, entry_path);
 
     hostfs_read_object_info(entry_path, ro_leaf, object_info);
 
@@ -595,6 +749,7 @@ hostfs_path_process(const char *ro_path,
 {
   char component_name[PATH_MAX]; /* working Host component */
   char *component;
+  char rootFolder[PATH_MAX];
 
   assert(ro_path);
   assert(host_pathname);
@@ -615,6 +770,7 @@ hostfs_path_process(const char *ro_path,
     const char *c;
     char disc_name[80];
     size_t disc_name_len;
+    int drive;
 
     /* Locate the '$' */
     c = strchr(ro_path, '$');
@@ -640,10 +796,14 @@ hostfs_path_process(const char *ro_path,
     disc_name[disc_name_len] = '\0';
 
     /* Identify the disc from the disc name */
-    if (!hostfs_disc_name_valid(disc_name)) {
+    drive = hostfs_find_drive_from_name(disc_name);
+    if (drive == -1)
+    {
       object_info->type = OBJECT_TYPE_NOT_FOUND;
       return FILECORE_ERROR_DISCNOTFOUND;
     }
+      
+    strncpy(rootFolder, config.hostfs_drive[drive].resolvedHostPath, PATH_MAX);
 
     /* Now process the path from '$' onwards */
     ro_path = c + 1;
@@ -652,7 +812,7 @@ hostfs_path_process(const char *ro_path,
   while (*ro_path) {
     switch (*ro_path) {
     case '$':
-      strcat(host_pathname, HOSTFS_ROOT);
+      strcat(host_pathname, rootFolder);
 
       hostfs_read_object_info(host_pathname, NULL, object_info);
       if (object_info->type == OBJECT_TYPE_NOT_FOUND) {
@@ -679,8 +839,7 @@ hostfs_path_process(const char *ro_path,
         }
 
         /* Append Host's name for this component to the working Host path */
-        strcat(host_pathname, "/");
-        strcat(host_pathname, host_name);
+        path_join_to(host_pathname, host_name);
 
         /* Reset component name ready for re-use */
         component = &component_name[0];
@@ -717,8 +876,7 @@ hostfs_path_process(const char *ro_path,
     }
 
     /* Append Host's name for this component to the working Host path */
-    strcat(host_pathname, "/");
-    strcat(host_pathname, host_name);
+    path_join_to(host_pathname, host_name);
   }
 
   return 0;
@@ -772,7 +930,7 @@ hostfs_open(ARMul_State *state)
   }
 
   /* TODO Handle the case that a file exists to be replaced, (and the filetype is
-     not data - the recommeded default for new files) */
+     not data - the recommended default for new files) */
 
   idx = hostfs_open_allocate_index();
   if (idx == 0) {
@@ -1380,7 +1538,7 @@ hostfs_file_8_create_dir(ARMul_State *state)
     new_leaf = host_pathname + strlen(host_pathname);
 
     /* Place new leaf */
-    riscos_path_to_host(ro_leaf, new_leaf);
+    riscos_path_to_host(ro_leaf, new_leaf, true);
   }
 
   dbug_hostfs("\tHOST_PATHNAME = %s\n", host_pathname);
@@ -1505,9 +1663,39 @@ hostfs_func_0_chdir(ARMul_State *state)
   dbug_hostfs("\tr1 = 0x%08x (ptr to wildcarded dir. name)\n", state->Reg[1]);
 
   get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
-  riscos_path_to_host(ro_path, host_path);
+  riscos_path_to_host(ro_path, host_path, false);
   dbug_hostfs("\tPATH = %s\n", ro_path);
   dbug_hostfs("\tPATH2 = %s\n", host_path);
+}
+
+static void
+hostfs_func_7_set_options(ARMul_State *state)
+{
+  int index;
+  
+  dbug_hostfs("\tSet filing system options.\n");
+  dbug_hostfs("\tr1 = %d (new option, or 0).\n", state->Reg[1]);
+  dbug_hostfs("\tr2 = %d (new parameter).\n", state->Reg[2]);
+  
+  // Option 0 resets all filing system options.
+  // Option 4 sets the boot action.
+  
+  if (strlen(directory_state.CSD) == 0)
+  {
+    // No directory set.
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+  
+  index = hostfs_find_drive_from_path(directory_state.CSD);
+  if (index == -1)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+  
+  HostFSDrive *drive = &config.hostfs_drive[index];
+  drive->bootOption = (state->Reg[1] == 0 ? 0 : state->Reg[2]);
 }
 
 static void
@@ -1658,17 +1846,26 @@ hostfs_cache_dir(const char *directory_name)
       continue;
     }
 
-    strcpy(entry_path, directory_name);
-    strcat(entry_path, "/");
-    strcat(entry_path, entry->d_name);
+    path_join(directory_name, entry->d_name, entry_path);
 
     hostfs_read_object_info(entry_path, ro_leaf,
                             &cache_entries[entry_ptr].object_info);
 
     /* Ignore entries we can not read information about,
        or which are neither regular files or directories */
-    if (cache_entries[entry_ptr].object_info.type == OBJECT_TYPE_NOT_FOUND) {
-      continue;
+    if (cache_entries[entry_ptr].object_info.type == OBJECT_TYPE_NOT_FOUND) 
+    {
+        continue;
+    }
+      
+    if (!config.show_dotfiles && hostfs_is_dotfile_platform(entry_path))
+    {
+        continue;
+    }
+
+    if (!config.show_systemfiles && hostfs_is_systemfile_platform(entry_path))
+    {
+        continue;
     }
 
     /* Calculate space required to store name (+ terminator) */
@@ -1842,6 +2039,53 @@ hostfs_read_dir(ARMul_State *state, bool with_info, bool with_timestamp)
 }
 
 static void
+hostfs_func_11_read_name_and_boot_option(ARMul_State *state)
+{
+  assert(state);
+  
+  dbug_hostfs("\tRead name and boot option of disc.\n");
+  dbug_hostfs("\tr2 = 0x%08x (ptr to buffer).\n", state->Reg[2]);
+  
+  // The format for the result is '<name length byte><drive name><boot option>'.
+  char buffer[90];
+  
+  if (strlen(directory_state.CSD) == 0)
+  {
+    // If no CSD, return "Unset" for the name and 0 for the boot option.
+    buffer[0] = 5;
+    strcpy(buffer + 1, "Unset");
+    buffer[6] = 0;
+  }
+  else
+  {
+    // There is a CSD, extract the drive name.
+    int index = hostfs_find_drive_from_path(directory_state.CSD);
+    if (index == -1)
+    {
+      // Drive not recognised.
+      state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+      return;
+    }
+    
+    HostFSDrive *drive = &config.hostfs_drive[index];
+    if (drive == NULL || !drive->enabled)
+    {
+      // Drive is not defined or is disabled.
+      state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+      return;
+    }
+    
+    int len = strlen(drive->driveName);
+    
+    buffer[0] = len;
+    strcpy(buffer + 1, drive->driveName);
+    buffer[1 + len] = drive->bootOption;
+  }
+  
+  put_string(state, state->Reg[2], buffer);
+}
+
+static void
 hostfs_func_14_read_dir(ARMul_State *state)
 {
   assert(state);
@@ -1881,39 +2125,58 @@ hostfs_func_19_read_dir_info_timestamp(ARMul_State *state)
 static void
 hostfs_func_23_canonicalise_disc_name(ARMul_State *state)
 {
-  char disc_name[1024];
+    char disc_name[1024];
+    int index;
+    HostFSDrive *drive = NULL;
 
-  dbug_hostfs("\tCanonicalise special field and disc name\n");
-  dbug_hostfs("\tr2 = 0x%08x (ptr to disc name if present)\n", state->Reg[2]);
-  if (state->Reg[2] != 0) {
-    get_string(state, state->Reg[2], disc_name, sizeof(disc_name));
-    dbug_hostfs("\t   = \'%s\'\n", disc_name);
-  }
-  dbug_hostfs("\tr4 = 0x%08x (ptr to canonical disc name to fill in)\n", state->Reg[4]);
-  if (state->Reg[4] != 0) {
-    dbug_hostfs("\tr6 = %10u (length of buffer for canonical disc name)\n", state->Reg[6]);
-  }
-
-  /* Check disc name if provided */
-  if (state->Reg[2] != 0) {
-    if (!hostfs_disc_name_valid(disc_name)) {
-      state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
-      state->Reg[2] = state->Reg[4];
-      state->Reg[4] = 0;
-      return;
+    dbug_hostfs("\tCanonicalise special field and disc name\n");
+    dbug_hostfs("\tr1 = 0x%08x (ptr to special field if present)\n", state->Reg[1]);
+    dbug_hostfs("\tr2 = 0x%08x (ptr to disc name if present)\n", state->Reg[2]);
+    if (state->Reg[2] != 0) {
+        get_string(state, state->Reg[2], disc_name, sizeof(disc_name));
+        dbug_hostfs("\t   = \'%s\'\n", disc_name);
     }
-  }
+    dbug_hostfs("\tr4 = 0x%08x (ptr to canonical disc name to fill in)\n", state->Reg[4]);
+    if (state->Reg[4] != 0) {
+        dbug_hostfs("\tr6 = %10u (length of buffer for canonical disc name)\n", state->Reg[6]);
+    }
 
-  if (state->Reg[4] == 0) {
-    /* Request for buffer size needed for canonical disc name */
-    state->Reg[2] = state->Reg[4];
-    state->Reg[4] = (uint32_t) strlen(disc_name_default);
-  } else {
-    /* Request for canonical disc name */
-    put_string(state, state->Reg[4], disc_name_default);
-    state->Reg[2] = state->Reg[4];
-    state->Reg[4] = 0;
-  }
+    if (state->Reg[2] == 0)
+    {
+        if (hostfs_configured_drive >= HOSTFS_DRIVE_BASE && hostfs_configured_drive < HOSTFS_DRIVE_BASE + HOSTFS_DRIVE_MAX)
+        {
+            drive = &config.hostfs_drive[hostfs_configured_drive - HOSTFS_DRIVE_BASE];
+        }
+    }
+    else
+    {
+       index = hostfs_find_drive_from_name(disc_name);
+       if (index > -1) 
+       {
+           drive = &config.hostfs_drive[index];
+       }
+    }
+     
+    if (drive == NULL || !drive->enabled)
+    {
+        state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+        return;
+    }
+
+    if (state->Reg[4] != 0)
+    {
+        /* Request for canonical disc name */
+        put_string(state, state->Reg[4], drive->driveName);
+      
+        state->Reg[2] = state->Reg[4];
+        state->Reg[4] = 0;
+    }
+    else
+    {
+        /* Request for buffer size needed for canonical disc name */
+        state->Reg[2] = state->Reg[4];
+        state->Reg[4] = (uint32_t) strlen(drive->driveName);
+    }
 }
 
 /**
@@ -1946,11 +2209,75 @@ hostfs_func_24_resolve_wildcard(ARMul_State *state)
 static void
 hostfs_func_27_read_boot_option(ARMul_State *state)
 {
+  assert(state);
+    
+  char ro_path[PATH_MAX];
+  int index;
+    
+  get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
+    
   dbug_hostfs("\tRead boot option\n");
   dbug_hostfs("\tr1 = 0x%08x (ptr to pathname of object on image)\n", state->Reg[1]);
+  dbug_hostfs("\t   = %s\n", ro_path);
   dbug_hostfs("\tr6 = 0x%08x (pointer to special field if present)\n", state->Reg[6]);
 
-  state->Reg[2] = 2; /* Return boot option of 2 */
+  index = hostfs_find_drive_from_path(ro_path);
+  if (index == -1)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+
+  HostFSDrive *drive = &config.hostfs_drive[index];
+  if (!drive->enabled)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+
+  state->Reg[2] = drive->bootOption;
+
+  dbug_hostfs("Boot option for drive '%s' is %d.\n", drive->driveName, state->Reg[2]);
+}
+
+/**
+ * FSEntry_Func 28 - Write boot option.
+ *
+ * @param state Emulator state
+ */
+static void
+hostfs_func_28_write_boot_option(ARMul_State *state)
+{
+assert(state);
+
+  char ro_path[PATH_MAX];
+  int index;
+
+  get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
+
+  dbug_hostfs("\tRead boot option\n");
+  dbug_hostfs("\tr1 = 0x%08x (ptr to pathname of object on image)\n", state->Reg[1]);
+  dbug_hostfs("\t   = %s\n", ro_path);
+  dbug_hostfs("\tr2 = %d (new boot option).\n");
+  dbug_hostfs("\tr6 = 0x%08x (pointer to special field if present)\n", state->Reg[6]);
+
+  index = hostfs_find_drive_from_path(ro_path);
+  if (index == -1)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+
+  HostFSDrive *drive = &config.hostfs_drive[index];
+  if (!drive->enabled)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+
+  drive->bootOption = state->Reg[2];
+
+  dbug_hostfs("New boot option for drive '%s' is %d.\n", drive->driveName, drive->bootOption);
 }
 
 /**
@@ -1962,11 +2289,29 @@ static void
 hostfs_func_30_read_free_space32(ARMul_State *state)
 {
   disk_info d;
+  int index;
 
   dbug_hostfs("\tRead free space 32\n");
   dbug_hostfs("\tr1 = 0x%08x (ptr to pathname of object on image)\n", state->Reg[1]);
 
-  (void) path_disk_info(HOSTFS_ROOT, &d);
+  char ro_path[PATH_MAX];
+  get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
+  
+  index = hostfs_find_drive_from_path(ro_path);
+  if (index == -1)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+
+  HostFSDrive *drive = &config.hostfs_drive[index];
+  if (!drive->enabled)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+
+  (void) path_disk_info(drive->resolvedHostPath, &d);
 
   /* If the disk size is >= 2GB, return it as 2GB-1 */
   if (d.size >= 0x80000000) {
@@ -1984,6 +2329,63 @@ hostfs_func_30_read_free_space32(ARMul_State *state)
 }
 
 /**
+ * FSEntry_Func 34 - Directory change notification.
+ *
+ * @param state Emulator state
+ */
+static void
+hostfs_func_34_directory_changed(ARMul_State *state)
+{
+  char ro_path[PATH_MAX];
+
+  dbug_hostfs("Directory changed.\n");
+  dbug_hostfs("\tr1 = 0x%08x (ptr to directory name).\n", state->Reg[1]);
+
+  if (state->Reg[1] != 0)
+  {
+    get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
+    dbug_hostfs("\t  = %s\n", ro_path);
+  }
+
+  dbug_hostfs("\tr2 = %d (directory change type).\n", state->Reg[2]);
+
+  if (state->Reg[1] != 0)
+  {
+    switch (state->Reg[2])
+    {
+      case RISC_OS_DIRECTORY_CHANGE_TYPE_CSD:
+        // CSD - currently selected directory.
+        strncpy(directory_state.CSD, ro_path, sizeof(ro_path));
+
+        dbug_hostfs("HostFS: CSD changed to '%s'.\n", ro_path);
+        break;
+
+      case RISC_OS_DIRECTORY_CHANGE_TYPE_PSD:
+        // PSD - previously selected directory.
+        strncpy(directory_state.PSD, ro_path, sizeof(ro_path));
+
+        dbug_hostfs("HostFS: PSD changed to '%s'.\n", ro_path);
+        break;
+
+      case RISC_OS_DIRECTORY_CHANGE_TYPE_LIB:
+        // Lib - library directory.
+        strncpy(directory_state.Lib, ro_path, sizeof(ro_path));
+
+        dbug_hostfs("HostFS: library changed to '%s'.\n", ro_path);
+        break;
+
+      case RISC_OS_DIRECTORY_CHANGE_TYPE_URD:
+        // URD - user root directory.
+        strncpy(directory_state.URD, ro_path, sizeof(ro_path));
+
+        dbug_hostfs("HostFS: URD changed to '%s'.\n", ro_path);
+        break;
+
+    }
+  }
+}
+
+/**
  * FSEntry_Func 35 - Read free space (64-bit)
  *
  * @param state Emulator state
@@ -1992,11 +2394,29 @@ static void
 hostfs_func_35_read_free_space64(ARMul_State *state)
 {
   disk_info d;
+  int index;
 
   dbug_hostfs("\tRead free space 64\n");
   dbug_hostfs("\tr1 = 0x%08x (ptr to pathname of object on image)\n", state->Reg[1]);
 
-  (void) path_disk_info(HOSTFS_ROOT, &d);
+  char ro_path[PATH_MAX];
+  get_string(state, state->Reg[1], ro_path, sizeof(ro_path));
+
+  index = hostfs_find_drive_from_path(ro_path);
+  if (index == -1)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+
+  HostFSDrive *drive = &config.hostfs_drive[index];
+  if (!drive->enabled)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+
+  (void) path_disk_info(drive->resolvedHostPath, &d);
 
   state->Reg[0] = (uint32_t) d.free;
   state->Reg[1] = (uint32_t) (d.free >> 32);
@@ -2015,12 +2435,14 @@ hostfs_func(ARMul_State *state)
   case 0:
     hostfs_func_0_chdir(state);
     break;
+  case 7:
+    hostfs_func_7_set_options(state);
+    break;
   case 8:
     hostfs_func_8_rename(state);
     break;
   case 11:
-    dbug_hostfs("\tRead disc name and boot option\n");
-    state->Reg[9] = NOT_IMPLEMENTED;
+    hostfs_func_11_read_name_and_boot_option(state);
     break;
   case 14:
     hostfs_func_14_read_dir(state);
@@ -2040,8 +2462,14 @@ hostfs_func(ARMul_State *state)
   case 27:
     hostfs_func_27_read_boot_option(state);
     break;
+  case 28:
+    hostfs_func_28_write_boot_option(state);
+    break;
   case 30:
     hostfs_func_30_read_free_space32(state);
+    break;
+  case 34:
+    hostfs_func_34_directory_changed(state);
     break;
   case 35:
     hostfs_func_35_read_free_space64(state);
@@ -2094,14 +2522,7 @@ hostfs_register(ARMul_State *state)
 void
 hostfs_init(void)
 {
-  int c;
-
-  snprintf(HOSTFS_ROOT, sizeof(HOSTFS_ROOT), "%shostfs", rpcemu_get_datadir());
-  for (c = 0; c < 511; c++) {
-    if (HOSTFS_ROOT[c] == '\\') {
-      HOSTFS_ROOT[c] = '/';
-    }
-  }
+    dbug_hostfs("HostFS: initialised.\n");
 }
 
 /**
@@ -2170,3 +2591,398 @@ hostfs(ARMul_State *state)
     break;
   }
 }
+
+/**
+ * Handles the HostFS_Initialise SWI call.
+ * This sets everything up to communicate between the host and RISC OS.
+*/
+void
+hostfs_swi_initialise(ARMul_State *state)
+{
+  // HostFS_Initialise
+  //
+  // On entry:
+  //   R0: default file system number.
+  //   R1: default HostFS drive.
+  //
+  // On exit:
+  //   R0 = preserved.
+  //   R1 = preserved.
+    
+  assert(state);
+    
+  dbug_hostfs("HostFS: SWI 'HostFS_Initialise'.\n");
+  dbug_hostfs("\tr0 = %d/0x%x (default filing system number).\n", state->Reg[0]);
+  dbug_hostfs("\tr1 = %d (default HostFS drive).\n", state->Reg[1], state->Reg[1]);
+    
+  hostfs_configured_drive = state->Reg[1];
+  dbug_hostfs("HostFS: drive %d is configured in CMOS RAM.\n", hostfs_configured_drive);
+}
+/**
+ * Handles the HostFS_Drives SWI call.
+ * This returns information about the active drives.
+ *
+ * @param state Emulator state
+ */
+void
+hostfs_swi_drives(ARMul_State *state)
+{
+  // HostFS_Drives
+  //
+  // On exit:
+  //    R0: number of drives.
+  //    R1: bit mask for drives.
+  //    R2: identifier of first drive.
+  //    R3: identifier of last drive.
+    
+  state->Reg[0] = 0;
+  state->Reg[1] = 0;
+    
+  for (int i = 0 ; i < HOSTFS_DRIVE_MAX ; i++)
+  {
+    HostFSDrive *drive = &config.hostfs_drive[i];
+        
+    if (!drive->enabled) continue;
+        
+    state->Reg[0] ++;
+    state->Reg[1] |= (1 << drive->id);
+  }
+    
+  state->Reg[2] = HOSTFS_DRIVE_BASE;
+  state->Reg[3] = HOSTFS_DRIVE_BASE + (HOSTFS_DRIVE_MAX - 1);
+    
+  dbug_hostfs("HostFS: SWI 'HostFS_Drives'.\n");
+  dbug_hostfs("Out:\n");
+  dbug_hostfs("\tr0 = %d (drive count).\n", state->Reg[0]);
+  dbug_hostfs("\tr1 = %d (drive bit mask).\n", state->Reg[1]);
+  dbug_hostfs("\tr2 = %d (first drive number).\n", state->Reg[2]);
+  dbug_hostfs("\tr2 = %d (last drive number).\n", state->Reg[3]);
+}
+
+/*
+ * Handles the HostFS_GetDriveName SWI call.
+ * This returns the name of a drive.
+ *
+ * @param state Emulator state
+ */
+void
+hostfs_swi_getdrivename(ARMul_State *state)
+{
+  // HostFS_GetDriveName
+  //
+  // On entry:
+  //    R0 = drive number.
+  //    R1 = 0 to calculate buffer length, or address of buffer to fill with drive name.
+  //    R2 = buffer length.
+  //
+  // On exit:
+  //    R0 = preserved.
+  //    R1 = preserved.
+  //    R2 = length of buffer required to hold drive name.
+  
+  dbug_hostfs("HostFS: SWI 'HostFS_GetDriveName'.\n");
+  dbug_hostfs("In:\n");
+  dbug_hostfs("\tr0 = %d (drive number).\n", state->Reg[0]);
+  dbug_hostfs("\tr1 = 0x%08x (pointer to buffer).\n", state->Reg[1]);
+  dbug_hostfs("\tr2 = %d (length of buffer).\n", state->Reg[2]);
+  
+  // Check the drive number is in range.
+  if (state->Reg[0] < HOSTFS_DRIVE_BASE || state->Reg[0] >= HOSTFS_DRIVE_BASE + HOSTFS_DRIVE_MAX)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+  
+  int index = state->Reg[0] - HOSTFS_DRIVE_BASE;
+  
+  HostFSDrive *drive = &config.hostfs_drive[index];
+  if (drive == NULL || !drive->enabled)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+  
+  int length = strlen(drive->driveName);
+  
+  if (state->Reg[1] == 0)
+  {
+    // Calculate buffer length.
+    state->Reg[2] = length;
+    
+    dbug_hostfs("Out:\n");
+    dbug_hostfs("\tr2 = %d.\n", state->Reg[2]);
+  }
+  else
+  {
+    // Copy the drive name over.
+    put_string(state, state->Reg[1], drive->driveName);
+    state->Reg[2] = length;
+   
+    dbug_hostfs("Out:\n");
+    dbug_hostfs("\tr1 = 0x%08x.\n", state->Reg[1]);
+    dbug_hostfs("\tr2 = %d.\n", state->Reg[2]);
+  }
+}
+
+/*
+ * Handles the HostFS_GenerateCommand SWI call.
+ * This generates a text string for a command that can be executed by RISC OS.
+ *
+ * @param state Emulator state
+ */
+void
+hostfs_swi_generatecommand(ARMul_State *state)
+{
+  // HostFS_GenerateCommand
+  //
+  // On entry:
+  //    R0 = type of command (1 = open folder; 2 = show free; 3 = boot).
+  //    R1 = drive number.
+  //    R2 = buffer, or 0 to calculate the required buffer length.
+  //    R3 = length of buffer.
+  //
+  // On exit:
+  //    R0 = preserved.
+  //    R1 = preserved.
+  //    R2 = preserved.
+  //    R3 = required length of buffer.
+  
+  dbug_hostfs("HostFS: SWI 'HostFS_GenerateCommand'.\n");
+  dbug_hostfs("In:\n");
+  dbug_hostfs("\tr0 = %d (command type).\n", state->Reg[0]);
+  dbug_hostfs("\tr1 = %d (drive number).\n", state->Reg[1]);
+  dbug_hostfs("\tr2 = 0x%08x (pointer to buffer).\n", state->Reg[2]);
+  dbug_hostfs("\tr3 = %d (length of buffer).\n", state->Reg[3]);
+  
+  // Check the drive number is in range.
+  if (state->Reg[1] < HOSTFS_DRIVE_BASE || state->Reg[1] >= HOSTFS_DRIVE_BASE + HOSTFS_DRIVE_MAX)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+  
+  int index = state->Reg[1] - HOSTFS_DRIVE_BASE;
+  
+  HostFSDrive *drive = &config.hostfs_drive[index];
+  if (drive == NULL || !drive->enabled)
+  {
+    state->Reg[9] = FILECORE_ERROR_DISCNOTFOUND;
+    return;
+  }
+  
+  char buffer[128];
+  
+  switch (state->Reg[0])
+  {
+    case HOSTFS_COMMAND_TYPE_OPENDIR:
+      // Generate a 'Filer_OpenDir' string.
+      snprintf(buffer, 128, "Filer_OpenDir HostFS::%s.$", drive->driveName);
+      state->Reg[3] = strlen(buffer) + 1;
+      break;
+         
+    case HOSTFS_COMMAND_TYPE_FREE:
+      // Generate a 'ShowFree' string.
+      snprintf(buffer, 128, "ShowFree -fs HostFS %s", drive->driveName);
+      state->Reg[3] = strlen(buffer) + 1;
+      break;
+       
+    case HOSTFS_COMMAND_TYPE_BOOT:
+      // Generate a 'Load'/'Run'/'Exec' string for !Boot.
+      if (drive->bootOption == HOSTFS_BOOT_OPTION_LOAD)
+      {
+        snprintf(buffer, 128, "Load HostFS::%s.$.!Boot", drive->driveName);
+        state->Reg[3] = strlen(buffer) + 1;
+      }
+      else if (drive->bootOption == HOSTFS_BOOT_OPTION_RUN)
+      {
+        snprintf(buffer, 128, "Run HostFS::%s.$.!Boot", drive->driveName);
+        state->Reg[3] = strlen(buffer) + 1;
+      }
+      else if (drive->bootOption == HOSTFS_BOOT_OPTION_EXEC)
+      {
+        snprintf(buffer, 128, "Exec HostFS::%s.$.!Boot", drive->driveName);
+        state->Reg[3] = strlen(buffer) + 1;
+      }
+      else
+      {
+       state->Reg[3] = 0;
+      }
+      break;
+  }
+  
+  if (state->Reg[2] != 0)
+  {
+    put_string(state, state->Reg[2], buffer);
+
+    dbug_hostfs("Out:\n");
+    dbug_hostfs("\tr3 = %d.\n", state->Reg[3]);
+    dbug_hostfs("HostFS: generated command '%s' for drive %d.\n", buffer, drive->id);
+  }
+  else
+  {
+    dbug_hostfs("Out:\n");
+    dbug_hostfs("\tr3 = %d.\n", state->Reg[3]);
+  }
+}
+
+/*
+ * Handles the HostFS_FreeOp SWI call.
+ * This performs an operation for the 'Free' module.
+ *
+ * @param state Emulator state
+ */
+void
+hostfs_swi_freeop(ARMul_State *state)
+{
+  assert(state);
+  
+  dbug_hostfs("HostFS: SWI 'HostFS_FreeOp'.\n");
+  dbug_hostfs("\tr0 = %d (reason code).\n", state->Reg[0]);
+  dbug_hostfs("\tr1 = %x (filing system number).\n", state->Reg[0]);
+  
+  int index;
+  char driveName[80];
+  HostFSDrive *drive = NULL;
+ 
+  switch (state->Reg[0])
+  {
+    case HOSTFS_FREE_OPERATION_GETDEVICENAME:
+      // Get a drive name.
+      dbug_hostfs("\tr2 = 0x%08x (pointer to buffer).\n", state->Reg[2]);
+      dbug_hostfs("\tr3 = 0x%08x (pointer to device name/identifier).\n", state->Reg[3]);
+          
+      get_string(state, state->Reg[3], driveName, 80);
+        
+      index = hostfs_find_drive_from_name(driveName);
+      if (index > -1)
+      {
+        drive = &config.hostfs_drive[index];
+              
+        put_string(state, state->Reg[2], drive->driveName);
+        state->Reg[0] = strlen(drive->driveName) + 1;
+           
+        dbug_hostfs("HostFS: name for '%s' is '%s'.\n", driveName, drive->driveName);
+      }
+      break;
+          
+    case HOSTFS_FREE_OPERATION_FREE32:
+    case HOSTFS_FREE_OPERATION_FREE64:
+      // Get free space (32- and 64-bit).
+      // This returns the root folder which can be passed to OS_FSControl 49 or 55.
+      dbug_hostfs("\tr2 = 0x%08x (pointer to buffer).\n", state->Reg[2]);
+      dbug_hostfs("\tr3 = 0x%08x (pointer to device name/identifier).\n", state->Reg[3]);
+       
+      get_string(state, state->Reg[3], driveName, 80);
+       
+      index = hostfs_find_drive_from_name(driveName);
+      if (index > -1)
+      {
+        drive = &config.hostfs_drive[index];
+              
+        char buffer[255];
+        snprintf(buffer, 255, "HostFS::%s.$", drive->driveName);
+              
+        put_string(state, state->Reg[2], buffer);
+        dbug_hostfs("HostFS: root directory path for drive '%s' is '%s'.", driveName, buffer);
+      }
+       
+      break;
+  }
+}
+
+/*
+ * Handles the HostFS_ValidateDrive SWI call.
+ * This determines whether a drive number is valid.
+ *
+ * @param state Emulator state
+ */
+void
+hostfs_swi_validatedrive(ARMul_State *state)
+{
+  // HostFS_ValidateDrive
+  //
+  // On entry:
+  //    R0 = drive number
+  //
+  // On exit:
+  //    R0 = preserved
+  //    R1 = 0 (not valid) or 1 (valid)
+  
+  assert(state);
+  
+  dbug_hostfs("HostFS: SWI 'HostFS_ValidateDrive'\n");
+  dbug_hostfs("\tr0 = %d (drive number).\n", state->Reg[0]);
+  
+  if (state->Reg[0] < HOSTFS_DRIVE_BASE || state->Reg[0] > HOSTFS_DRIVE_BASE + (HOSTFS_DRIVE_MAX - 1))
+  {
+    dbug_hostfs("HostFS: drive number %d is out of range.\n", state->Reg[0]);
+    state->Reg[1] = 0;
+    return;
+  }
+  
+  HostFSDrive *drive = &config.hostfs_drive[state->Reg[0] - HOSTFS_DRIVE_BASE];
+  
+  if (drive == NULL || !drive->enabled)
+  {
+    state->Reg[1] = 0;
+    dbug_hostfs("HostFS: drive %d is not valid.\n", state->Reg[0]);
+  }
+  else
+  {
+    state->Reg[1] = 1;
+      
+    dbug_hostfs("HostFS: drive %d is valid.\n", state->Reg[0]);
+  }
+}
+
+/** Entry point for HostFS module SWIs.
+ *
+ * @param swinum SWI number
+ * @param state Emulator state
+ */
+void
+hostfs_swi_dispatch(int swinum, ARMul_State *state)
+{
+  assert(state);
+  
+  dbug_hostfs("HostFS: dispatch SWI - %x.\n", swinum);
+  
+  switch (swinum)
+  {
+    case HOSTFS_EXTENDED_SWI_CHUNK_START + 0:
+      hostfs_swi_initialise(state);
+      break;
+          
+    case HOSTFS_EXTENDED_SWI_CHUNK_START + 1:
+      hostfs_swi_drives(state);
+      break;
+          
+    case HOSTFS_EXTENDED_SWI_CHUNK_START + 2:
+      hostfs_swi_getdrivename(state);
+      break;
+          
+    case HOSTFS_EXTENDED_SWI_CHUNK_START + 3:
+      hostfs_swi_generatecommand(state);
+      break;
+        
+    case HOSTFS_EXTENDED_SWI_CHUNK_START + 4:
+      hostfs_swi_freeop(state);
+      break;
+          
+    case HOSTFS_EXTENDED_SWI_CHUNK_START + 5:
+      hostfs_swi_validatedrive(state);
+      break;
+          
+    default:
+      dbug_hostfs("HostFS: unknown SWI - %x.\n", swinum);
+         
+      for (int i=0;i<=15;i++)
+      {
+        dbug_hostfs("\tr%d = %d/%08x\n", i, state->Reg[i], state->Reg[i]);
+      }
+          
+      break;
+          
+  }
+}
+

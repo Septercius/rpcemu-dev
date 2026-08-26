@@ -7,6 +7,10 @@
 #include <sys/stat.h>
 
 #include "hostfs_internal.h"
+#include "paths.h"
+#include "rpcemu.h"
+
+#define UNUSED(x) (void)(x)
 
 /**
  * Convert ADFS time-stamped Load-Exec addresses to the equivalent time_t.
@@ -55,13 +59,6 @@ hostfs_read_object_info_platform(const char *host_pathname,
     assert(host_pathname != NULL);
     assert(object_info != NULL);
     
-  // Ignore DS_Store files.
-  if (strcasestr(host_pathname, ".DS_Store") != NULL)
-  {
-      object_info->type = OBJECT_TYPE_NOT_FOUND;
-      return;
-  }
-    
     if (stat(host_pathname, &info)) {
         /* Error reading info about the object */
         switch (errno) {
@@ -92,6 +89,25 @@ hostfs_read_object_info_platform(const char *host_pathname,
         object_info->type = OBJECT_TYPE_NOT_FOUND;
         return;
     }
+    
+    if (hostfs_is_systemfile_platform(host_pathname))
+    {
+        // A system file.  Should it be shown?
+        if (!config.show_systemfiles)
+        {
+            object_info->type = OBJECT_TYPE_NOT_FOUND;
+            return;
+        }
+    }
+    else if (hostfs_is_dotfile_platform(host_pathname))
+    {
+        // A dot file.  Should it be shown?
+        if (!config.show_dotfiles)
+        {
+            object_info->type = OBJECT_TYPE_NOT_FOUND;
+            return;
+        }
+    }
 
     low  = (uint32_t) ((info.st_mtime & 255) * 100);
     high = (uint32_t) ((info.st_mtime / 256) * 100 + (low >> 8) + 0x336e996a);
@@ -119,3 +135,51 @@ hostfs_object_set_timestamp_platform(const char *host_path, uint32_t load, uint3
     utime(host_path, &t);
     /* TODO handle error in utime() */
 }
+
+/**
+ * Determines whether a file is a dot file.
+ *
+ * @param hostPath    Full path to object (file or dir) in host format
+ *
+ * @return            1 if the file is a dot file, otherwise 0.
+ */
+int
+hostfs_is_dotfile_platform(const char *hostPath)
+{
+    const char *fileName = path_extract_filename(hostPath);
+    if (fileName[0] == '.') return 1;
+    
+    return 0;
+}
+
+/**
+ * Determines whether a file is a system file.
+ *
+ * @param hostPath    Full path to object (file or dir) in host format
+ *
+ * @return            1 if the file is a system file, otherwise 0.
+ */
+int
+hostfs_is_systemfile_platform(const char *hostPath)
+{
+    const char *leafNames[] = { ".DS_Store", ".fseventsd", "System Volume Information", ".Spotlight-V100", ".Trash" };
+    const char *fullPaths[] = { "/bin", "/cores", "/dev", "/etc", "/home", "/net", "/private", "/sbin", "/tmp", "/usr", "/var", "/installer.failurerequests", "/Network", "/Volumes" };
+    
+    const char *fileName = path_extract_filename(hostPath);
+    size_t i;
+    
+    // Check file names.
+    for (i = 0; i < sizeof(leafNames) / sizeof(leafNames[0]); i += 1)
+    {
+        if (!strcasecmp(fileName, leafNames[i])) return 1;
+    }
+    
+    // Check full paths.
+    for (i = 0; i < sizeof(fullPaths) / sizeof(fullPaths[0]); i += 1)
+    {
+        if (!strcasecmp(hostPath, fullPaths[i])) return 1;
+    }
+    
+    return 0;
+}
+

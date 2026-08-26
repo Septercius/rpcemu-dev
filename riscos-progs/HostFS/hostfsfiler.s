@@ -21,7 +21,7 @@
         XOS_ReadMonotonicTime = 0x20042
         XWimp_Initialise = 0x600c0
         XWimp_CreateIcon = 0x600c2
-	XWimp_CreateMenu = 0x600d4
+        XWimp_CreateMenu = 0x600d4
         XWimp_CloseDown  = 0x600dd
         XWimp_PollIdle   = 0x600e1
         XWimp_SpriteOp   = 0x600e9
@@ -45,16 +45,41 @@
 
         WIMP_POLL_MASK = 0x00000031     @ no Null, Pointer Entering or Pointer Leaving events
 
-        WORKSPACE_SIZE = 512
+        WORKSPACE_SIZE = 1024
 
-        WS_MY_TASK_HANDLE      = 0
-        WS_FILER_TASK_HANDLE   = 4
-        WS_WIMP_VERSION        = 8
-        WS_ICON_BAR_BLOCK      = 12
-        WS_WIMP_BLOCK          = 48 @ must be last
+        WS_MY_TASK_HANDLE         = 0
+        WS_FILER_TASK_HANDLE      = 4
+        WS_WIMP_VERSION           = 8
+        WS_DRIVE_COUNT            = 12
+        WS_DRIVE_MASK             = 16
+        WS_DRIVE_START            = 20
+        WS_DRIVE_END              = 24
+        WS_ICON_HEIGHT            = 28
+        WS_ICON_BAR_BLOCK_START   = 32
+        WS_ICON_BAR_BLOCK_END     = 176
+        WS_ICON_HANDLE_START      = 176
+        WS_ICON_HANDLE_END        = 192
+        WS_DRIVE_NAME_BLOCK_START = 192
+        WS_DRIVE_NAME_BLOCK_END   = 244
+        WS_COMMAND_BUFFER         = 244
+        WS_WIMP_BLOCK             = 372 @ must be last
+        
+        ICON_BLOCK_SIZE           = 36
+        NAME_BLOCK_SIZE           = 13
 
-
-
+        @ HostFS SWIs
+        XHostFS_Initialise				= 0x76ad0	
+        XHostFS_Drives					= 0x76ad1	@ Get drive information
+        XHostFS_GetDriveName			= 0x76ad2	@ Get drive name from identifier
+        XHostFS_GenerateCommandString	= 0x76ad3	@ Generate command for drive
+        XHostFS_FreeOp					= 0x76ad4	@ Free operation
+        XHostFS_ValidateDrive			= 0x76ad5	@ Check drive validity
+        
+        @ Command strings
+        HostFSCommand_OpenDir			= 1
+        HostFSCommand_Free				= 2
+        HostFSCommand_Boot				= 3
+        
         .global _start
 
 _start:
@@ -82,7 +107,7 @@ modtitle:
         .string	"RPCEmuHostFSFiler"
 
 help:
-        .string	"HostFSFiler\t0.05 (23 Sep 2014)"
+        .string	"HostFSFiler\t0.06 (15 Aug 2026)"
         .align
 
 
@@ -267,10 +292,7 @@ icon_bar_block:
 	.int	0x1700310b	@ Flags (includes Indirected Text and Sprite)
 	.int	0		@ Gap for pointer to Text
 	.int	0		@ Gap for pointer to Validation String
-	.int	6		@ Length of Text buffer
-
-icon_bar_text:
-	.string	"HostFS"
+	.int	13		@ Length of Text buffer
 
 icon_bar_validation:
 	.ascii	"S"		@ Unterminated - continues below...
@@ -322,37 +344,96 @@ start_skipclosedown:
 
 	str	r0, [wp, #WS_WIMP_VERSION]	@ store Wimp version
 	str	r1, [wp, #WS_MY_TASK_HANDLE]	@ store Task handle
+	
+	@ Calculate icon height
+	mov r0, #SpriteOp_ReadSpriteInfo
+	adr r2, icon_bar_icon_name
+	swi XWimp_SpriteOp
+	
+	movvc r0, r6
+	movvc r1, #ModeVariable_YEig
+	swivc XOS_ReadModeVariable
+	
+	bvs close_down
+	
+	mov r0, #0
+	add r0, r0, r4, lsl r2
+	str r0, [wp, #WS_ICON_HEIGHT]
+	
+	@ Retrieve drive information
+	swi XHostFS_Drives
+	
+	@ Returns:
+	@   R0 = number of drives
+	@   R1 = drive mask
+	@   R2 = first drive number
+	@   R3 = last drive number
 
+	str	r0, [wp, #WS_DRIVE_COUNT]
+	str	r1, [wp, #WS_DRIVE_MASK]
+	str	r2, [wp, #WS_DRIVE_START]
+	str	r3, [wp, #WS_DRIVE_END]
 
-	@ Prepare block for Icon Bar icon
-	adr	r0, icon_bar_block
-	add	r1, wp, #WS_ICON_BAR_BLOCK
+	@ Prepare for the first drive
+	add	r8, wp, #WS_ICON_BAR_BLOCK_START
+	add	r9, wp, #WS_ICON_HANDLE_START
+	add	r10, wp, #WS_DRIVE_NAME_BLOCK_START
 
-	ldmia	r0, {r2-r10}
-	adr	r8, icon_bar_text		@ Fill in pointers
-	adr	r9, icon_bar_validation
-	stmia	r1, {r2-r10}
+	@ Set the current drive
+	mov	r11, r2
 
-	@ Calculate size of Icon Bar Icon
-	mov	r0, #SpriteOp_ReadSpriteInfo
-	adr	r2, icon_bar_icon_name
-	swi	XWimp_SpriteOp
-	movvc	r0, r6
-	movvc	r1, #ModeVariable_YEig
-	swivc	XOS_ReadModeVariable
-	bvs	close_down
+create_icon_loop:
 
-	@ Add sprite height to Maximum Y of icon's Bounding Box
-	ldr	r0, [r12, #WS_ICON_BAR_BLOCK + 16]
-	add	r0, r0, r4, lsl r2	@ += Pixels << YEig
-	str	r0, [r12, #WS_ICON_BAR_BLOCK + 16]
-
-	@ Create Icon on Icon Bar
-	mov	r0, #0x71000000		@ Priority higher than ADFS Hard Disc but lower than CD-ROM discs
-	add	r1, wp, #WS_ICON_BAR_BLOCK
+	mov r0, r11
+	swi XHostFS_ValidateDrive
+	
+	cmp r1, #0
+	beq create_icon_next
+	
+	adr r5, icon_bar_block
+	mov r6, r8
+	
+	ldmia r5!, {r2-r4}
+	stmia r6!, {r2-r4} 		@ Position, min x, min y
+	
+	ldmia r5!, {r2-r4}
+	
+	@ Apply icon height
+	ldr r0, [wp, #WS_ICON_HEIGHT]
+	add r3, r3, r0
+	
+	stmia r6!, {r2-r4}		@ Max x, max y, flags
+	
+	mov r0, r11
+	mov r1, r10
+	mov r2, #13
+	swi XHostFS_GetDriveName
+	
+	mov r0, r1
+	adr r1, icon_bar_validation
+	
+	stmia r6, {r0-r2}
+	
+	@ Create the icon
+	mov	r0, #0x71000000
+	mov	r1, r8
+	
 	swi	XWimp_CreateIcon
 	bvs	close_down
-
+	
+	@ Store the icon handle
+	str r0, [r9]
+	
+create_icon_next:
+	
+	add r8, r8, #ICON_BLOCK_SIZE
+	add r9, r9, #4
+	add r10, r10, #NAME_BLOCK_SIZE
+	add r11, r11, #1
+	
+	ldr r0, [wp, #WS_DRIVE_END]
+	cmp r11, r0
+	ble create_icon_loop
 
 	@ Main poll loop
 re_poll:
@@ -377,15 +458,31 @@ mouse_click:
 	ldr	r0, [r1, #12]		@ Icon handle
 	cmp	r0, #-2
 	bne	re_poll
+	
+	mov r9, r1
+	add r10, wp, #WS_ICON_HANDLE_START
+	ldr r11, [wp, #WS_DRIVE_START]
+	
+mouse_click_loop:
 
-	ldr	r0, [r1, #8]		@ Buttons
+	mov r0, r11
+	swi XHostFS_ValidateDrive
+	
+	cmp r1, #0
+	beq mouse_click_next
+	
+	ldr r7, [r9, #16]
+	ldr r8, [r10]
+	
+	cmp r7, r8
+	bne mouse_click_next
+	
+	ldr	r0, [r9, #8]		@ Buttons
 
 	cmp	r0, #4			@ Select
 	cmpne	r0, #1			@ Adjust
-	adreq	r0, cli_command
-	swieq	XOS_CLI
-	beq	re_poll
-
+	beq open_drive
+	
 	cmp	r0, #2			@ Menu
 	bne	re_poll
 
@@ -396,22 +493,44 @@ mouse_click:
 	swi	XWimp_CreateMenu
 
 	b	re_poll
-
-cli_command:
-	.string	"Filer_OpenDir HostFS::HostFS.$"
-	.align
-
+	
+mouse_click_next:
+	
+	add r11, r11, #1
+	ldr r8, [wp, #WS_DRIVE_END]
+	cmp r11, r8
+	addle r10, r10, #4
+	ble mouse_click_loop
+	
+	b re_poll
 
 menu_selection:
-	adr	r0, free_cli_command
+
+	mov	r0, #HostFSCommand_Free
+	mov	r1, r11
+	add	r2, wp, #WS_COMMAND_BUFFER
+	mov	r3, #128
+	swi	XHostFS_GenerateCommandString
+
+	mov	r0, r2
 	swi	XOS_CLI
 
 	b	re_poll
 
-free_cli_command:
-	.string	"ShowFree -fs HostFS HostFS"
-	.align
+open_drive:
 
+	@ r11 = drive number
+	
+	mov	r0, #HostFSCommand_OpenDir
+	mov	r1, r11
+	add	r2, wp, #WS_COMMAND_BUFFER
+	mov	r3, #128
+	swi	XHostFS_GenerateCommandString
+	
+	mov	r0, r2
+	swi	XOS_CLI
+	
+	b	re_poll
 
 user_message:
 	ldr	r0, [r1, #16]		@ Contains message code

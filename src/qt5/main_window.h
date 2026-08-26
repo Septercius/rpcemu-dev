@@ -29,6 +29,7 @@
 #include "network_dialog.h"
 #include "nat_list_dialog.h"
 #include "about_dialog.h"
+#include "hostfs_dialog.h"
 #include "rpc-qt5.h"
 
 #include "rpcemu.h"
@@ -128,6 +129,7 @@ private slots:
 	void menu_cdrom_ioctl();
 	void menu_cdrom_win_ioctl();
 	void menu_configure();
+    void menu_hostfs();
 #ifdef RPCEMU_NETWORKING
 	void menu_networking();
 	void menu_nat_list();
@@ -219,6 +221,7 @@ private:
 
 	// Actions on Settings menu (and submenus)
 	QAction *configure_action;
+    QAction *hostfs_action;
 #ifdef RPCEMU_NETWORKING
 	QAction *networking_action;
 	QAction *nat_list_action;
@@ -235,6 +238,7 @@ private:
 
 	// Dialogs
 	ConfigureDialog *configure_dialog;
+    HostFSDialog *hostfs_dialog;
 	NetworkDialog *network_dialog;
 	NatListDialog *nat_list_dialog;
 	AboutDialog *about_dialog;

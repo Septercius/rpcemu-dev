@@ -591,6 +591,7 @@ Emulator::Emulator()
 	connect(this, &Emulator::nat_rule_add_signal, this, &Emulator::nat_rule_add);
 	connect(this, &Emulator::nat_rule_edit_signal, this, &Emulator::nat_rule_edit);
 	connect(this, &Emulator::nat_rule_remove_signal, this, &Emulator::nat_rule_remove);
+	connect(this, &Emulator::hostfs_updated_signal, this, &Emulator::hostfs_updated);
 
 	elapsed_timer.start();
 }
@@ -1063,6 +1064,21 @@ Emulator::network_config_updated(NetworkType network_type, QString bridgename, Q
 	if (network_config_changed(network_type, bridge_name, ip_address)) {
 		this->reset();
 	}
+}
+
+/**
+ * GUI is requesting setting of new HostFS settings.
+ *
+ * @param new_config new configuration settings.
+ */
+void
+Emulator::hostfs_updated(Config *new_config)
+{
+    rpcemu_config_apply_new_hostfs(new_config);
+    
+    // The new_config was created for the emulator thread in gui thread, this
+    // function must free it
+    free(new_config);
 }
 
 /**

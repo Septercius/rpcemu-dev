@@ -20,6 +20,116 @@
 #include <QSettings>
 
 #include "rpcemu.h"
+#include "hostfs.h"
+#include "paths.h"
+
+/**
+  * Parse and load HostFS configuration
+ */
+static void config_hostfs_load(QSettings &settings, Config *config)
+{
+    int driveNumber;
+    QByteArray ba;
+    QString sText;
+    HostFSDrive *drive;
+    
+    settings.beginReadArray("HostFS");
+
+    for (int i = 0; i < HOSTFS_DRIVE_MAX; i += 1)
+    {
+        settings.setArrayIndex(i);
+        
+        driveNumber = HOSTFS_DRIVE_BASE + i;
+        
+        drive = &config->hostfs_drive[i];
+        drive->id = driveNumber;
+        
+        // Read the enabled flag and the boot option.
+        drive->enabled = settings.value("enabled", (i == 0 ? "1" : "0")).toInt();
+        drive->bootOption = settings.value("bootOption", (i == 0 ? "2" : "0")).toInt();
+        
+        // Read the drive name.
+        sText = settings.value("name", (i == 0 ? "HostFS" : "")).toString();
+        
+        ba = sText.toUtf8();
+        
+        if (strlen(ba.data()) == 0)
+        {
+            drive->driveName = NULL;
+            drive->enabled = 0;
+        }
+        else
+        {
+            drive->driveName = strdup(ba.data());
+        }
+        
+        // Read the mapped folder.
+#if defined(Q_OS_WIN32)
+        sText = settings.value("path", (i == 0 ? ".\\hostfs" : "")).toString();
+#else
+        sText = settings.value("path", (i == 0 ? "./hostfs" : "")).toString();
+#endif
+        ba = sText.toUtf8();
+        
+        if (strlen(ba.data()) == 0)
+        {
+            drive->hostPath = NULL;
+            drive->enabled = 0;
+        }
+        else
+        {
+            drive->hostPath = strdup(ba.data());
+            drive->resolvedHostPath = path_resolve(drive->hostPath);
+            
+            // Ensure the path is valid.
+            if (!path_validate(drive->resolvedHostPath))
+            {
+                drive->enabled = 0;
+            }
+        }
+        
+        if (drive->enabled)
+        {
+            fprintf(stderr, "HostFS: '%s' mapped to drive %d, '%s' (boot option = %d)\n", drive->resolvedHostPath, drive->id, drive->driveName, drive->bootOption);
+        }
+        else
+        {
+            fprintf(stderr, "HostFS: drive %d disabled.\n", drive->id);
+        }
+    }
+        
+    settings.endGroup();
+}
+
+/**
+  * Store HostFS configuration.
+ */
+static void
+config_hostfs_save(QSettings &settings, Config *config)
+{
+    HostFSDrive *drive;
+    
+    settings.beginWriteArray("HostFS");
+    
+    for (int i = 0; i < HOSTFS_DRIVE_MAX; i += 1)
+    {
+        settings.setArrayIndex(i);
+        
+        drive = &config->hostfs_drive[i];
+        
+        settings.setValue("enabled", (drive == NULL ? 0 : drive->enabled));
+        if (drive == NULL || !drive->enabled)
+        {
+            continue;
+        }
+        
+        settings.setValue("boot_option", drive->bootOption);
+        settings.setValue("name", drive->driveName);
+        settings.setValue("path", drive->hostPath);
+    }
+    
+    settings.endArray();
+}
 
 /**
  * Parse and load NAT port forwarding rules into the global list
@@ -97,7 +207,7 @@ config_nat_rules_save(QSettings &settings)
 void
 config_load(Config * config)
 {
-	char filename[512];
+    char filename[512];
 	const char *p;
 	Model model;
 	int i;
@@ -246,8 +356,15 @@ config_load(Config * config)
 	} else {
 		config->network_capture = NULL;
 	}
-
-	config_nat_rules_load(settings);
+    
+    config->confirm_reset = settings.value("confirm_reset", "1").toInt();
+    config->confirm_quit = settings.value("confirm_quit", "1").toInt();
+    
+    config->show_dotfiles = settings.value("show_dotfiles", "0").toInt();
+    config->show_systemfiles = settings.value("show_systemfiles", "0").toInt();
+    
+    config_nat_rules_load(settings);
+    config_hostfs_load(settings, config);
 }
 
 
@@ -338,6 +455,10 @@ config_save(Config *config)
 	if (config->network_capture) {
 		settings.setValue("network_capture", config->network_capture);
 	}
+    
+    settings.setValue("show_dotfiles", config->show_dotfiles);
+    settings.setValue("show_systemfiles", config->show_systemfiles);
 
 	config_nat_rules_save(settings);
+    config_hostfs_save(settings, config);
 }

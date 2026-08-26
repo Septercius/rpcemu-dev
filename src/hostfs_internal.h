@@ -21,4 +21,7 @@ extern void hostfs_read_object_info_platform(const char *host_pathname, risc_os_
 
 extern void hostfs_object_set_timestamp_platform(const char *host_path, uint32_t load, uint32_t exec);
 
+extern int hostfs_is_dotfile_platform(const char *hostPath);
+extern int hostfs_is_systemfile_platform(const char *hostPath);
+
 #endif

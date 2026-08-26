@@ -15,6 +15,9 @@
 //#define ARCEM_SWI_NANOSLEEP (ARCEM_SWI_CHUNK + 3)	/* Reserved */
 #define ARCEM_SWI_NETWORK   (ARCEM_SWI_CHUNK + 4)
 
+#define HOSTFS_EXTENDED_SWI_CHUNK_START    (ARCEM_SWI_CHUNK + 0x10)
+#define HOSTFS_EXTENDED_SWI_CHUNK_END    (ARCEM_SWI_CHUNK + 0x15)
+
 typedef uint32_t ARMword;
 typedef struct {
   uint32_t *Reg;
@@ -24,6 +27,7 @@ typedef struct {
 extern void hostfs(ARMul_State *state);
 extern void hostfs_init(void);
 extern void hostfs_reset(void);
+extern void hostfs_swi_dispatch(int swinum, ARMul_State *state);
 
 #define ARMul_LoadWordS(state, address) mem_read32(address)
 #define ARMul_LoadByte(state, address) mem_read8(address)

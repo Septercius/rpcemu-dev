@@ -406,6 +406,7 @@ MainWindow::MainWindow(Emulator &emulator)
 	}
 
 	configure_dialog = new ConfigureDialog(emulator, &config_copy, &model_copy, this);
+    hostfs_dialog = new HostFSDialog(emulator, &config_copy, &model_copy, this);
 #ifdef RPCEMU_NETWORKING
 	network_dialog = new NetworkDialog(emulator, &config_copy, this);
 #endif /* RPCEMU_NETWORKING */
@@ -433,6 +434,7 @@ MainWindow::~MainWindow()
 	delete nat_list_dialog;
 #endif /* RPCEMU_NETWORKING */
 	delete configure_dialog;
+    delete hostfs_dialog;
 	delete about_dialog;
 }
 
@@ -512,22 +514,25 @@ MainWindow::closeEvent(QCloseEvent *event)
         return;
     }
     
-	// Request confirmation to exit
-	QMessageBox msgBox(QMessageBox::Question,
-	    "RPCEmu",
-	    "Are you sure you want to exit?",
-	    QMessageBox::Cancel,
-	    this);
-	QPushButton *exit_button = msgBox.addButton("Exit", QMessageBox::ActionRole);
-	msgBox.setDefaultButton(QMessageBox::Cancel);
-	msgBox.setInformativeText("Any unsaved data will be lost.");
-	msgBox.exec();
-
-	if (msgBox.clickedButton() != exit_button) {
-		// Prevent this close message triggering any more effects
-		event->ignore();
-		return;
-	}
+    if (config.confirm_quit)
+    {
+        // Request confirmation to exit
+        QMessageBox msgBox(QMessageBox::Question,
+                           "RPCEmu",
+                           "Are you sure you want to exit?",
+                           QMessageBox::Cancel,
+                           this);
+        QPushButton *exit_button = msgBox.addButton("Exit", QMessageBox::ActionRole);
+        msgBox.setDefaultButton(QMessageBox::Cancel);
+        msgBox.setInformativeText("Any unsaved data will be lost.");
+        msgBox.exec();
+        
+        if (msgBox.clickedButton() != exit_button) {
+            // Prevent this close message triggering any more effects
+            event->ignore();
+            return;
+        }
+    }
 
 	// Disconnect the applicationStateChanged event, because our handler
 	// can generate messages the machine won't be able to handle when quit
@@ -728,6 +733,12 @@ MainWindow::menu_screenshot()
 void
 MainWindow::menu_reset()
 {
+    if (!config.confirm_reset)
+    {
+        emit this->emulator.reset_signal();
+        return;
+    }
+    
     int ret = MainWindow::reset_question(this);
     
     switch (ret) {
@@ -933,6 +944,12 @@ void
 MainWindow::menu_configure()
 {
     configure_dialog->exec(); // Modal
+}
+
+void
+MainWindow::menu_hostfs()
+{
+    hostfs_dialog->exec(); // Modal
 }
 
 #ifdef RPCEMU_NETWORKING
@@ -1322,6 +1339,8 @@ MainWindow::create_actions()
     // Actions on Settings menu
     configure_action = new QAction(tr("Configure..."), this);
     connect(configure_action, &QAction::triggered, this, &MainWindow::menu_configure);
+    hostfs_action = new QAction(tr("HostFS..."), this);
+    connect(hostfs_action, &QAction::triggered, this, &MainWindow::menu_hostfs);
 #ifdef RPCEMU_NETWORKING
     networking_action = new QAction(tr("Networking..."), this);
     connect(networking_action, &QAction::triggered, this, &MainWindow::menu_networking);
@@ -1403,6 +1422,7 @@ MainWindow::create_menus()
     // Settings menu
     settings_menu = menuBar()->addMenu(tr("Settings"));
     settings_menu->addAction(configure_action);
+    settings_menu->addAction(hostfs_action);
 #ifdef RPCEMU_NETWORKING
     settings_menu->addAction(networking_action);
     settings_menu->addAction(nat_list_action);

@@ -84,6 +84,7 @@ signals:
 	void nat_rule_add_signal(PortForwardRule rule);
 	void nat_rule_edit_signal(PortForwardRule old_rule, PortForwardRule new_rule);
 	void nat_rule_remove_signal(PortForwardRule rule);
+    void hostfs_updated_signal(Config *new_config);
 
 public slots:
 	void mainemuloop();
@@ -128,6 +129,7 @@ public slots:
 	void nat_rule_add(PortForwardRule rule);
 	void nat_rule_edit(PortForwardRule old_rule, PortForwardRule new_rule);
 	void nat_rule_remove(PortForwardRule rule);
+    void hostfs_updated(Config *new_config);
 
 private:
 	QElapsedTimer elapsed_timer;

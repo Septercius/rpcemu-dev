@@ -5,19 +5,27 @@
 	NBIT = 1 << 31
 
 	@ RISC OS constants
-	XOS_Write0          = 0x20002
-	XOS_CLI             = 0x20005
-	XOS_FSControl       = 0x20029
-	XOS_ValidateAddress = 0x2003a
+	XOS_Write0                = 0x20002
+	XOS_NewLine               = 0x20003
+	XOS_CLI                   = 0x20005
+	XOS_Byte                  = 0x20006
+	XOS_Module                = 0x2001e
+	XOS_ReadUnsigned          = 0x20021
+	XOS_FSControl             = 0x20029
+	XOS_ValidateAddress       = 0x2003a
+	XOS_ConvertInteger1       = 0x200d9
 	XMessageTrans_ErrorLookup = 0x61506
-	XFree_Register		= 0x644c0
-	XFree_DeRegister	= 0x644c1
+	XFree_Register            = 0x644c0
+	XFree_DeRegister          = 0x644c1
 
 	FSControl_AddFS    = 12
 	FSControl_SelectFS = 14
 	FSControl_RemoveFS = 16
 	FSControl_FreeSpace	= 49
 	FSControl_FreeSpace64	= 55
+	
+	Module_Claim              = 6
+	Module_Free               = 7
 
 	Service_FSRedeclare = 0x40
 
@@ -27,7 +35,24 @@
 	ArcEm_HostFS    = ARCEM_SWI_CHUNKX + 1
 
 	HOSTFS_PROTOCOL_VERSION = 3
-
+	
+	XHostFS_Initialise            = 0x76ad0
+	XHostFS_Drives                = 0x76ad1
+	XHostFS_GetDriveName          = 0x76ad2
+	XHostFS_GenerateCommandString = 0x76ad3
+	XHostFS_FreeOp                = 0x76ad4
+	XHostFS_ValidateDrive         = 0x76ad5
+	
+	HostFSCommand_OpenDir       = 1
+	HostFSCommand_Free          = 2
+	HostFSCommand_Boot          = 3
+	
+	WORKSPACE_SIZE              = 256
+	
+	@ Offsets into CMOS
+	CMOS_OFFSET_DEFAULT_FS      = 5
+	CMOS_OFFSET_HOSTFS_DRIVE    = 80
+	
 	@ Filing system error codes
 	FILECORE_ERROR_DIRNOTEMPTY	= 0xb4
 	FILECORE_ERROR_ACCESS		= 0xbd
@@ -41,7 +66,10 @@
 	FILING_SYSTEM_NUMBER = 0x99	@ TODO choose unique value
 	MAX_OPEN_FILES       = 100	@ TODO choose sensible value
 	IMAGEFS_EXTENSIONS   = (1 << 23)
-
+	
+	EXTRA_INFORMATION_WORD_PRESENT = (1 << 17)
+	SUPPORTS_SPECIAL_FIELDS        = (1 << 31)
+	SUPPORTS_FS_ENTRY_34           = (1 << 0)
 
 	.global	_start
 
@@ -69,9 +97,10 @@ modflags:
 
 title:
 	.string	"RPCEmuHostFS"
+	.align
 
 help:
-	.string	"RPCEmu HostFS\t0.10 (23 Sep 2014)"
+	.string	"RPCEmu HostFS\t0.11 (15 Aug 2026)"
 
 	.align
 
@@ -84,6 +113,13 @@ table:
 	.int	0x00000000
 	.int	0
 	.int	command_hostfs_help
+	
+	.string "HostFSDrive"
+	.align
+	.int	command_configure_drive
+	.int	(1 << 8) | (1 << 16) | (1<< 30)
+	.int	0
+	.int	command_configure_drive_help
 
 	.byte	0	@ Table terminator
 
@@ -91,6 +127,9 @@ command_hostfs_help:
 	.string	"*HostFS selects the HostFS filing system\rSyntax: *HostFS"
 	.align
 
+command_configure_drive_help:
+	.string "*Configure HostFSDrive sets the default drive for HostFS"
+	.align
 
 	@ Filing System Information Block
 fs_info_block:
@@ -102,11 +141,12 @@ fs_info_block:
 	.int	fs_args		@ To Control open files (FSEntry_Args)
 	.int	fs_close	@ To Close open files (FSEntry_Close)
 	.int	fs_file		@ To perform whole-file ops (FSEntry_File)
-	.int	FILING_SYSTEM_NUMBER | (MAX_OPEN_FILES << 8) | IMAGEFS_EXTENSIONS
+	.int	FILING_SYSTEM_NUMBER | (MAX_OPEN_FILES << 8) | IMAGEFS_EXTENSIONS | EXTRA_INFORMATION_WORD_PRESENT | SUPPORTS_SPECIAL_FIELDS
 				@ Filing System Information Word
 	.int	fs_func		@ To perform various ops (FSEntry_Func)
 	.int	fs_gbpb		@ To perform multi-byte ops (FSEntry_GBPB)
-	.int	0		@ Extra Filing System Information Word
+	.int	SUPPORTS_FS_ENTRY_34
+				@ Extra Filing System Information Word
 
 fs_name:
 	.string	"HostFS"
@@ -147,6 +187,30 @@ init:
 	adr	r1, free_routine
 	mov	r2, r12
 	swi	XFree_Register
+	
+	@ Claim some workspace
+	mov r0, #Module_Claim
+	mov r3, #WORKSPACE_SIZE
+	swi XOS_Module
+	
+	str r2, [r12]
+	
+	@ Read the configured boot drive
+	mov r0, #161
+	mov r1, #CMOS_OFFSET_HOSTFS_DRIVE
+	swi XOS_Byte
+	
+	mov r3, r2
+	
+	@ Read the default filing system
+	mov r0, #161
+	mov r1, #CMOS_OFFSET_DEFAULT_FS
+	swi XOS_Byte
+	
+	@ Tell the emulator about the default filing system and drive
+	mov r0, r2
+	mov r1, r3
+	swi XHostFS_Initialise
 
 	ldmfd	sp!, {r9, pc}
 
@@ -175,6 +239,11 @@ err_failed_registration:
 	 */
 final:
 	stmfd	sp!, {lr}
+	
+	@ Free workspace
+	mov r0, #Module_Free
+	mov r2, r12
+	swi XOS_Module
 
 	@ Deregister with Free module
 	mov	r0, #FILING_SYSTEM_NUMBER
@@ -209,30 +278,27 @@ free_routine:
 	b	free_get_free_space64	@ 4
 
 free_get_device_name:
-	mov	r4, r2			@ r4 = ptr to buffer
-	adr	r5, fs_name		@ r5 = ptr to name
-0:	ldrb	r6, [r5], #1
-	strb	r6, [r4], #1
-	teq	r6, #0
-	bne	0b
-	sub	r0, r4, r2
+
+	swi XHostFS_FreeOp
 	ldmfd	sp!, {pc}
 
 free_get_free_space:
 	stmfd	sp!, {r0 - r2, r5}
 
 	mov	r5, r2			@ Pointer to buffer to return data
-
-	mov	r0, #FSControl_FreeSpace
-	adr	r1, free_object_name
-	swi	XOS_FSControl
-
-	str	r0, [r5, #4]		@ Free space
-	str	r2, [r5, #0]		@ Total size
-
+	mov r1, r12
+	swi XHostFS_FreeOp
+	
+	mov r0, #FSControl_FreeSpace
+	mov r1, r2
+	swi XOS_FSControl
+	
+	str r0, [r5, #4]	@ Free space
+	str r2, [r5, #0]	@ Total size
+	
 	@ Calculate used space
-	sub	r2, r2, r0
-	str	r2, [r5, #8]		@ Used space
+	sub r2, r2, r0
+	str r2, [r5, #8]	@ Used space
 
 	ldmfd	sp!, {r0 - r2, r5, pc}
 
@@ -244,9 +310,12 @@ free_get_free_space64:
 	stmfd	sp!, {r1 - r5}
 
 	mov	r5, r2			@ Pointer to buffer to return data
+	
+	mov r2, r12
+	swi XHostFS_FreeOp
 
 	mov	r0, #FSControl_FreeSpace64
-	adr	r1, free_object_name
+	mov r1, r2
 	swi	XOS_FSControl
 
 	str	r0, [r5, #8]		@ Free space lo
@@ -263,11 +332,6 @@ free_get_free_space64:
 	mov	r0, #0			@ Return 0 to indicate success
 
 	ldmfd	sp!, {r1 - r5, pc}
-
-free_object_name:
-	.string	"HostFS::HostFS.$"
-	.align
-
 
 
 	/* Entry:
@@ -334,9 +398,73 @@ command_hostfs:
 	swi	XOS_FSControl
 
 	ldmfd	sp!, {pc}
+	
+	@ *Configure HostFSDrive
+command_configure_drive:
 
+	stmfd 	sp!, {lr}
+	
+	teq r0, #0
+	beq command_configure_drive_showsyntax
+	teq r0, #1
+	beq command_configure_drive_showstatus
+	
+	@ Parse command tail
+	mov r1, r0
+	mov r0, #10
+	swi XOS_ReadUnsigned
+	
+	@ Check drive number valid
+	mov r0, r2
+	swi XHostFS_ValidateDrive
+	
+	cmp r1, #0
+	moveq r0, #0
+	beq hostfs_return_error
+	
+	@ Write the CMOS setting
+	mov r2, r0
+	mov r0, #162
+	mov r1, #CMOS_OFFSET_HOSTFS_DRIVE
+	swi XOS_Byte
+	
+	ldmfd sp!, {pc}
 
-
+command_configure_drive_showsyntax:
+	adr r0, command_configure_drive_syntax
+	swi XOS_Write0
+	ldmfd sp!, {pc}
+	
+command_configure_drive_syntax:
+	.string "HostFSDrive <D>"
+	.align
+	
+command_configure_drive_showstatus:
+	
+	@ Write preamble
+	adr r0, status_preamble
+	swi XOS_Write0
+	
+	@ Read CMOS setting
+	mov r0, #161
+	mov r1, #CMOS_OFFSET_HOSTFS_DRIVE
+	swi XOS_Byte
+	
+	@ Parse CMOS setting and output
+	mov r0, r2
+	ldr r1, [r12]
+	mov r2, #WORKSPACE_SIZE
+	swi XOS_ConvertInteger1
+	
+	swi XOS_Write0
+	swi XOS_NewLine
+	
+	ldmfd sp!, {pc}
+	
+status_preamble:
+	.string "HostFSDrive "
+	.align
+	
 	/* FSEntry_Open (Open a file)
 	 */
 fs_open:
@@ -454,22 +582,37 @@ fs_gbpb:
 
 
 boot:
-	adr	r0, 1f
-	swi	XOS_CLI
-	ldmfd	sp!, {pc}	@ Don't preserve flags - return XOS_CLI's error (if any)
-
-1:
-	.string	"Run @.!Boot"
-	.align
+	
+	@ Read configured boot drive
+	mov r0, #161
+	mov r1, #CMOS_OFFSET_HOSTFS_DRIVE
+	swi XOS_Byte
+	
+	@ Generate required command to perform boot action
+	mov r0, #HostFSCommand_Boot
+	mov r1, r2
+	ldr r2, [r12]
+	mov r3, #WORKSPACE_SIZE
+	swi XHostFS_GenerateCommandString
+	
+	cmp r3, #0
+	
+	movne r0, r2
+	swine XOS_CLI
+	
+	ldmfd sp!, {pc}
 
 not_implemented:
 	adr	r0, err_badfsop
 	mov	r1, #0
 	mov	r2, #0
-	adr	r4, title
+	adr	r4, not_implemented_title
 	swi	XMessageTrans_ErrorLookup	@ V always set when SWI returns
 	ldmfd	sp!, {pc}
 
+not_implemented_title:
+	.string	"RPCEmuHostFS"
+	.align
 
 	/* Entry: 
 	 * R9 = error number
@@ -547,7 +690,7 @@ err_discprot:
 
 err_discnotfound:
 	.int	0x10000 | (FILING_SYSTEM_NUMBER << 8) | FILECORE_ERROR_DISCNOTFOUND
-	.string	"Disc not found"
+	.string	"Disc drive not found"
 	.align
 
 err_notfound:

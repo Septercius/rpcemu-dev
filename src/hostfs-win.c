@@ -5,6 +5,8 @@
 #include <Windows.h>
 
 #include "hostfs_internal.h"
+#include "paths.h"
+#include "rpcemu.h"
 
 #define RISC_OS_TIME_EARLIEST	 94354848000000000ull	///< Earliest time in RISC OS, in FILETIME units
 #define RISC_OS_TIME_LATEST	204306010777500000ull	///< Latest time in RISC OS, in FILETIME units
@@ -173,6 +175,25 @@ hostfs_read_object_info_platform(const char *host_pathname,
 	/* Close object */
 	CloseHandle(handle);
 
+	if (hostfs_is_systemfile_platform(host_pathname))
+	{
+		// A system file.  Should it be shown?
+		if (!config.show_systemfiles)
+		{
+			object_info->type = OBJECT_TYPE_NOT_FOUND;
+			return;
+		}
+	}
+	else if (hostfs_is_dotfile_platform(host_pathname))
+	{
+		// A dot file.  Should it be shown?
+		if (!config.show_dotfiles)
+		{
+			object_info->type = OBJECT_TYPE_NOT_FOUND;
+			return;
+		}
+	}
+
 	/* We were able to read about the object */
 	if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 		object_info->type = OBJECT_TYPE_DIRECTORY;
@@ -212,3 +233,35 @@ hostfs_object_set_timestamp_platform(const char *host_path, uint32_t load, uint3
 		CloseHandle(handle);
 	}
 }
+
+/**
+ * Determines whether a file is a dot file.
+ *
+ * @param hostPath    Full path to object (file or dir) in host format
+ *
+ * @return            1 if the file is a dot file, otherwise 0.
+ */
+int
+hostfs_is_dotfile_platform(const char *hostPath)
+{
+  const char *fileName = path_extract_filename(hostPath);
+  if (fileName[0] == '.') return 1;
+  
+  return 0;
+}
+
+/**
+ * Determines whether a file is a system file.
+ *
+ * @param hostPath    Full path to object (file or dir) in host format
+ *
+ * @return            1 if the file is a system file, otherwise 0.
+ */
+int
+hostfs_is_systemfile_platform(const char *hostPath)
+{
+  DWORD attributes = GetFileAttributes(hostPath);
+
+  return ((attributes & FILE_ATTRIBUTE_HIDDEN) != 0 || (attributes & FILE_ATTRIBUTE_SYSTEM) != 0);
+}
+
