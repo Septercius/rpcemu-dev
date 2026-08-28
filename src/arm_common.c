@@ -628,6 +628,13 @@ opSWI(uint32_t opcode)
 		hostfs(&state);
 
 	}
+	else if (swinum >= HOSTFS_SWI_CHUNK_START && swinum <= HOSTFS_SWI_CHUNK_END)
+	{
+		ARMul_State state;
+	        state.Reg = arm.reg;
+	        
+	        hostfs_swi_dispatch(swinum, &state);
+	}
 #ifdef RPCEMU_NETWORKING
 	else if (swinum == ARCEM_SWI_NETWORK) {
 		if (config.network_type != NetworkType_Off) {
