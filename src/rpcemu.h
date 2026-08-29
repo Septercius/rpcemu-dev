@@ -68,14 +68,6 @@ extern "C" {
 #define off64_t off_t
 #endif
 
-/* Does this platform support one or more of our networking types? */
-/* Note that networking is currently supported on Mac OS X with the Cocoa GUI
-   version but not with the Allegro GUI. */
-#if defined __linux || defined __linux__ || defined WIN32 || defined _WIN32 || \
-    defined RPCEMU_COCOA_GUI || __APPLE__
-#define RPCEMU_NETWORKING
-#endif
-
 /*This makes the RISC OS mouse pointer follow the host pointer exactly. Useful
   for Linux port, however use mouse capturing if possible - mousehack has some
   bugs*/
@@ -238,7 +230,7 @@ extern void rpcemu_send_nat_rule_to_gui(PortForwardRule rule);
 extern uint64_t rpcemu_nsec_timer_ticks(void);
 
 extern int drawscre;
-extern int quited;
+extern int terminating;
 extern char discname[2][260];
 
 /* Performance measuring variables */

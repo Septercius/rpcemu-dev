@@ -71,7 +71,7 @@ MainDisplay::MainDisplay(Emulator &emulator, QWidget *parent)
 void
 MainDisplay::mouseMoveEvent(QMouseEvent *event)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -100,7 +100,7 @@ MainDisplay::mouseMoveEvent(QMouseEvent *event)
 void
 MainDisplay::mousePressEvent(QMouseEvent *event)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -125,7 +125,7 @@ MainDisplay::mousePressEvent(QMouseEvent *event)
 void
 MainDisplay::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -138,7 +138,7 @@ MainDisplay::mouseReleaseEvent(QMouseEvent *event)
 void
 MainDisplay::wheelEvent(QWheelEvent *event)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -151,7 +151,7 @@ MainDisplay::wheelEvent(QWheelEvent *event)
 void
 MainDisplay::paintEvent(QPaintEvent *event)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -197,7 +197,7 @@ MainDisplay::paintEvent(QPaintEvent *event)
 void
 MainDisplay::resizeEvent(QResizeEvent *)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -406,11 +406,12 @@ MainWindow::MainWindow(Emulator &emulator)
 	}
 
 	configure_dialog = new ConfigureDialog(emulator, &config_copy, &model_copy, this);
-#ifdef RPCEMU_NETWORKING
+    about_dialog = new AboutDialog(this);
+
+#ifdef FEATURE_NETWORKING
 	network_dialog = new NetworkDialog(emulator, &config_copy, this);
-#endif /* RPCEMU_NETWORKING */
 	nat_list_dialog = new NatListDialog(emulator, this);
-	about_dialog = new AboutDialog(this);
+#endif /* FEATURE_NETWORKING */
 
 	// MIPS counting
 	window_title.reserve(128);
@@ -428,10 +429,10 @@ MainWindow::MainWindow(Emulator &emulator)
 
 MainWindow::~MainWindow()
 {
-#ifdef RPCEMU_NETWORKING
+#ifdef FEATURE_NETWORKING
 	delete network_dialog;
 	delete nat_list_dialog;
-#endif /* RPCEMU_NETWORKING */
+#endif /* FEATURE_NETWORKING */
 	delete configure_dialog;
 	delete about_dialog;
 }
@@ -464,7 +465,7 @@ MainWindow::reset_question(QWidget *parent)
 void
 MainWindow::application_state_changed(Qt::ApplicationState state)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -507,7 +508,7 @@ MainWindow::release_held_keys()
 void
 MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -547,7 +548,7 @@ MainWindow::closeEvent(QCloseEvent *event)
 void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -587,7 +588,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 void
 MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -620,16 +621,12 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
 void
 MainWindow::native_keypress_event(unsigned scan_code, unsigned modifiers)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
     
 #if defined(Q_OS_MACOS)
-    if (quited) {
-        return;
-    }
-    
     if (!(scan_code == 0 && modifiers == 0))
     {
         // Check the key isn't already marked as held down (else ignore)
@@ -668,7 +665,7 @@ MainWindow::native_keypress_event(unsigned scan_code, unsigned modifiers)
 void
 MainWindow::native_keyrelease_event(unsigned scan_code, unsigned modifiers)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -935,7 +932,7 @@ MainWindow::menu_configure()
     configure_dialog->exec(); // Modal
 }
 
-#ifdef RPCEMU_NETWORKING
+#ifdef FEATURE_NETWORKING
 void
 MainWindow::menu_networking()
 {
@@ -954,7 +951,7 @@ MainWindow::menu_nat_list()
 {
     nat_list_dialog->exec(); // Modal
 }
-#endif /* RPCEMU_NETWORKING */
+#endif /* FEATURE_NETWORKING */
 
 /**
  * Handle clicking on the Settings->Fullscreen option
@@ -1322,12 +1319,14 @@ MainWindow::create_actions()
     // Actions on Settings menu
     configure_action = new QAction(tr("Configure..."), this);
     connect(configure_action, &QAction::triggered, this, &MainWindow::menu_configure);
-#ifdef RPCEMU_NETWORKING
+
+#ifdef FEATURE_NETWORKING
     networking_action = new QAction(tr("Networking..."), this);
     connect(networking_action, &QAction::triggered, this, &MainWindow::menu_networking);
     nat_list_action = new QAction(tr("NAT Port Forwarding Rules..."), this);
     connect(nat_list_action, &QAction::triggered, this, &MainWindow::menu_nat_list);
-#endif /* RPCEMU_NETWORKING */
+#endif /* FEATURE_NETWORKING */
+    
     fullscreen_action = new QAction(tr("Full-screen Mode"), this);
     fullscreen_action->setCheckable(true);
     connect(fullscreen_action, &QAction::triggered, this, &MainWindow::menu_fullscreen);
@@ -1357,7 +1356,10 @@ MainWindow::create_actions()
     connect(this, &MainWindow::main_display_signal, this, &MainWindow::main_display_update, Qt::BlockingQueuedConnection);
     //	connect(this, &MainWindow::main_display_signal, this, &MainWindow::main_display_update);
     connect(this, &MainWindow::move_host_mouse_signal, this, &MainWindow::move_host_mouse);
+    
+#ifdef FEATURE_NETWORKING
     connect(this, &MainWindow::send_nat_rule_to_gui_signal, this, &MainWindow::send_nat_rule_to_gui);
+#endif /* FEATURE_NETWORKING */
     
     // Connections for displaying error messages in the GUI
     connect(this, &MainWindow::error_signal, this, &MainWindow::error);
@@ -1391,9 +1393,11 @@ MainWindow::create_menus()
     cdrom_menu->addAction(cdrom_disabled_action);
     cdrom_menu->addAction(cdrom_empty_action);
     cdrom_menu->addAction(cdrom_iso_action);
+
 #if defined(Q_OS_LINUX)
     cdrom_menu->addAction(cdrom_ioctl_action);
 #endif /* linux */
+    
 #if defined(Q_OS_WIN32)
     for (unsigned i = 0; i < cdrom_win_ioctl_actions.size(); i++) {
         cdrom_menu->addAction(cdrom_win_ioctl_actions[i]);
@@ -1403,13 +1407,15 @@ MainWindow::create_menus()
     // Settings menu
     settings_menu = menuBar()->addMenu(tr("Settings"));
     settings_menu->addAction(configure_action);
-#ifdef RPCEMU_NETWORKING
+    
+#ifdef FEATURE_NETWORKING
     settings_menu->addAction(networking_action);
     settings_menu->addAction(nat_list_action);
     if (this->config_copy.network_type != NetworkType_NAT) {
         nat_list_action->setEnabled(false);
     }
-#endif /* RPCEMU_NETWORKING */
+#endif /* FEATURE_NETWORKING */
+    
     settings_menu->addSeparator();
     settings_menu->addAction(fullscreen_action);
     settings_menu->addSeparator();
@@ -1557,11 +1563,13 @@ MainWindow::move_host_mouse(MouseMoveUpdate mouse_update)
     QCursor::setPos(display->mapToGlobal(pos));
 }
 
+#ifdef FEATURE_NETWORKING
 void
 MainWindow::send_nat_rule_to_gui(PortForwardRule rule)
 {
     nat_list_dialog->add_nat_rule(rule);
 }
+#endif /* FEATURE_NETWORKING */
 
 /**
  * Called each time the mips_timer times out.
@@ -1763,7 +1771,7 @@ MainWindow::processMagicKeys()
 bool
 MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
 {
-    if (quited)
+    if (terminating)
     {
         return;
     }
@@ -1828,7 +1836,7 @@ MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr *res
     Q_UNUSED(eventType);
     Q_UNUSED(result);
     
-    if (quited) {
+    if (terminating) {
         return false;
     }
     

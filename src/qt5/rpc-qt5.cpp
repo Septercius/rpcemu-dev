@@ -178,7 +178,7 @@ error(const char *format, ...)
 	va_list ap;
 
 	va_start(ap, format);
-	vsprintf(buf, format, ap);
+	vsnprintf(buf, 4096, format, ap);
 	va_end(ap);
 	rpclog("ERROR: %s\n", buf);
 	fprintf(stderr, "RPCEmu error: %s\n", buf);
@@ -209,7 +209,7 @@ fatal(const char *format, ...)
 	va_list ap;
 
 	va_start(ap, format);
-	vsprintf(buf, format, ap);
+	vsnprintf(buf, 4096, format, ap);
 	va_end(ap);
 	rpclog("FATAL: %s\n", buf);
 
@@ -402,6 +402,7 @@ rpcemu_move_host_mouse(uint16_t x, uint16_t y)
 	emit pMainWin->move_host_mouse_signal(mouse_update);
 }
 
+#ifdef FEATURE_NETWORKING
 /**
  * Send a NAT port forwarding rule from the emulator to the GUI thread
  *
@@ -416,6 +417,7 @@ rpcemu_send_nat_rule_to_gui(PortForwardRule rule)
 	// Send message to GUI thread
 	emit pMainWin->send_nat_rule_to_gui_signal(rule);
 }
+#endif /* FEATURE_NETWORKING */
 
 /**
  * Helper function to call the idle_process_events() method on the
@@ -586,11 +588,15 @@ Emulator::Emulator()
 	connect(this, &Emulator::mouse_hack_signal, this, &Emulator::mouse_hack);
 	connect(this, &Emulator::mouse_twobutton_signal, this, &Emulator::mouse_twobutton);
 	connect(this, &Emulator::config_updated_signal, this, &Emulator::config_updated);
+    
+    connect(this, &Emulator::show_fullscreen_message_off_signal, this, &Emulator::show_fullscreen_message_off);
+
+#ifdef FEATURE_NETWORKING
 	connect(this, &Emulator::network_config_updated_signal, this, &Emulator::network_config_updated);
-	connect(this, &Emulator::show_fullscreen_message_off_signal, this, &Emulator::show_fullscreen_message_off);
 	connect(this, &Emulator::nat_rule_add_signal, this, &Emulator::nat_rule_add);
 	connect(this, &Emulator::nat_rule_edit_signal, this, &Emulator::nat_rule_edit);
 	connect(this, &Emulator::nat_rule_remove_signal, this, &Emulator::nat_rule_remove);
+#endif /* FEATURE_NETWORKING */
 
 	elapsed_timer.start();
 }
@@ -607,7 +613,9 @@ Emulator::mainemuloop()
 	iomd_timer_next = (qint64) iomd_timer_interval; // Time after which the IOMD timer should trigger
 	video_timer_next = (qint64) video_timer_interval;
 
+#ifdef FEATURE_NETWORKING
 	unsigned network_nat_rate = 0;
+#endif /* FEATURE_NETWORKING */
 
 	while (!quited) {
 		// Handle qt events and messages
@@ -647,6 +655,7 @@ Emulator::mainemuloop()
 			inscount &= 0xffff;
 		}
 
+#ifdef FEATURE_NETWORKING
 		// If NAT networking, poll, but not too often
 		if (config.network_type == NetworkType_NAT) {
 			network_nat_rate++;
@@ -654,6 +663,8 @@ Emulator::mainemuloop()
 				network_nat_poll();
 			}
 		}
+#endif /* FEATURE_NETWORKING */
+        
 	}
 
 	// Perform clean-up and finalising actions
@@ -1044,6 +1055,7 @@ Emulator::config_updated(Config *new_config, Model new_model)
 	free(new_config);
 }
 
+#ifdef FEATURE_NETWORKING
 /**
  * GUI is requesting setting of new network configuration
  *
@@ -1064,6 +1076,7 @@ Emulator::network_config_updated(NetworkType network_type, QString bridgename, Q
 		this->reset();
 	}
 }
+#endif /* FEATURE_NETWORKING */
 
 /**
  * User doesn't want to see the full screen help message again
@@ -1077,8 +1090,9 @@ Emulator::show_fullscreen_message_off()
 	config_save(&config);
 }
 
+#ifdef FEATURE_NETWORKING
 /**
- * Recieved NAT rule change from GUI, activate changes, store rule in mem and config file
+ * Received NAT rule change from GUI, activate changes, store rule in mem and config file
  *
  * @param rule NAT rule details
  */
@@ -1096,7 +1110,7 @@ Emulator::nat_rule_add(PortForwardRule rule)
 }
 
 /**
- * Recieved NAT rule change from GUI, activate changes, store rule in mem and config file
+ * Received NAT rule change from GUI, activate changes, store rule in mem and config file
  *
  * @param old_rule removed NAT rule details
  * @param new_rule added NAT rule details
@@ -1116,7 +1130,7 @@ Emulator::nat_rule_edit(PortForwardRule old_rule, PortForwardRule new_rule)
 }
 
 /**
- * Recieved NAT rule change from GUI, activate changes, store rule in mem and config file
+ * Received NAT rule change from GUI, activate changes, store rule in mem and config file
  *
  * @param rule NAT rule details
  */
@@ -1132,6 +1146,7 @@ Emulator::nat_rule_remove(PortForwardRule rule)
 	// Save the settings to the rpc.cfg file
 	config_save(&config);
 }
+#endif /* FEATURE_NETWORKING */
 
 #ifdef __cplusplus
 extern "C" {

@@ -57,9 +57,9 @@
 #include "disc_hfe.h"
 #include "disc_mfm_common.h"
 
-#ifdef RPCEMU_NETWORKING
+#ifdef FEATURE_NETWORKING
 #include "network.h"
-#endif
+#endif /* FEATURE_NETWORKING */
 
 char discname[2][260]={"boot.adf","notboot.adf"};
 
@@ -111,7 +111,7 @@ Perf perf = {
 PortForwardRule port_forward_rules[MAX_PORT_FORWARDS]; ///< Port forward rules accross the NAT
 
 int drawscre = 0;
-int quited = 0;
+int terminating = 0;
 
 static FILE *arclog; /* Log file handle */
 
@@ -194,28 +194,28 @@ resetrpc(void)
 {
 	rpclog("RPCEmu: Machine reset\n");
 
-        mem_reset(config.mem_size, config.vram_size);
-        cp15_reset(machine.cpu_model);
+    mem_reset(config.mem_size, config.vram_size);
+    cp15_reset(machine.cpu_model);
 	arm_reset(machine.cpu_model);
-        keyboard_reset();
+    keyboard_reset();
 	iomd_reset(machine.iomd_type);
 
-        reseti2c(machine.i2c_devices);
-        resetide();
-        superio_reset(machine.super_type);
+    reseti2c(machine.i2c_devices);
+    resetide();
+    superio_reset(machine.super_type);
 	i8042_reset();
 	cmos_reset();
-        podules_reset();
-        podulerom_reset(); // must be called after podules_reset()
-        hostfs_reset();
+    podules_reset();
+    podulerom_reset(); // must be called after podules_reset()
+    hostfs_reset();
 
-#ifdef RPCEMU_NETWORKING
+#ifdef FEATURE_NETWORKING
 	network_reset();
 
 	if (config.network_type != NetworkType_Off) {
 		network_init();
 	}
-#endif
+#endif /* FEATURE_NETWORKING */
 
 	cycles = 0;
 
@@ -480,9 +480,9 @@ endrpcemu(void)
         savecmos();
         config_save(&config);
 
-#ifdef RPCEMU_NETWORKING
+#ifdef FEATURE_NETWORKING
 	network_reset();
-#endif
+#endif /* FEATURE_NETWORKING */
 }
 
 /**

@@ -79,11 +79,14 @@ signals:
 	void mouse_hack_signal();
 	void mouse_twobutton_signal();
 	void config_updated_signal(Config *new_config, Model new_model);
-	void network_config_updated_signal(NetworkType network_type, QString bridgename, QString ipaddress);
 	void show_fullscreen_message_off_signal();
+    
+#ifdef FEATURE_NETWORKING
+    void network_config_updated_signal(NetworkType network_type, QString bridgename, QString ipaddress);
 	void nat_rule_add_signal(PortForwardRule rule);
 	void nat_rule_edit_signal(PortForwardRule old_rule, PortForwardRule new_rule);
 	void nat_rule_remove_signal(PortForwardRule rule);
+#endif /* FEATURE_NETWORKING */
 
 public slots:
 	void mainemuloop();
@@ -123,11 +126,14 @@ public slots:
 	void mouse_hack();
 	void mouse_twobutton();
 	void config_updated(Config *new_config, Model new_model);
-	void network_config_updated(NetworkType network_type, QString bridgename, QString ipaddress);
 	void show_fullscreen_message_off();
+    
+#ifdef FEATURE_NETWORKING
+    void network_config_updated(NetworkType network_type, QString bridgename, QString ipaddress);
 	void nat_rule_add(PortForwardRule rule);
 	void nat_rule_edit(PortForwardRule old_rule, PortForwardRule new_rule);
 	void nat_rule_remove(PortForwardRule rule);
+#endif
 
 private:
 	QElapsedTimer elapsed_timer;

@@ -30,7 +30,7 @@
 #include "keyboard.h"
 #include "hostfs.h"
 
-#ifdef RPCEMU_NETWORKING
+#ifdef FEATURE_NETWORKING
 #include "network.h"
 #endif
 
@@ -628,7 +628,7 @@ opSWI(uint32_t opcode)
 		hostfs(&state);
 
 	}
-#ifdef RPCEMU_NETWORKING
+#ifdef FEATURE_NETWORKING
 	else if (swinum == ARCEM_SWI_NETWORK) {
 		if (config.network_type != NetworkType_Off) {
 			network_swi(arm.reg[0], arm.reg[1], arm.reg[2], arm.reg[3],

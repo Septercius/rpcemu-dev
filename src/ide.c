@@ -766,6 +766,7 @@ void callbackide(void)
                 addr = ide_get_sector() * 512;
                 fseeko64(ide.hdfile[ide.drive], addr, SEEK_SET);
                 fwrite(ide.buffer, 512, 1, ide.hdfile[ide.drive]);
+                fflush(ide.hdfile[ide.drive]);
                 ide_irq_raise();
                 ide.secount--;
                 if (ide.secount != 0) {
@@ -797,6 +798,7 @@ void callbackide(void)
                 {
                         fwrite(ide.buffer, 512, 1, ide.hdfile[ide.drive]);
                 }
+                fflush(ide.hdfile[ide.drive]);
                 ide.atastat = READY_STAT;
                 ide_irq_raise();
                 return;

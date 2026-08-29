@@ -79,11 +79,14 @@ signals:
 	void mouse_hack_signal();
 	void mouse_twobutton_signal();
 	void config_updated_signal(Config *new_config, Model new_model);
-	void network_config_updated_signal(NetworkType network_type, QString bridgename, QString ipaddress);
 	void show_fullscreen_message_off_signal();
+
+#ifdef FEATURE_NETWORKING
+    void network_config_updated_signal(NetworkType network_type, QString bridgename, QString ipaddress);
 	void nat_rule_add_signal(PortForwardRule rule);
 	void nat_rule_edit_signal(PortForwardRule old_rule, PortForwardRule new_rule);
 	void nat_rule_remove_signal(PortForwardRule rule);
+#endif /* FEATURE_NETWORKING */
 
 public slots:
 	void mainemuloop();
@@ -114,20 +117,26 @@ public slots:
 	void cdrom_disabled();
 	void cdrom_empty();
 	void cdrom_load_iso(QString discname);
+
 #if defined(Q_OS_LINUX)
 	void cdrom_ioctl();
 #endif /* linux */
+    
 #if defined(Q_OS_WIN32)
 	void cdrom_win_ioctl(char drive_letter);
 #endif /* win32 */
-	void mouse_hack();
+
+    void mouse_hack();
 	void mouse_twobutton();
 	void config_updated(Config *new_config, Model new_model);
+    void show_fullscreen_message_off();
+    
+#ifdef FEATURE_NETWORKING
 	void network_config_updated(NetworkType network_type, QString bridgename, QString ipaddress);
-	void show_fullscreen_message_off();
 	void nat_rule_add(PortForwardRule rule);
 	void nat_rule_edit(PortForwardRule old_rule, PortForwardRule new_rule);
 	void nat_rule_remove(PortForwardRule rule);
+#endif /* FEATURE_NETWORKING */
 
 private:
 	QElapsedTimer elapsed_timer;

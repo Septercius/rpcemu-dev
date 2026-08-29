@@ -128,10 +128,12 @@ private slots:
 	void menu_cdrom_ioctl();
 	void menu_cdrom_win_ioctl();
 	void menu_configure();
-#ifdef RPCEMU_NETWORKING
+
+#ifdef FEATURE_NETWORKING
 	void menu_networking();
 	void menu_nat_list();
-#endif /* RPCEMU_NETWORKING */
+#endif /* FEATURE_NETWORKING */
+    
 	void menu_fullscreen();
 	void menu_cpu_idle();
 	void menu_mouse_hack();
@@ -146,7 +148,10 @@ private slots:
 
 	void main_display_update(VideoUpdate video_update);
 	void move_host_mouse(MouseMoveUpdate mouse_update);
+    
+#ifdef FEATURE_NETWORKING
 	void send_nat_rule_to_gui(PortForwardRule rule);
+#endif /* FEATURE_NETWORKING */
 
 	// MIPS counting
 	void mips_timer_timeout();
@@ -155,7 +160,10 @@ private slots:
 signals:
 	void main_display_signal(VideoUpdate video_update);
 	void move_host_mouse_signal(MouseMoveUpdate mouse_update);
+    
+#ifdef FEATURE_NETWORKING
 	void send_nat_rule_to_gui_signal(PortForwardRule rule);
+#endif /* FEATURE_NETWORKING */
 
 	void error_signal(QString error);
 	void fatal_signal(QString error);
@@ -209,20 +217,25 @@ private:
 	QAction *create_disc1_action;
 	QAction *cdrom_disabled_action;
 	QAction *cdrom_empty_action;
+
 #if defined(Q_OS_LINUX)
 	QAction *cdrom_ioctl_action;
 #endif /* linux */
+    
 #if defined(Q_OS_WIN32)
 	std::vector<QAction *> cdrom_win_ioctl_actions;
 #endif /* win32 */
-	QAction *cdrom_iso_action;
+
+    QAction *cdrom_iso_action;
 
 	// Actions on Settings menu (and submenus)
 	QAction *configure_action;
-#ifdef RPCEMU_NETWORKING
+    
+#ifdef FEATURE_NETWORKING
 	QAction *networking_action;
 	QAction *nat_list_action;
-#endif /* RPCEMU_NETWORKING */
+#endif /* FEATURE_NETWORKING */
+    
 	QAction *fullscreen_action;
 	QAction *cpu_idle_action;
 	QAction *mouse_hack_action;
@@ -235,9 +248,12 @@ private:
 
 	// Dialogs
 	ConfigureDialog *configure_dialog;
-	NetworkDialog *network_dialog;
+    AboutDialog *about_dialog;
+
+#ifdef FEATURE_NETWORKING
+    NetworkDialog *network_dialog;
 	NatListDialog *nat_list_dialog;
-	AboutDialog *about_dialog;
+#endif /* FEATURE_NETWORKING */
 
 	// Pointer to emulator instance
 	Emulator &emulator;

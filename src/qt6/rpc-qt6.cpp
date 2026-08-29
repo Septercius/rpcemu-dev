@@ -109,11 +109,11 @@ sound_thread_function(void *p)
 		fatal("Cannot lock mutex");
 	}
 
-	while (!quited)	{
+	while (!terminating)	{
 		if (pthread_cond_wait(&sound_cond, &sound_mutex)) {
 			fatal("pthread_cond_wait failed");
 		}
-		if (!quited) {
+		if (!terminating) {
 			sound_buffer_update();
 		}
 	}
@@ -264,11 +264,11 @@ vidcthreadrunner(void *threadid)
 		fatal("Cannot lock mutex");
 	}
 
-	while (!quited) {
+	while (!terminating) {
 		if (pthread_cond_wait(&video_cond, &video_mutex)) {
 			fatal("pthread_cond_wait failed");
 		}
-		if (!quited) {
+		if (!terminating) {
 			vidcthread();
 		}
 	}
@@ -306,7 +306,7 @@ vidcstartthread(void)
 void
 vidcendthread(void)
 {
-//	quited = 1;
+//	terminating = 1;
 //	if (pthread_cond_signal(&video_cond)) {
 //		fatal("Couldn't signal vidc thread");
 //	}
@@ -363,6 +363,11 @@ void
 rpcemu_video_update(const uint32_t *buffer, int xsize, int ysize,
                     int yl, int yh, int double_size, int host_xsize, int host_ysize)
 {
+    if (terminating)
+    {
+        return;
+    }
+    
 	VideoUpdate video_update;
 
 	// Prepare update message
@@ -402,6 +407,7 @@ rpcemu_move_host_mouse(uint16_t x, uint16_t y)
 	emit pMainWin->move_host_mouse_signal(mouse_update);
 }
 
+#ifdef FEATURE_NETWORKING
 /**
  * Send a NAT port forwarding rule from the emulator to the GUI thread
  *
@@ -416,6 +422,7 @@ rpcemu_send_nat_rule_to_gui(PortForwardRule rule)
 	// Send message to GUI thread
 	emit pMainWin->send_nat_rule_to_gui_signal(rule);
 }
+#endif
 
 /**
  * Helper function to call the idle_process_events() method on the
@@ -586,12 +593,16 @@ Emulator::Emulator()
 	connect(this, &Emulator::mouse_hack_signal, this, &Emulator::mouse_hack);
 	connect(this, &Emulator::mouse_twobutton_signal, this, &Emulator::mouse_twobutton);
 	connect(this, &Emulator::config_updated_signal, this, &Emulator::config_updated);
+    
+    connect(this, &Emulator::show_fullscreen_message_off_signal, this, &Emulator::show_fullscreen_message_off);
+
+#ifdef FEATURE_NETWORKING
 	connect(this, &Emulator::network_config_updated_signal, this, &Emulator::network_config_updated);
-	connect(this, &Emulator::show_fullscreen_message_off_signal, this, &Emulator::show_fullscreen_message_off);
 	connect(this, &Emulator::nat_rule_add_signal, this, &Emulator::nat_rule_add);
 	connect(this, &Emulator::nat_rule_edit_signal, this, &Emulator::nat_rule_edit);
 	connect(this, &Emulator::nat_rule_remove_signal, this, &Emulator::nat_rule_remove);
-
+#endif
+    
 	elapsed_timer.start();
 }
 
@@ -607,9 +618,11 @@ Emulator::mainemuloop()
 	iomd_timer_next = (qint64) iomd_timer_interval; // Time after which the IOMD timer should trigger
 	video_timer_next = (qint64) video_timer_interval;
 
+#ifdef FEATURE_NETWORKING
 	unsigned network_nat_rate = 0;
+#endif /* FEATURE_NETWORKING */
 
-	while (!quited) {
+	while (!terminating) {
 		// Handle qt events and messages
 		QCoreApplication::processEvents();
 
@@ -647,6 +660,7 @@ Emulator::mainemuloop()
 			inscount &= 0xffff;
 		}
 
+#ifdef FEATURE_NETWORKING
 		// If NAT networking, poll, but not too often
 		if (config.network_type == NetworkType_NAT) {
 			network_nat_rate++;
@@ -654,6 +668,7 @@ Emulator::mainemuloop()
 				network_nat_poll();
 			}
 		}
+#endif
 	}
 
 	// Perform clean-up and finalising actions
@@ -698,6 +713,11 @@ Emulator::idle_process_events()
 void
 Emulator::video_flyback()
 {
+    if (terminating)
+    {
+        return;
+    }
+    
 	iomd_flyback(1);
 }
 
@@ -836,7 +856,7 @@ Emulator::exit()
 	// Tell the main emulator loop to end
 	// This causes the emulator thread run() function to end
 	// It should also cause the vidc and sound threads to end
-	quited = 1;
+    terminating = 1;
 
 	// Kill emulator thread
 	// This wakes up the GUI thread to continue the exit process
@@ -1044,6 +1064,7 @@ Emulator::config_updated(Config *new_config, Model new_model)
 	free(new_config);
 }
 
+#ifdef FEATURE_NETWORKING
 /**
  * GUI is requesting setting of new network configuration
  *
@@ -1064,6 +1085,7 @@ Emulator::network_config_updated(NetworkType network_type, QString bridgename, Q
 		this->reset();
 	}
 }
+#endif /* FEATURE_NETWORKING */
 
 /**
  * User doesn't want to see the full screen help message again
@@ -1077,8 +1099,9 @@ Emulator::show_fullscreen_message_off()
 	config_save(&config);
 }
 
+#ifdef FEATURE_NETWORKING
 /**
- * Recieved NAT rule change from GUI, activate changes, store rule in mem and config file
+ * Received NAT rule change from GUI, activate changes, store rule in mem and config file
  *
  * @param rule NAT rule details
  */
@@ -1096,7 +1119,7 @@ Emulator::nat_rule_add(PortForwardRule rule)
 }
 
 /**
- * Recieved NAT rule change from GUI, activate changes, store rule in mem and config file
+ * Received NAT rule change from GUI, activate changes, store rule in mem and config file
  *
  * @param old_rule removed NAT rule details
  * @param new_rule added NAT rule details
@@ -1116,7 +1139,7 @@ Emulator::nat_rule_edit(PortForwardRule old_rule, PortForwardRule new_rule)
 }
 
 /**
- * Recieved NAT rule change from GUI, activate changes, store rule in mem and config file
+ * Received NAT rule change from GUI, activate changes, store rule in mem and config file
  *
  * @param rule NAT rule details
  */
@@ -1132,6 +1155,7 @@ Emulator::nat_rule_remove(PortForwardRule rule)
 	// Save the settings to the rpc.cfg file
 	config_save(&config);
 }
+#endif
 
 #ifdef __cplusplus
 extern "C" {

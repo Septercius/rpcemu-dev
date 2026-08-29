@@ -1,5 +1,8 @@
 .DS_Store
 *.app
+*.hdf
 build
 original
 poduleroms
+rpclog.txt
+

@@ -406,11 +406,12 @@ MainWindow::MainWindow(Emulator &emulator)
 	}
 
 	configure_dialog = new ConfigureDialog(emulator, &config_copy, &model_copy, this);
-#ifdef RPCEMU_NETWORKING
+    about_dialog = new AboutDialog(this);
+
+#ifdef FEATURE_NETWORKING
 	network_dialog = new NetworkDialog(emulator, &config_copy, this);
-#endif /* RPCEMU_NETWORKING */
-	nat_list_dialog = new NatListDialog(emulator, this);
-	about_dialog = new AboutDialog(this);
+    nat_list_dialog = new NatListDialog(emulator, this);
+#endif /* FEATURE_NETWORKING */
 
 	// MIPS counting
 	window_title.reserve(128);
@@ -428,10 +429,10 @@ MainWindow::MainWindow(Emulator &emulator)
 
 MainWindow::~MainWindow()
 {
-#ifdef RPCEMU_NETWORKING
+#ifdef FEATURE_NETWORKING
 	delete network_dialog;
 	delete nat_list_dialog;
-#endif /* RPCEMU_NETWORKING */
+#endif /* FEATURE_NETWORKING */
 	delete configure_dialog;
 	delete about_dialog;
 }
@@ -935,7 +936,7 @@ MainWindow::menu_configure()
     configure_dialog->exec(); // Modal
 }
 
-#ifdef RPCEMU_NETWORKING
+#ifdef FEATURE_NETWORKING
 void
 MainWindow::menu_networking()
 {
@@ -954,7 +955,7 @@ MainWindow::menu_nat_list()
 {
     nat_list_dialog->exec(); // Modal
 }
-#endif /* RPCEMU_NETWORKING */
+#endif /* FEATURE_NETWORKING */
 
 /**
  * Handle clicking on the Settings->Fullscreen option
@@ -1322,12 +1323,14 @@ MainWindow::create_actions()
     // Actions on Settings menu
     configure_action = new QAction(tr("Configure..."), this);
     connect(configure_action, &QAction::triggered, this, &MainWindow::menu_configure);
-#ifdef RPCEMU_NETWORKING
+
+#ifdef FEATURE_NETWORKING
     networking_action = new QAction(tr("Networking..."), this);
     connect(networking_action, &QAction::triggered, this, &MainWindow::menu_networking);
     nat_list_action = new QAction(tr("NAT Port Forwarding Rules..."), this);
     connect(nat_list_action, &QAction::triggered, this, &MainWindow::menu_nat_list);
-#endif /* RPCEMU_NETWORKING */
+#endif /* FEATURE_NETWORKING */
+    
     fullscreen_action = new QAction(tr("Full-screen Mode"), this);
     fullscreen_action->setCheckable(true);
     connect(fullscreen_action, &QAction::triggered, this, &MainWindow::menu_fullscreen);
@@ -1357,7 +1360,10 @@ MainWindow::create_actions()
     connect(this, &MainWindow::main_display_signal, this, &MainWindow::main_display_update, Qt::BlockingQueuedConnection);
     //	connect(this, &MainWindow::main_display_signal, this, &MainWindow::main_display_update);
     connect(this, &MainWindow::move_host_mouse_signal, this, &MainWindow::move_host_mouse);
+    
+#ifdef FEATURE_NETWORKING
     connect(this, &MainWindow::send_nat_rule_to_gui_signal, this, &MainWindow::send_nat_rule_to_gui);
+#endif /* FEATURE_NETWORKING */
     
     // Connections for displaying error messages in the GUI
     connect(this, &MainWindow::error_signal, this, &MainWindow::error);
@@ -1403,13 +1409,15 @@ MainWindow::create_menus()
     // Settings menu
     settings_menu = menuBar()->addMenu(tr("Settings"));
     settings_menu->addAction(configure_action);
-#ifdef RPCEMU_NETWORKING
+
+#ifdef FEATURE_NETWORKING
     settings_menu->addAction(networking_action);
     settings_menu->addAction(nat_list_action);
     if (this->config_copy.network_type != NetworkType_NAT) {
         nat_list_action->setEnabled(false);
     }
-#endif /* RPCEMU_NETWORKING */
+#endif /* FEATURE_NETWORKING */
+    
     settings_menu->addSeparator();
     settings_menu->addAction(fullscreen_action);
     settings_menu->addSeparator();
@@ -1557,11 +1565,13 @@ MainWindow::move_host_mouse(MouseMoveUpdate mouse_update)
     QCursor::setPos(display->mapToGlobal(pos));
 }
 
+#ifdef FEATURE_NETWORKING
 void
 MainWindow::send_nat_rule_to_gui(PortForwardRule rule)
 {
     nat_list_dialog->add_nat_rule(rule);
 }
+#endif
 
 /**
  * Called each time the mips_timer times out.
