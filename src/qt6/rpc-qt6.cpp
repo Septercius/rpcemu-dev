@@ -30,7 +30,7 @@
 #include <QScreen>
 #include <QtCore>
 
-#include "main_window.h"
+#include "main-window.h"
 #include "rpc-qt6.h"
 
 #include <pthread.h>
@@ -48,12 +48,12 @@
 #include "network-nat.h"
 
 #if defined(Q_OS_MACOS)
-#include "choose_dialog.h"
+#include "choose-dialog.h"
 
-#include "macosx/preferences-macosx.h"
-#include "macosx/hid-macosx.h"
+#include "preferences-macosx.h"
+#include "hid-macosx.h"
 
-#include "keyboard_macosx.h"
+#include "keyboard-macosx.h"
 #endif /* Q_OS_MACOS */
 
 extern "C" {
@@ -479,7 +479,7 @@ int main (int argc, char ** argv)
 	QApplication app(argc, argv);
 
 	// Add a program icon
-	QApplication::setWindowIcon(QIcon(":/rpcemu_icon.png"));
+	QApplication::setWindowIcon(QIcon(":/rpcemu-icon.png"));
     
 #if defined(Q_OS_MACOS)
     init_preferences();

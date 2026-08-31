@@ -2,7 +2,7 @@
 #include <string.h>
 #include "rpcemu.h"
 #include "disc.h"
-#include "disc_adf.h"
+#include "disc-adf.h"
 #include "fdc.h"
 
 disc_funcs *drive_funcs[2];

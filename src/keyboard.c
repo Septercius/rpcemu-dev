@@ -45,7 +45,7 @@
 #include "i8042.h"
 
 #ifdef __APPLE__
-#include "keyboard_macosx.h"
+#include "keyboard-macosx.h"
 #endif
 
 /* Keyboard Commands */

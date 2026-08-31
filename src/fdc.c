@@ -33,8 +33,8 @@
 #include "ide.h"
 #include "arm.h"
 #include "disc.h"
-#include "disc_adf.h"
-#include "disc_hfe.h"
+#include "disc-adf.h"
+#include "disc-hfe.h"
 
 /* FDC commands */
 enum {
