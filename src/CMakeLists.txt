@@ -163,7 +163,7 @@ set(WIN32_SOURCES
 	platform/win/rpc-win.c
 )
 
-# For netwworking, add the common and SLIRP network sources and set the required defines.
+# For networking, add the common and SLIRP network sources and set the required defines.
 if (ENABLE_NETWORKING)
 	list(APPEND PLATFORM_SOURCES ${NETWORK_SOURCES} ${SLIRP_SOURCES})
 	set_source_files_properties(${SLIRP_SOURCES} PROPERTIES COMPILE_FLAGS -Wno-pragma-pack)
