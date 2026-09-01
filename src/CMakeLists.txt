@@ -246,10 +246,12 @@ if (APPLE)
 			add_compile_definitions(_DEBUG)
 			set_target_properties(${NAME} PROPERTIES
 				OUTPUT_NAME ${APPNAME}-Debug
+				MACOSX_BUNDLE_EXECUTABLENAME ${APPNAME}-Debug
 			)
 		else()
 			set_target_properties(${NAME} PROPERTIES
 				OUTPUT_NAME ${APPNAME}
+				MACOSX_BUNDLE_EXECUTABLENAME ${APPNAME}
 			)
 		endif()
 		
@@ -257,6 +259,8 @@ if (APPLE)
 		set_target_properties(${NAME} PROPERTIES
 			MACOSX_BUNDLE ON
 			MACOSX_BUNDLE_INFO_PLIST platform/macosx/Info.plist
+			MACOSX_BUNDLE_DEPLOYMENT_TARGET 10.13
+			MACOSX_BUNDLE_GUI_IDENTIFIER org.marutan.rpcemu
 			OSX_ARCHITECTURES "${ARCHITECTURE}"
 		)
 	endmacro(configure_target)
