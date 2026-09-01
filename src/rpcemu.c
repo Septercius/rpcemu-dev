@@ -53,9 +53,9 @@
 #include "fdc.h"
 #include "hostfs.h"
 #include "disc.h"
-#include "disc_adf.h"
-#include "disc_hfe.h"
-#include "disc_mfm_common.h"
+#include "disc-adf.h"
+#include "disc-hfe.h"
+#include "disc-mfm-common.h"
 
 #ifdef FEATURE_NETWORKING
 #include "network.h"

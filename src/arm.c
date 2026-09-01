@@ -52,7 +52,7 @@ static int unpredictable_count = 1000; ///< Limit logging of unpredictable instr
 #define CFSET	((arm.reg[cpsr] & CFLAG) ? 1u : 0)
 #define VFSET	((arm.reg[cpsr] & VFLAG) ? 1u : 0)
 
-#include "arm_common.h"
+#include "arm-common.h"
 
 #undef refillpipeline
 #define refillpipeline()

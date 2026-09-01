@@ -38,7 +38,7 @@
 #include "arm.h"
 #include "mem.h"
 #include "hostfs.h"
-#include "hostfs_internal.h"
+#include "hostfs-internal.h"
 
 #define HOSTFS_PROTOCOL_VERSION	3
 
