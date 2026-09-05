@@ -407,6 +407,10 @@ MainWindow::MainWindow(Emulator &emulator)
 
 	configure_dialog = new ConfigureDialog(emulator, &config_copy, &model_copy, this);
     about_dialog = new AboutDialog(this);
+    
+#ifdef FEATURE_MULTI_HOSTFS
+    hostfs_dialog = new HostFSDialog(emulator, &config_copy, &model_copy, this);
+#endif /* FEATURE_MULTI_HOSTFS */
 
 #ifdef FEATURE_NETWORKING
 	network_dialog = new NetworkDialog(emulator, &config_copy, this);
@@ -433,6 +437,9 @@ MainWindow::~MainWindow()
 	delete network_dialog;
 	delete nat_list_dialog;
 #endif /* FEATURE_NETWORKING */
+#ifdef FEATURE_MULTI_HOSTFS
+    delete hostfs_dialog;
+#endif /* FEATURE_MULTI_HOSTFS */
 	delete configure_dialog;
 	delete about_dialog;
 }
@@ -932,6 +939,13 @@ MainWindow::menu_configure()
     configure_dialog->exec(); // Modal
 }
 
+#ifdef FEATURE_MULTI_HOSTFS
+void MainWindow::menu_hostfs()
+{
+    hostfs_dialog->exec(); // Modal
+}
+#endif /* FEATURE_MULTI_HOSTFS */
+
 #ifdef FEATURE_NETWORKING
 void
 MainWindow::menu_networking()
@@ -1319,6 +1333,11 @@ MainWindow::create_actions()
     // Actions on Settings menu
     configure_action = new QAction(tr("Configure..."), this);
     connect(configure_action, &QAction::triggered, this, &MainWindow::menu_configure);
+    
+#ifdef FEATURE_MULTI_HOSTFS
+    hostfs_action = new QAction(tr("HostFS..."), this);
+    connect(hostfs_action, &QAction::triggered, this, &MainWindow::menu_hostfs);
+#endif /* FEATURE_MULTI_HOSTFS */
 
 #ifdef FEATURE_NETWORKING
     networking_action = new QAction(tr("Networking..."), this);
@@ -1407,6 +1426,10 @@ MainWindow::create_menus()
     // Settings menu
     settings_menu = menuBar()->addMenu(tr("Settings"));
     settings_menu->addAction(configure_action);
+    
+#ifdef FEATURE_MULTI_HOSTFS
+    settings_menu->addAction(hostfs_action);
+#endif /* FEATURE_MULTI_HOSTFS */
     
 #ifdef FEATURE_NETWORKING
     settings_menu->addAction(networking_action);

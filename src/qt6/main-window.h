@@ -33,6 +33,9 @@
 
 #include "rpcemu.h"
 
+#ifdef FEATURE_MULTI_HOSTFS
+#include "hostfs-dialog.h"
+#endif
 
 /**
  * Used to pass data from Emulator thread to GUI thread
@@ -128,6 +131,10 @@ private slots:
 	void menu_cdrom_ioctl();
 	void menu_cdrom_win_ioctl();
 	void menu_configure();
+    
+#ifdef FEATURE_MULTI_HOSTFS
+    void menu_hostfs();
+#endif /* FEATURE_MULTI_HOSTFS*/
 
 #ifdef FEATURE_NETWORKING
 	void menu_networking();
@@ -231,6 +238,10 @@ private:
 	// Actions on Settings menu (and submenus)
 	QAction *configure_action;
     
+#ifdef FEATURE_MULTI_HOSTFS
+    QAction *hostfs_action;
+#endif /* FEATURE_MULTI_HOSTFS */
+    
 #ifdef FEATURE_NETWORKING
 	QAction *networking_action;
 	QAction *nat_list_action;
@@ -249,6 +260,10 @@ private:
 	// Dialogs
 	ConfigureDialog *configure_dialog;
     AboutDialog *about_dialog;
+    
+#ifdef FEATURE_MULTI_HOSTFS
+    HostFSDialog *hostfs_dialog;
+#endif /* FEATURE_MULTI_HOSTFS */
 
 #ifdef FEATURE_NETWORKING
     NetworkDialog *network_dialog;

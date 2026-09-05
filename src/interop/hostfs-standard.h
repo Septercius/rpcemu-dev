@@ -1,11 +1,10 @@
 /*
- * $Id: hostfs.h,v 1.1 2005/07/27 21:34:34 mhowkins Exp $
+ * $Id: hostfs-standard.h,v 1.1 2005/07/27 21:34:34 mhowkins Exp $
  */
 
 #ifndef HOSTFS_H
 #define HOSTFS_H
 
-//#include "armdefs.h"
 #include "rpcemu.h"
 
 #define ARCEM_SWI_CHUNK    0x56ac0

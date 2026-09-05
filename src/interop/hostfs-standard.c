@@ -37,10 +37,17 @@
 
 #include "arm.h"
 #include "mem.h"
-#include "hostfs.h"
-#include "hostfs-internal.h"
+#include "hostfs-standard.h"
 
-#define HOSTFS_PROTOCOL_VERSION	3
+#if defined(RPCEMU_PLATFORM_LINUX)
+#include "hostfs-linux.h"
+#elif defined(RPCEMU_PLATFORM_MACOS)
+#include "hostfs-macosx.h"
+#elif defined(RPCEMU_PLATFORM_WIN32)
+#include "hostfs-win32.h"
+#endif
+
+#define HOSTFS_PROTOCOL_VERSION	4
 
 /* Windows mkdir() function only takes one argument name, and
    name clashes with Posix mkdir() function taking two. This

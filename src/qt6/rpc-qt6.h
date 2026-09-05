@@ -17,8 +17,8 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#ifndef RPC_QT5_H
-#define RPC_QT5_H
+#ifndef RPC_QT6_H
+#define RPC_QT6_H
 
 #include <stdint.h>
 
@@ -81,6 +81,10 @@ signals:
 	void config_updated_signal(Config *new_config, Model new_model);
 	void show_fullscreen_message_off_signal();
     
+#ifdef FEATURE_MULTI_HOSTFS
+    void hostfs_updated_signal(Config *new_config);
+#endif /* FEATURE_MULTI_HOSTFS */
+    
 #ifdef FEATURE_NETWORKING
     void network_config_updated_signal(NetworkType network_type, QString bridgename, QString ipaddress);
 	void nat_rule_add_signal(PortForwardRule rule);
@@ -128,6 +132,10 @@ public slots:
 	void config_updated(Config *new_config, Model new_model);
 	void show_fullscreen_message_off();
     
+#ifdef FEATURE_MULTI_HOSTFS
+    void hostfs_updated(Config *new_config);
+#endif /* FEATURE_MULTI_HOSTFS */
+    
 #ifdef FEATURE_NETWORKING
     void network_config_updated(NetworkType network_type, QString bridgename, QString ipaddress);
 	void nat_rule_add(PortForwardRule rule);
@@ -142,4 +150,4 @@ private:
 	qint64 video_timer_next;		///< Time after which the video timer should trigger
 };
 
-#endif /* RPC_QT5_H */
+#endif /* RPC_QT6_H */

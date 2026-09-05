@@ -595,6 +595,10 @@ Emulator::Emulator()
 	connect(this, &Emulator::config_updated_signal, this, &Emulator::config_updated);
     
     connect(this, &Emulator::show_fullscreen_message_off_signal, this, &Emulator::show_fullscreen_message_off);
+    
+#ifdef FEATURE_MULTI_HOSTFS
+    connect(this, &Emulator::hostfs_updated_signal, this, &Emulator::hostfs_updated);
+#endif /* FEATURE_MULTI_HOSTFS */
 
 #ifdef FEATURE_NETWORKING
 	connect(this, &Emulator::network_config_updated_signal, this, &Emulator::network_config_updated);
@@ -1087,6 +1091,23 @@ Emulator::network_config_updated(NetworkType network_type, QString bridgename, Q
 }
 #endif /* FEATURE_NETWORKING */
 
+#ifdef FEATURE_MULTI_HOSTFS
+/**
+ * GUI is requesting setting of new HostFS configuration.
+ *
+ * @param new_config new configuration settings.
+ */
+void
+Emulator::hostfs_updated(Config *new_config)
+{
+    rpcemu_config_apply_new_hostfs(new_config);
+    
+    // The new_config was created for the emulator thread in gui thread, this
+    // function must free it
+    free(new_config);
+}
+#endif /* FEATURE_MULTI_HOSTFS */
+
 /**
  * User doesn't want to see the full screen help message again
  */
@@ -1167,8 +1188,8 @@ extern "C" {
 void
 rpcemu_log_platform(void)
 {
-	/* version of qt5 this app is running on */
-	rpclog("QT5: %s\n", qVersion());
+	/* version of qt6 this app is running on */
+	rpclog("QT6: %s\n", qVersion());
 
 	/* Log display information */
     rpclog("Number of screens: %lld\n", QGuiApplication::screens().size());

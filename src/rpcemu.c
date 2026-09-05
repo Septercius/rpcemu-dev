@@ -32,7 +32,6 @@
 #include <windows.h>
 #endif
 
-
 #include "rpcemu.h"
 #include "mem.h"
 #include "vidc20.h"
@@ -51,11 +50,16 @@
 #include "podulerom.h"
 #include "podules.h"
 #include "fdc.h"
-#include "hostfs.h"
 #include "disc.h"
 #include "disc-adf.h"
 #include "disc-hfe.h"
 #include "disc-mfm-common.h"
+
+#ifdef FEATURE_MULTI_HOSTFS
+#include "hostfs-multi.h"
+#else
+#include "hostfs-standard.h"
+#endif /* FEATURE_MULTI_HOSTFS */
 
 #ifdef FEATURE_NETWORKING
 #include "network.h"
@@ -95,6 +99,14 @@ Config config = {
 	0,			/* cpu_idle */
 	1,			/* show_fullscreen_message */
 	NULL,			/* network_capture */
+    
+#ifdef FEATURE_MULTI_HOSTFS
+    0,          /* confirm_quit */
+    0,          /* confirm_reset */
+    0,          /* show_dotfiles */
+    0,          /* show_systemfiles */
+    .hostfs_drive = { {0, 0, 0, NULL, NULL, NULL}, {0, 0, 0, NULL, NULL, NULL}, {0, 0, 0, NULL, NULL, NULL}, {0, 0, 0, NULL, NULL, NULL} }
+#endif /* FEATURE_MULTI_HOSTFS */
 };
 
 /* Performance measuring variables */
@@ -207,7 +219,12 @@ resetrpc(void)
 	cmos_reset();
     podules_reset();
     podulerom_reset(); // must be called after podules_reset()
+    
+#ifdef FEATURE_MULTI_HOSTFS
+    multi_hostfs_reset();
+#else
     hostfs_reset();
+#endif /* FEATURE_MULTI_HOSTFS */
 
 #ifdef FEATURE_NETWORKING
 	network_reset();
@@ -306,27 +323,29 @@ rpcemu_prestart(void)
 void
 rpcemu_start(void)
 {
-	hostfs_init();
+#ifndef FEATURE_MULTI_HOSTFS
+    hostfs_init();
+#endif /* FEATURE_MULTI_HOSTFS */
 	mem_init();
 	cp15_init();
 	arm_init();
 	loadroms();
-        cmos_init();
-        fdc_init();
-        adf_init();
-        hfe_init();
-        mfm_init();
-        fdc_image_load("boot.adf", 0);
-        fdc_image_load("notboot.adf", 1);
-        initvideo();
+    cmos_init();
+    fdc_init();
+    adf_init();
+    hfe_init();
+    mfm_init();
+    fdc_image_load("boot.adf", 0);
+    fdc_image_load("notboot.adf", 1);
+    initvideo();
 
-        sound_init();
+    sound_init();
 
-        initcodeblocks();
-        iso_init();
-        if (config.cdromtype == 2) /* ISO */
-                iso_open(config.isoname);
-        initpodulerom();
+    initcodeblocks();
+    iso_init();
+    if (config.cdromtype == 2) /* ISO */
+            iso_open(config.isoname);
+    initpodulerom();
 
 	/* Other components are initialised in the same way as the hardware
 	   being reset */
@@ -596,6 +615,59 @@ rpcemu_config_is_reset_required(const Config *new_config, Model new_model)
 	return needs_reset;
 }
 
+#ifdef FEATURE_MULTI_HOSTFS
+/** 
+ * Tests whether the changes in HostFS configuration would require an emulated
+ * machine reset.
+ *
+ * Called from GUI thread, is thread safe due to only reading the emulator
+ * state
+ *
+ * @thread GUI
+ * @param new_config New configuration values
+ * @returns Bool of whether emulated machine reset required
+ */
+int rpcemu_hostfs_is_reset_required(const Config *new_config)
+{
+    int shouldReset = 0;
+    assert(new_config);
+    
+    for (int i = 0; i <= HOSTFS_DRIVE_MAX; i++)
+    {
+        HostFSDrive *oldDrive = &config.hostfs_drive[i];
+        const HostFSDrive *newDrive = &new_config->hostfs_drive[i];
+        
+        // Has the enabled flag changed?
+        if (oldDrive->enabled != newDrive->enabled)
+        {
+            shouldReset = 1;
+            break;
+        }
+        
+        if (!newDrive->enabled)
+        {
+            continue;
+        }
+        
+        // Has the drive name changed?
+        if (strcasecmp(oldDrive->driveName, newDrive->driveName) != 0)
+        {
+            shouldReset = 1;
+            break;
+        }
+        
+        // Has the host path changed?
+        if (strcasecmp(oldDrive->hostPath, newDrive->hostPath) != 0)
+        {
+            shouldReset = 1;
+            break;
+        }
+    }
+    
+    return shouldReset;
+}
+#endif /* FEATURE_MULTI_HOSTFS */
+
 /**
  * Apply a new configuration and reset the emulator is required
  * 
@@ -661,6 +733,62 @@ rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
 		resetrpc();
 	}
 }
+
+#ifdef FEATURE_MULTI_HOSTFS
+/* Apply a new HostFS configuration and reset the emulator if required.
+ * @thread emulator
+ * @param new_config the new configuration
+ */
+void
+rpcemu_config_apply_new_hostfs(Config *new_config)
+{
+    int shouldReset = 0;
+    
+    for (int i = 0; i <= HOSTFS_DRIVE_MAX; i++)
+    {
+        HostFSDrive *oldDrive = &config.hostfs_drive[i];
+        HostFSDrive *newDrive = &new_config->hostfs_drive[i];
+        
+        // Has the enabled flag changed?
+        if (oldDrive->enabled != newDrive->enabled)
+        {
+            shouldReset = 1;
+            break;
+        }
+        
+        if (!newDrive->enabled) 
+        {
+            continue;
+        }
+        
+        // Has the drive name changed?
+        if (strcasecmp(oldDrive->driveName, newDrive->driveName) != 0)
+        {
+            shouldReset = 1;
+            break;
+        }
+        
+        // Has the host path changed?
+        if (strcasecmp(oldDrive->hostPath, newDrive->hostPath) != 0)
+        {
+            shouldReset = 1;
+            break;
+        }
+    }
+    
+    /* Copy the new settings over. */
+    memcpy(&config, new_config, sizeof(Config));
+    
+    // Save the settings to the rpc.cfg file
+    config_save(&config);
+    
+    // Trigger a reset if needed.
+    if (shouldReset)
+    {
+        resetrpc();
+    }
+}
+#endif /* FEATURE_MULTI_HOSTFS */
 
 /**
  * Add a forwarding rule to the NAT

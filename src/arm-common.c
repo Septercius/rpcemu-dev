@@ -28,7 +28,12 @@
 #include "arm-common.h"
 #include "mem.h"
 #include "keyboard.h"
-#include "hostfs.h"
+
+#ifdef FEATURE_MULTI_HOSTFS
+#include "hostfs-multi.h"
+#else
+#include "hostfs-standard.h"
+#endif
 
 #ifdef FEATURE_NETWORKING
 #include "network.h"
@@ -616,18 +621,27 @@ opSWI(uint32_t opcode)
 			goto realswi;
 		}
 
-	} else if (mousehack && swinum == SWI_OS_Mouse) {
-		/* OS_Mouse */
-		mouse_hack_osmouse();
-		arm.reg[cpsr] &= ~VFLAG;
+    } else if (mousehack && swinum == SWI_OS_Mouse) {
+        /* OS_Mouse */
+        mouse_hack_osmouse();
+        arm.reg[cpsr] &= ~VFLAG;
+    }
+#ifdef FEATURE_MULTI_HOSTFS
+    else if (swinum == ARCEM_SWI_HOSTFS || (swinum >= ARCEM_SWI_MULTI_HOSTFS_START && swinum <= ARCEM_SWI_MULTI_HOSTFS_END))
+    {
+        ARMul_State state;
+        state.Reg = arm.reg;
+        
+        multi_hostfs_swi_dispatch(swinum, &state);
+    }
+#else
+    } else if (swinum == ARCEM_SWI_HOSTFS) {
+        ARMul_State state;
 
-	} else if (swinum == ARCEM_SWI_HOSTFS) {
-		ARMul_State state;
-
-		state.Reg = arm.reg;
-		hostfs(&state);
-
-	}
+        state.Reg = arm.reg;
+        hostfs(&state);
+    }
+#endif /* FEATURE_MULTI_HOSTFS */
 #ifdef FEATURE_NETWORKING
 	else if (swinum == ARCEM_SWI_NETWORK) {
 		if (config.network_type != NetworkType_Off) {
