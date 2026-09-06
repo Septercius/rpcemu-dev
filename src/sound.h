@@ -22,7 +22,8 @@
 #define __SOUND__
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif /* __cplusplus */
 
 extern void sound_init(void);

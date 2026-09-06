@@ -18,19 +18,14 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "rpcemu.h"
 #include "mem.h"
+#include "rpcemu.h"
 
-void initcodeblocks(void)
-{
-}
+void initcodeblocks(void) {}
 
-void resetcodeblocks(void)
-{
-}
+void resetcodeblocks(void) {}
 
 void cacheclearpage(uint32_t a)
 {
-	NOT_USED(a);
+    NOT_USED(a);
 }
-

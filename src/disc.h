@@ -1,12 +1,13 @@
-typedef struct {
-	void (*seek)(int drive, int track);
-	void (*readsector)(int drive, int sector, int track, int side, int density);
-	void (*writesector)(int drive, int sector, int track, int side, int density);
-	void (*readaddress)(int drive, int track, int side, int density);
-	void (*format)(int drive, int track, int side, int density);
-	void (*stop)();
-	void (*poll)();
-	void (*close)(int drive);
+typedef struct
+{
+    void (*seek)(int drive, int track);
+    void (*readsector)(int drive, int sector, int track, int side, int density);
+    void (*writesector)(int drive, int sector, int track, int side, int density);
+    void (*readaddress)(int drive, int track, int side, int density);
+    void (*format)(int drive, int track, int side, int density);
+    void (*stop)();
+    void (*poll)();
+    void (*close)(int drive);
 } disc_funcs;
 
 extern disc_funcs *drive_funcs[2];

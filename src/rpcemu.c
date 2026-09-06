@@ -32,28 +32,27 @@
 #include <windows.h>
 #endif
 
-#include "rpcemu.h"
-#include "mem.h"
-#include "vidc20.h"
-#include "keyboard.h"
-#include "sound.h"
-#include "mem.h"
-#include "iomd.h"
-#include "ide.h"
 #include "arm.h"
-#include "cmos.h"
-#include "superio.h"
-#include "i8042.h"
-#include "romload.h"
-#include "cp15.h"
 #include "cdrom-iso.h"
-#include "podulerom.h"
-#include "podules.h"
-#include "fdc.h"
-#include "disc.h"
+#include "cmos.h"
+#include "cp15.h"
 #include "disc-adf.h"
 #include "disc-hfe.h"
 #include "disc-mfm-common.h"
+#include "disc.h"
+#include "fdc.h"
+#include "i8042.h"
+#include "ide.h"
+#include "iomd.h"
+#include "keyboard.h"
+#include "mem.h"
+#include "podulerom.h"
+#include "podules.h"
+#include "romload.h"
+#include "rpcemu.h"
+#include "sound.h"
+#include "superio.h"
+#include "vidc20.h"
 
 #ifdef FEATURE_MULTI_HOSTFS
 #include "hostfs-multi.h"
@@ -65,59 +64,50 @@
 #include "network.h"
 #endif /* FEATURE_NETWORKING */
 
-char discname[2][260]={"boot.adf","notboot.adf"};
+char discname[2][260] = { "boot.adf", "notboot.adf" };
 
 Machine machine; /**< The details of the current machine being emulated */
 
 /** Array of details of models the emulator can emulate, must be kept in sync with
     Model enum in rpcemu.h */
-const Model_Details models[] = {
-	{ "Risc PC - ARM610",                "RPC610", CPUModel_ARM610,    IOMDType_IOMD,      SuperIOType_FDC37C665GT, I2C_PCF8583 },
-	{ "Risc PC - ARM710",                "RPC710", CPUModel_ARM710,    IOMDType_IOMD,      SuperIOType_FDC37C665GT, I2C_PCF8583 },
-	{ "Risc PC - StrongARM",             "RPCSA",  CPUModel_SA110,     IOMDType_IOMD,      SuperIOType_FDC37C665GT, I2C_PCF8583 },
-	{ "A7000",                           "A7000",  CPUModel_ARM7500,   IOMDType_ARM7500,   SuperIOType_FDC37C665GT, I2C_PCF8583 },
-	{ "A7000+ (experimental)",           "A7000+", CPUModel_ARM7500FE, IOMDType_ARM7500FE, SuperIOType_FDC37C665GT, I2C_PCF8583 },
-	{ "Risc PC - ARM810 (experimental)", "RPC810", CPUModel_ARM810,    IOMDType_IOMD,      SuperIOType_FDC37C665GT, I2C_PCF8583 },
-	{ "Phoebe (RPC2)",                   "Phoebe", CPUModel_SA110,     IOMDType_IOMD2,     SuperIOType_FDC37C672,   I2C_PCF8583 | I2C_SPD_DIMM0 }
-};
+const Model_Details models[] = { { "Risc PC - ARM610", "RPC610", CPUModel_ARM610, IOMDType_IOMD, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "Risc PC - ARM710", "RPC710", CPUModel_ARM710, IOMDType_IOMD, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "Risc PC - StrongARM", "RPCSA", CPUModel_SA110, IOMDType_IOMD, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "A7000", "A7000", CPUModel_ARM7500, IOMDType_ARM7500, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "A7000+ (experimental)", "A7000+", CPUModel_ARM7500FE, IOMDType_ARM7500FE, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "Risc PC - ARM810 (experimental)", "RPC810", CPUModel_ARM810, IOMDType_IOMD, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "Phoebe (RPC2)", "Phoebe", CPUModel_SA110, IOMDType_IOMD2, SuperIOType_FDC37C672, I2C_PCF8583 | I2C_SPD_DIMM0 } };
 
-Config config = {
-	0,			/* mem_size */
-	0,			/* vram_size */
-	NULL,			/* username */
-	NULL,			/* ipaddress */
-	NULL,			/* macaddress */
-	NULL,			/* bridgename */
-	0,			/* refresh */
-	1,			/* soundenabled */
-	1,			/* cdromenabled */
-	0,			/* cdromtype  -- Only used on Windows build */
-	"",			/* isoname */
-	1,			/* mousehackon */
-	0,			/* mousetwobutton */
-	NetworkType_Off,	/* network_type */
-	0,			/* cpu_idle */
-	1,			/* show_fullscreen_message */
-	NULL,			/* network_capture */
-    
+Config config = { 0, /* mem_size */
+    0,               /* vram_size */
+    NULL,            /* username */
+    NULL,            /* ipaddress */
+    NULL,            /* macaddress */
+    NULL,            /* bridgename */
+    0,               /* refresh */
+    1,               /* soundenabled */
+    1,               /* cdromenabled */
+    0,               /* cdromtype  -- Only used on Windows build */
+    "",              /* isoname */
+    1,               /* mousehackon */
+    0,               /* mousetwobutton */
+    NetworkType_Off, /* network_type */
+    0,               /* cpu_idle */
+    1,               /* show_fullscreen_message */
+    NULL,            /* network_capture */
+
 #ifdef FEATURE_MULTI_HOSTFS
-    0,          /* confirm_quit */
-    0,          /* confirm_reset */
-    0,          /* show_dotfiles */
-    0,          /* show_systemfiles */
-    .hostfs_drive = { {0, 0, 0, NULL, NULL, NULL}, {0, 0, 0, NULL, NULL, NULL}, {0, 0, 0, NULL, NULL, NULL}, {0, 0, 0, NULL, NULL, NULL} }
+    0, /* confirm_quit */
+    0, /* confirm_reset */
+    0, /* show_dotfiles */
+    0, /* show_systemfiles */
+    .hostfs_drive = { { 0, 0, 0, NULL, NULL, NULL }, { 0, 0, 0, NULL, NULL, NULL }, { 0, 0, 0, NULL, NULL, NULL }, { 0, 0, 0, NULL, NULL, NULL } }
 #endif /* FEATURE_MULTI_HOSTFS */
 };
 
 /* Performance measuring variables */
 int updatemips = 0; /**< bool of whether to update the mips speed in the program title bar */
 Perf perf = {
-	0.0f, /* mips */
-	0.0f, /* mhz */
-	0.0f, /* tlb_sec */
-	0.0f, /* flush_sec */
-	0,    /* mips_count */
-	0.0f  /* mips_total */
+    0.0f, /* mips */
+    0.0f, /* mhz */
+    0.0f, /* tlb_sec */
+    0.0f, /* flush_sec */
+    0,    /* mips_count */
+    0.0f  /* mips_total */
 };
 
 PortForwardRule port_forward_rules[MAX_PORT_FORWARDS]; ///< Port forward rules accross the NAT
@@ -143,26 +133,22 @@ static int cycles;
  * @param format  Section specific information
  * @param ...     Section specific information variable arguments
  */
-void UNIMPLEMENTEDFL(const char *file, unsigned line, const char *section,
-                     const char *format, ...)
+void UNIMPLEMENTEDFL(const char *file, unsigned line, const char *section, const char *format, ...)
 {
-	char buffer[1024];
-	va_list arg_list;
+    char buffer[1024];
+    va_list arg_list;
 
-	assert(file);
-	assert(section);
-	assert(format);
+    assert(file);
+    assert(section);
+    assert(format);
 
-	va_start(arg_list, format);
-	vsprintf(buffer, format, arg_list);
-	va_end(arg_list);
+    va_start(arg_list, format);
+    vsprintf(buffer, format, arg_list);
+    va_end(arg_list);
 
-	rpclog("UNIMPLEMENTED: %s: %s(%u): %s\n",
-	       section, file, line, buffer);
+    rpclog("UNIMPLEMENTED: %s: %s(%u): %s\n", section, file, line, buffer);
 
-	fprintf(stderr,
-	        "UNIMPLEMENTED: %s: %s(%u): %s\n",
-	        section, file, line, buffer);
+    fprintf(stderr, "UNIMPLEMENTED: %s: %s(%u): %s\n", section, file, line, buffer);
 }
 #endif /* _DEBUG */
 
@@ -172,54 +158,54 @@ void UNIMPLEMENTEDFL(const char *file, unsigned line, const char *section,
  * @param format printf style format of message
  * @param ...    format specific arguments
  */
-void
-rpclog(const char *format, ...)
+void rpclog(const char *format, ...)
 {
-	va_list arg_list;
+    va_list arg_list;
 
-	assert(format);
+    assert(format);
 
-	if (arclog == NULL) {
-		arclog = fopen(rpcemu_get_log_path(), "wt");
-		if (arclog == NULL) {
-			return;
-		}
-	}
+    if (arclog == NULL)
+    {
+        arclog = fopen(rpcemu_get_log_path(), "wt");
+        if (arclog == NULL)
+        {
+            return;
+        }
+    }
 
-	va_start(arg_list, format);
-	vfprintf(arclog, format, arg_list);
-	va_end(arg_list);
+    va_start(arg_list, format);
+    vfprintf(arclog, format, arg_list);
+    va_end(arg_list);
 
-	fflush(arclog);
+    fflush(arclog);
 }
 
 /**
  * Reinitialise all emulated subsystems based on current configuration. This
  * is equivalent to resetting the emulated hardware.
  *
- * Called from within the GUI code (Allegro or Windows) when the user has made
+ * Called from within the GUI code when the user has made
  * a change to their preferred configuration, or when the user picks 'Reset'
  * from the menu.
  */
-void
-resetrpc(void)
+void resetrpc(void)
 {
-	rpclog("RPCEmu: Machine reset\n");
+    rpclog("RPCEmu: Machine reset\n");
 
     mem_reset(config.mem_size, config.vram_size);
     cp15_reset(machine.cpu_model);
-	arm_reset(machine.cpu_model);
+    arm_reset(machine.cpu_model);
     keyboard_reset();
-	iomd_reset(machine.iomd_type);
+    iomd_reset(machine.iomd_type);
 
     reseti2c(machine.i2c_devices);
     resetide();
     superio_reset(machine.super_type);
-	i8042_reset();
-	cmos_reset();
+    i8042_reset();
+    cmos_reset();
     podules_reset();
     podulerom_reset(); // must be called after podules_reset()
-    
+
 #ifdef FEATURE_MULTI_HOSTFS
     multi_hostfs_reset();
 #else
@@ -227,73 +213,77 @@ resetrpc(void)
 #endif /* FEATURE_MULTI_HOSTFS */
 
 #ifdef FEATURE_NETWORKING
-	network_reset();
+    network_reset();
 
-	if (config.network_type != NetworkType_Off) {
-		network_init();
-	}
+    if (config.network_type != NetworkType_Off)
+    {
+        network_init();
+    }
 #endif /* FEATURE_NETWORKING */
 
-	cycles = 0;
+    cycles = 0;
 
-	rpclog("RPCEmu: Machine reset complete\n");
+    rpclog("RPCEmu: Machine reset complete\n");
 }
 
 /**
  * Log additional information about the build and environment.
  */
-void
-rpcemu_log_information(void)
+void rpcemu_log_information(void)
 {
-	char cwd[1024];
-	time_t now;
-	char buffer[22];
-	struct tm* tm_info;
+    char cwd[1024];
+    time_t now;
+    char buffer[22];
+    struct tm *tm_info;
 
-	/* Time and date of this run */
-	time(&now);
-	tm_info = localtime(&now);
-	strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm_info);
-	rpclog("localtime: %s\n", buffer);
-	tm_info = gmtime(&now);
-	strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm_info);
-	rpclog("   gmtime: %s\n", buffer);
+    /* Time and date of this run */
+    time(&now);
+    tm_info = localtime(&now);
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm_info);
+    rpclog("localtime: %s\n", buffer);
+    tm_info = gmtime(&now);
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm_info);
+    rpclog("   gmtime: %s\n", buffer);
 
-	/* Log version and build type */
-	rpclog("RPCEmu " VERSION " [");
-	if (arm_is_dynarec()) {
-		rpclog("DYNAREC");
-	} else {
-		rpclog("INTERPRETER");
-	}
+    /* Log version and build type */
+    rpclog("RPCEmu " VERSION " [");
+    if (arm_is_dynarec())
+    {
+        rpclog("DYNAREC");
+    }
+    else
+    {
+        rpclog("INTERPRETER");
+    }
 
 #if defined(_DEBUG)
-	rpclog(" DEBUG");
+    rpclog(" DEBUG");
 #else
-	rpclog(" NO_DEBUG");
+    rpclog(" NO_DEBUG");
 #endif
-	rpclog("]\n");
+    rpclog("]\n");
 
-	/* Log 32 or 64-bit */
-	rpclog("Build: %lu-bit binary\n", (unsigned long) sizeof(void *) * 8);
+    /* Log 32 or 64-bit */
+    rpclog("Build: %lu-bit binary\n", (unsigned long) sizeof(void *) * 8);
 
-	/* Log Compiler */
-	/* Clang must be tested before GCC because Clang also defines __GNUC__ */
+    /* Log Compiler */
+    /* Clang must be tested before GCC because Clang also defines __GNUC__ */
 #if defined __clang__ && defined __VERSION__
-	rpclog("Compiler: Clang version " __VERSION__ "\n");
+    rpclog("Compiler: Clang version " __VERSION__ "\n");
 #elif defined __GNUC__ && defined __VERSION__
-	rpclog("Compiler: GCC version " __VERSION__ "\n");
+    rpclog("Compiler: GCC version " __VERSION__ "\n");
 #endif
-	/* Log details of Operating System */
-	rpcemu_log_os();
+    /* Log details of Operating System */
+    rpcemu_log_os();
 
-	/* Log details of Platform (qt) */
-	rpcemu_log_platform();
+    /* Log details of Platform (qt) */
+    rpcemu_log_platform();
 
-	/* Log working directory */
-	if (getcwd(cwd, sizeof(cwd)) != NULL) {
-		rpclog("Working Directory: %s\n", cwd);
-	}
+    /* Log working directory */
+    if (getcwd(cwd, sizeof(cwd)) != NULL)
+    {
+        rpclog("Working Directory: %s\n", cwd);
+    }
 }
 
 /**
@@ -303,13 +293,12 @@ rpcemu_log_information(void)
  *
  * Called from each platform's code on program startup.
  */
-void
-rpcemu_prestart(void)
+void rpcemu_prestart(void)
 {
-	/* On startup log additional information about the build and environment */
-	rpcemu_log_information();
+    /* On startup log additional information about the build and environment */
+    rpcemu_log_information();
 
-	config_load(&config);
+    config_load(&config);
 }
 
 /**
@@ -320,16 +309,15 @@ rpcemu_prestart(void)
  *
  * @return Always 0
  */
-void
-rpcemu_start(void)
+void rpcemu_start(void)
 {
 #ifndef FEATURE_MULTI_HOSTFS
     hostfs_init();
 #endif /* FEATURE_MULTI_HOSTFS */
-	mem_init();
-	cp15_init();
-	arm_init();
-	loadroms();
+    mem_init();
+    cp15_init();
+    arm_init();
+    loadroms();
     cmos_init();
     fdc_init();
     adf_init();
@@ -344,12 +332,14 @@ rpcemu_start(void)
     initcodeblocks();
     iso_init();
     if (config.cdromtype == 2) /* ISO */
-            iso_open(config.isoname);
+    {
+        iso_open(config.isoname);
+    }
     initpodulerom();
 
-	/* Other components are initialised in the same way as the hardware
-	   being reset */
-	resetrpc();
+    /* Other components are initialised in the same way as the hardware
+       being reset */
+    resetrpc();
 }
 
 /**
@@ -358,54 +348,65 @@ rpcemu_start(void)
  *
  * Called repeatedly from within each platform's main loop.
  */
-void
-execrpcemu(void)
+void execrpcemu(void)
 {
-	cycles += 20000;
+    cycles += 20000;
 
-	while (cycles > 0) {
-		cycles -= arm_exec();
+    while (cycles > 0)
+    {
+        cycles -= arm_exec();
 
-		if (kcallback) {
-			kcallback--;
-			if (kcallback <= 0) {
-				kcallback = 0;
-				keyboard_callback_rpcemu();
-			}
-		}
-		if (mcallback) {
-			mcallback -= 10;
-			if (mcallback <= 0) {
-				mcallback = 0;
-				mouse_ps2_callback();
-			}
-		}
-		if (fdccallback) {
-			fdccallback -= 100;
-			if (fdccallback <= 0) {
-				fdccallback = 0;
-				fdc_callback();
-			}
-		}
-		if (idecallback) {
-			idecallback -= 10;
-			if (idecallback <= 0) {
-				idecallback = 0;
-				callbackide();
-			}
-		}
-		if (motoron) {
-			disc_poll();
-		}
-	}
+        if (kcallback)
+        {
+            kcallback--;
+            if (kcallback <= 0)
+            {
+                kcallback = 0;
+                keyboard_callback_rpcemu();
+            }
+        }
+        if (mcallback)
+        {
+            mcallback -= 10;
+            if (mcallback <= 0)
+            {
+                mcallback = 0;
+                mouse_ps2_callback();
+            }
+        }
+        if (fdccallback)
+        {
+            fdccallback -= 100;
+            if (fdccallback <= 0)
+            {
+                fdccallback = 0;
+                fdc_callback();
+            }
+        }
+        if (idecallback)
+        {
+            idecallback -= 10;
+            if (idecallback <= 0)
+            {
+                idecallback = 0;
+                callbackide();
+            }
+        }
+        if (motoron)
+        {
+            disc_poll();
+        }
+    }
 
-	if (drawscre > 0) {
-		drawscr();
-		drawscre--;
-		if (drawscre > 5) {
-			drawscre = 0;
-		}
-	}
+    if (drawscre > 0)
+    {
+        drawscr();
+        drawscre--;
+        if (drawscre > 5)
+        {
+            drawscre = 0;
+        }
+    }
 }
 
 /**
@@ -414,69 +415,82 @@ execrpcemu(void)
  *
  * Called when RISC OS calls "Portable_Idle" SWI.
  */
-void
-rpcemu_idle(void)
+void rpcemu_idle(void)
 {
-	/* Loop while no interrupts pending */
-	while (!arm.event) {
-		/* Run down any callback timers */
-		if (kcallback) {
-			kcallback--;
-			if (kcallback <= 0) {
-				kcallback = 0;
-				keyboard_callback_rpcemu();
-			}
-		}
-		if (mcallback) {
-			mcallback -= 10;
-			if (mcallback <= 0) {
-				mcallback = 0;
-				mouse_ps2_callback();
-			}
-		}
-		if (fdccallback) {
-			fdccallback -= 100;
-			if (fdccallback <= 0) {
-				fdccallback = 0;
-				fdc_callback();
-			}
-		}
-		if (idecallback) {
-			idecallback -= 10;
-			if (idecallback <= 0) {
-				idecallback = 0;
-				callbackide();
-			}
-		}
-		if (motoron) {
-			/* Not much point putting a counter here */
-			iomd.irqa.status |= IOMD_IRQA_FLOPPY_INDEX;
-			updateirqs();
-		}
-		/* Sleep if no interrupts pending */
-		if (!arm.event) {
+    /* Loop while no interrupts pending */
+    while (!arm.event)
+    {
+        /* Run down any callback timers */
+        if (kcallback)
+        {
+            kcallback--;
+            if (kcallback <= 0)
+            {
+                kcallback = 0;
+                keyboard_callback_rpcemu();
+            }
+        }
+        if (mcallback)
+        {
+            mcallback -= 10;
+            if (mcallback <= 0)
+            {
+                mcallback = 0;
+                mouse_ps2_callback();
+            }
+        }
+        if (fdccallback)
+        {
+            fdccallback -= 100;
+            if (fdccallback <= 0)
+            {
+                fdccallback = 0;
+                fdc_callback();
+            }
+        }
+        if (idecallback)
+        {
+            idecallback -= 10;
+            if (idecallback <= 0)
+            {
+                idecallback = 0;
+                callbackide();
+            }
+        }
+        if (motoron)
+        {
+            /* Not much point putting a counter here */
+            iomd.irqa.status |= IOMD_IRQA_FLOPPY_INDEX;
+            updateirqs();
+        }
+        /* Sleep if no interrupts pending */
+        if (!arm.event)
+        {
 #ifdef RPCEMU_WIN
-			Sleep(1);
+            Sleep(1);
 #else
-			struct timespec tm;
+            struct timespec tm;
 
-			tm.tv_sec = 0;
-			tm.tv_nsec = 1000000;
-			nanosleep(&tm, NULL);
+            tm.tv_sec = 0;
+            tm.tv_nsec = 1000000;
+            nanosleep(&tm, NULL);
 #endif
-		}
-		/* Run other periodic actions */
-		if (!arm.event) {
-			if (drawscre > 0) {
-				drawscr();
-				drawscre--;
-				if (drawscre > 5) {
-					drawscre = 0;
-				}
-			}
-			rpcemu_idle_process_events();
-		}
-	}
+        }
+        /* Run other periodic actions */
+        if (!arm.event)
+        {
+            if (drawscre > 0)
+            {
+                drawscr();
+                drawscre--;
+                if (drawscre > 5)
+                {
+                    drawscre = 0;
+                }
+            }
+            rpcemu_idle_process_events();
+        }
+    }
 }
 
 /**
@@ -484,23 +498,22 @@ rpcemu_idle(void)
  *
  * Called from each platform's code on program closing.
  */
-void
-endrpcemu(void)
+void endrpcemu(void)
 {
-        sound_thread_close();
-        closevideo();
-        iomd_end();
-        fdc_image_save(discname[0], 0);
-        fdc_image_save(discname[1], 1);
-        free(vram);
-        free(ram00);
-        free(ram01);
-        free(rom);
-        savecmos();
-        config_save(&config);
+    sound_thread_close();
+    closevideo();
+    iomd_end();
+    fdc_image_save(discname[0], 0);
+    fdc_image_save(discname[1], 1);
+    free(vram);
+    free(ram00);
+    free(ram01);
+    free(rom);
+    savecmos();
+    config_save(&config);
 
 #ifdef FEATURE_NETWORKING
-	network_reset();
+    network_reset();
 #endif /* FEATURE_NETWORKING */
 }
 
@@ -511,15 +524,14 @@ endrpcemu(void)
  *
  * @param model New model being selected
  */
-void
-rpcemu_model_changed(Model model)
+void rpcemu_model_changed(Model model)
 {
-	/* Cache details from the models[] array into the machine struct for speed of lookup */
-	machine.model       = model;
-	machine.cpu_model   = models[model].cpu_model;
-	machine.iomd_type   = models[model].iomd_type;
-	machine.super_type  = models[model].super_type;
-	machine.i2c_devices = models[model].i2c_devices;
+    /* Cache details from the models[] array into the machine struct for speed of lookup */
+    machine.model = model;
+    machine.cpu_model = models[model].cpu_model;
+    machine.iomd_type = models[model].iomd_type;
+    machine.super_type = models[model].super_type;
+    machine.i2c_devices = models[model].i2c_devices;
 }
 
 /**
@@ -529,22 +541,24 @@ rpcemu_model_changed(Model model)
  * @param drive    RPC Drive number, 0 or 1
  * @param filename Full filepath of new .adf to load
  */
-void
-rpcemu_floppy_load(int drive, const char *filename)
+void rpcemu_floppy_load(int drive, const char *filename)
 {
-	assert(drive == 0 || drive == 1);
-	assert(filename);
-	assert(*filename);
+    assert(drive == 0 || drive == 1);
+    assert(filename);
+    assert(*filename);
 
-	fdc_image_save(discname[drive], drive);
+    fdc_image_save(discname[drive], drive);
 
-	if (strlen(filename) > sizeof(discname[drive]) - 1) {
-		// New disc image path too long
-		error("Disc image disc path \'%s\' too long", filename);
-	} else {
-		strcpy(discname[drive], filename);
-		fdc_image_load(discname[drive], drive);
-	}
+    if (strlen(filename) > sizeof(discname[drive]) - 1)
+    {
+        // New disc image path too long
+        error("Disc image disc path \'%s\' too long", filename);
+    }
+    else
+    {
+        strcpy(discname[drive], filename);
+        fdc_image_load(discname[drive], drive);
+    }
 }
 
 /**
@@ -554,69 +568,70 @@ rpcemu_floppy_load(int drive, const char *filename)
  * @returns pointer to first char in extension, or pointer to
  *          null terminator (empty string) if no extension found
  */
-const char *
-rpcemu_file_get_extension(const char *filename)
+const char *rpcemu_file_get_extension(const char *filename)
 {
-	const char *position;
+    const char *position;
 
-	assert(filename);
+    assert(filename);
 
-	position = strrchr(filename, '.');
-	if (position == NULL) {
-		/* No extension, return empty string */
-		return &filename[strlen(filename)];
-	} else {
-		/* Found extension */
-		return position + 1;
-	}
+    position = strrchr(filename, '.');
+    if (position == NULL)
+    {
+        /* No extension, return empty string */
+        return &filename[strlen(filename)];
+    }
+    else
+    {
+        /* Found extension */
+        return position + 1;
+    }
 }
 
 /**
  * Test whether the changes in configuration would require an emulated
  * machine reset
- * 
+ *
  * Called from GUI thread, is thread safe due to only reading the emulator
  * state
- * 
+ *
  * @thread GUI
  * @param new_config New configuration values
  * @param new_model New configuration values
  * @returns Bool of whether emulated machine reset required
  */
-int
-rpcemu_config_is_reset_required(const Config *new_config, Model new_model)
+int rpcemu_config_is_reset_required(const Config *new_config, Model new_model)
 {
-	int needs_reset = 0;
-	assert(new_config);
+    int needs_reset = 0;
+    assert(new_config);
 
-	if(machine.model != new_model) {
-		needs_reset = 1;
-	}
+    if (machine.model != new_model)
+    {
+        needs_reset = 1;
+    }
 
-	if(config.mem_size != new_config->mem_size) {
-		needs_reset = 1;
-	}
+    if (config.mem_size != new_config->mem_size)
+    {
+        needs_reset = 1;
+    }
 
-	/* vram size has changed on a machine without fixed vram size */
-	if (config.vram_size != new_config->vram_size
-	   && (machine.model != Model_A7000 &&
-	       machine.model != Model_A7000plus &&
-	       machine.model != Model_Phoebe))
-	{
-		needs_reset = 1;
-	}
+    /* vram size has changed on a machine without fixed vram size */
+    if (config.vram_size != new_config->vram_size && (machine.model != Model_A7000 && machine.model != Model_A7000plus && machine.model != Model_Phoebe))
+    {
+        needs_reset = 1;
+    }
 
-	if (config.network_type != new_config->network_type) {
-		needs_reset = 1;
-	}
+    if (config.network_type != new_config->network_type)
+    {
+        needs_reset = 1;
+    }
 
-	// TODO Various network, MAC/IP/bridgename changes will also cause reset
+    // TODO Various network, MAC/IP/bridgename changes will also cause reset
 
-	return needs_reset;
+    return needs_reset;
 }
 
 #ifdef FEATURE_MULTI_HOSTFS
-/** 
+/**
  * Tests whether the changes in HostFS configuration would require an emulated
  * machine reset.
  *
@@ -631,31 +646,31 @@ int rpcemu_hostfs_is_reset_required(const Config *new_config)
 {
     int shouldReset = 0;
     assert(new_config);
-    
+
     for (int i = 0; i <= HOSTFS_DRIVE_MAX; i++)
     {
         HostFSDrive *oldDrive = &config.hostfs_drive[i];
         const HostFSDrive *newDrive = &new_config->hostfs_drive[i];
-        
+
         // Has the enabled flag changed?
         if (oldDrive->enabled != newDrive->enabled)
         {
             shouldReset = 1;
             break;
         }
-        
+
         if (!newDrive->enabled)
         {
             continue;
         }
-        
+
         // Has the drive name changed?
         if (strcasecmp(oldDrive->driveName, newDrive->driveName) != 0)
         {
             shouldReset = 1;
             break;
         }
-        
+
         // Has the host path changed?
         if (strcasecmp(oldDrive->hostPath, newDrive->hostPath) != 0)
         {
@@ -663,75 +678,83 @@ int rpcemu_hostfs_is_reset_required(const Config *new_config)
             break;
         }
     }
-    
+
     return shouldReset;
 }
 #endif /* FEATURE_MULTI_HOSTFS */
 
 /**
  * Apply a new configuration and reset the emulator is required
- * 
+ *
  * @thread emulator
  * @param new_config the new configuration
  * @param new_model the new configuration
  */
-void
-rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
+void rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
 {
-	int needs_reset = 0;
-	int sound_changed = 0;
+    int needs_reset = 0;
+    int sound_changed = 0;
 
-	/* Sound state changed? */
-	if((config.soundenabled && !new_config->soundenabled)
-	   || (new_config->soundenabled && !config.soundenabled))
-	{
-		sound_changed = 1;
-	}
+    /* Sound state changed? */
+    if ((config.soundenabled && !new_config->soundenabled) || (new_config->soundenabled && !config.soundenabled))
+    {
+        sound_changed = 1;
+    }
 
-	/* Changed machine we're emulating? */
-	if(new_model != machine.model) {
-		rpcemu_model_changed(new_model);
-		needs_reset = 1;
-	}
+    /* Changed machine we're emulating? */
+    if (new_model != machine.model)
+    {
+        rpcemu_model_changed(new_model);
+        needs_reset = 1;
+    }
 
-	/* If an A7000 or an A7000+ it does not have vram */
-	if (machine.model == Model_A7000 || machine.model == Model_A7000plus) {
-		new_config->vram_size = 0;
-	}
+    /* If an A7000 or an A7000+ it does not have vram */
+    if (machine.model == Model_A7000 || machine.model == Model_A7000plus)
+    {
+        new_config->vram_size = 0;
+    }
 
-	/* If Phoebe, override some settings */
-	if (machine.model == Model_Phoebe) {
-		new_config->mem_size = 256;
-		new_config->vram_size = 4;
-	}
+    /* If Phoebe, override some settings */
+    if (machine.model == Model_Phoebe)
+    {
+        new_config->mem_size = 256;
+        new_config->vram_size = 4;
+    }
 
-	if (new_config->mem_size != config.mem_size) {
-		needs_reset = 1;
-	}
+    if (new_config->mem_size != config.mem_size)
+    {
+        needs_reset = 1;
+    }
 
-	if (new_config->vram_size != config.vram_size) {
-		needs_reset = 1;
-	}
+    if (new_config->vram_size != config.vram_size)
+    {
+        needs_reset = 1;
+    }
 
-	/* Copy new settings over */
-	memcpy(&config, new_config, sizeof(Config));
+    /* Copy new settings over */
+    memcpy(&config, new_config, sizeof(Config));
 
-	// Save the settings to the rpc.cfg file
-	config_save(&config);
+    // Save the settings to the rpc.cfg file
+    config_save(&config);
 
-	if(sound_changed) {
-		if(config.soundenabled) {
-			sound_restart();
-		} else {
-			sound_pause();
-		}
-	}
+    if (sound_changed)
+    {
+        if (config.soundenabled)
+        {
+            sound_restart();
+        }
+        else
+        {
+            sound_pause();
+        }
+    }
 
-	/* Reset the machine after the config variables have been set to their
-	   new values */
-	if(needs_reset) {
-		resetrpc();
-	}
+    /* Reset the machine after the config variables have been set to their
+       new values */
+    if (needs_reset)
+    {
+        resetrpc();
+    }
 }
 
 #ifdef FEATURE_MULTI_HOSTFS
@@ -739,35 +762,34 @@ rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
  * @thread emulator
  * @param new_config the new configuration
  */
-void
-rpcemu_config_apply_new_hostfs(Config *new_config)
+void rpcemu_config_apply_new_hostfs(Config *new_config)
 {
     int shouldReset = 0;
-    
+
     for (int i = 0; i <= HOSTFS_DRIVE_MAX; i++)
     {
         HostFSDrive *oldDrive = &config.hostfs_drive[i];
         HostFSDrive *newDrive = &new_config->hostfs_drive[i];
-        
+
         // Has the enabled flag changed?
         if (oldDrive->enabled != newDrive->enabled)
         {
             shouldReset = 1;
             break;
         }
-        
-        if (!newDrive->enabled) 
+
+        if (!newDrive->enabled)
         {
             continue;
         }
-        
+
         // Has the drive name changed?
         if (strcasecmp(oldDrive->driveName, newDrive->driveName) != 0)
         {
             shouldReset = 1;
             break;
         }
-        
+
         // Has the host path changed?
         if (strcasecmp(oldDrive->hostPath, newDrive->hostPath) != 0)
         {
@@ -775,13 +797,13 @@ rpcemu_config_apply_new_hostfs(Config *new_config)
             break;
         }
     }
-    
+
     /* Copy the new settings over. */
     memcpy(&config, new_config, sizeof(Config));
-    
+
     // Save the settings to the rpc.cfg file
     config_save(&config);
-    
+
     // Trigger a reset if needed.
     if (shouldReset)
     {
@@ -797,41 +819,39 @@ rpcemu_config_apply_new_hostfs(Config *new_config)
  * @param emu_port  port number on emulated machine
  * @param host_port port number on host machine
  */
-void
-rpcemu_nat_forward_add(PortForwardRule rule)
+void rpcemu_nat_forward_add(PortForwardRule rule)
 {
-	int i;
+    int i;
 
-	rpclog("Config: Adding NAT forwarding rule %d %u %u\n", rule.type, rule.emu_port, rule.host_port);
+    rpclog("Config: Adding NAT forwarding rule %d %u %u\n", rule.type, rule.emu_port, rule.host_port);
 
-	// Detect duplicate rules
-	for (i = 0; i < MAX_PORT_FORWARDS; i++) {
-		if (port_forward_rules[i].type == rule.type
-		    && port_forward_rules[i].emu_port == rule.emu_port)
-		{
-			rpclog("Config: Discarding duplicate NAT forwarding rule for type %d emu_port %u\n",
-			    rule.type, rule.emu_port);
-			return;
-		}
-		if (port_forward_rules[i].type == rule.type
-		    && port_forward_rules[i].host_port == rule.host_port)
-		{
-			rpclog("Config: Discarding duplicate NAT forwarding rule for type %d host_port %u\n",
-			    rule.type, rule.host_port);
-			return;
-		}
-	}
+    // Detect duplicate rules
+    for (i = 0; i < MAX_PORT_FORWARDS; i++)
+    {
+        if (port_forward_rules[i].type == rule.type && port_forward_rules[i].emu_port == rule.emu_port)
+        {
+            rpclog("Config: Discarding duplicate NAT forwarding rule for type %d emu_port %u\n", rule.type, rule.emu_port);
+            return;
+        }
+        if (port_forward_rules[i].type == rule.type && port_forward_rules[i].host_port == rule.host_port)
+        {
+            rpclog("Config: Discarding duplicate NAT forwarding rule for type %d host_port %u\n", rule.type, rule.host_port);
+            return;
+        }
+    }
 
-	// Find an empty slot and fill it in
-	for (i = 0; i < MAX_PORT_FORWARDS; i++) {
-		if (port_forward_rules[i].type == PORT_FORWARD_NONE) {
-			port_forward_rules[i] = rule;
-			return;
-		}
-	}
+    // Find an empty slot and fill it in
+    for (i = 0; i < MAX_PORT_FORWARDS; i++)
+    {
+        if (port_forward_rules[i].type == PORT_FORWARD_NONE)
+        {
+            port_forward_rules[i] = rule;
+            return;
+        }
+    }
 
-	// No slot found for rule
-	rpclog("Config: Ran out of space for NAT port forward rules\n");
+    // No slot found for rule
+    rpclog("Config: Ran out of space for NAT port forward rules\n");
 }
 
 /**
@@ -841,24 +861,22 @@ rpcemu_nat_forward_add(PortForwardRule rule)
  * @param emu_port  port number on emulated machine
  * @param host_port port number on host machine
  */
-void
-rpcemu_nat_forward_remove(PortForwardRule rule)
+void rpcemu_nat_forward_remove(PortForwardRule rule)
 {
-	int i;
+    int i;
 
-	for (i = 0; i < MAX_PORT_FORWARDS; i++) {
-		if (port_forward_rules[i].type == rule.type
-		    && port_forward_rules[i].emu_port == rule.emu_port
-		    && port_forward_rules[i].host_port == rule.host_port)
-		{
-			port_forward_rules[i].type      = PORT_FORWARD_NONE;
-			port_forward_rules[i].emu_port  = 0;
-			port_forward_rules[i].host_port = 0;
+    for (i = 0; i < MAX_PORT_FORWARDS; i++)
+    {
+        if (port_forward_rules[i].type == rule.type && port_forward_rules[i].emu_port == rule.emu_port && port_forward_rules[i].host_port == rule.host_port)
+        {
+            port_forward_rules[i].type = PORT_FORWARD_NONE;
+            port_forward_rules[i].emu_port = 0;
+            port_forward_rules[i].host_port = 0;
 
-			return;
-		}
-	}
+            return;
+        }
+    }
 
-	// rule not found, should be impossible
-	assert(0);
+    // rule not found, should be impossible
+    assert(0);
 }

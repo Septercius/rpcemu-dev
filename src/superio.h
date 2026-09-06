@@ -24,9 +24,10 @@
 /**
  * SuperIO chip type.
  */
-typedef enum {
-	SuperIOType_FDC37C665GT,
-	SuperIOType_FDC37C672
+typedef enum
+{
+    SuperIOType_FDC37C665GT,
+    SuperIOType_FDC37C672
 } SuperIOType;
 
 extern void superio_reset(SuperIOType chosen_super_type);

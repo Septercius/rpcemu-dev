@@ -20,27 +20,30 @@
 
 /* Windows specific stuff */
 #include <assert.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #undef UNICODE
 #include <windows.h>
 
-#include "rpcemu.h"
-#include "vidc20.h"
-#include "keyboard.h"
-#include "sound.h"
-#include "mem.h"
-#include "iomd.h"
-#include "ide.h"
 #include "arm.h"
+#include "cdrom-ioctl.h"
+#include "cdrom-iso.h"
 #include "cmos.h"
 #include "cp15.h"
 #include "fdc.h"
-#include "cdrom-iso.h"
-#include "cdrom-ioctl.h"
+#include "ide.h"
+#include "iomd.h"
+#include "keyboard.h"
+#include "mem.h"
 #include "network.h"
+#include "rpcemu.h"
+#include "sound.h"
+#include "vidc20.h"
+
+static char datadir[PATH_MAX] = "./";
+static char logpath[PATH_MAX] = "";
 
 int handle_sigio; /**< bool to indicate new network data is received */
 
@@ -51,22 +54,22 @@ int handle_sigio; /**< bool to indicate new network data is received */
  * @param d    Pointer to disk_info structure that will be filled in
  * @return     On success 1 is returned, on error 0 is returned
  */
-int
-path_disk_info(const char *path, disk_info *d)
+int path_disk_info(const char *path, disk_info *d)
 {
-	ULARGE_INTEGER free, total;
+    ULARGE_INTEGER free, total;
 
-	assert(path != NULL);
-	assert(d != NULL);
+    assert(path != NULL);
+    assert(d != NULL);
 
-	if (GetDiskFreeSpaceEx(path, &free, &total, NULL) == 0) {
-		return 0;
-	}
+    if (GetDiskFreeSpaceEx(path, &free, &total, NULL) == 0)
+    {
+        return 0;
+    }
 
-	d->size = (uint64_t) total.QuadPart;
-	d->free = (uint64_t) free.QuadPart;
+    d->size = (uint64_t) total.QuadPart;
+    d->free = (uint64_t) free.QuadPart;
 
-	return 1;
+    return 1;
 }
 
 /**
@@ -74,58 +77,88 @@ path_disk_info(const char *path, disk_info *d)
  *
  * Called during program start-up.
  */
-void
-rpcemu_log_os(void)
+void rpcemu_log_os(void)
 {
-	typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
-	typedef BOOL (WINAPI *PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
+    typedef void(WINAPI * PGNSI)(LPSYSTEM_INFO);
+    typedef BOOL(WINAPI * PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
 
-	OSVERSIONINFOEX osvi;
-	SYSTEM_INFO si;
-	PGNSI pGNSI;
+    OSVERSIONINFOEX osvi;
+    SYSTEM_INFO si;
+    PGNSI pGNSI;
 
-	rpclog("OS: Microsoft Windows\n");
+    rpclog("OS: Microsoft Windows\n");
 
-	memset(&osvi, 0, sizeof(osvi));
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-	if (!GetVersionEx((OSVERSIONINFO *) &osvi)) {
-		rpclog("OS: Failed GetVersionEx()\n");
-		return;
-	}
+    memset(&osvi, 0, sizeof(osvi));
+    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+    if (!GetVersionEx((OSVERSIONINFO *) &osvi))
+    {
+        rpclog("OS: Failed GetVersionEx()\n");
+        return;
+    }
 
-	pGNSI = (PGNSI) GetProcAddress(GetModuleHandle("kernel32.dll"),
-	                               "GetNativeSystemInfo");
-	if (pGNSI != NULL) {
-		pGNSI(&si);
-	} else {
-		GetSystemInfo(&si);
-	}
+    pGNSI = (PGNSI) GetProcAddress(GetModuleHandle("kernel32.dll"), "GetNativeSystemInfo");
+    if (pGNSI != NULL)
+    {
+        pGNSI(&si);
+    }
+    else
+    {
+        GetSystemInfo(&si);
+    }
 
-	rpclog("OS: PlatformId = %ld\n", osvi.dwPlatformId);
-	rpclog("OS: MajorVersion = %ld\n", osvi.dwMajorVersion);
-	rpclog("OS: MinorVersion = %ld\n", osvi.dwMinorVersion);
+    rpclog("OS: PlatformId = %ld\n", osvi.dwPlatformId);
+    rpclog("OS: MajorVersion = %ld\n", osvi.dwMajorVersion);
+    rpclog("OS: MinorVersion = %ld\n", osvi.dwMinorVersion);
 
-	/* If earlier than Windows 2000, log no more detail */
-	if (osvi.dwPlatformId != VER_PLATFORM_WIN32_NT || osvi.dwMajorVersion < 5) {
-		return;
-	}
+    /* If earlier than Windows 2000, log no more detail */
+    if (osvi.dwPlatformId != VER_PLATFORM_WIN32_NT || osvi.dwMajorVersion < 5)
+    {
+        return;
+    }
 
-	rpclog("OS: ProductType = %d\n",  osvi.wProductType);
-	rpclog("OS: SuiteMask = 0x%x\n",  osvi.wSuiteMask);
-	rpclog("OS: ServicePackMajor = %d\n", osvi.wServicePackMajor);
-	rpclog("OS: ServicePackMinor = %d\n", osvi.wServicePackMinor);
+    rpclog("OS: ProductType = %d\n", osvi.wProductType);
+    rpclog("OS: SuiteMask = 0x%x\n", osvi.wSuiteMask);
+    rpclog("OS: ServicePackMajor = %d\n", osvi.wServicePackMajor);
+    rpclog("OS: ServicePackMinor = %d\n", osvi.wServicePackMinor);
 
-	rpclog("OS: ProcessorArchitecture = %d\n", si.wProcessorArchitecture);
+    rpclog("OS: ProcessorArchitecture = %d\n", si.wProcessorArchitecture);
 
-	rpclog("OS: SystemMetricsServerR2 = %d\n", GetSystemMetrics(SM_SERVERR2));
+    rpclog("OS: SystemMetricsServerR2 = %d\n", GetSystemMetrics(SM_SERVERR2));
 
-	if (osvi.dwMajorVersion >= 6) {
-		PGPI pGPI;
-		DWORD dwType;
+    if (osvi.dwMajorVersion >= 6)
+    {
+        PGPI pGPI;
+        DWORD dwType;
 
-		pGPI = (PGPI) GetProcAddress(GetModuleHandle("kernel32.dll"),
-		                             "GetProductInfo");
-		pGPI(osvi.dwMajorVersion, osvi.dwMinorVersion, 0, 0, &dwType);
-		rpclog("OS: ProductInfoType = %ld\n", dwType);
-	}
+        pGPI = (PGPI) GetProcAddress(GetModuleHandle("kernel32.dll"), "GetProductInfo");
+        pGPI(osvi.dwMajorVersion, osvi.dwMinorVersion, 0, 0, &dwType);
+        rpclog("OS: ProductInfoType = %ld\n", dwType);
+    }
+}
+
+/**
+ * Return the path of the data directory containing all the sub data parts
+ * used by the program, eg romload, hostfs etc.
+ *
+ * @return Pointer to static zero-terminated string of path
+ */
+const char *rpcemu_get_datadir(void)
+{
+    return datadir;
+}
+
+/**
+ * Return the full path to the RPCEmu log file.
+ *
+ * @return Pointer to static zero-terminated string of full path to log file
+ */
+const char *rpcemu_get_log_path(void)
+{
+    if (logpath[0] == '\0')
+    {
+        strcpy(logpath, rpcemu_get_datadir());
+        strcat(logpath, "rpclog.txt");
+    }
+
+    return logpath;
 }

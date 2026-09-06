@@ -23,11 +23,10 @@
 #include <stdint.h>
 
 #include "rpcemu.h"
-
 #include "arm.h"
 #include "arm-common.h"
-#include "mem.h"
 #include "keyboard.h"
+#include "mem.h"
 
 #ifdef FEATURE_MULTI_HOSTFS
 #include "hostfs-multi.h"
@@ -39,14 +38,14 @@
 #include "network.h"
 #endif
 
-#define SWI_OS_Byte		0x6
-#define SWI_OS_Word		0x7
-#define SWI_OS_Mouse		0x1c
-#define SWI_OS_CallASWI		0x6f
-#define SWI_OS_CallASWIR12	0x71
+#define SWI_OS_Byte 0x6
+#define SWI_OS_Word 0x7
+#define SWI_OS_Mouse 0x1c
+#define SWI_OS_CallASWI 0x6f
+#define SWI_OS_CallASWIR12 0x71
 
-#define SWI_Portable_ReadFeatures	0x42fc5
-#define SWI_Portable_Idle		0x42fc6
+#define SWI_Portable_ReadFeatures 0x42fc5
+#define SWI_Portable_Idle 0x42fc6
 
 /**
  * Perform a Store Halfword.
@@ -59,45 +58,53 @@
  *
  * @param opcode Opcode of instruction being emulated
  */
-void
-arm_strh(uint32_t opcode)
+void arm_strh(uint32_t opcode)
 {
-	uint32_t addr, data, offset;
+    uint32_t addr, data, offset;
 
-	addr = GETADDR(RN);
+    addr = GETADDR(RN);
 
-	// Calculate offset
-	if (opcode & (1u << 22)) {
-		offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
-	} else {
-		offset = arm.reg[RM];
-	}
-	if (!(opcode & (1u << 23))) {
-		offset = -offset;
-	}
+    // Calculate offset
+    if (opcode & (1u << 22))
+    {
+        offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
+    }
+    else
+    {
+        offset = arm.reg[RM];
+    }
+    if (!(opcode & (1u << 23)))
+    {
+        offset = -offset;
+    }
 
-	// Pre-indexed
-	if (opcode & (1u << 24)) {
-		addr += offset;
-	}
+    // Pre-indexed
+    if (opcode & (1u << 24))
+    {
+        addr += offset;
+    }
 
-	// Store
-	data = GETREG(RD);
-	mem_write8(addr & ~1, (uint8_t) data);
-	mem_write8(addr | 1, (uint8_t) (data >> 8));
+    // Store
+    data = GETREG(RD);
+    mem_write8(addr & ~1, (uint8_t) data);
+    mem_write8(addr | 1, (uint8_t) (data >> 8));
 
-	// Check for Abort
-	if (arm.event & 0x40) {
-		return;
-	}
+    // Check for Abort
+    if (arm.event & 0x40)
+    {
+        return;
+    }
 
-	if (!(opcode & (1u << 24))) {
-		// Post-indexed
-		arm.reg[RN] = addr + offset;
-	} else if (opcode & (1u << 21)) {
-		// Pre-indexed with Writeback
-		arm.reg[RN] = addr;
-	}
+    if (!(opcode & (1u << 24)))
+    {
+        // Post-indexed
+        arm.reg[RN] = addr + offset;
+    }
+    else if (opcode & (1u << 21))
+    {
+        // Pre-indexed with Writeback
+        arm.reg[RN] = addr;
+    }
 }
 
 /**
@@ -111,51 +118,62 @@ arm_strh(uint32_t opcode)
  *
  * @param opcode Opcode of instruction being emulated
  */
-void
-arm_ldrh(uint32_t opcode)
+void arm_ldrh(uint32_t opcode)
 {
-	uint32_t addr, data, offset;
+    uint32_t addr, data, offset;
 
-	addr = GETADDR(RN);
+    addr = GETADDR(RN);
 
-	// Calculate offset
-	if (opcode & (1u << 22)) {
-		offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
-	} else {
-		offset = arm.reg[RM];
-	}
-	if (!(opcode & (1u << 23))) {
-		offset = -offset;
-	}
+    // Calculate offset
+    if (opcode & (1u << 22))
+    {
+        offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
+    }
+    else
+    {
+        offset = arm.reg[RM];
+    }
+    if (!(opcode & (1u << 23)))
+    {
+        offset = -offset;
+    }
 
-	// Pre-indexed
-	if (opcode & (1u << 24)) {
-		addr += offset;
-	}
+    // Pre-indexed
+    if (opcode & (1u << 24))
+    {
+        addr += offset;
+    }
 
-	// Load
-	data = mem_read32(addr & ~3u);
-	if (addr & 2) {
-		data >>= 16;
-	} else {
-		data &= 0xffff;
-	}
+    // Load
+    data = mem_read32(addr & ~3u);
+    if (addr & 2)
+    {
+        data >>= 16;
+    }
+    else
+    {
+        data &= 0xffff;
+    }
 
-	// Check for Abort
-	if (arm.event & 0x40) {
-		return;
-	}
+    // Check for Abort
+    if (arm.event & 0x40)
+    {
+        return;
+    }
 
-	if (!(opcode & (1u << 24))) {
-		// Post-indexed
-		arm.reg[RN] = addr + offset;
-	} else if (opcode & (1u << 21)) {
-		// Pre-indexed with Writeback
-		arm.reg[RN] = addr;
-	}
+    if (!(opcode & (1u << 24)))
+    {
+        // Post-indexed
+        arm.reg[RN] = addr + offset;
+    }
+    else if (opcode & (1u << 21))
+    {
+        // Pre-indexed with Writeback
+        arm.reg[RN] = addr;
+    }
 
-	// Write Rd
-	LOADREG(RD, data);
+    // Write Rd
+    LOADREG(RD, data);
 }
 
 /**
@@ -169,51 +187,62 @@ arm_ldrh(uint32_t opcode)
  *
  * @param opcode Opcode of instruction being emulated
  */
-void
-arm_ldrsh(uint32_t opcode)
+void arm_ldrsh(uint32_t opcode)
 {
-	uint32_t addr, data, offset;
+    uint32_t addr, data, offset;
 
-	addr = GETADDR(RN);
+    addr = GETADDR(RN);
 
-	// Calculate offset
-	if (opcode & (1u << 22)) {
-		offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
-	} else {
-		offset = arm.reg[RM];
-	}
-	if (!(opcode & (1u << 23))) {
-		offset = -offset;
-	}
+    // Calculate offset
+    if (opcode & (1u << 22))
+    {
+        offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
+    }
+    else
+    {
+        offset = arm.reg[RM];
+    }
+    if (!(opcode & (1u << 23)))
+    {
+        offset = -offset;
+    }
 
-	// Pre-indexed
-	if (opcode & (1u << 24)) {
-		addr += offset;
-	}
+    // Pre-indexed
+    if (opcode & (1u << 24))
+    {
+        addr += offset;
+    }
 
-	// Load
-	data = mem_read32(addr & ~3u);
-	if (addr & 2) {
-		data = (uint32_t) ((int32_t) data >> 16);
-	} else {
-		data = (uint32_t) (int32_t) (int16_t) data;
-	}
+    // Load
+    data = mem_read32(addr & ~3u);
+    if (addr & 2)
+    {
+        data = (uint32_t) ((int32_t) data >> 16);
+    }
+    else
+    {
+        data = (uint32_t) (int32_t) (int16_t) data;
+    }
 
-	// Check for Abort
-	if (arm.event & 0x40) {
-		return;
-	}
+    // Check for Abort
+    if (arm.event & 0x40)
+    {
+        return;
+    }
 
-	if (!(opcode & (1u << 24))) {
-		// Post-indexed
-		arm.reg[RN] = addr + offset;
-	} else if (opcode & (1u << 21)) {
-		// Pre-indexed with Writeback
-		arm.reg[RN] = addr;
-	}
+    if (!(opcode & (1u << 24)))
+    {
+        // Post-indexed
+        arm.reg[RN] = addr + offset;
+    }
+    else if (opcode & (1u << 21))
+    {
+        // Pre-indexed with Writeback
+        arm.reg[RN] = addr;
+    }
 
-	// Write Rd
-	LOADREG(RD, data);
+    // Write Rd
+    LOADREG(RD, data);
 }
 
 /**
@@ -223,46 +252,54 @@ arm_ldrsh(uint32_t opcode)
  *
  * @param opcode Opcode of instruction being emulated
  */
-void
-arm_ldrsb(uint32_t opcode)
+void arm_ldrsb(uint32_t opcode)
 {
-	uint32_t addr, data, offset;
+    uint32_t addr, data, offset;
 
-	addr = GETADDR(RN);
+    addr = GETADDR(RN);
 
-	// Calculate offset
-	if (opcode & (1u << 22)) {
-		offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
-	} else {
-		offset = arm.reg[RM];
-	}
-	if (!(opcode & (1u << 23))) {
-		offset = -offset;
-	}
+    // Calculate offset
+    if (opcode & (1u << 22))
+    {
+        offset = ((opcode >> 4) & 0xf0) | (opcode & 0xf);
+    }
+    else
+    {
+        offset = arm.reg[RM];
+    }
+    if (!(opcode & (1u << 23)))
+    {
+        offset = -offset;
+    }
 
-	// Pre-indexed
-	if (opcode & (1u << 24)) {
-		addr += offset;
-	}
+    // Pre-indexed
+    if (opcode & (1u << 24))
+    {
+        addr += offset;
+    }
 
-	// Load
-	data = (uint32_t) (int32_t) (int8_t) mem_read8(addr);
+    // Load
+    data = (uint32_t) (int32_t) (int8_t) mem_read8(addr);
 
-	// Check for Abort
-	if (arm.event & 0x40) {
-		return;
-	}
+    // Check for Abort
+    if (arm.event & 0x40)
+    {
+        return;
+    }
 
-	if (!(opcode & (1u << 24))) {
-		// Post-indexed
-		arm.reg[RN] = addr + offset;
-	} else if (opcode & (1u << 21)) {
-		// Pre-indexed with Writeback
-		arm.reg[RN] = addr;
-	}
+    if (!(opcode & (1u << 24)))
+    {
+        // Post-indexed
+        arm.reg[RN] = addr + offset;
+    }
+    else if (opcode & (1u << 21))
+    {
+        // Pre-indexed with Writeback
+        arm.reg[RN] = addr;
+    }
 
-	// Write Rd
-	LOADREG(RD, data);
+    // Write Rd
+    LOADREG(RD, data);
 }
 
 /**
@@ -273,73 +310,83 @@ arm_ldrsb(uint32_t opcode)
  * @param writeback The value to be written to the base register if Writeback
  *                  is requested
  */
-void
-arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
+void arm_store_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 {
-	uint32_t orig_base, addr, mask;
-	int c;
+    uint32_t orig_base, addr, mask;
+    int c;
 
-	orig_base = arm.reg[RN];
+    orig_base = arm.reg[RN];
 
-	addr = address & ~3;
+    addr = address & ~3;
 
-	/* Store first register */
-	mask = 1;
-	for (c = 0; c < 15; c++) {
-		if (opcode & mask) {
-			mem_write32(addr, arm.reg[c]);
-			addr += 4;
-			break;
-		}
-		mask <<= 1;
-	}
-	mask <<= 1;
-	c++;
+    /* Store first register */
+    mask = 1;
+    for (c = 0; c < 15; c++)
+    {
+        if (opcode & mask)
+        {
+            mem_write32(addr, arm.reg[c]);
+            addr += 4;
+            break;
+        }
+        mask <<= 1;
+    }
+    mask <<= 1;
+    c++;
 
-	/* Perform Writeback (if requested) at end of 2nd cycle */
-	if (!arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15)) {
-		arm.reg[RN] = writeback;
-	}
+    /* Perform Writeback (if requested) at end of 2nd cycle */
+    if (!arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15))
+    {
+        arm.reg[RN] = writeback;
+    }
 
-	/* Check for Abort from first Store */
-	if (arm.event & 0x40) {
-		goto data_abort;
-	}
+    /* Check for Abort from first Store */
+    if (arm.event & 0x40)
+    {
+        goto data_abort;
+    }
 
-	/* Store remaining registers up to R14 */
-	for ( ; c < 15; c++) {
-		if (opcode & mask) {
-			mem_write32(addr, arm.reg[c]);
-			if (arm.event & 0x40) {
-				goto data_abort;
-			}
-			addr += 4;
-		}
-		mask <<= 1;
-	}
+    /* Store remaining registers up to R14 */
+    for (; c < 15; c++)
+    {
+        if (opcode & mask)
+        {
+            mem_write32(addr, arm.reg[c]);
+            if (arm.event & 0x40)
+            {
+                goto data_abort;
+            }
+            addr += 4;
+        }
+        mask <<= 1;
+    }
 
-	/* Store R15 (if requested) */
-	if (opcode & (1 << 15)) {
-		mem_write32(addr, arm.reg[15] + arm.r15_diff);
-		if (arm.event & 0x40) {
-			goto data_abort;
-		}
-	}
+    /* Store R15 (if requested) */
+    if (opcode & (1 << 15))
+    {
+        mem_write32(addr, arm.reg[15] + arm.r15_diff);
+        if (arm.event & 0x40)
+        {
+            goto data_abort;
+        }
+    }
 
-	/* Perform Writeback (if requested) at end of instruction (SA110) */
-	if (arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15)) {
-		arm.reg[RN] = writeback;
-	}
+    /* Perform Writeback (if requested) at end of instruction (SA110) */
+    if (arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15))
+    {
+        arm.reg[RN] = writeback;
+    }
 
-	/* No Data Abort */
-	return;
+    /* No Data Abort */
+    return;
 
-	/* A Data Abort occurred, restore the Base Register to the value it
-	   had before the instruction */
+    /* A Data Abort occurred, restore the Base Register to the value it
+       had before the instruction */
 data_abort:
-	if (arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15)) {
-		arm.reg[RN] = orig_base;
-	}
+    if (arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15))
+    {
+        arm.reg[RN] = orig_base;
+    }
 }
 
 /**
@@ -353,73 +400,83 @@ data_abort:
  * @param writeback The value to be written to the base register if Writeback
  *                  is requested
  */
-void
-arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
+void arm_store_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 {
-	uint32_t orig_base, addr, mask;
-	int c;
+    uint32_t orig_base, addr, mask;
+    int c;
 
-	orig_base = arm.reg[RN];
+    orig_base = arm.reg[RN];
 
-	addr = address & ~3;
+    addr = address & ~3;
 
-	/* Store first register */
-	mask = 1;
-	for (c = 0; c < 15; c++) {
-		if (opcode & mask) {
-			mem_write32(addr, *usrregs[c]);
-			addr += 4;
-			break;
-		}
-		mask <<= 1;
-	}
-	mask <<= 1;
-	c++;
+    /* Store first register */
+    mask = 1;
+    for (c = 0; c < 15; c++)
+    {
+        if (opcode & mask)
+        {
+            mem_write32(addr, *usrregs[c]);
+            addr += 4;
+            break;
+        }
+        mask <<= 1;
+    }
+    mask <<= 1;
+    c++;
 
-	/* Perform Writeback (if requested) at end of 2nd cycle */
-	if (!arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15)) {
-		arm.reg[RN] = writeback;
-	}
+    /* Perform Writeback (if requested) at end of 2nd cycle */
+    if (!arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15))
+    {
+        arm.reg[RN] = writeback;
+    }
 
-	/* Check for Abort from first Store */
-	if (arm.event & 0x40) {
-		goto data_abort;
-	}
+    /* Check for Abort from first Store */
+    if (arm.event & 0x40)
+    {
+        goto data_abort;
+    }
 
-	/* Store remaining registers up to R14 */
-	for ( ; c < 15; c++) {
-		if (opcode & mask) {
-			mem_write32(addr, *usrregs[c]);
-			if (arm.event & 0x40) {
-				goto data_abort;
-			}
-			addr += 4;
-		}
-		mask <<= 1;
-	}
+    /* Store remaining registers up to R14 */
+    for (; c < 15; c++)
+    {
+        if (opcode & mask)
+        {
+            mem_write32(addr, *usrregs[c]);
+            if (arm.event & 0x40)
+            {
+                goto data_abort;
+            }
+            addr += 4;
+        }
+        mask <<= 1;
+    }
 
-	/* Store R15 (if requested) */
-	if (opcode & (1 << 15)) {
-		mem_write32(addr, arm.reg[15] + arm.r15_diff);
-		if (arm.event & 0x40) {
-			goto data_abort;
-		}
-	}
+    /* Store R15 (if requested) */
+    if (opcode & (1 << 15))
+    {
+        mem_write32(addr, arm.reg[15] + arm.r15_diff);
+        if (arm.event & 0x40)
+        {
+            goto data_abort;
+        }
+    }
 
-	/* Perform Writeback (if requested) at end of instruction (SA110) */
-	if (arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15)) {
-		arm.reg[RN] = writeback;
-	}
+    /* Perform Writeback (if requested) at end of instruction (SA110) */
+    if (arm.stm_writeback_at_end && (opcode & (1 << 21)) && (RN != 15))
+    {
+        arm.reg[RN] = writeback;
+    }
 
-	/* No Data Abort */
-	return;
+    /* No Data Abort */
+    return;
 
-	/* A Data Abort occurred, restore the Base Register to the value it
-	   had before the instruction */
+    /* A Data Abort occurred, restore the Base Register to the value it
+       had before the instruction */
 data_abort:
-	if (arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15)) {
-		arm.reg[RN] = orig_base;
-	}
+    if (arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15))
+    {
+        arm.reg[RN] = orig_base;
+    }
 }
 
 /**
@@ -430,56 +487,63 @@ data_abort:
  * @param writeback The value to be written to the base register if Writeback
  *                  is requested
  */
-void
-arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
+void arm_load_multiple(uint32_t opcode, uint32_t address, uint32_t writeback)
 {
-	uint32_t orig_base, addr, mask, temp;
-	int c;
+    uint32_t orig_base, addr, mask, temp;
+    int c;
 
-	orig_base = arm.reg[RN];
+    orig_base = arm.reg[RN];
 
-	addr = address & ~3;
+    addr = address & ~3;
 
-	/* Perform Writeback (if requested) */
-	if ((opcode & (1 << 21)) && (RN != 15)) {
-		arm.reg[RN] = writeback;
-	}
+    /* Perform Writeback (if requested) */
+    if ((opcode & (1 << 21)) && (RN != 15))
+    {
+        arm.reg[RN] = writeback;
+    }
 
-	/* Load registers up to R14 */
-	mask = 1;
-	for (c = 0; c < 15; c++) {
-		if (opcode & mask) {
-			temp = mem_read32(addr);
-			if (arm.event & 0x40) {
-				goto data_abort;
-			}
-			arm.reg[c] = temp;
-			addr += 4;
-		}
-		mask <<= 1;
-	}
+    /* Load registers up to R14 */
+    mask = 1;
+    for (c = 0; c < 15; c++)
+    {
+        if (opcode & mask)
+        {
+            temp = mem_read32(addr);
+            if (arm.event & 0x40)
+            {
+                goto data_abort;
+            }
+            arm.reg[c] = temp;
+            addr += 4;
+        }
+        mask <<= 1;
+    }
 
-	/* Load R15 (if requested) */
-	if (opcode & (1 << 15)) {
-		temp = mem_read32(addr);
-		if (arm.event & 0x40) {
-			goto data_abort;
-		}
-		/* Only update R15 if no Data Abort occurred */
-		arm.reg[15] = (arm.reg[15] & ~arm.r15_mask) |
-		              ((temp + 4) & arm.r15_mask);
-	}
+    /* Load R15 (if requested) */
+    if (opcode & (1 << 15))
+    {
+        temp = mem_read32(addr);
+        if (arm.event & 0x40)
+        {
+            goto data_abort;
+        }
+        /* Only update R15 if no Data Abort occurred */
+        arm.reg[15] = (arm.reg[15] & ~arm.r15_mask) | ((temp + 4) & arm.r15_mask);
+    }
 
-	/* No Data Abort */
-	return;
+    /* No Data Abort */
+    return;
 
-	/* A Data Abort occurred, modify the Base Register */
+    /* A Data Abort occurred, modify the Base Register */
 data_abort:
-	if (!arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15)) {
-		arm.reg[RN] = writeback;
-	} else {
-		arm.reg[RN] = orig_base;
-	}
+    if (!arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15))
+    {
+        arm.reg[RN] = writeback;
+    }
+    else
+    {
+        arm.reg[RN] = orig_base;
+    }
 }
 
 /**
@@ -496,72 +560,83 @@ data_abort:
  * @param writeback The value to be written to the base register if Writeback
  *                  is requested
  */
-void
-arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
+void arm_load_multiple_s(uint32_t opcode, uint32_t address, uint32_t writeback)
 {
-	uint32_t orig_base, addr, mask, temp;
-	int c;
+    uint32_t orig_base, addr, mask, temp;
+    int c;
 
-	orig_base = arm.reg[RN];
+    orig_base = arm.reg[RN];
 
-	addr = address & ~3;
+    addr = address & ~3;
 
-	/* Perform Writeback (if requested) */
-	if ((opcode & (1 << 21)) && (RN != 15)) {
-		arm.reg[RN] = writeback;
-	}
+    /* Perform Writeback (if requested) */
+    if ((opcode & (1 << 21)) && (RN != 15))
+    {
+        arm.reg[RN] = writeback;
+    }
 
-	mask = 1;
-	/* Is R15 in the list of registers to be loaded? */
-	if (opcode & (1 << 15)) {
-		/* R15 in list - Load registers up to R14 */
-		for (c = 0; c < 15; c++) {
-			if (opcode & mask) {
-				temp = mem_read32(addr);
-				if (arm.event & 0x40) {
-					goto data_abort;
-				}
-				arm.reg[c] = temp;
-				addr += 4;
-			}
-			mask <<= 1;
-		}
+    mask = 1;
+    /* Is R15 in the list of registers to be loaded? */
+    if (opcode & (1 << 15))
+    {
+        /* R15 in list - Load registers up to R14 */
+        for (c = 0; c < 15; c++)
+        {
+            if (opcode & mask)
+            {
+                temp = mem_read32(addr);
+                if (arm.event & 0x40)
+                {
+                    goto data_abort;
+                }
+                arm.reg[c] = temp;
+                addr += 4;
+            }
+            mask <<= 1;
+        }
 
-		/* Perform load of R15 and update CPSR/flags */
-		temp = mem_read32(addr);
-		if (arm.event & 0x40) {
-			goto data_abort;
-		}
-		arm_write_r15(opcode, temp);
+        /* Perform load of R15 and update CPSR/flags */
+        temp = mem_read32(addr);
+        if (arm.event & 0x40)
+        {
+            goto data_abort;
+        }
+        arm_write_r15(opcode, temp);
+    }
+    else
+    {
+        /* R15 not in list - Perform load into User Bank */
+        for (c = 0; c < 15; c++)
+        {
+            if (opcode & mask)
+            {
+                temp = mem_read32(addr);
+                if (arm.event & 0x40)
+                {
+                    goto data_abort;
+                }
+                *usrregs[c] = temp;
+                addr += 4;
+            }
+            mask <<= 1;
+        }
+    }
 
-	} else {
-		/* R15 not in list - Perform load into User Bank */
-		for (c = 0; c < 15; c++) {
-			if (opcode & mask) {
-				temp = mem_read32(addr);
-				if (arm.event & 0x40) {
-					goto data_abort;
-				}
-				*usrregs[c] = temp;
-				addr += 4;
-			}
-			mask <<= 1;
-		}
-	}
+    /* No Data Abort */
+    return;
 
-	/* No Data Abort */
-	return;
-
-	/* A Data Abort occurred, modify the Base Register */
+    /* A Data Abort occurred, modify the Base Register */
 data_abort:
-	if (!arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15)) {
-		arm.reg[RN] = writeback;
-	} else {
-		arm.reg[RN] = orig_base;
-	}
+    if (!arm.abort_base_restored && (opcode & (1u << 21)) && (RN != 15))
+    {
+        arm.reg[RN] = writeback;
+    }
+    else
+    {
+        arm.reg[RN] = orig_base;
+    }
 }
 
-#ifndef TEST
 /**
  * Handler for SWI instructions; includes all the emulator specific SWIs as
  * well as the standard SWI interface of raising an exception.
@@ -571,100 +646,115 @@ data_abort:
  * @param opcode Opcode of instruction being emulated
  * @return 0
  */
-int
-opSWI(uint32_t opcode)
+int opSWI(uint32_t opcode)
 {
-	uint32_t swinum = opcode & 0xdffff;
+    uint32_t swinum = opcode & 0xdffff;
 
-	/* Get actual SWI number from OS_CallASWI and OS_CallASWIR12 */
-	if (swinum == SWI_OS_CallASWI) {
-		swinum = arm.reg[10] & 0xdffff;
-	} else if (swinum == SWI_OS_CallASWIR12) {
-		swinum = arm.reg[12] & 0xdffff;
-	}
+    /* Get actual SWI number from OS_CallASWI and OS_CallASWIR12 */
+    if (swinum == SWI_OS_CallASWI)
+    {
+        swinum = arm.reg[10] & 0xdffff;
+    }
+    else if (swinum == SWI_OS_CallASWIR12)
+    {
+        swinum = arm.reg[12] & 0xdffff;
+    }
 
-	/* Intercept RISC OS Portable SWIs to enable RPCEmu to sleep when
-	   RISC OS is idle */
-	if (config.cpu_idle) {
-		switch (swinum) {
-		case SWI_Portable_ReadFeatures:
-			arm.reg[1] = (1u << 4);	/* Idle supported flag */
-			arm.reg[cpsr] &= ~VFLAG;
-			return 0;
-		case SWI_Portable_Idle:
-			rpcemu_idle();
-			arm.reg[cpsr] &= ~VFLAG;
-			return 0;
-		}
-	}
+    /* Intercept RISC OS Portable SWIs to enable RPCEmu to sleep when
+       RISC OS is idle */
+    if (config.cpu_idle)
+    {
+        switch (swinum)
+        {
+            case SWI_Portable_ReadFeatures:
+                arm.reg[1] = (1u << 4); /* Idle supported flag */
+                arm.reg[cpsr] &= ~VFLAG;
+                return 0;
+            case SWI_Portable_Idle:
+                rpcemu_idle();
+                arm.reg[cpsr] &= ~VFLAG;
+                return 0;
+        }
+    }
 
-	/* This is called regardless of whether or not we're in mousehack
-	   as it allows 'fullscreen' or 'mouse capture mode' risc os mode changes
-	   to have their boxes cached, allowing mousehack to work when you change
-	   back to it */
-	if (swinum == SWI_OS_Word && arm.reg[0] == 21 && mem_read8(arm.reg[1]) == 1) {
-			/* OS_Word 21, 1 Define Mouse Coordinate bounding box */
-			mouse_hack_osword_21_1(arm.reg[1]);
-			return 0;
-	}
-	
-	if (mousehack && swinum == SWI_OS_Word && arm.reg[0] == 21) {
-		if (mem_read8(arm.reg[1]) == 4) {
-			/* OS_Word 21, 4 Read unbuffered mouse position */
-			mouse_hack_osword_21_4(arm.reg[1]);
-			return 0;
-		} else if (mem_read8(arm.reg[1]) == 3) {
-			/* OS_Word 21, 3 Move mouse */
-			mouse_hack_osword_21_3(arm.reg[1]);
-			return 0;
-		} else {
-			goto realswi;
-		}
+    /* This is called regardless of whether or not we're in mousehack
+       as it allows 'fullscreen' or 'mouse capture mode' risc os mode changes
+       to have their boxes cached, allowing mousehack to work when you change
+       back to it */
+    if (swinum == SWI_OS_Word && arm.reg[0] == 21 && mem_read8(arm.reg[1]) == 1)
+    {
+        /* OS_Word 21, 1 Define Mouse Coordinate bounding box */
+        mouse_hack_osword_21_1(arm.reg[1]);
+        return 0;
+    }
 
-    } else if (mousehack && swinum == SWI_OS_Mouse) {
+    if (mousehack && swinum == SWI_OS_Word && arm.reg[0] == 21)
+    {
+        if (mem_read8(arm.reg[1]) == 4)
+        {
+            /* OS_Word 21, 4 Read unbuffered mouse position */
+            mouse_hack_osword_21_4(arm.reg[1]);
+            return 0;
+        }
+        else if (mem_read8(arm.reg[1]) == 3)
+        {
+            /* OS_Word 21, 3 Move mouse */
+            mouse_hack_osword_21_3(arm.reg[1]);
+            return 0;
+        }
+        else
+        {
+            goto realswi;
+        }
+    }
+    else if (mousehack && swinum == SWI_OS_Mouse)
+    {
         /* OS_Mouse */
         mouse_hack_osmouse();
         arm.reg[cpsr] &= ~VFLAG;
     }
 #ifdef FEATURE_MULTI_HOSTFS
-    else if (swinum == ARCEM_SWI_HOSTFS || (swinum >= ARCEM_SWI_MULTI_HOSTFS_START && swinum <= ARCEM_SWI_MULTI_HOSTFS_END))
+    else if (swinum == ARCEM_SWI_HOSTFS || (swinum >= ARCEM_SWI_MULTI_HOSTFS_CHUNK_START && swinum <= ARCEM_SWI_MULTI_HOSTFS_CHUNK_END))
     {
         ARMul_State state;
         state.Reg = arm.reg;
-        
+
         multi_hostfs_swi_dispatch(swinum, &state);
     }
 #else
-    } else if (swinum == ARCEM_SWI_HOSTFS) {
-        ARMul_State state;
+}
+else if (swinum == ARCEM_SWI_HOSTFS)
+{
+    ARMul_State state;
 
-        state.Reg = arm.reg;
-        hostfs(&state);
-    }
+    state.Reg = arm.reg;
+    hostfs(&state);
+}
 #endif /* FEATURE_MULTI_HOSTFS */
 #ifdef FEATURE_NETWORKING
-	else if (swinum == ARCEM_SWI_NETWORK) {
-		if (config.network_type != NetworkType_Off) {
-			network_swi(arm.reg[0], arm.reg[1], arm.reg[2], arm.reg[3],
-			            arm.reg[4], arm.reg[5], &arm.reg[0], &arm.reg[1]);
-		}
-	}
+    else if (swinum == ARCEM_SWI_NETWORK)
+    {
+        if (config.network_type != NetworkType_Off)
+        {
+            network_swi(arm.reg[0], arm.reg[1], arm.reg[2], arm.reg[3], arm.reg[4], arm.reg[5], &arm.reg[0], &arm.reg[1]);
+        }
+    }
 #endif
-	else {
-realswi:
-		if (mousehack && swinum == SWI_OS_Word && arm.reg[0] == 21 &&
-		    mem_read8(arm.reg[1]) == 0)
-		{
-			/* OS_Word 21, 0 Define pointer size, shape and active point */
-			mouse_hack_osword_21_0(arm.reg[1]);
-		}
-		if (mousehack && swinum == SWI_OS_Byte && arm.reg[0] == 106) {
-			/* OS_Byte 106 Select pointer / activate mouse */
-			mouse_hack_osbyte_106(arm.reg[1]);
-		}
-		exception(SUPERVISOR, 0xc, 4);
-	}
+    else
+    {
+    realswi:
+        if (mousehack && swinum == SWI_OS_Word && arm.reg[0] == 21 && mem_read8(arm.reg[1]) == 0)
+        {
+            /* OS_Word 21, 0 Define pointer size, shape and active point */
+            mouse_hack_osword_21_0(arm.reg[1]);
+        }
+        if (mousehack && swinum == SWI_OS_Byte && arm.reg[0] == 106)
+        {
+            /* OS_Byte 106 Select pointer / activate mouse */
+            mouse_hack_osbyte_106(arm.reg[1]);
+        }
+        exception(SUPERVISOR, 0xc, 4);
+    }
 
-	return 0;
+    return 0;
 }
-#endif /* ifndef TEST */

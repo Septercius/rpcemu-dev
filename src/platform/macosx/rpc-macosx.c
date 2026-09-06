@@ -19,7 +19,9 @@
 */
 
 #include <assert.h>
+#include <dirent.h>
 #include <errno.h>
+#include <limits.h>
 #include <signal.h>
 #include <string.h>
 
@@ -29,13 +31,13 @@
 #include <sys/utsname.h>
 #include <sys/wait.h>
 
-#include "rpcemu.h"
 #include "mem.h"
+#include "rpcemu.h"
 #include "sound.h"
 #include "vidc20.h"
 
-
-
+static char datadir[PATH_MAX];
+static char logpath[PATH_MAX];
 
 /**
  * Return disk space information about a file system.
@@ -44,8 +46,7 @@
  * @param d    Pointer to disk_info structure that will be filled in
  * @return     On success 1 is returned, on error 0 is returned
  */
-int
-path_disk_info(const char *path, disk_info *d)
+int path_disk_info(const char *path, disk_info *d)
 {
     struct statvfs s;
     int ret;
@@ -53,7 +54,7 @@ path_disk_info(const char *path, disk_info *d)
     assert(path != NULL);
     assert(d != NULL);
 
-    if ((ret = statvfs(path, &s)) != 0) 
+    if ((ret = statvfs(path, &s)) != 0)
     {
         return 0;
     }
@@ -71,12 +72,11 @@ path_disk_info(const char *path, disk_info *d)
  *
  * Called during program start-up.
  */
-void
-rpcemu_log_os(void)
+void rpcemu_log_os(void)
 {
     struct utsname u;
 
-    if (uname(&u) == -1) 
+    if (uname(&u) == -1)
     {
         rpclog("OS: Could not determine: %s\n", strerror(errno));
         return;
@@ -86,4 +86,65 @@ rpcemu_log_os(void)
     rpclog("OS: Release = %s\n", u.release);
     rpclog("OS: Version = %s\n", u.version);
     rpclog("OS: Machine = %s\n", u.machine);
+}
+
+/**
+ * Set the directory that contains the data required by 
+ * the program, e.g. CMOS settings, ROMs, configuration
+ *
+ * @return 1 if successful, otherwise 0.
+ */
+int rpcemu_set_datadir(const char *path)
+{
+    size_t len = strlen(path);
+    if (len == 0)
+    {
+        return 0;
+    }
+    
+    if (path[len - 1] != '/')
+    {
+        snprintf(datadir, sizeof(datadir), "%s/", path);
+    }
+    else
+    {
+        strncpy(datadir, path, sizeof(datadir));
+    }
+    
+    // Check the folder exists.
+    DIR *ptr = opendir(datadir);
+    if (ptr)
+    {
+        closedir(ptr);
+        return 1;
+    }
+    
+    return 0;
+}
+
+/**
+ * Return the path of the data directory containing all the sub data parts
+ * used by the program, eg romload, hostfs etc.
+ *
+ * @return Pointer to static zero-terminated string of path
+ */
+const char *rpcemu_get_datadir(void)
+{
+    return datadir;
+}
+
+/**
+ * Return the full path to the RPCEmu log file.
+ *
+ * @return Pointer to static zero-terminated string of full path to log file
+ */
+const char *rpcemu_get_log_path(void)
+{
+    if (logpath[0] == '\0')
+    {
+        strcpy(logpath, rpcemu_get_datadir());
+        strcat(logpath, "rpclog.txt");
+    }
+
+    return logpath;
 }

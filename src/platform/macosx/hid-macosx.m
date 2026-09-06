@@ -21,14 +21,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <Cocoa/Cocoa.h>
 #include <Carbon/Carbon.h>
+#include <Cocoa/Cocoa.h>
 #include <IOKit/hid/IOHIDLib.h>
 
-#include "keyboard.h"
 #include "keyboard-macosx.h"
+#include "keyboard.h"
 
-#define UNUSED(x) (void)(x)
+#define UNUSED(x) (void) (x)
 
 static IOHIDManagerRef hidManager = NULL;
 
@@ -65,13 +65,13 @@ void processHIDCallback(void *context, IOReturn result, void *sender, IOHIDValue
     UNUSED(result);
     UNUSED(sender);
 
-    if (context != hidManager) 
+    if (context != hidManager)
     {
         return;
     }
 
     IOHIDElementRef element = IOHIDValueGetElement(value);
-    if (IOHIDElementGetUsagePage(element) != kHIDPage_KeyboardOrKeypad || IOHIDElementGetUsage(element) != kHIDUsage_KeyboardCapsLock) 
+    if (IOHIDElementGetUsagePage(element) != kHIDPage_KeyboardOrKeypad || IOHIDElementGetUsage(element) != kHIDUsage_KeyboardCapsLock)
     {
         return;
     }
@@ -93,33 +93,33 @@ void processHIDCallback(void *context, IOReturn result, void *sender, IOHIDValue
 const char *getCurrentKeyboardLayoutName()
 {
     TISInputSourceRef currentSource = TISCopyCurrentKeyboardInputSource();
-    NSString *inputSource = (__bridge NSString *)(TISGetInputSourceProperty(currentSource, kTISPropertyInputSourceID));
+    NSString *inputSource = (__bridge NSString *) (TISGetInputSourceProperty(currentSource, kTISPropertyInputSourceID));
     NSUInteger lastIndex = [inputSource rangeOfString:@"." options:NSBackwardsSearch].location;
-    
-    NSString *layoutName = [inputSource substringFromIndex: lastIndex + 1];
+
+    NSString *layoutName = [inputSource substringFromIndex:lastIndex + 1];
     lastIndex = [layoutName rangeOfString:@" - "].location;
-    
-    if (lastIndex != NSNotFound) 
+
+    if (lastIndex != NSNotFound)
     {
-        layoutName = [layoutName substringToIndex: lastIndex];
+        layoutName = [layoutName substringToIndex:lastIndex];
     }
-   
+
     return [layoutName UTF8String];
 }
 
 void terminate_hid_manager(void)
 {
-    if (!hidManager) 
+    if (!hidManager)
     {
         return;
     }
-    
+
     IOHIDManagerUnscheduleFromRunLoop(hidManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
     IOHIDManagerRegisterInputValueCallback(hidManager, NULL, NULL);
     IOHIDManagerClose(hidManager, 0);
-    
+
     CFRelease(hidManager);
-    
+
     hidManager = NULL;
 }
 
@@ -129,7 +129,7 @@ void init_hid_manager(void)
     keyboard_configure_layout(layoutName);
 
     hidManager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
-    if (!hidManager) 
+    if (!hidManager)
     {
         return;
     }
@@ -153,8 +153,8 @@ void init_hid_manager(void)
         return;
     }
 
-    CFDictionaryRef matchesList[] = {keyboard, keypad};
-    matches = CFArrayCreate(kCFAllocatorDefault, (const void**) matchesList, 2, NULL);
+    CFDictionaryRef matchesList[] = { keyboard, keypad };
+    matches = CFArrayCreate(kCFAllocatorDefault, (const void **) matchesList, 2, NULL);
     if (!matches)
     {
         CFRelease(keypad);
@@ -167,7 +167,7 @@ void init_hid_manager(void)
     IOHIDManagerSetDeviceMatchingMultiple(hidManager, matches);
     IOHIDManagerRegisterInputValueCallback(hidManager, processHIDCallback, hidManager);
     IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
-    
+
     if (IOHIDManagerOpen(hidManager, kIOHIDOptionsTypeNone) != kIOReturnSuccess)
     {
         terminate_hid_manager();
@@ -177,5 +177,3 @@ void init_hid_manager(void)
     CFRelease(keypad);
     CFRelease(keyboard);
 }
-
-

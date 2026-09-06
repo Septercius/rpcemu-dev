@@ -18,19 +18,19 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-//#define isblockvalid(l) (((l)&0xFFC00000)==0x3800000)
+// #define isblockvalid(l) (((l)&0xFFC00000)==0x3800000)
 #define isblockvalid(l) (dcache)
 
 #define BLOCKS 1024
 
-extern uint8_t rcodeblock[BLOCKS][1792+512+64];
+extern uint8_t rcodeblock[BLOCKS][1792 + 512 + 64];
 extern uint32_t codeblockpc[0x8000];
 extern int codeblocknum[0x8000];
 
 extern uint8_t flaglookup[16][16];
 
 #define BLOCKSTART 16
-//uint32_t blocks[1024];
+// uint32_t blocks[1024];
 
-#define HASH(l) (((l)>>2)&0x7FFF)
-//#define callblock(l) (((codeblockpc[0][HASH(l)]==l)||(codeblockpc[1][HASH(l)]==l))?codecallblock(l):0)
+#define HASH(l) (((l) >> 2) & 0x7FFF)
+// #define callblock(l) (((codeblockpc[0][HASH(l)]==l)||(codeblockpc[1][HASH(l)]==l))?codecallblock(l):0)

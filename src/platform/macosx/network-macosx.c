@@ -20,32 +20,31 @@
 
 /* RPCemu networking */
 
+#include <arpa/inet.h>
 #include <assert.h>
 #include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
 #include <errno.h>
-#include <string.h>
-#include <sys/socket.h>
+#include <fcntl.h>
+#include <grp.h>
 #include <net/if.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <pwd.h>
-#include <grp.h>
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include "rpcemu.h"
 #include "mem.h"
-#include "podules.h"
 #include "network.h"
+#include "podules.h"
+#include "rpcemu.h"
 
-int
-network_plt_init(void)
+int network_plt_init(void)
 {
     // Do nothing on a Mac, as TUN/TAP is not supported.
     return 0;
@@ -57,26 +56,23 @@ network_plt_init(void)
  * Called on program shutdown and program reset after
  * configuration has changed.
  */
-void
-network_plt_reset(void)
+void network_plt_reset(void)
 {
     // Do nothing on a Mac, as TUN/TAP is not supported.
 }
 
-uint32_t
-network_plt_rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dataavail)
+uint32_t network_plt_rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t *dataavail)
 {
     NOT_USED(errbuf);
     NOT_USED(mbuf);
     NOT_USED(rxhdr);
     NOT_USED(dataavail);
-    
+
     // Do nothing on a Mac, as TUN/TAP is not supported.
     return 0;
 }
 
-uint32_t
-network_plt_tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uint32_t frametype)
+uint32_t network_plt_tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uint32_t frametype)
 {
     NOT_USED(errbuf);
     NOT_USED(mbufs);
@@ -88,10 +84,9 @@ network_plt_tx(uint32_t errbuf, uint32_t mbufs, uint32_t dest, uint32_t src, uin
     return 0;
 }
 
-void
-network_plt_setirqstatus(uint32_t address)
+void network_plt_setirqstatus(uint32_t address)
 {
     NOT_USED(address);
-    
+
     // Do nothing on a Mac, as TUN/TAP is not supported.
 }

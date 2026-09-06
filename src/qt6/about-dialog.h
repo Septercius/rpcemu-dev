@@ -23,25 +23,25 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QHBoxLayout>
-#include <QVBoxLayout>
 #include <QLabel>
+#include <QVBoxLayout>
 
 class AboutDialog : public QDialog
 {
-	Q_OBJECT
+    Q_OBJECT
 
-public:
-	AboutDialog(QWidget *parent = 0);
-	virtual ~AboutDialog();
+  public:
+    AboutDialog(QWidget *parent = 0);
+    virtual ~AboutDialog();
 
-private:
-	QLabel *image_label;
-	QLabel *text_label;
+  private:
+    QLabel *image_label;
+    QLabel *text_label;
 
-	QDialogButtonBox *buttons_box;
+    QDialogButtonBox *buttons_box;
 
-	QHBoxLayout *hbox;
-	QVBoxLayout *vbox;
+    QHBoxLayout *hbox;
+    QVBoxLayout *vbox;
 };
 
 #endif /* ABOUT_DIALOG */

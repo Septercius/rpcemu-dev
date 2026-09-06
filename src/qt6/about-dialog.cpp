@@ -17,60 +17,58 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include <stdio.h>
 
+#include <stdio.h>
 #include <iostream>
 
 #include "about-dialog.h"
-
 #include "rpcemu.h"
 
 AboutDialog::AboutDialog(QWidget *parent)
-    : QDialog(parent)
+  : QDialog(parent)
 {
-	setWindowTitle("About RPCEmu");
+    setWindowTitle("About RPCEmu");
 
-	// Image label
-	image_label = new QLabel();
-	QPixmap icon = QPixmap(":/rpcemu-icon.png");
-	image_label->setPixmap(icon.scaledToWidth(48, Qt::SmoothTransformation));
-	image_label->setAlignment(Qt::AlignTop);
+    // Image label
+    image_label = new QLabel();
+    QPixmap icon = QPixmap(":/rpcemu-icon.png");
+    image_label->setPixmap(icon.scaledToWidth(48, Qt::SmoothTransformation));
+    image_label->setAlignment(Qt::AlignTop);
 
-	// Date, based on build date from __DATE__ std C macro
-	const char *datestr = __DATE__; // Format is 08 Nov 2013
+    // Date, based on build date from __DATE__ std C macro
+    const char *datestr = __DATE__; // Format is 08 Nov 2013
 
-	// Text label string containing year from __DATE__
-	QString str = QString("<h1>RPCEmu</h1>"
-	    "<h2>" VERSION "</h2>"
-	    "<p>Copyright 2005-%1 RPCEmu Developers</p>"
-	    "<p>RPCEmu is released under the terms of the "
-	    "GNU General Public License, Version 2. Please see the file "
-	    "COPYING for more details.</p>").arg(datestr + 7);
+    // Text label string containing year from __DATE__
+    QString str = QString("<h1>RPCEmu</h1>"
+                          "<h2>" VERSION "</h2>"
+                          "<p>Copyright 2005-%1 RPCEmu Developers</p>"
+                          "<p>RPCEmu is released under the terms of the "
+                          "GNU General Public License, Version 2. Please see the file "
+                          "COPYING for more details.</p>")
+                      .arg(datestr + 7);
 
-	// Text label
-	text_label = new QLabel(str);
-	text_label->setWordWrap(true);
+    // Text label
+    text_label = new QLabel(str);
+    text_label->setWordWrap(true);
 
-	// Create Buttons
-	buttons_box = new QDialogButtonBox(QDialogButtonBox::Ok);
+    // Create Buttons
+    buttons_box = new QDialogButtonBox(QDialogButtonBox::Ok);
 
-	hbox = new QHBoxLayout();
-	hbox->addWidget(image_label);
-	hbox->addWidget(text_label);
+    hbox = new QHBoxLayout();
+    hbox->addWidget(image_label);
+    hbox->addWidget(text_label);
 
-	hbox->setSpacing(16);
+    hbox->setSpacing(16);
 
-	// Main layout
-	vbox = new QVBoxLayout(this);
-	vbox->addLayout(hbox);
-	vbox->addWidget(buttons_box);
+    // Main layout
+    vbox = new QVBoxLayout(this);
+    vbox->addLayout(hbox);
+    vbox->addWidget(buttons_box);
 
-	// Remove resize on Dialog
-	this->setFixedSize(this->sizeHint());
+    // Remove resize on Dialog
+    this->setFixedSize(this->sizeHint());
 
-	connect(buttons_box, &QDialogButtonBox::accepted, this, &QDialog::close);
+    connect(buttons_box, &QDialogButtonBox::accepted, this, &QDialog::close);
 }
 
-AboutDialog::~AboutDialog()
-{
-}
+AboutDialog::~AboutDialog() {}

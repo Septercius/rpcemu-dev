@@ -22,11 +22,12 @@
 #define __HID_MACOSX_H__
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 extern void init_hid_manager(void);
-    
+
 #ifdef __cplusplus
 }
 #endif

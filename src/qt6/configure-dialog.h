@@ -37,55 +37,54 @@
 
 class ConfigureDialog : public QDialog
 {
-	Q_OBJECT
+    Q_OBJECT
 
-public:
-	ConfigureDialog(Emulator &emulator, Config *config_copy, Model *model_copy, QWidget *parent = 0);
-	virtual ~ConfigureDialog();
+  public:
+    ConfigureDialog(Emulator &emulator, Config *config_copy, Model *model_copy, QWidget *parent = 0);
+    virtual ~ConfigureDialog();
 
-	void keyPressEvent(QKeyEvent *);
+    void keyPressEvent(QKeyEvent *);
 
-private slots:
-	void slider_moved(int value);
+  private slots:
+    void slider_moved(int value);
 
-	void dialog_accepted();
-	void dialog_rejected();
+    void dialog_accepted();
+    void dialog_rejected();
 
-private:
-	void applyConfig();
+  private:
+    void applyConfig();
 
-	QListWidget *hardware_listwidget;
-	std::vector<QListWidgetItem *>  hardware_list_items;
-	QVBoxLayout *hardware_vbox;
-	QGroupBox *hardware_group_box;
+    QListWidget *hardware_listwidget;
+    std::vector<QListWidgetItem *> hardware_list_items;
+    QVBoxLayout *hardware_vbox;
+    QGroupBox *hardware_group_box;
 
-	QButtonGroup *mem_group;
-	QRadioButton *mem_4, *mem_8, *mem_16, *mem_32, *mem_64, *mem_128, *mem_256;
-	QVBoxLayout *mem_vbox;
-	QGroupBox *mem_group_box;
+    QButtonGroup *mem_group;
+    QRadioButton *mem_4, *mem_8, *mem_16, *mem_32, *mem_64, *mem_128, *mem_256;
+    QVBoxLayout *mem_vbox;
+    QGroupBox *mem_group_box;
 
-	QButtonGroup *vram_group;
-	QRadioButton *vram_0, *vram_2;
-	QVBoxLayout *vram_vbox;
-	QGroupBox *vram_group_box;
+    QButtonGroup *vram_group;
+    QRadioButton *vram_0, *vram_2;
+    QVBoxLayout *vram_vbox;
+    QGroupBox *vram_group_box;
 
-	QCheckBox *sound_checkbox;
+    QCheckBox *sound_checkbox;
 
-	QSlider *refresh_slider;
-	QLabel *refresh_label;
-	QHBoxLayout *refresh_hbox;
-	QGroupBox *refresh_group_box;
+    QSlider *refresh_slider;
+    QLabel *refresh_label;
+    QHBoxLayout *refresh_hbox;
+    QGroupBox *refresh_group_box;
 
-	QDialogButtonBox *buttons_box;
+    QDialogButtonBox *buttons_box;
 
-	QGridLayout *grid;
+    QGridLayout *grid;
 
-	Emulator &emulator;
+    Emulator &emulator;
 
-	// Pointers to GUI thread copies of the emulator's config
-	Config *config_copy;
-	Model *model_copy;
-
+    // Pointers to GUI thread copies of the emulator's config
+    Config *config_copy;
+    Model *model_copy;
 };
 
 #endif

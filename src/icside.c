@@ -22,92 +22,88 @@
 #include <string.h>
 
 #include "rpcemu.h"
-#include "podules.h"
 #include "ide.h"
+#include "podules.h"
 
 unsigned char icsrom[8192];
 int icspage;
 
-uint8_t
-icsreadb(podule *p, PoduleIoType io_type, uint32_t addr)
+uint8_t icsreadb(podule *p, PoduleIoType io_type, uint32_t addr)
 {
-	NOT_USED(p);
-	NOT_USED(io_type);
-	NOT_USED(addr);
-/*        int temp;
-//        rpclog("Read ICSB %04X\n",addr);
-        switch (addr&0x3000)
-        {
-                case 0x0000: case 0x1000:
-                temp=((addr&0x1FFC)|(icspage<<13))>>2;
-                return icsrom[temp];
-                case 0x3000:
-                return readide(((addr>>2)&7)+0x1F0);
-        }*/
-	return 0;
+    NOT_USED(p);
+    NOT_USED(io_type);
+    NOT_USED(addr);
+    /*        int temp;
+    //        rpclog("Read ICSB %04X\n",addr);
+            switch (addr&0x3000)
+            {
+                    case 0x0000: case 0x1000:
+                    temp=((addr&0x1FFC)|(icspage<<13))>>2;
+                    return icsrom[temp];
+                    case 0x3000:
+                    return readide(((addr>>2)&7)+0x1F0);
+            }*/
+    return 0;
 }
 
-uint16_t
-icsreadw(podule *p, PoduleIoType io_type, uint32_t addr)
+uint16_t icsreadw(podule *p, PoduleIoType io_type, uint32_t addr)
 {
-	NOT_USED(p);
-	NOT_USED(io_type);
-	NOT_USED(addr);
-/*        if ((addr&0x3000)==0x3000)
-        {
-//                rpclog("Read IDEW\n");
-                return readidew();
-        }
-        return icsreadb(p, io_type, addr);*/
-	return 0;
+    NOT_USED(p);
+    NOT_USED(io_type);
+    NOT_USED(addr);
+    /*        if ((addr&0x3000)==0x3000)
+            {
+    //                rpclog("Read IDEW\n");
+                    return readidew();
+            }
+            return icsreadb(p, io_type, addr);*/
+    return 0;
 }
 
-void
-icswriteb(podule *p, PoduleIoType io_type, uint32_t addr, uint8_t val)
+void icswriteb(podule *p, PoduleIoType io_type, uint32_t addr, uint8_t val)
 {
-	NOT_USED(p);
-	NOT_USED(io_type);
-	NOT_USED(addr);
-	NOT_USED(val);
-//        rpclog("Write ICSB %04X %02X\n",addr,val);
-/*        switch (addr&0x3000)
-        {
-                case 0x2000: icspage=val; return;
-                case 0x3000:
-                writeide(((addr>>2)&7)+0x1F0,val);
-                return;
-        }*/
+    NOT_USED(p);
+    NOT_USED(io_type);
+    NOT_USED(addr);
+    NOT_USED(val);
+    //        rpclog("Write ICSB %04X %02X\n",addr,val);
+    /*        switch (addr&0x3000)
+            {
+                    case 0x2000: icspage=val; return;
+                    case 0x3000:
+                    writeide(((addr>>2)&7)+0x1F0,val);
+                    return;
+            }*/
 }
 
-void
-icswritew(podule *p, PoduleIoType io_type, uint32_t addr, uint16_t val)
+void icswritew(podule *p, PoduleIoType io_type, uint32_t addr, uint16_t val)
 {
-	NOT_USED(p);
-	NOT_USED(io_type);
-	NOT_USED(addr);
-	NOT_USED(val);
-/*        if ((addr&0x3000)==0x3000)
-        {
-//                rpclog("WRITEIDEW\n");
-                return writeidew(val);
-        }
-        icswriteb(p, io_type, addr, val);*/
+    NOT_USED(p);
+    NOT_USED(io_type);
+    NOT_USED(addr);
+    NOT_USED(val);
+    /*        if ((addr&0x3000)==0x3000)
+            {
+    //                rpclog("WRITEIDEW\n");
+                    return writeidew(val);
+            }
+            icswriteb(p, io_type, addr, val);*/
 }
 
 void initics(void)
 {
-/*        FILE *f;
-        char fn[512];
+    /*        FILE *f;
+            char fn[512];
 
-	snprintf(fn, sizeof(fn), "%szidefs", rpcemu_get_datadir());
-        f=fopen(fn,"rb");
-        if (!f)
-        {
-                rpclog("Failed to open ZIDEFS!\n");
-                return;
-        }
-        fread(icsrom,8192,1,f);
-        fclose(f);
-        addpodule(NULL,icswritew,icswriteb,NULL,icsreadw,icsreadb,NULL,NULL);*/
-//        rpclog("ICS Initialised!\n");
+        snprintf(fn, sizeof(fn), "%szidefs", rpcemu_get_datadir());
+            f=fopen(fn,"rb");
+            if (!f)
+            {
+                    rpclog("Failed to open ZIDEFS!\n");
+                    return;
+            }
+            fread(icsrom,8192,1,f);
+            fclose(f);
+            addpodule(NULL,icswritew,icswriteb,NULL,icsreadw,icsreadb,NULL,NULL);*/
+    //        rpclog("ICS Initialised!\n");
 }

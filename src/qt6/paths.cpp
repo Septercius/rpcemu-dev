@@ -24,12 +24,12 @@
 #include <string.h>
 
 #include <dirent.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
-#include "rpcemu.h"
 #include "paths.h"
+#include "rpcemu.h"
 
 #ifdef _MSC_VER
 #define PATH_MAX 1024
@@ -41,18 +41,18 @@
 #include <QDir>
 #include <QFileInfo>
 
-const char* path_extract_filename(const char* path)
+const char *path_extract_filename(const char *path)
 {
     QFileInfo info(path);
 
     QString fileName = info.fileName();
     QByteArray ba = fileName.toUtf8();
 
-    char* buffer = strdup(ba.data());
+    char *buffer = strdup(ba.data());
     return buffer;
 }
 
-void path_join(const char* str1, const char* str2, char* buffer)
+void path_join(const char *str1, const char *str2, char *buffer)
 {
     QString first = str1;
     QString second = str2;
@@ -65,7 +65,7 @@ void path_join(const char* str1, const char* str2, char* buffer)
     strcpy(buffer, data);
 }
 
-void path_append(char* str1, const char* str2)
+void path_append(char *str1, const char *str2)
 {
     QString first = str1;
     QString second = str2;
@@ -78,7 +78,7 @@ void path_append(char* str1, const char* str2)
     strcpy(str1, data);
 }
 
-char* path_resolve(const char* path)
+char *path_resolve(const char *path)
 {
     QString p = QDir::fromNativeSeparators(path);
     QDir dir(p);
@@ -106,12 +106,12 @@ char* path_resolve(const char* path)
     QString nativePath = QDir::toNativeSeparators(absolutePath);
 
     QByteArray ba = nativePath.toUtf8();
-    char* buffer = strdup(ba.data());
+    char *buffer = strdup(ba.data());
 
     return buffer;
 }
 
-int path_validate(const char* path)
+int path_validate(const char *path)
 {
     QDir dir(path);
     return dir.exists();

@@ -29,13 +29,13 @@
 #include <sys/utsname.h>
 #include <sys/wait.h>
 
-#include "rpcemu.h"
 #include "mem.h"
+#include "rpcemu.h"
 #include "sound.h"
 #include "vidc20.h"
 
-
-
+static char datadir[PATH_MAX] = "./";
+static char logpath[PATH_MAX] = "";
 
 /**
  * Return disk space information about a file system.
@@ -44,23 +44,23 @@
  * @param d    Pointer to disk_info structure that will be filled in
  * @return     On success 1 is returned, on error 0 is returned
  */
-int
-path_disk_info(const char *path, disk_info *d)
+int path_disk_info(const char *path, disk_info *d)
 {
-	struct statvfs s;
-	int ret;
+    struct statvfs s;
+    int ret;
 
-	assert(path != NULL);
-	assert(d != NULL);
+    assert(path != NULL);
+    assert(d != NULL);
 
-	if ((ret = statvfs(path, &s)) != 0) {
-		return 0;
-	}
+    if ((ret = statvfs(path, &s)) != 0)
+    {
+        return 0;
+    }
 
-	d->size = (uint64_t) s.f_blocks * (uint64_t) s.f_frsize;
-	d->free = (uint64_t) s.f_bavail * (uint64_t) s.f_frsize;
+    d->size = (uint64_t) s.f_blocks * (uint64_t) s.f_frsize;
+    d->free = (uint64_t) s.f_bavail * (uint64_t) s.f_frsize;
 
-	return 1;
+    return 1;
 }
 
 /**
@@ -70,20 +70,45 @@ path_disk_info(const char *path, disk_info *d)
  *
  * Called during program start-up.
  */
-void
-rpcemu_log_os(void)
+void rpcemu_log_os(void)
 {
-	struct utsname u;
+    struct utsname u;
 
-	if (uname(&u) == -1) {
-		rpclog("OS: Could not determine: %s\n", strerror(errno));
-		return;
-	}
+    if (uname(&u) == -1)
+    {
+        rpclog("OS: Could not determine: %s\n", strerror(errno));
+        return;
+    }
 
-	rpclog("OS: SysName = %s\n", u.sysname);
-	rpclog("OS: Release = %s\n", u.release);
-	rpclog("OS: Version = %s\n", u.version);
-	rpclog("OS: Machine = %s\n", u.machine);
+    rpclog("OS: SysName = %s\n", u.sysname);
+    rpclog("OS: Release = %s\n", u.release);
+    rpclog("OS: Version = %s\n", u.version);
+    rpclog("OS: Machine = %s\n", u.machine);
 }
 
+/**
+ * Return the path of the data directory containing all the sub data parts
+ * used by the program, eg romload, hostfs etc.
+ *
+ * @return Pointer to static zero-terminated string of path
+ */
+const char *rpcemu_get_datadir(void)
+{
+    return datadir;
+}
 
+/**
+ * Return the full path to the RPCEmu log file.
+ *
+ * @return Pointer to static zero-terminated string of full path to log file
+ */
+const char *rpcemu_get_log_path(void)
+{
+    if (logpath[0] == '\0')
+    {
+        strcpy(logpath, rpcemu_get_datadir());
+        strcat(logpath, "rpclog.txt");
+    }
+
+    return logpath;
+}

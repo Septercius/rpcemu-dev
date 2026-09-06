@@ -25,23 +25,22 @@
 #include <QAudioFormat>
 #include <QAudioOutput>
 #include <QAudioSink>
+#include <QEventLoop>
 #include <QFile>
 #include <QObject>
-#include <QEventLoop>
-
 
 class AudioOut : public QObject
 {
-	Q_OBJECT
-public:
-	AudioOut(uint32_t bufferlen);
-	virtual ~AudioOut();
-	void changeSampleRate(uint32_t samplerate);
+    Q_OBJECT
+  public:
+    AudioOut(uint32_t bufferlen);
+    virtual ~AudioOut();
+    void changeSampleRate(uint32_t samplerate);
 
-	QAudioSink *audio_output;
-	QIODevice *audio_io;
-	uint32_t samplerate;
-	uint32_t bufferlen;
+    QAudioSink *audio_output;
+    QIODevice *audio_io;
+    uint32_t samplerate;
+    uint32_t bufferlen;
 };
 
 #endif // PLT_SOUND_H

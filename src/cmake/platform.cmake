@@ -20,7 +20,7 @@ endmacro(rpcemu_target_link_macos_framework)
 # Configure a target for Linux.
 macro(rpcemu_configure_linux_target NAME APPNAME)
 	# Set includes.
-	target_include_directories(${NAME} PRIVATE . interop platform/linux qt6)
+	target_include_directories(${NAME} PRIVATE . filesystem platform/linux qt6)
 	
 	# Add QT6 modules.
 	rpcemu_target_add_qt(${NAME})
@@ -46,7 +46,7 @@ endmacro(rpcemu_configure_linux_target)
 # Configure a target for macOS.
 macro(rpcemu_configure_macos_target NAME APPNAME ARCHITECTURE)
 	# Set includes.
-	target_include_directories(${NAME} PRIVATE . interop platform/macosx qt6)
+	target_include_directories(${NAME} PRIVATE . filesystem platform/macosx qt6)
 	
 	# Add frameworks.
 	rpcemu_target_link_macos_framework(${NAME} coreFoundation)
@@ -89,7 +89,7 @@ endmacro(rpcemu_configure_macos_target)
 # Configure a target for Windows.
 macro(rpcemu_configure_win_target TARGET APPNAME)
 	# Set includes.
-	target_include_directories(${TARGET} PRIVATE . interop platform/win qt6)
+	target_include_directories(${TARGET} PRIVATE . filesystem platform/win qt6)
 	
 	# Add QT6 modules.
 	rpcemu_target_add_qt(${TARGET})

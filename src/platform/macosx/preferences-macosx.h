@@ -22,7 +22,8 @@
 #define __PREFERENCES_MACOSX_H__
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 extern void init_preferences(void);
@@ -30,7 +31,7 @@ extern void preferences_set_data_directory(const char *path);
 extern const char *preferences_get_data_directory();
 
 extern bool promptForDataDirectory;
-  
+
 #ifdef __cplusplus
 }
 #endif

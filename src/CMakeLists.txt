@@ -75,7 +75,6 @@ set(COMMON_SOURCES
 	podulerom.c
 	podules.c
 	romload.c
-	rpc-machdep.c
 	rpcemu.c
 	sound.c
 	superio.c
@@ -94,22 +93,22 @@ set(EMBEDDED_RESOURCES
 	qt6/resources.qrc
 )
 
+# Set an empty variable for filesystem headers.
+set(FILESYSTEM_HEADERS
+)
+
+# Set an empty variable for filesystem sources.
+set(FILESYSTEM_SOURCES
+)
+
 # Set common headers for HostFS.
 set(HOSTFS_HEADERS
-	interop/hostfs-standard.h
+	filesystem/hostfs-standard.h
 )
 
 # Set common sources for HostFS.
 set(HOSTFS_SOURCES
-	interop/hostfs-standard.c
-)
-
-# Set an empty variable for interoperability headers.
-set(INTEROP_HEADERS
-)
-
-# Set an empty variable for interoperability sources.
-set(INTEROP_SOURCES
+	filesystem/hostfs-standard.c
 )
 
 # Set interpreter-specific header files.
@@ -232,14 +231,14 @@ set(MACOS_RECOMPILER_SOURCES
 
 # Set multiple-drive HostFS headers.
 set(MULTI_HOSTFS_HEADERS
-	interop/hostfs-multi.h
+	filesystem/hostfs-multi.h
 	qt6/hostfs-dialog.h
 	qt6/paths.h
 )
 
 # Set multiple-drive HostFS sources.
 set(MULTI_HOSTFS_SOURCES
-	interop/hostfs-multi.c
+	filesystem/hostfs-multi.c
 	qt6/hostfs-dialog.cpp
 	qt6/paths.cpp
 )
@@ -262,12 +261,12 @@ set(NETWORK_SOURCES
 	qt6/network-dialog.cpp
 )
 
-# Set an empty variable for platform-specific interoperability headers.
-set(PLATFORM_INTEROP_HEADERS
+# Set an empty variable for platform-specific filesystem headers.
+set(PLATFORM_FILESYSTEM_HEADERS
 )
 
-# Set an empty variable for platform-specific interoperability sources.
-set(PLATFORM_INTEROP_SOURCES
+# Set an empty variable for platform-specific filesystem sources.
+set(PLATFORM_FILESYSTEM_SOURCES
 )
 
 # Set an empty variable for platform-specific recompiler headers.
@@ -350,19 +349,19 @@ set(WIN32_SOURCES
 	platform/win/rpc-win.c
 )
 
-# For multiple-drive HostFS, add its files to the interop sources.
+# For multiple-drive HostFS, add its files to the filesystem sources.
 if (ENABLE_MULTI_HOSTFS)
 	message(STATUS "Configuring for multiple-drive HostFS")
 	
-	list(APPEND INTEROP_HEADERS ${MULTI_HOSTFS_HEADERS})
-	list(APPEND INTEROP_SOURCES ${MULTI_HOSTFS_SOURCES})
+	list(APPEND FILESYSTEM_HEADERS ${MULTI_HOSTFS_HEADERS})
+	list(APPEND FILESYSTEM_SOURCES ${MULTI_HOSTFS_SOURCES})
 	
 	add_compile_definitions(FEATURE_MULTI_HOSTFS)
 else()
 	message(STATUS "Configuring for standard HostFS")
 	
-	list(APPEND INTEROP_HEADERS ${HOSTFS_HEADERS})
-	list(APPEND INTEROP_SOURCES ${HOSTFS_SOURCES})
+	list(APPEND FILESYSTEM_HEADERS ${HOSTFS_HEADERS})
+	list(APPEND FILESYSTEM_SOURCES ${HOSTFS_SOURCES})
 endif()
 
 # For networking, add the common and SLIRP network sources and set the required defines.
@@ -407,12 +406,12 @@ if (APPLE)
 	# Add the required files for whatever HostFS implementation is being used.
 	if (ENABLE_MULTI_HOSTFS)
 		# Multiple drive support.
-		list(APPEND PLATFORM_INTEROP_HEADERS ${MACOS_MULTI_HOSTFS_HEADERS})
-		list(APPEND PLATFORM_INTEROP_SOURCES ${MACOS_MULTI_HOSTFS_SOURCES})
+		list(APPEND PLATFORM_FILESYSTEM_HEADERS ${MACOS_MULTI_HOSTFS_HEADERS})
+		list(APPEND PLATFORM_FILESYSTEM_SOURCES ${MACOS_MULTI_HOSTFS_SOURCES})
 	else()
 		# Standard HostFS.
-		list(APPEND PLATFORM_INTEROP_HEADERS ${MACOS_HOSTFS_HEADERS})
-		list(APPEND PLATFORM_INTEROP_SOURCES ${MACOS_HOSTFS_SOURCES})
+		list(APPEND PLATFORM_FILESYSTEM_HEADERS ${MACOS_HOSTFS_HEADERS})
+		list(APPEND PLATFORM_FILESYSTEM_SOURCES ${MACOS_HOSTFS_SOURCES})
 	endif()
 	
 	# If networking is configured, add the platform-specific network sources.
@@ -424,8 +423,13 @@ if (APPLE)
 	rpcemu_add_executables()
 
 	# Configure the targets.
-	rpcemu_configure_macos_target("qt6-interpreter" "RPCEmu-Interpreter" "x86_64;arm64")
-	rpcemu_configure_macos_target("qt6-recompiler" "RPCEmu-Recompiler" x86_64)
+	if (NOT DISABLE_INTERPRETER)
+		rpcemu_configure_macos_target("qt6-interpreter" "RPCEmu-Interpreter" "x86_64;arm64")
+	endif()
+	
+	if (NOT DISABLE_RECOMPILER)
+		rpcemu_configure_macos_target("qt6-recompiler" "RPCEmu-Recompiler" x86_64)
+	endif()
 elseif (LINUX)
 	# Set up builds for Linux.
 	
@@ -440,12 +444,12 @@ elseif (LINUX)
 	# Add the required files for whatever HostFS implementation is being used.
 	if (ENABLE_MULTI_HOSTFS)
 		# Multiple drive support.
-		list(APPEND PLATFORM_INTEROP_HEADERS ${LINUX_MULTI_HOSTFS_HEADERS})
-		list(APPEND PLATFORM_INTEROP_SOURCES ${LINUX_MULTI_HOSTFS_SOURCES})
+		list(APPEND PLATFORM_FILESYSTEM_HEADERS ${LINUX_MULTI_HOSTFS_HEADERS})
+		list(APPEND PLATFORM_FILESYSTEM_SOURCES ${LINUX_MULTI_HOSTFS_SOURCES})
 	else()
 		# Standard HostFS.
-		list(APPEND PLATFORM_INTEROP_HEADERS ${LINUX_HOSTFS_HEADERS})
-		list(APPEND PLATFORM_INTEROP_SOURCES ${LINUX_HOSTFS_SOURCES})
+		list(APPEND PLATFORM_FILESYSTEM_HEADERS ${LINUX_HOSTFS_HEADERS})
+		list(APPEND PLATFORM_FILESYSTEM_SOURCES ${LINUX_HOSTFS_SOURCES})
 	endif()
 
 	# If networking is configured, add the platform-specific network sources.
@@ -466,8 +470,13 @@ elseif (LINUX)
 	rpcemu_add_executables()
 	
 	# Configure the targets.
-	rpcemu_configure_linux_target("qt6-interpreter" "rpcemu-interpreter")
-	rpcemu_configure_linux_target("qt6-recompiler" "rpcemu-recompiler")
+	if (NOT DISABLE_INTERPRETER)
+		rpcemu_configure_linux_target("qt6-interpreter" "rpcemu-interpreter")
+	endif()
+	
+	if (NOT DISABLE_RECOMPILER)
+		rpcemu_configure_linux_target("qt6-recompiler" "rpcemu-recompiler")
+	endif()
 elseif (WIN32)
 	# Set up builds for Windows.
 	
@@ -487,12 +496,12 @@ elseif (WIN32)
 	# Add the required files for whatever HostFS implementation is being used.
 	if (ENABLE_MULTI_HOSTFS)
 		# Multiple drive support.
-		list(APPEND PLATFORM_INTEROP_HEADERS ${WIN32_HOSTFS_HEADERS})
-		list(APPEND PLATFORM_INTEROP_SOURCES ${WIN32_HOSTFS_SOURCES})
+		list(APPEND PLATFORM_FILESYSTEM_HEADERS ${WIN32_HOSTFS_HEADERS})
+		list(APPEND PLATFORM_FILESYSTEM_SOURCES ${WIN32_HOSTFS_SOURCES})
 	else()
 		# Standard HostFS.
-		list(APPEND PLATFORM_INTEROP_HEADERS ${WIN32_HOSTFS_HEADERS})
-		list(APPEND PLATFORM_INTEROP_SOURCES ${WIN32_HOSTFS_SOURCES})
+		list(APPEND PLATFORM_FILESYSTEM_HEADERS ${WIN32_HOSTFS_HEADERS})
+		list(APPEND PLATFORM_FILESYSTEM_SOURCES ${WIN32_HOSTFS_SOURCES})
 	endif()
 	
 	# If networking is configured, add the platform-specific network sources.
@@ -504,6 +513,11 @@ elseif (WIN32)
 	rpcemu_add_executables()
 	
 	# Configure the targets.
-	rpcemu_configure_win_target("qt6-interpreter" "RPCEmu-Interpreter")
-	rpcemu_configure_win_target("qt6-recompiler" "RPCEmu-Recompiler")
+	if (NOT DISABLE_INTERPRETER)
+		rpcemu_configure_win_target("qt6-interpreter" "RPCEmu-Interpreter")
+	endif()
+	
+	if (NOT DISABLE_RECOMPILER)
+		rpcemu_configure_win_target("qt6-recompiler" "RPCEmu-Recompiler")
+	endif()
 endif()

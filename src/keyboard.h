@@ -24,7 +24,8 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif /* __cplusplus */
 
 extern void keyboard_reset(void);
@@ -43,7 +44,6 @@ extern void keyboard_key_press(const uint8_t *);
 extern void keyboard_key_release(const uint8_t *);
 extern const uint8_t *keyboard_map_key(uint32_t);
 extern int mouse_buttons_get(void);
-
 
 extern void mouse_mouse_move(int x, int y);
 extern void mouse_mouse_move_relative(int dx, int dy);

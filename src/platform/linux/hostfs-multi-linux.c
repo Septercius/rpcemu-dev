@@ -4,14 +4,14 @@
 #include <string.h>
 
 #include <fcntl.h>
-#include <utime.h>
 #include <sys/stat.h>
+#include <utime.h>
 
 #include "hostfs-multi-linux.h"
 #include "paths.h"
 #include "rpcemu.h"
 
-#define UNUSED(x) (void)(x)
+#define UNUSED(x) (void) (x)
 
 // Use 64-bit struct timespec for time conversion?
 // Currently enabled on 64-bit Linux.
@@ -27,39 +27,37 @@
  * @param[out] load Pointer to uint32_t, set to high 8 bits of RISC OS time
  * @param[out] exec Pointer to uint32_t, set to low 32 bits of RISC OS time
  */
-static void
-hostfs_timespec64_to_risc_os_time(const struct timespec *t, uint32_t *load, uint32_t 
-*exec)
+static void hostfs_timespec64_to_risc_os_time(const struct timespec *t, uint32_t *load, uint32_t *exec)
 {
-	int64_t centiseconds;
-	uint64_t ro_time;
+    int64_t centiseconds;
+    uint64_t ro_time;
 
-	if (t->tv_sec < INT64_C(-2208988800)) {
-		// Too early
-		*load = 0;
-		*exec = 0;
-		return;
-	}
+    if (t->tv_sec < INT64_C(-2208988800))
+    {
+        // Too early
+        *load = 0;
+        *exec = 0;
+        return;
+    }
 
-	if (t->tv_sec > INT64_C(8786127477) ||
-	    ((t->tv_sec == INT64_C(8786127477) && t->tv_nsec >= 750000000)))
-	{
-		// Too late
-		// A return value of the latest time is interpreted as a
-		// load-exec pair, so return one less than the max
-		*load = 0xff;
-		*exec = 0xfffffffe;
-		return;
-	}
+    if (t->tv_sec > INT64_C(8786127477) || ((t->tv_sec == INT64_C(8786127477) && t->tv_nsec >= 750000000)))
+    {
+        // Too late
+        // A return value of the latest time is interpreted as a
+        // load-exec pair, so return one less than the max
+        *load = 0xff;
+        *exec = 0xfffffffe;
+        return;
+    }
 
-	centiseconds = (t->tv_sec * 100) + (t->tv_nsec / 10000000);
+    centiseconds = (t->tv_sec * 100) + (t->tv_nsec / 10000000);
 
-	ro_time = (uint64_t) (centiseconds + INT64_C(0x336e996a00));
+    ro_time = (uint64_t) (centiseconds + INT64_C(0x336e996a00));
 
-	assert(ro_time <= UINT64_C(0xffffffffff));
+    assert(ro_time <= UINT64_C(0xffffffffff));
 
-	*load = (uint32_t) (ro_time >> 32);
-	*exec = (uint32_t) ro_time;
+    *load = (uint32_t) (ro_time >> 32);
+    *exec = (uint32_t) ro_time;
 }
 
 /**
@@ -70,17 +68,16 @@ hostfs_timespec64_to_risc_os_time(const struct timespec *t, uint32_t *load, uint
  * @param exec RISC OS exec address (must contain time-stamp)
  * @return Equivalent 64-bit struct timespec of given RISC OS time
  */
-static struct timespec
-hostfs_risc_os_time_to_timespec64(uint32_t load, uint32_t exec)
+static struct timespec hostfs_risc_os_time_to_timespec64(uint32_t load, uint32_t exec)
 {
-	const uint64_t centiseconds = ((uint64_t) (load & 0xff) << 32) | (uint64_t) exec;
-	const uint64_t seconds = centiseconds / 100;
-	struct timespec result;
+    const uint64_t centiseconds = ((uint64_t) (load & 0xff) << 32) | (uint64_t) exec;
+    const uint64_t seconds = centiseconds / 100;
+    struct timespec result;
 
-	result.tv_sec = (int64_t) (seconds - UINT64_C(2208988800));
-	result.tv_nsec = (int64_t) (centiseconds - (seconds * 100)) * 10000000;
+    result.tv_sec = (int64_t) (seconds - UINT64_C(2208988800));
+    result.tv_nsec = (int64_t) (centiseconds - (seconds * 100)) * 10000000;
 
-	return result;
+    return result;
 }
 
 /**
@@ -93,15 +90,13 @@ hostfs_risc_os_time_to_timespec64(uint32_t load, uint32_t exec)
  * @param      s           Pointer to a 'struct stat'
  * @param[out] object_info Pointer to object info in which Load-Exec are filled in
  */
-static void
-hostfs_struct_stat_to_risc_os_time(const struct stat *s, risc_os_object_info 
-*object_info)
+static void hostfs_struct_stat_to_risc_os_time(const struct stat *s, risc_os_object_info *object_info)
 {
-	uint32_t load, exec;
+    uint32_t load, exec;
 
-	hostfs_timespec64_to_risc_os_time(&s->st_mtim, &load, &exec);
-	object_info->load = load;
-	object_info->exec = exec;
+    hostfs_timespec64_to_risc_os_time(&s->st_mtim, &load, &exec);
+    object_info->load = load;
+    object_info->exec = exec;
 }
 
 /**
@@ -111,16 +106,15 @@ hostfs_struct_stat_to_risc_os_time(const struct stat *s, risc_os_object_info
  * @param load      RISC OS load address (must contain time-stamp)
  * @param exec      RISC OS exec address (must contain time-stamp)
  */
-void
-hostfs_object_set_timestamp_platform(const char *host_path, uint32_t load, uint32_t exec)
+void hostfs_object_set_timestamp_platform(const char *host_path, uint32_t load, uint32_t exec)
 {
-	struct timespec t[2];
+    struct timespec t[2];
 
-	t[0] = hostfs_risc_os_time_to_timespec64(load, exec);
-	t[1] = t[0];
+    t[0] = hostfs_risc_os_time_to_timespec64(load, exec);
+    t[1] = t[0];
 
-	utimensat(AT_FDCWD, host_path, t, 0);
-	// TODO handle error in utimensat()
+    utimensat(AT_FDCWD, host_path, t, 0);
+    // TODO handle error in utimensat()
 }
 
 #else // Not using 64-bit struct timespec for time conversion
@@ -135,16 +129,15 @@ hostfs_object_set_timestamp_platform(const char *host_path, uint32_t load, uint3
  * Code adapted from fs/adfs/inode.c from Linux licensed under GPL2.
  * Copyright (C) 1997-1999 Russell King
  */
-static void
-hostfs_time_t_to_risc_os_time(time_t t, uint32_t *load, uint32_t *exec)
+static void hostfs_time_t_to_risc_os_time(time_t t, uint32_t *load, uint32_t *exec)
 {
-	uint32_t low, high;
+    uint32_t low, high;
 
-	low  = (uint32_t) ((t & 255) * 100);
-	high = (uint32_t) ((t / 256) * 100 + (low >> 8) + 0x336e996a);
+    low = (uint32_t) ((t & 255) * 100);
+    high = (uint32_t) ((t / 256) * 100 + (low >> 8) + 0x336e996a);
 
-	*load = (high >> 24);
-	*exec = (low & 0xff) | (high << 8);
+    *load = (high >> 24);
+    *exec = (low & 0xff) | (high << 8);
 }
 
 /**
@@ -157,25 +150,27 @@ hostfs_time_t_to_risc_os_time(time_t t, uint32_t *load, uint32_t *exec)
  * Code adapted from fs/adfs/inode.c from Linux licensed under GPL2.
  * Copyright (C) 1997-1999 Russell King
  */
-static time_t
-hostfs_adfs2host_time(uint32_t load, uint32_t exec)
+static time_t hostfs_adfs2host_time(uint32_t load, uint32_t exec)
 {
-	uint32_t high = load << 24;
-	uint32_t low  = exec;
+    uint32_t high = load << 24;
+    uint32_t low = exec;
 
-	high |= low >> 8;
-	low &= 0xff;
+    high |= low >> 8;
+    low &= 0xff;
 
-	if (high < 0x3363996a) {
-		/* Too early */
-		return 0;
-	} else if (high >= 0x656e9969) {
-		/* Too late */
-		return 0x7ffffffd;
-	}
+    if (high < 0x3363996a)
+    {
+        /* Too early */
+        return 0;
+    }
+    else if (high >= 0x656e9969)
+    {
+        /* Too late */
+        return 0x7ffffffd;
+    }
 
-	high -= 0x336e996a;
-	return (((high % 100) << 8) + low) / 100 + (high / 100 << 8);
+    high -= 0x336e996a;
+    return (((high % 100) << 8) + low) / 100 + (high / 100 << 8);
 }
 
 /**
@@ -188,17 +183,14 @@ hostfs_adfs2host_time(uint32_t load, uint32_t exec)
  * @param      s           Pointer to a 'struct stat'
  * @param[out] object_info Pointer to object info in which Load-Exec are filled in
  */
-static void
-hostfs_struct_stat_to_risc_os_time(const struct stat *s, risc_os_object_info 
-*object_info)
+static void hostfs_struct_stat_to_risc_os_time(const struct stat *s, risc_os_object_info *object_info)
 {
-	uint32_t load, exec;
+    uint32_t load, exec;
 
-	hostfs_time_t_to_risc_os_time(s->st_mtime, &load, &exec);
-	object_info->load = load;
-	object_info->exec = exec;
+    hostfs_time_t_to_risc_os_time(s->st_mtime, &load, &exec);
+    object_info->load = load;
+    object_info->exec = exec;
 }
-
 
 /**
  * Apply the timestamp to the supplied host object
@@ -207,14 +199,13 @@ hostfs_struct_stat_to_risc_os_time(const struct stat *s, risc_os_object_info
  * @param load      RISC OS load address (must contain time-stamp)
  * @param exec      RISC OS exec address (must contain time-stamp)
  */
-void
-hostfs_object_set_timestamp_platform(const char *host_path, uint32_t load, uint32_t exec)
+void hostfs_object_set_timestamp_platform(const char *host_path, uint32_t load, uint32_t exec)
 {
-	struct utimbuf t;
+    struct utimbuf t;
 
-	t.actime = t.modtime = hostfs_adfs2host_time(load, exec);
-	utime(host_path, &t);
-	// TODO handle error in utime()
+    t.actime = t.modtime = hostfs_adfs2host_time(load, exec);
+    utime(host_path, &t);
+    // TODO handle error in utime()
 }
 
 #endif
@@ -225,72 +216,78 @@ hostfs_object_set_timestamp_platform(const char *host_path, uint32_t load, uint3
  * @param host_pathname Full Host path to object
  * @param object_info   Return object info (filled-in)
  */
-void
-hostfs_read_object_info_platform(const char *host_pathname,
-                                 risc_os_object_info *object_info)
+void hostfs_read_object_info_platform(const char *host_pathname, risc_os_object_info *object_info)
 {
-	struct stat info;
+    struct stat info;
 
-	assert(host_pathname != NULL);
-	assert(object_info != NULL);
+    assert(host_pathname != NULL);
+    assert(object_info != NULL);
 
-	if (stat(host_pathname, &info)) {
-		/* Error reading info about the object */
+    if (stat(host_pathname, &info))
+    {
+        /* Error reading info about the object */
 
-		switch (errno) {
-		case ENOENT: /* Object not found */
-		case ENOTDIR: /* A path component is not a directory */
-			object_info->type = OBJECT_TYPE_NOT_FOUND;
-			break;
+        switch (errno)
+        {
+            case ENOENT:  /* Object not found */
+            case ENOTDIR: /* A path component is not a directory */
+                object_info->type = OBJECT_TYPE_NOT_FOUND;
+                break;
 
-		default:
-			/* Other error */
-			fprintf(stderr,
-			        "hostfs_read_object_info_platform() could not stat() 
-\'%s\': %s %d\n",
-			        host_pathname, strerror(errno), errno);
-			object_info->type = OBJECT_TYPE_NOT_FOUND;
-			break;
-		}
+            default:
+                /* Other error */
+                fprintf(stderr,
+                    "hostfs_read_object_info_platform() could not stat() 
+\'%s\': %s %d\n", host_pathname,
+                    strerror(errno),
+                    errno);
+                object_info->type = OBJECT_TYPE_NOT_FOUND;
+                break;
+        }
 
-		return;
-	}
+        return;
+    }
 
-	/* We were able to read about the object */
-	if (S_ISREG(info.st_mode)) {
-		object_info->type = OBJECT_TYPE_FILE;
-	} else if (S_ISDIR(info.st_mode)) {
-		object_info->type = OBJECT_TYPE_DIRECTORY;
-	} else {
-		/* Treat types other than file or directory as not found */
-		object_info->type = OBJECT_TYPE_NOT_FOUND;
-		return;
-	}
+    /* We were able to read about the object */
+    if (S_ISREG(info.st_mode))
+    {
+        object_info->type = OBJECT_TYPE_FILE;
+    }
+    else if (S_ISDIR(info.st_mode))
+    {
+        object_info->type = OBJECT_TYPE_DIRECTORY;
+    }
+    else
+    {
+        /* Treat types other than file or directory as not found */
+        object_info->type = OBJECT_TYPE_NOT_FOUND;
+        return;
+    }
 
-	if (hostfs_is_systemfile_platform(host_pathname))
-	{
-		// A system file.  Should it be shown?
-		if (!config.show_systemfiles)
-		{
-			object_info->type = OBJECT_TYPE_NOT_FOUND;
-			return;
-		}
-	}
-	else if (hostfs_is_dotfile_platform(host_pathname))
-	{
-		// A dot file.  Should it be shown?
-		if (!config.show_dotfiles)
-		{
-			object_info->type = OBJECT_TYPE_NOT_FOUND;
-			return;
-		}
-	}
+    if (hostfs_is_systemfile_platform(host_pathname))
+    {
+        // A system file.  Should it be shown?
+        if (!config.show_systemfiles)
+        {
+            object_info->type = OBJECT_TYPE_NOT_FOUND;
+            return;
+        }
+    }
+    else if (hostfs_is_dotfile_platform(host_pathname))
+    {
+        // A dot file.  Should it be shown?
+        if (!config.show_dotfiles)
+        {
+            object_info->type = OBJECT_TYPE_NOT_FOUND;
+            return;
+        }
+    }
 
-	/* If the file has filetype and timestamp, additional values will need to be 
+    /* If the file has filetype and timestamp, additional values will need to be
 filled in later */
-	hostfs_struct_stat_to_risc_os_time(&info, object_info);
+    hostfs_struct_stat_to_risc_os_time(&info, object_info);
 
-	object_info->length = info.st_size;
+    object_info->length = info.st_size;
 }
 
 /**
@@ -300,13 +297,15 @@ filled in later */
  *
  * @return            1 if the file is a dot file, otherwise 0.
  */
-int
-hostfs_is_dotfile_platform(const char *hostPath)
+int hostfs_is_dotfile_platform(const char *hostPath)
 {
-  const char *fileName = path_extract_filename(hostPath);
-  if (fileName[0] == '.') return 1;
-  
-  return 0;
+    const char *fileName = path_extract_filename(hostPath);
+    if (fileName[0] == '.')
+    {
+        return 1;
+    }
+
+    return 0;
 }
 
 /**
@@ -316,22 +315,20 @@ hostfs_is_dotfile_platform(const char *hostPath)
  *
  * @return            1 if the file is a system file, otherwise 0.
  */
-int
-hostfs_is_systemfile_platform(const char *hostPath)
+int hostfs_is_systemfile_platform(const char *hostPath)
 {
-	size_t i;
-	
-	const char *fullPaths[] = { "/bin", "/boot", "/dev", "/etc", "/lib", "/lib32", 
-"/lib64", "/libx32", "/lost+found", "/opt", "/proc", "/run", "/sbin", "/srv", 
-"/swapfile", "/sys", "/tmp", "/usr", "/var" };
-	
-	// Check full paths.
-	for (i = 0; i < sizeof(fullPaths) / sizeof(fullPaths[0]); i += 1)
-	{
-		if (!strcasecmp(hostPath, fullPaths[i])) return 1;
-	}
-	
-	return 0;
+    size_t i;
+
+    const char *fullPaths[] = { "/bin", "/boot", "/dev", "/etc", "/lib", "/lib32", "/lib64", "/libx32", "/lost+found", "/opt", "/proc", "/run", "/sbin", "/srv", "/swapfile", "/sys", "/tmp", "/usr", "/var" };
+
+    // Check full paths.
+    for (i = 0; i < sizeof(fullPaths) / sizeof(fullPaths[0]); i += 1)
+    {
+        if (!strcasecmp(hostPath, fullPaths[i]))
+        {
+            return 1;
+        }
+    }
+
+    return 0;
 }
-
-

@@ -22,7 +22,8 @@
 #define __CP15__
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif /* __cplusplus */
 
 extern void cp15_tlb_invalidate_physical(uint32_t addr);
