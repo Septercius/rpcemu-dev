@@ -18,8 +18,8 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __SOUND__
-#define __SOUND__
+#ifndef SOUND_H
+#define SOUND_H
 
 #ifdef __cplusplus
 extern "C"
@@ -50,4 +50,4 @@ extern void plt_sound_buffer_play(uint32_t samplerate, const char *buffer, uint3
 } /* extern "C" */
 #endif /* __cplusplus */
 
-#endif //__SOUND__
+#endif

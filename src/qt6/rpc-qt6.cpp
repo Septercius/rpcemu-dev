@@ -46,19 +46,19 @@
 #include "sound.h"
 #include "vidc20.h"
 
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
 #include "choose-dialog.h"
 #include "hid-macosx.h"
 #include "preferences-macosx.h"
 #include "keyboard-macosx.h"
-#endif /* Q_OS_MACOS */
+#endif /* RPCEMU_PLATFORM_MACOS */
 
 extern "C"
 {
 extern void podulerom_mouse_wheel_change(int dy);
 }
 
-#if defined(Q_OS_WIN32)
+#ifdef RPCEMU_PLATFORM_WIN32
 #include "cdrom-ioctl.h"
 
 extern "C"
@@ -66,14 +66,14 @@ extern "C"
 extern int handle_sigio; /**< bool to indicate new network data is received  (windows only) */
 extern void sig_io(int sig);
 } /* extern "C" */
-#endif /* win32 */
+#endif /* RPCEMU_PLATFORM_WIN32 */
 
-#if defined(Q_OS_LINUX)
+#ifdef RPCEMU_PLATFORM_LINUX
 extern "C"
 {
 extern void ioctl_init(void);
 } /* extern "C" */
-#endif /* linux */
+#endif /* RPCEMU_PLATFORM_LINUX */
 
 static MainWindow *pMainWin = NULL; ///< Reference to main GUI window
 static QThread *gui_thread = NULL;  ///< copy of reference to GUI thread
@@ -448,7 +448,7 @@ extern "C"
 
 } // extern "C"
 
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
 
 int rpcemu_choose_datadirectory()
 {
@@ -463,7 +463,7 @@ int rpcemu_choose_datadirectory()
     return 0;
 }
 
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
 
 /**
  * Program entry point
@@ -484,7 +484,7 @@ int main(int argc, char **argv)
     // Add a program icon
     QApplication::setWindowIcon(QIcon(":/rpcemu-icon.png"));
 
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
     init_preferences();
 
     // If there is not a data directory in the application preferences, prompt for one.
@@ -496,7 +496,7 @@ int main(int argc, char **argv)
             return 0;
         }
     }
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
 
     // start enough of the emulator system to allow
     // the GUI to initialise (e.g. load the config to init
@@ -521,10 +521,10 @@ int main(int argc, char **argv)
     QThread::connect(emulator, &Emulator::finished, emulator, &Emulator::deleteLater);
     QThread::connect(emu_thread, &QThread::finished, emu_thread, &QThread::deleteLater);
 
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
     // Initialise the HID manager for CAPS LOCK key events.
     init_hid_manager();
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
 
     // Create Main Window
     MainWindow main_window(*emulator);
@@ -562,13 +562,13 @@ Emulator::Emulator()
 
     connect(this, &Emulator::key_release_signal, this, &Emulator::key_release);
 
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
     // Modifier keys on a Mac must be handled separately, as there is no way of telling
     // left or right from the key press and key release events due to a lack of scan codes.
 
     connect(this, &Emulator::modifier_keys_changed_signal, this, &Emulator::modifier_keys_changed);
     connect(this, &Emulator::modifier_keys_reset_signal, this, &Emulator::modifier_keys_reset);
-#endif /* Q_OS_MACOS */
+#endif /* RPCEMU_PLATFORM_MACOS */
 
     connect(this, &Emulator::mouse_move_signal, this, &Emulator::mouse_move);
     connect(this, &Emulator::mouse_move_relative_signal, this, &Emulator::mouse_move_relative);
@@ -585,12 +585,12 @@ Emulator::Emulator()
     connect(this, &Emulator::cdrom_disabled_signal, this, &Emulator::cdrom_disabled);
     connect(this, &Emulator::cdrom_empty_signal, this, &Emulator::cdrom_empty);
     connect(this, &Emulator::cdrom_load_iso_signal, this, &Emulator::cdrom_load_iso);
-#if defined(Q_OS_LINUX)
+#ifdef RPCEMU_PLATFORM_LINUX
     connect(this, &Emulator::cdrom_ioctl_signal, this, &Emulator::cdrom_ioctl);
-#endif // linux
-#if defined(Q_OS_WIN32)
+#endif /* RPCEMU_PLATFORM_LINUX */
+#ifdef RPCEMU_PLATFORM_WIN32
     connect(this, &Emulator::cdrom_win_ioctl_signal, this, &Emulator::cdrom_win_ioctl);
-#endif // win32
+#endif /* RPCEMU_PLATFORM_WIN32 */
     connect(this, &Emulator::mouse_hack_signal, this, &Emulator::mouse_hack);
     connect(this, &Emulator::mouse_twobutton_signal, this, &Emulator::mouse_twobutton);
     connect(this, &Emulator::config_updated_signal, this, &Emulator::config_updated);
@@ -635,13 +635,13 @@ void Emulator::mainemuloop()
         execrpcemu();
 
         // Handle windows networking receiving data
-#if defined(Q_OS_WIN32)
+#ifdef RPCEMU_PLATFORM_WIN32
         if (handle_sigio)
         {
             handle_sigio = 0;
             sig_io(1);
         }
-#endif // defined(Q_OS_WIN32);
+#endif /* RPCEMU_PLATFORM_WIN32 */
 
         const qint64 elapsed = elapsed_timer.nsecsElapsed();
 
@@ -765,7 +765,7 @@ void Emulator::key_release(unsigned scan_code)
     keyboard_key_release(scan_codes);
 }
 
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
 
 /**
  * Modifier keys changed
@@ -784,7 +784,7 @@ void Emulator::modifier_keys_reset()
     keyboard_reset_modifiers(true);
 }
 
-#endif /* Q_OS_MACOS */
+#endif /* RPCEMU_PLATFORM_MACOS */
 
 /**
  * Mouse has moved in absolute position (mousehack mode)
@@ -980,7 +980,7 @@ void Emulator::cdrom_load_iso(QString discname)
     iso_open(config.isoname);
 }
 
-#if defined(Q_OS_LINUX)
+#ifdef RPCEMU_PLATFORM_LINUX
 /**
  * GUI wants to use Linux real cdrom drive
  */
@@ -999,9 +999,9 @@ void Emulator::cdrom_ioctl()
     atapi->exit();
     ioctl_init();
 }
-#endif // linux
+#endif /* RPCEMU_PLATFORM_LINUX */
 
-#if defined(Q_OS_WIN32)
+#ifdef RPCEMU_PLATFORM_WIN32
 /**
  * GUI wants to use Windows real cdrom drive
  *
@@ -1022,7 +1022,7 @@ void Emulator::cdrom_win_ioctl(char drive_letter)
     atapi->exit();
     ioctl_open(drive_letter);
 }
-#endif // win32
+#endif /* RPCEMU_PLATFORM_WIN32 */
 
 /**
  * GUI is toggling mousehack (follows host mouse)

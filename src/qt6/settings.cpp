@@ -69,11 +69,11 @@ static void config_hostfs_load(QSettings &settings, Config *config)
         }
 
         // Read the mapped folder.
-#if defined(Q_OS_WIN32)
+#ifdef RPCEMU_PLATFORM_WIN32
         sText = settings.value("path", (i == 0 ? ".\\hostfs" : "")).toString();
 #else
         sText = settings.value("path", (i == 0 ? "./hostfs" : "")).toString();
-#endif
+#endif /* RPCEMU_PLATFORM_WIN32 */
         ba = sText.toUtf8();
 
         if (strlen(ba.data()) == 0)

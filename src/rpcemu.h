@@ -20,8 +20,8 @@
 
 /* Main header file */
 
-#ifndef _rpc_h
-#define _rpc_h
+#ifndef RPCEMU_H
+#define RPCEMU_H
 
 #include <stdint.h>
 #include <stdio.h>
@@ -60,8 +60,7 @@ extern "C"
 #define __attribute__(x) /*NOTHING*/
 #endif
 
-#if defined WIN32 || defined _WIN32
-#define RPCEMU_WIN
+#if RPCEMU_PLATFORM_WIN32
 #ifdef _MSC_VER // Microsoft Visual Studio
 #define fseeko64(_a, _b, _c) fseek(_a, (long) _b, _c)
 __declspec(dllimport) void __stdcall Sleep(unsigned long dwMilliseconds);
@@ -69,7 +68,7 @@ __declspec(dllimport) void __stdcall Sleep(unsigned long dwMilliseconds);
 #define sleep(x) Sleep(x)
 #endif
 
-#if defined __MACH__ || defined __OpenBSD__ || defined __FreeBSD__
+#if defined(RPCEMU_PLATFORM_MACOS) || defined(RPCEMU_PLATFORM_BSD)
 #define fseeko64(_a, _b, _c) fseeko(_a, _b, _c)
 #define ftello64(stream) ftello(stream)
 #define fopen64(_a, _b) fopen(_a, _b)
@@ -215,9 +214,9 @@ extern void rpcemu_nat_forward_remove(PortForwardRule rule);
 
 extern uint32_t inscount;
 
-#ifdef __APPLE__
-    extern int rpcemu_set_datadir(const char *path);
-#endif
+#ifdef RPCEMU_PLATFORM_MACOS
+extern int rpcemu_set_datadir(const char *path);
+#endif /* RPCEMU_PLATFORM_MACOS */
 
 /* These functions can optionally be overridden by a platform. If not
    needed to be overridden, there is a generic version in rpc-machdep.c */
@@ -330,4 +329,4 @@ extern void config_save(Config *config);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-#endif /* _rpc_h */
+#endif

@@ -18,8 +18,8 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __IOMD__
-#define __IOMD__
+#ifndef IOMD_H
+#define IOMD_H
 
 #ifdef __cplusplus
 extern "C"
@@ -154,4 +154,4 @@ extern "C"
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-#endif //__IOMD__
+#endif

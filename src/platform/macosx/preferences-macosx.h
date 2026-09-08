@@ -18,8 +18,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 // */
 
-#ifndef __PREFERENCES_MACOSX_H__
-#define __PREFERENCES_MACOSX_H__
+#ifndef PREFERENCES_MACOSX_H
+#define PREFERENCES_MACOSX_H
 
 #ifdef __cplusplus
 extern "C"
@@ -36,4 +36,4 @@ extern bool promptForDataDirectory;
 }
 #endif
 
-#endif // __PREFERENCES_MACOSX_H__
+#endif

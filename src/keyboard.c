@@ -44,9 +44,9 @@
 #include "rpcemu.h"
 #include "vidc20.h"
 
-#ifdef __APPLE__
+#ifdef RPCEMU_PLATFORM_MACOS
 #include "keyboard-macosx.h"
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
 
 /* Keyboard Commands */
 #define KBD_CMD_ENABLE 0xf4
@@ -102,11 +102,6 @@ static struct
     PS2Queue queue;
 
     int keys2[128];
-
-#ifdef RPCEMU_MACOSX
-    /* Non-zero if the last F12 keydown event was translated into Break because Cmd was pressed */
-    int f12transtobreak;
-#endif
 } kbd;
 
 static struct
@@ -272,9 +267,9 @@ void keyboard_reset(void)
     mouse_hack.pointer = 0;
     mouse_hack.cursor_linked = 1;
 
-#ifdef __APPLE__
+#ifdef RPCEMU_PLATFORM_MACOS
     keyboard_reset_modifiers(0);
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
 }
 
 static uint8_t ps2_read_data(PS2Queue *q)
@@ -793,7 +788,7 @@ static void mouse_process(void)
     {
         uint8_t tmp;
 
-#ifndef __APPLE__
+#ifndef RPCEMU_PLATFORM_MACOS
         if (config.mousetwobutton)
         {
             /* To help people with only two buttons on their mouse,
@@ -804,7 +799,7 @@ static void mouse_process(void)
 
             mouseb = mousel | (mousem << 1) | (mouser << 2);
         }
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
 
         tmp = (mouseb & 7) | 8;
 
@@ -1286,7 +1281,7 @@ void mouse_hack_osmouse(void)
         buttons |= 4; /* Left button */
     }
 
-#ifdef __APPLE__
+#ifdef RPCEMU_PLATFORM_MACOS
     if (mouse.buttons & 2)
     {
         buttons |= 1; /* Right button */
@@ -1320,7 +1315,7 @@ void mouse_hack_osmouse(void)
             buttons |= 2; /* Middle button */
         }
     }
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
 
     arm.reg[2] = buttons;
 

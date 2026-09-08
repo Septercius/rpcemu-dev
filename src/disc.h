@@ -1,3 +1,6 @@
+#ifndef DISC_H
+#define DISC_H
+
 typedef struct
 {
     void (*seek)(int drive, int track);
@@ -21,3 +24,5 @@ extern void disc_writesector(int drive, int sector, int track, int side, int den
 extern void disc_readaddress(int drive, int track, int side, int density);
 extern void disc_format(int drive, int track, int side, int density);
 extern void disc_stop(int drive);
+
+#endif

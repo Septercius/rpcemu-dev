@@ -18,8 +18,8 @@
  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __KEYBOARD_MACOSX_H__
-#define __KEYBOARD_MACOSX_H__
+#ifndef KEYBOARD_MACOSX_H
+#define KEYBOARD_MACOSX_H
 
 #include <stdint.h>
 

@@ -86,7 +86,7 @@ char *path_resolve(const char *path)
 
     if (dir.isRelative())
     {
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
         // Paths on the Mac are relative to the data directory.
         QString root(rpcemu_get_datadir());
         QDir fullPath = QDir::cleanPath(root + QDir::separator() + dir.path());
@@ -96,7 +96,7 @@ char *path_resolve(const char *path)
         // Paths on other platforms are relative to wherever the application is running.
         dir.makeAbsolute();
         absolutePath = dir.path();
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
     }
     else
     {

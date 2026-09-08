@@ -18,8 +18,8 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __IDE__
-#define __IDE__
+#ifndef IDE_H
+#define IDE_H
 
 extern void writeide(uint16_t addr, uint8_t val);
 extern void writeidew(uint16_t val);
@@ -50,4 +50,4 @@ extern int idecallback;
 
 void atapi_discchanged(void);
 
-#endif //__IDE__
+#endif

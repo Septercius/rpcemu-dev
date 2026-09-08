@@ -16,19 +16,13 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror=switch -fno-common")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=switch -fno-common")
 set(CMAKE_PREFIX_PATH ${QTDIR} REQUIRED)
 
+# Detect whether 32-bit or 64-bit.
+rpcemu_detect_platform_bits()
+
 list(APPEND CMAKE_MODULE_PATH ${QT_CMAKE_MODULES})
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Multimedia Widgets)
 
 qt_standard_project_setup()
-
-# Detect 32-bit or 64-bit.
-if (CMAKE_SIZEOF_VOID_P EQUAL 4)
-	set(PLATFORM_BITS 32)
-	message(STATUS "Detected 32-bit operating system")
-else()
-	set(PLATFORM_BITS 64)
-	message(STATUS "Detected 64-bit operating system")
-endif()
 
 # Set headers common to all builds.
 set(COMMON_HEADERS
@@ -52,6 +46,11 @@ set(COMMON_HEADERS
 	sound.h
 	superio.h
 	vidc20.h
+	qt6/about-dialog.h
+	qt6/configure-dialog.h
+	qt6/main-window.h
+	qt6/plt-sound.h
+	qt6/rpc-qt6.h
 )
 
 # Set source files common to all builds.
@@ -200,6 +199,7 @@ set(MACOS_HEADERS
 	platform/macosx/hid-macosx.h
 	platform/macosx/keyboard-macosx.h
 	platform/macosx/preferences-macosx.h
+	qt6/choose-dialog.h
 )
 
 # Set macOS-specific source files.
@@ -385,6 +385,9 @@ if (APPLE)
 	# Set the platform define.
 	add_compile_definitions(RPCEMU_PLATFORM_MACOS)
 	
+	# Set the bits define.
+	rpcemu_add_platform_bits()
+	
 	# Set platform-specific sources.
 	list(APPEND PLATFORM_HEADERS ${MACOS_HEADERS})
 	list(APPEND PLATFORM_SOURCES ${MACOS_SOURCES})
@@ -438,6 +441,9 @@ elseif (LINUX)
 	# Set the platform define.
 	add_compile_definitions(RPCEMU_PLATFORM_LINUX)
 	
+	# Set the bits define.
+	rpcemu_add_platform_bits()
+	
 	# Add platform-specific sources.
 	list(APPEND PLATFORM_SOURCES ${LINUX_SOURCES})
 	
@@ -484,6 +490,9 @@ elseif (WIN32)
 	
 	# Set the platform define.
 	add_compile_definitions(RPCEMU_PLATFORM_WIN32)
+	
+	# Set the bits define.
+	rpcemu_add_platform_bits()
 	
 	# Set the application icon.
 	set(APP_ICON_RESOURCE_WINDOWS "win/rpcemu.rc")

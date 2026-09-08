@@ -18,8 +18,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 // */
 
-#ifndef __HID_MACOSX_H__
-#define __HID_MACOSX_H__
+#ifndef HID_MACOSX_H
+#define HID_MACOSX_H
 
 #ifdef __cplusplus
 extern "C"
@@ -32,4 +32,4 @@ extern void init_hid_manager(void);
 }
 #endif
 
-#endif // __HID_MACOSX_H__
+#endif

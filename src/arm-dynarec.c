@@ -30,10 +30,10 @@ int blockend;
 #include <string.h>
 #include <time.h>
 
-#if defined __linux__ || defined __MACH__
+#if defined(RPCEMU_PLATFORM_LINUX) || defined(RPCEMU_PLATFORM_MACOS)
 #include <sys/mman.h>
 #include <unistd.h>
-#elif defined WIN32 || defined _WIN32
+#elif defined(RPCEMU_PLATFORM_WIN32)
 #include <Windows.h>
 #endif
 
@@ -42,9 +42,9 @@ int blockend;
 #include "mem.h"
 #include "rpcemu.h"
 
-#if defined __amd64__
+#if defined(RPCEMU_PLATFORM_BITS_64)
 #include "codegen-amd64.h"
-#elif defined i386 || defined __i386 || defined __i386__ || defined _X86_
+#elif defined(RPCEMU_PLATFORM_BITS_32)
 #include "codegen-x86.h"
 #else
 #error "Fatal error : no recompiler available for this architecture"
@@ -727,9 +727,9 @@ static void arm_unpredictable(uint32_t opcode)
     }
 }
 
-#if defined __linux__ || defined __MACH__
+#if defined(RPCEMU_PLATFORM_LINUX)
 /**
- * Grant executable privilege to a region of memory (Unix)
+ * Grant executable privilege to a region of memory (Linux)
  *
  * @param ptr Pointer to region of memory
  * @param len Length of region of memory
@@ -739,19 +739,39 @@ void set_memory_executable(void *ptr, size_t len)
     const long page_size = sysconf(_SC_PAGESIZE);
     const long page_mask = ~(page_size - 1);
 
-#ifdef __APPLE__
-    void *start, *addr;
-    int mmap_flags = 0;
-#else
     void *start;
-#endif
     long end;
 
     start = (void *) ((long) ptr & page_mask);
     end = ((long) ptr + len + page_size - 1) & page_mask;
     len = (size_t) (end - (long) start);
 
-#if __APPLE__
+    if (mprotect(start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0)
+    {
+        perror("mprotect");
+        exit(1);
+    }
+}
+#elif defined(RPCEMU_PLATFORM_MACOS)
+/**
+ * Grant executable privilege to a region of memory (macOS)
+ *
+ * @param ptr Pointer to region of memory
+ * @param len Length of region of memory
+ */
+void set_memory_executable(void *ptr, size_t len)
+{
+    const long page_size = sysconf(_SC_PAGESIZE);
+    const long page_mask = ~(page_size - 1);
+
+    void *start, *addr;
+    int mmap_flags = 0;
+    long end;
+
+    start = (void *) ((long) ptr & page_mask);
+    end = ((long) ptr + len + page_size - 1) & page_mask;
+    len = (size_t) (end - (long) start);
+
     // More recent versions of OS X require "mmap" to be called prior to "mprotect".
     // Certain versions also require the MAP_JIT flag as well.
     // Try without first, and if that fails, add the flag in.
@@ -775,16 +795,13 @@ void set_memory_executable(void *ptr, size_t len)
         exit(1);
     }
 
-#endif
-
     if (mprotect(start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0)
     {
         perror("mprotect");
         exit(1);
     }
 }
-
-#elif defined WIN32 || defined _WIN32
+#elif defined(RPCEMU_PLATFORM_WIN32)
 /**
  * Grant executable privilege to a region of memory (Windows)
  *
@@ -801,7 +818,6 @@ void set_memory_executable(void *ptr, size_t len)
         exit(1);
     }
 }
-
 #else
 /**
  * Stub implementation for when another implementation does not apply.

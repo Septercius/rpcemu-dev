@@ -52,7 +52,7 @@
 /* Windows mkdir() function only takes one argument name, and
    name clashes with Posix mkdir() function taking two. This
    macro allows us to use one API to work with both variants */
-#if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__
+#if defined(RPCEMU_PLATFORM_WIN32) && !defined(__CYGWIN__)
 #include <direct.h>
 
 #define mkdir(name, mode) _mkdir(name)

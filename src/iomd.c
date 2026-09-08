@@ -912,7 +912,7 @@ uint32_t iomd_mouse_buttons_read(void)
     /* Middle */
     if (mouse_buttons & 4)
     {
-#ifdef __APPLE__
+#ifdef RPCEMU_PLATFORM_MACOS
         temp |= 0x20; // bit 5
 #else
         if (config.mousetwobutton)
@@ -923,12 +923,12 @@ uint32_t iomd_mouse_buttons_read(void)
         {
             temp |= 0x20; // bit 5
         }
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
     }
     /* Right */
     if (mouse_buttons & 2)
     {
-#ifdef __APPLE__
+#ifdef RPCEMU_PLATFORM_MACOS
         temp |= 0x10; // bit 4
 #else
         if (config.mousetwobutton)
@@ -939,7 +939,7 @@ uint32_t iomd_mouse_buttons_read(void)
         {
             temp |= 0x10; // bit 4
         }
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
     }
 
     /* bit 0 contains the monitor id bit, 0 for VGA, 1 for TV type monitors.

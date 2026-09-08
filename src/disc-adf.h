@@ -1,3 +1,8 @@
+#ifndef DISC_ADF_H
+#define DISC_ADF_H
+
 extern void adf_init(void);
 
 extern void adf_load(int drive, const char *fn, int sectors, int size, int dblside, int dblstep, int density, int skew);
+
+#endif

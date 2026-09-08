@@ -18,8 +18,8 @@
  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __EVENTS_MACOSX_H__
-#define __EVENTS_MACOSX_H__
+#ifndef EVENTS_MACOSX_H
+#define EVENTS_MACOSX_H
 
 #ifdef __cplusplus
 extern "C"
@@ -44,4 +44,4 @@ extern NativeEvent *handle_native_event(void *message);
 }
 #endif
 
-#endif // __EVENTS_MACOSX_H__
+#endif

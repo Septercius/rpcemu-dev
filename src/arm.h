@@ -18,8 +18,8 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __ARM__
-#define __ARM__
+#ifndef ARM_H
+#define ARM_H
 
 #include "rpcemu.h"
 

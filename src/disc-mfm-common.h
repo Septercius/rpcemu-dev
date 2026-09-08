@@ -1,3 +1,6 @@
+#ifndef DISC_MFM_COMMON_H
+#define DISC_MFM_COMMON_H
+
 typedef struct mfm_t
 {
     uint8_t track_data[2][65536]; /*[side][byte]*/
@@ -32,3 +35,6 @@ extern void mfm_writesector(mfm_t *mfm, int drive, int sector, int track, int si
 extern void mfm_readaddress(mfm_t *mfm, int drive, int track, int side, int density);
 extern void mfm_format(mfm_t *mfm, int drive, int track, int side, int density);
 extern void mfm_stop(mfm_t *mfm);
+
+#endif
+

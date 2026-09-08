@@ -1,21 +1,14 @@
 # Platform-specific function and macro definitions for cmake.
 
 
-# Link a target against a macOS framework
-macro(rpcemu_target_link_macos_framework TARGET NAME)
-    find_library(FRAMEWORK_${NAME}
-        NAMES ${NAME}
-        PATHS ${CMAKE_OSX_SYSROOT}/System/Library
-        PATH_SUFFIXES Frameworks PrivateFrameworks
-        CMAKE_FIND_FRAMEWORK only
-        NO_DEFAULT_PATH)
-    if( ${FRAMEWORK_${NAME}} STREQUAL FRAMEWORK_${NAME}-NOTFOUND)
-        message(ERROR ": framework ${NAME} not found")
-    else()
-        target_link_libraries(${TARGET} PUBLIC "${FRAMEWORK_${NAME}}")
-        message(STATUS "Framework ${NAME} found at ${FRAMEWORK_${NAME}}")
-    endif()
-endmacro(rpcemu_target_link_macos_framework)
+# Add a define specifying the number of bits
+macro(rpcemu_add_platform_bits)
+	if (PLATFORM_BITS EQUAL 32)
+		add_compile_definitions(RPCEMU_PLATFORM_BITS_32)
+	elseif (PLATFORM_BITS EQUAL 64)
+		add_compile_definitions(RPCEMU_PLATFORM_BITS_64)
+	endif()
+endmacro(rpcemu_add_platform_bits)
 
 # Configure a target for Linux.
 macro(rpcemu_configure_linux_target NAME APPNAME)
@@ -113,3 +106,31 @@ macro(rpcemu_configure_win_target TARGET APPNAME)
 		)
 	endif()
 endmacro(rpcemu_configure_win_target)
+
+# Detect platform 32-bit or 64-bit
+macro(rpcemu_detect_platform_bits)
+	# Detect 32-bit or 64-bit.
+	if (CMAKE_SIZEOF_VOID_P EQUAL 4)
+		set(PLATFORM_BITS 32)
+		message(STATUS "Detected 32-bit operating system")
+	else()
+		set(PLATFORM_BITS 64)
+		message(STATUS "Detected 64-bit operating system")
+	endif()
+endmacro(rpcemu_detect_platform_bits)
+
+# Link a target against a macOS framework
+macro(rpcemu_target_link_macos_framework TARGET NAME)
+	find_library(FRAMEWORK_${NAME}
+		NAMES ${NAME}
+		PATHS ${CMAKE_OSX_SYSROOT}/System/Library
+		PATH_SUFFIXES Frameworks PrivateFrameworks
+		CMAKE_FIND_FRAMEWORK only
+		NO_DEFAULT_PATH)
+	if (${FRAMEWORK_${NAME}} STREQUAL FRAMEWORK_${NAME}-NOTFOUND)
+		message(ERROR ": framework ${NAME} not found")
+	else()
+		target_link_libraries(${TARGET} PUBLIC "${FRAMEWORK_${NAME}}")
+		message(STATUS "Framework ${NAME} found at ${FRAMEWORK_${NAME}}")
+	endif()
+endmacro(rpcemu_target_link_macos_framework)

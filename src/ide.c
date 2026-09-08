@@ -731,7 +731,6 @@ void callbackide(void)
         ide.head = 0;
         ide.cylinder = 0;
         ide.reset = 0;
-        //                rpclog("Reset callback\n");
         return;
     }
     switch (ide.command)

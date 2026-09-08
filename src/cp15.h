@@ -18,8 +18,8 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __CP15__
-#define __CP15__
+#ifndef CP15_H
+#define CP15_H
 
 #ifdef __cplusplus
 extern "C"
@@ -45,4 +45,4 @@ extern int dcache;
 } /* extern "C" */
 #endif /* __cplusplus */
 
-#endif //__CP15__
+#endif

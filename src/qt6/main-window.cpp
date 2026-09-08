@@ -29,14 +29,14 @@
 #include <QPainter>
 #include <QPushButton>
 
-#if defined(Q_OS_WIN32)
+#ifdef RPCEMU_PLATFORM_WIN32
 #include "Windows.h"
-#endif /* Q_OS_WIN32 */
+#endif /* RPCEMU_PLATFORM_WIN32 */
 
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
 #include "events-macosx.h"
 #include "keyboard-macosx.h"
-#endif /* Q_OS_MACOS */
+#endif /* RPCEMU_PLATFORM_MACOS */
 
 #include "keyboard.h"
 #include "main-window.h"
@@ -533,9 +533,9 @@ void MainWindow::release_held_keys()
     // Clear the list of keys considered to be held in the host
     held_keys.clear();
 
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
     emit this->emulator.modifier_keys_reset_signal();
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
 }
 
 /**
@@ -614,11 +614,11 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     // Regular case pass key press onto the emulator
     if (!event->isAutoRepeat())
     {
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
         native_keypress_event(event->nativeVirtualKey(), event->nativeModifiers());
 #else
         native_keypress_event(event->nativeScanCode(), event->nativeModifiers());
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS*/
     }
 }
 
@@ -643,11 +643,11 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
     }
 
     // Regular case pass key release onto the emulator
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
     native_keyrelease_event(event->nativeVirtualKey(), event->nativeModifiers());
 #else
     native_keyrelease_event(event->nativeScanCode(), event->nativeModifiers());
-#endif /* Q_OS_MACOS */
+#endif /* RPCEMU_PLATFORM_MACOS */
 }
 
 /**
@@ -663,7 +663,7 @@ void MainWindow::native_keypress_event(unsigned scan_code, unsigned modifiers)
         return;
     }
 
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
     if (!(scan_code == 0 && modifiers == 0))
     {
         // Check the key isn't already marked as held down (else ignore)
@@ -692,7 +692,7 @@ void MainWindow::native_keypress_event(unsigned scan_code, unsigned modifiers)
 
         emit this->emulator.key_press_signal(scan_code);
     }
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
 }
 
 /**
@@ -708,7 +708,7 @@ void MainWindow::native_keyrelease_event(unsigned scan_code, unsigned modifiers)
         return;
     }
 
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
     if (!(scan_code == 0 && modifiers == 0))
     {
         // Check the key is marked as held down (else ignore)
@@ -737,7 +737,7 @@ void MainWindow::native_keyrelease_event(unsigned scan_code, unsigned modifiers)
 
         emit this->emulator.key_release_signal(scan_code);
     }
-#endif
+#endif /* RPCEMU_PLATFORM_MACOS */
 }
 
 void MainWindow::menu_screenshot()
@@ -1180,7 +1180,7 @@ void MainWindow::menu_cdrom_iso()
 
 void MainWindow::menu_cdrom_ioctl()
 {
-#if defined(Q_OS_LINUX)
+#ifdef RPCEMU_PLATFORM_LINUX
     if (!config_copy.cdromenabled)
     {
         int ret = MainWindow::reset_question(this);
@@ -1205,12 +1205,12 @@ void MainWindow::menu_cdrom_ioctl()
     config_copy.cdromenabled = 1;
 
     cdrom_menu_selection_update(cdrom_ioctl_action);
-#endif /* linux */
+#endif /* RPCEMU_PLATFORM_LINUX */
 }
 
 void MainWindow::menu_cdrom_win_ioctl()
 {
-#if defined(Q_OS_WIN32)
+#ifdef RPCEMU_PLATFORM_WIN32
     QAction *action = qobject_cast<QAction *>(QObject::sender());
     if (!action)
     {
@@ -1242,8 +1242,9 @@ void MainWindow::menu_cdrom_win_ioctl()
     config_copy.cdromenabled = 1;
 
     cdrom_menu_selection_update(action);
-#endif /* win32 */
+#endif /* RPCEMU_PLATFORM_WIN32 */
 }
+
 void MainWindow::menu_mouse_hack()
 {
     emit this->emulator.mouse_hack_signal();
@@ -1339,12 +1340,13 @@ void MainWindow::create_actions()
     cdrom_iso_action->setCheckable(true);
     connect(cdrom_iso_action, &QAction::triggered, this, &MainWindow::menu_cdrom_iso);
 
-#if defined(Q_OS_LINUX)
+#ifdef RPCEMU_PLATFORM_LINUX
     cdrom_ioctl_action = new QAction(tr("Host CD/DVD Drive"), this);
     cdrom_ioctl_action->setCheckable(true);
     connect(cdrom_ioctl_action, &QAction::triggered, this, &MainWindow::menu_cdrom_ioctl);
-#endif /* linux */
-#if defined(Q_OS_WIN32)
+#endif /* RPCEMU_PLATFORM_LINUX */
+    
+#ifdef RPCEMU_PLATFORM_WIN32
     // Dynamically add windows cdrom drives to the settings->cdrom menu
     char s[32];
     // Loop through each Windows drive letter and test to see if it's a CDROM
@@ -1362,7 +1364,7 @@ void MainWindow::create_actions()
             cdrom_win_ioctl_actions.insert(cdrom_win_ioctl_actions.end(), new_action);
         }
     }
-#endif
+#endif /* RPCEMU_PLATFORM_WIN32 */
 
     // Actions on Settings menu
     configure_action = new QAction(tr("Configure..."), this);
@@ -1446,16 +1448,16 @@ void MainWindow::create_menus()
     cdrom_menu->addAction(cdrom_empty_action);
     cdrom_menu->addAction(cdrom_iso_action);
 
-#if defined(Q_OS_LINUX)
+#ifdef RPCEMU_PLATFORM_LINUX
     cdrom_menu->addAction(cdrom_ioctl_action);
-#endif /* linux */
+#endif /* RPCEMU_PLATFORM_LINUX */
 
-#if defined(Q_OS_WIN32)
+#ifdef RPCEMU_PLATFORM_WIN32
     for (unsigned i = 0; i < cdrom_win_ioctl_actions.size(); i++)
     {
         cdrom_menu->addAction(cdrom_win_ioctl_actions[i]);
     }
-#endif
+#endif /* RPCEMU_PLATFORM_WIN32 */
 
     // Settings menu
     settings_menu = menuBar()->addMenu(tr("Settings"));
@@ -1652,7 +1654,7 @@ void MainWindow::mips_timer_timeout()
     {
         if (mouse_captured)
         {
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
             capture_text = " Press CTRL-COMMAND to release mouse";
 #else
             capture_text = " Press CTRL-END to release mouse";
@@ -1721,15 +1723,17 @@ void MainWindow::cdrom_menu_selection_update(const QAction *cdrom_action)
     cdrom_disabled_action->setChecked(false);
     cdrom_empty_action->setChecked(false);
     cdrom_iso_action->setChecked(false);
-#if defined(Q_OS_LINUX)
+
+#ifdef RPCEMU_PLATFORM_LINUX
     cdrom_ioctl_action->setChecked(false);
-#endif
-#if defined(Q_OS_WIN32)
+#endif /* RPCEMU_PLATFORM_LINUX */
+    
+#ifdef RPCEMU_PLATFORM_WIN32
     for (unsigned i = 0; i < cdrom_win_ioctl_actions.size(); i++)
     {
         cdrom_win_ioctl_actions[i]->setChecked(false);
     }
-#endif
+#endif /* RPCEMU_PLATFORM_WIN32 */
 
     // Turn correct one on
     if (cdrom_action == cdrom_disabled_action)
@@ -1743,14 +1747,14 @@ void MainWindow::cdrom_menu_selection_update(const QAction *cdrom_action)
     else if (cdrom_action == cdrom_iso_action)
     {
         cdrom_iso_action->setChecked(true);
-#if defined(Q_OS_LINUX)
     }
+#ifdef RPCEMU_PLATFORM_LINUX
     else if (cdrom_action == cdrom_ioctl_action)
     {
         cdrom_ioctl_action->setChecked(true);
-#endif
-#if defined(Q_OS_WIN32)
     }
+#endif /* RPCEMU_PLATFORM_LINUX */
+#ifdef RPCEMU_PLATFORM_WIN32
     else
     {
         for (unsigned i = 0; i < cdrom_win_ioctl_actions.size(); i++)
@@ -1760,8 +1764,8 @@ void MainWindow::cdrom_menu_selection_update(const QAction *cdrom_action)
                 cdrom_win_ioctl_actions[i]->setChecked(true);
             }
         }
-#endif
     }
+#endif /* RPCEMU_PLATFORM_WIN32 */
 }
 
 void MainWindow::processMagicKeys()
@@ -1814,7 +1818,7 @@ void MainWindow::processMagicKeys()
     }
 }
 
-#if defined(Q_OS_WIN32)
+#ifdef RPCEMU_PLATFORM_WIN32
 /**
  * windows pre event handler used by us to modify some default behaviour
  *
@@ -1879,9 +1883,9 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     // Anything else should be handled by the regular qt and windows handlers
     return false;
 }
-#endif // Q_OS_WIN32
+#endif // RPCEMU_PLATFORM_WIN32
 
-#if defined(Q_OS_MACOS)
+#ifdef RPCEMU_PLATFORM_MACOS
 /**
  * On OS X, handle additional events for modifier keys.  The normal key press/release
  * events do not differentiate between left and right.
@@ -1925,4 +1929,4 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     return true;
 }
 
-#endif /* Q_OS_MACOS */
+#endif /* RPCEMU_PLATFORM_MACOS */

@@ -27,10 +27,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#if defined WIN32 || defined _WIN32
+#ifdef RPCEMU_PLATFORM_WIN32
 #undef UNICODE
 #include <windows.h>
-#endif
+#endif /* RPCEMU_PLATFORM_WIN32 */
 
 #include "arm.h"
 #include "cdrom-iso.h"
@@ -466,7 +466,7 @@ void rpcemu_idle(void)
         /* Sleep if no interrupts pending */
         if (!arm.event)
         {
-#ifdef RPCEMU_WIN
+#ifdef RPCEMU_PLATFORM_WINDOWS
             Sleep(1);
 #else
             struct timespec tm;

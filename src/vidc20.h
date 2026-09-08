@@ -18,8 +18,8 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __VIDC20__
-#define __VIDC20__
+#ifndef VIDC20_H
+#define VIDC20_H
 
 #ifdef __cplusplus
 extern "C"
@@ -56,4 +56,4 @@ extern uint8_t *dirtybuffer;
 } /* extern "C" */
 #endif /* __cplusplus */
 
-#endif //__VIDC20__
+#endif

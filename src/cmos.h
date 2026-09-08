@@ -18,8 +18,8 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef __CMOS__
-#define __CMOS__
+#ifndef CMOS_H
+#define CMOS_H
 
 extern void cmos_init(void);
 extern void cmos_reset(void);
@@ -34,4 +34,4 @@ extern int i2cdata;
 #define I2C_PCF8583 (1 << 0)
 #define I2C_SPD_DIMM0 (1 << 1)
 
-#endif //__CMOS__
+#endif

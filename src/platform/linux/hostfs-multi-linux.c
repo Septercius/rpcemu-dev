@@ -15,7 +15,7 @@
 
 // Use 64-bit struct timespec for time conversion?
 // Currently enabled on 64-bit Linux.
-#if defined(__LP64__) && defined(__linux__)
+#if defined(RPCEMU_PLATFORM_LINUX) && defined(RPCEMU_PLATFORM_BITS_64)
 
 /**
  * Convert a 64-bit struct timespec to the equivalent RISC OS time.
