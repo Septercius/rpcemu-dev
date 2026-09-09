@@ -722,14 +722,13 @@ int opSWI(uint32_t opcode)
         multi_hostfs_swi_dispatch(swinum, &state);
     }
 #else
-}
-else if (swinum == ARCEM_SWI_HOSTFS)
-{
-    ARMul_State state;
-
-    state.Reg = arm.reg;
-    hostfs(&state);
-}
+    else if (swinum == ARCEM_SWI_HOSTFS)
+    {
+        ARMul_State state;
+    
+        state.Reg = arm.reg;
+        hostfs(&state);
+    }
 #endif /* FEATURE_MULTI_HOSTFS */
 #ifdef FEATURE_NETWORKING
     else if (swinum == ARCEM_SWI_NETWORK)

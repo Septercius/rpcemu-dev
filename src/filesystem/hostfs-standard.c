@@ -323,7 +323,7 @@ static void name_host_to_riscos(const char *object_name, size_t len, char *risco
                 *riscos_name++ = '.';
                 break;
             case 32:
-                *riscos_name++ = 160;
+                *riscos_name++ = (char) 160;
                 break;
             case '#':
                 *riscos_name++ = '?';
