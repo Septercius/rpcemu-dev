@@ -21,6 +21,8 @@
 #ifndef IDE_H
 #define IDE_H
 
+#include "stdint.h"
+
 extern void writeide(uint16_t addr, uint8_t val);
 extern void writeidew(uint16_t val);
 extern uint8_t readide(uint16_t addr);

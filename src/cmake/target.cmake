@@ -35,3 +35,8 @@ macro(rpcemu_add_executables)
 		)
 	endif()
 endmacro(rpcemu_add_executables)
+
+# Add QT6 libraries to a target.
+function(rpcemu_target_add_qt TARGET)
+	target_link_libraries(${TARGET} PRIVATE Qt6::Core Qt6::Gui Qt6::Multimedia Qt6::Widgets)
+endfunction()

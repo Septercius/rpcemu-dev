@@ -20,6 +20,7 @@
 
 /* ROM loader */
 #include <errno.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -119,7 +120,7 @@ void loadroms(void)
     int pos = 0;
     const char *dirname = "roms";
     char *romfilenames[MAXROMS];
-    char romdirectory[512];
+    char romdirectory[PATH_MAX];
     DIR *dir;
     const struct dirent *d;
 
@@ -133,7 +134,7 @@ void loadroms(void)
         while ((d = readdir(dir)) != NULL && number_of_files < MAXROMS)
         {
             const char *ext = rpcemu_file_get_extension(d->d_name);
-            char filepath[512];
+            char filepath[PATH_MAX];
             struct stat buf;
 
             snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, d->d_name);
