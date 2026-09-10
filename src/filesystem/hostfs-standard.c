@@ -47,7 +47,7 @@
 #include "hostfs-win32.h"
 #endif
 
-#define HOSTFS_PROTOCOL_VERSION 4
+#define HOSTFS_PROTOCOL_VERSION 3
 
 /* Windows mkdir() function only takes one argument name, and
    name clashes with Posix mkdir() function taking two. This
