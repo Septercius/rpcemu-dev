@@ -174,7 +174,7 @@ void loadroms(void)
     {
         FILE *f;
         long len;
-        char filepath[512];
+        char filepath[PATH_MAX];
 
         snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, romfilenames[c]);
 

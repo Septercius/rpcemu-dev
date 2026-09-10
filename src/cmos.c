@@ -180,7 +180,7 @@ static void cmos_update_checksum(void)
  */
 void cmos_init(void)
 {
-    char fn[512];
+    char fn[PATH_MAX];
     FILE *cmosf;
 
     /* Append "cmos.ram" to the given executable path */
@@ -225,7 +225,7 @@ void cmos_reset(void)
  */
 void savecmos(void)
 {
-    char fn[512];
+    char fn[PATH_MAX];
     FILE *cmosf;
 
     snprintf(fn, sizeof(fn), "%scmos.ram", rpcemu_get_datadir());

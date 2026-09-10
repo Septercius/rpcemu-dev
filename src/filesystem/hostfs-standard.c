@@ -136,7 +136,7 @@ typedef struct
 /** Disc name of default disc or if no disc name is present */
 static const char *disc_name_default = "HostFS";
 
-static char HOSTFS_ROOT[512];
+static char HOSTFS_ROOT[PATH_MAX];
 
 static FILE *open_file[MAX_OPEN_FILES + 1]; /* array subscript 0 is never used */
 

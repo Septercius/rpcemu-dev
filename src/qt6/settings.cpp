@@ -219,7 +219,7 @@ static void config_nat_rules_save(QSettings &settings)
  */
 void config_load(Config *config)
 {
-    char filename[512];
+    char filename[PATH_MAX];
     const char *p;
     Model model;
     int i;
@@ -439,7 +439,7 @@ void config_load(Config *config)
  */
 void config_save(Config *config)
 {
-    char filename[512];
+    char filename[PATH_MAX];
     QString sText;
 
     snprintf(filename, sizeof(filename), "%srpc.cfg", rpcemu_get_datadir());

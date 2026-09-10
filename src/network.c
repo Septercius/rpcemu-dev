@@ -70,14 +70,14 @@ static void network_rom_init(void)
 {
     FILE *f;
     size_t module_file_size = 0;
-    char filename[512];
+    char filename[PATH_MAX];
 
     // Build podule header
     chunkbase = 0x10;
     filebase = chunkbase + (8 * 2) + 4;                           // required size for two entries
     poduleromsize = filebase + ((sizeof(description) + 3) & ~3u); // Word align description string
 
-    snprintf(filename, 512, "%snetroms/EtherRPCEm,ffa", rpcemu_get_datadir());
+    snprintf(filename, sizeof(filename), "%snetroms/EtherRPCEm,ffa", rpcemu_get_datadir());
     rpclog("network_rom_init: Attempting to load Ethernet ROM from '%s'\n", filename);
 
     // Add on size for driver module if it can be opened successfully

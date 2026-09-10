@@ -14,7 +14,6 @@ project(rpcemu VERSION 0.9.5 LANGUAGES ${REQUIRED_LANGUAGES})
 
 # Configure QT dependencies.
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Multimedia Widgets)
-message("QT = ${Qt6_FOUND}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
