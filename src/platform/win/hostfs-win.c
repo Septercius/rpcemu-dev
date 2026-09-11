@@ -4,7 +4,7 @@
 #undef UNICODE
 #include <Windows.h>
 
-#include "hostfs-internal.h"
+#include "hostfs-win.h"
 
 #define RISC_OS_TIME_EARLIEST 94354848000000000ull ///< Earliest time in RISC OS, in FILETIME units
 #define RISC_OS_TIME_LATEST 204306010777500000ull  ///< Latest time in RISC OS, in FILETIME units

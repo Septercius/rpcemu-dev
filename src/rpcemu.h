@@ -23,6 +23,7 @@
 #ifndef RPCEMU_H
 #define RPCEMU_H
 
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,7 +143,7 @@ typedef struct
     int soundenabled;
     int cdromenabled;
     int cdromtype;
-    char isoname[512];
+    char isoname[PATH_MAX];
     int mousehackon;
     int mousetwobutton; /**< Swap the behaviour of the right and middle
                                  buttons, for mice with two buttons */

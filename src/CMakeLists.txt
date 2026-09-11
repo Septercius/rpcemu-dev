@@ -1,27 +1,30 @@
 cmake_minimum_required(VERSION 3.31)
 
-project(rpcemu VERSION 0.9.5 LANGUAGES C CXX OBJC)
-
 # Add external macros.
-include(cmake/qt.cmake)
 include(cmake/platform.cmake)
 include(cmake/target.cmake)
 
-# Look for QT6
-rpcemu_qt_locate()
+# Determine the languages needed.
+rpcemu_detect_languages()
+
+project(rpcemu VERSION 0.9.5 LANGUAGES ${REQUIRED_LANGUAGES})
+
+# Ensure that QT6 is available.
+# rpcemu_qt_locate()
+
+# Configure QT dependencies.
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Multimedia Widgets)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror=switch -fno-common")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=switch -fno-common")
-set(CMAKE_PREFIX_PATH ${QTDIR} REQUIRED)
+set(CMAKE_AUTORCC ON)
 
 # Detect whether 32-bit or 64-bit.
 rpcemu_detect_platform_bits()
 
-list(APPEND CMAKE_MODULE_PATH ${QT_CMAKE_MODULES})
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Multimedia Widgets)
-
+# Configure as a QT project.
 qt_standard_project_setup()
 
 # Set headers common to all builds.
@@ -123,12 +126,12 @@ set(INTERPRETER_SOURCES
 
 # Set Linux-specific header files for standard HostFS.
 set(LINUX_HOSTFS_HEADERS
-	platform/macosx/hostfs-linux.h
+	platform/linux/hostfs-linux.h
 )
 
 # Set Linux-specific source files for standard HostFS.
 set(LINUX_HOSTFS_SOURCES
-	platform/macosx/hostfs-linux.c
+	platform/linux/hostfs-linux.c
 )
 
 # Set Linux-specific header files for multiple-drive HostFS.
@@ -148,21 +151,25 @@ set(LINUX_NETWORK_SOURCES
 
 # Set 32-bit recompiler headers for Linux.
 set(LINUX_RECOMPILER_HEADERS_32
+	arm-dynarec.h
 	codegen-x86.h
 )
 
 # Set 32-bit recompiler sources for Linux.
 set(LINUX_RECOMPILER_SOURCES_32
+	arm-dynarec.c
 	codegen-x86.c
 )
 
 # Set 64-bit recompiler headers for Linux.
 set(LINUX_RECOMPILER_HEADERS_64
+	arm-dynarec.h
 	codegen-amd64.h
 )
 
 # Set 64-bit recompiler sources for Linux.
 set(LINUX_RECOMPILER_SOURCES_64
+	arm-dynarec.c
 	codegen-amd64.c
 )
 

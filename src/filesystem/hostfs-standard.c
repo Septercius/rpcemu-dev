@@ -47,7 +47,7 @@
 #include "hostfs-win32.h"
 #endif
 
-#define HOSTFS_PROTOCOL_VERSION 4
+#define HOSTFS_PROTOCOL_VERSION 3
 
 /* Windows mkdir() function only takes one argument name, and
    name clashes with Posix mkdir() function taking two. This
@@ -136,7 +136,7 @@ typedef struct
 /** Disc name of default disc or if no disc name is present */
 static const char *disc_name_default = "HostFS";
 
-static char HOSTFS_ROOT[512];
+static char HOSTFS_ROOT[PATH_MAX];
 
 static FILE *open_file[MAX_OPEN_FILES + 1]; /* array subscript 0 is never used */
 

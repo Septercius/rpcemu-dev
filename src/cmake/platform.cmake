@@ -107,6 +107,14 @@ macro(rpcemu_configure_win_target TARGET APPNAME)
 	endif()
 endmacro(rpcemu_configure_win_target)
 
+macro(rpcemu_detect_languages)
+	if (APPLE)
+		set(REQUIRED_LANGUAGES C CXX OBJC)
+	else()
+		set(REQUIRED_LANGUAGES C CXX)
+	endif()
+endmacro(rpcemu_detect_languages)
+
 # Detect platform 32-bit or 64-bit
 macro(rpcemu_detect_platform_bits)
 	# Detect 32-bit or 64-bit.

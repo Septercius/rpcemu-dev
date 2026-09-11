@@ -155,7 +155,7 @@ void initpodulerom(void)
 {
     int file = 0;
     int i;
-    char romdirectory[512];
+    char romdirectory[PATH_MAX];
     DIR *dir;
     const struct dirent *d;
 
@@ -175,7 +175,7 @@ void initpodulerom(void)
         while ((d = readdir(dir)) != NULL && file < MAXROMS)
         {
             const char *ext = rpcemu_file_get_extension(d->d_name);
-            char filepath[512];
+            char filepath[PATH_MAX];
             struct stat buf;
 
             snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, d->d_name);
@@ -225,7 +225,7 @@ void initpodulerom(void)
     for (i = 0; i < file; i++)
     {
         FILE *f;
-        char filepath[512];
+        char filepath[PATH_MAX];
         long len;
 
         snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, romfns[i]);

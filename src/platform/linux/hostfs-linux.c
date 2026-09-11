@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <utime.h>
 
-#include "hostfs-internal.h"
+#include "hostfs-linux.h"
 
 // Use 64-bit struct timespec for time conversion?
 // Currently enabled on 64-bit Linux.
