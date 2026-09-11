@@ -1,18 +1,22 @@
-This is a development repository for **RPCEmu**, an Acorn RISC PC emulator for Windows, Mac and Linux.  It is intended for use in developing and testing patches before they are submitted to the mailing list for inclusion in the original source tree.
+This is a repository for **RPCEmu**, an Acorn RISC PC emulator for Windows, Mac and Linux.  Its main purpose is to provide a build for users of macOS, as these are not available directly from the RPCEmu home page (http://www.marutan.net/rpcemu/).
 
-The current version of RPCEmu, and the version upon which these patches are built, is 0.9.5.
+The basis for this repository is version 0.9.5 of RPCEmu.  It has been modified to support Macs and (as of version 0.9.5b), now includes support for multiple drives using HostFS.
 
-The home page for RPCEmu can be found here: http://www.marutan.net/rpcemu/.
+On starting the emulator for the first time, you will be prompted to select the location you wish to use to store its data.  A standard folder can be found in the DMGs and ZIPs for each release, named "Data".  This is where ROM files must be placed, and is also where the emulator stores its configuration file.  You should copy the "Data" folder to a suitable location if you don't have one from a previous installation, and then use the "Select" button to browse to it.  The emulator should then start as normal.
 
-This repository contains the following patches:
+## Multiple drive support for HostFS
 
-* Version 5 of the main OS X patch.
-* A patch to change the magic key combination for exiting capture mouse mode.
-* A port of the user interface to QT6.
+The standard build of RPCEmu allows a single drive for HostFS, and its location is hard-coded to be the "hostfs" folder within the RPCEmu data directory.  Version 0.9.5b in this repository allows up to four drives to be selected, and the location of each to be specified individually by you.
 
-The sections below outline each patch in more detail.
+The HostFS configuration can be accessed using the "Settings > HostFS" menu.  Each drive can be given its own name, and the relevant folder can be specified.  There are check boxes at the bottom of the window that control whether system files (e.g. "/System") and dot files (e.g. ".zshrc") are shown within the HostFS filer windows.
 
-## OS X patch - version 5
+:warning: **IMPORTANT** :warning: **If you are updating from a previous version of RPCEmu from this repository, you will need to delete the existing `hostfs,ffa` and `hostfsfiler.ffa` files from the `poduleroms` sub-folder and replace them with the `multihostfs,ffa` and `multihostfsfiler,ffa` files from the `Data` folder of a release that supports multiple drives (0.9.5b and later).  Multiple drive HostFS will not work without these files.**
+
+## QT6 user interface
+
+The user interface components have been converted to QT6.  Binary releases are built against version 6.11.1 of QT.
+
+## Additional changes to support macOS
 
 This patch provides the following:
 
@@ -21,14 +25,4 @@ This patch provides the following:
 * Dynamic compilation support for later versions of OS X (High Sierra and newer).
 * Configurable data folder setting, allowing the application to reside in a different folder to its settings.
 * A non-Mac specific fix for an issue with locating the Ethernet driver (kindly provided by David Pitt).
-* A non-Mac specific fix for processing of mouse events when the application is terminating.
-
-## Magic key/capture mouse patch
-
-By default, the key combination for exiting mouse capture mode in RPCEmu is Ctrl+End.  There is no dedicated "End" key on Mac laptop keyboards, so this patch changes the magic keys to Ctrl+Command.
-
-## QT6 user interface
-
-The user interface components have been converted to QT6.  These can be found in the 'src/qt6' folder.  The existing QT5 implementation can be found in the previous 'src/qt5' folder.
-
-Binary releases are now built with QT6.
+* A change to the key combination for exiting mouse capture mode from CTRL+END to CTRL+COMMAND.  This is aimed at laptop users, who do not have a dedicated END key.
