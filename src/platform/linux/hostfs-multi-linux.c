@@ -237,8 +237,7 @@ void hostfs_read_object_info_platform(const char *host_pathname, risc_os_object_
             default:
                 /* Other error */
                 fprintf(stderr,
-                    "hostfs_read_object_info_platform() could not stat() 
-\'%s\': %s %d\n", host_pathname,
+                    "hostfs_read_object_info_platform() could not stat() '%s': %s %d\n", host_pathname,
                     strerror(errno),
                     errno);
                 object_info->type = OBJECT_TYPE_NOT_FOUND;
