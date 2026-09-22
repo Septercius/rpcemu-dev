@@ -74,9 +74,19 @@ macro(rpcemu_configure_macos_target NAME APPNAME ARCHITECTURE)
 		MACOSX_BUNDLE ON
 		MACOSX_BUNDLE_INFO_PLIST platform/macosx/Info.plist
 		MACOSX_BUNDLE_DEPLOYMENT_TARGET 10.13
-		MACOSX_BUNDLE_GUI_IDENTIFIER org.marutan.rpcemu
 		OSX_ARCHITECTURES "${ARCHITECTURE}"
 	)
+	
+	# Set the bundle identifier.
+	if (DEFINED MACOS_BUNDLE_IDENTIFIER)
+		set_target_properties(${NAME} PROPERTIES
+			MACOSX_BUNDLE_GUI_IDENTIFIER "${MACOS_BUNDLE_IDENTIFIER}"
+		)
+	else()
+		set_target_properties(${NAME} PROPERTIES
+			MACOSX_BUNDLE_GUI_IDENTIFIER org.marutan.rpcemu
+		)
+	endif()
 endmacro(rpcemu_configure_macos_target)
 
 # Configure a target for Windows.

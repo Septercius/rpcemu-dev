@@ -7,7 +7,7 @@
 	<key>CFBundleIconFile</key>
 	<string>rpcemu.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>org.marutan.rpcemu</string>
+	<string>${MACOSX_BUNDLE_GUI_IDENTIFIER}</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>LSMinimumSystemVersion</key>
