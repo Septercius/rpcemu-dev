@@ -1,0 +1,18 @@
+#ifndef ERRORS_H
+#define ERRORS_H
+
+#include <kernel.h>
+
+// Suggested DCI error messages (offset within the DCI error block)
+// These are derived from errno values, and taken from the DCI4 spec
+
+extern _kernel_oserror ERR_ENXIO;
+extern _kernel_oserror ERR_EINVAL;
+extern _kernel_oserror ERR_ENOTTY;
+extern _kernel_oserror ERR_ENOBUFS;
+
+// Additional DCI4 error messages, not derived from errno values
+
+extern _kernel_oserror ERR_AlreadyClaimed;
+
+#endif

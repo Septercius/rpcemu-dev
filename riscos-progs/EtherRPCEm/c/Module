@@ -22,6 +22,7 @@
 //  Modifications for RPCEmu (C) 2007 Alex Waugh
 
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,38 +33,31 @@
 #include <swis.h>
 
 #include "ModHdr.h"
+#include "dcistructs.h"
 #include "Defines.h"
+#include "errors.h"
 #include "Structs.h"
-#include "Module.h"
-
-#include "DCI.h"
 
 /// Directly include a binary version of the AutoSense file (as a C array)
 #include "AutoSense.c"
 
 #define  UNUSED(x)              (x = x)
 
+#define INQUIRE_FLAGS	(INQ_MULTICAST | INQ_PROMISCUOUS | INQ_RXERRORS | \
+			 INQ_HWADDRVALID | INQ_SOFTHWADDR | INQ_HASSTATS)
+
 _kernel_oserror *networktxswi(struct mbuf *mbufs, int dest, int src, int frametype);
-_kernel_oserror *networkrxswi(struct mbuf *mbuf, rx_hdr *hdr, int *valid);
-_kernel_oserror *networkirqswi(volatile int *irqstatus);
-_kernel_oserror *networkhwaddrswi(unsigned char *hwaddr);
-void callrx(dib *dibaddr, struct mbuf *mbuf_chain, int claimaddr, int pwp);
+_kernel_oserror *networkrxswi(struct mbuf *mbuf, RxHdr *hdr, int *valid);
+void network_swi_irq(volatile int *irqstatus);
+void network_swi_hwaddr(uint8_t *hwaddr);
+void callrx(Dib *dibaddr, struct mbuf *mbuf_chain, int handler, void *pwp);
 
 // versionof DCI supported
 #define DCIVersion 403
 
-static _kernel_oserror
-    ErrorIllegalFlags   = { 0x58cc0, "Illegal flags" },
-    ErrorInvalidMTU     = { 0x58cc1, "Invalid MTU requested" },
-    ErrorIllegalSWI     = { 0x58cc2, "Not an EtherL SWI" },
-    ErrorNoUnit         = { 0x58cc3, "Unit not configured" },
-    ErrorBadClaim       = { 0x58cc4, "Illegal frame claim" },
-    ErrorAlreadyClaimed = { 0x58cc5, "frame already claimed" },
-    ErrorNoBuff         = { 0x58cc6, "No buffer space" };
+static workspace work;
 
-workspace *work;
-
-static const eystatsset supported = {
+static const struct stats supported = {
 	// General information
 	UCHAR_MAX,	// st_interface_type
 	UCHAR_MAX,	// st_link_status
@@ -90,15 +84,12 @@ static const eystatsset supported = {
 	0,		// st_overlong_frames
 	0,		// st_jabbers
 	0,		// st_late_events
-	0,		// st_unwanted_frames
+	ULONG_MAX,	// st_unwanted_frames
 	ULONG_MAX,	// st_rx_frames
 	0,		// st_rx_bytes
 	ULONG_MAX,	// st_rx_general_errors
 	{ 0, 0, 0, 0, 0, 0, 0, 0 },	// st_last_src_addr
 };
-
-// Status word set to 1 by the emulated hardware when an IRQ generated
-volatile int irqstatus = 0;
 
 // mbufs waiting to be used, to save frequent allocation and deallocation
 static struct mbuf *rxhdr_mbuf = NULL;
@@ -160,26 +151,41 @@ autosense_install(void)
 	}
 }
 
-// startstop = 0 for starting, 1 for stopping
-void
-SendServiceDCIDriverStatus(int startstop, workspace *work)
+/**
+ * Issue service call during initialisation and finalisation to notify
+ * protocol modules of new driver.
+ *
+ * @param startstop 0 for starting, 1 for stopping
+ */
+static void
+SendServiceDCIDriverStatus(int startstop)
 {
 	_kernel_swi_regs r;
 
-	r.r[0] = (int) &work->base_dib;
+	r.r[0] = (int) &work.base_dib;
 	r.r[1] = Service_DCIDriverStatus;
 	r.r[2] = startstop;
 	r.r[3] = DCIVersion;
 	_kernel_swi(OS_ServiceCall, &r, &r);
 }
 
-// called in callback time for a variety of reasons
-void
-callback(workspace *work)
+/**
+ * called in callback time for a variety of reasons
+ */
+_kernel_oserror *
+initialise_callback_handler(_kernel_swi_regs *r, void *pw)
 {
-	SendServiceDCIDriverStatus(0, work);
+	UNUSED(r);
+	UNUSED(pw);
+
+	SendServiceDCIDriverStatus(DCIDRIVER_STARTING);
+
+	return NULL;
 }
 
+/**
+ * Open Mbuf memory manager session
+ */
 static _kernel_oserror *
 open_mbuf_manager_session(dci4_mbctl *mbctl)
 {
@@ -195,10 +201,12 @@ open_mbuf_manager_session(dci4_mbctl *mbctl)
 	mbctl->spare1 = 0;
 
 	r.r[0] = (int) mbctl;
-
 	return _kernel_swi(Mbuf_OpenSession, &r, &r);
 }
 
+/**
+ * Close Mbuf memory manager session
+ */
 static _kernel_oserror *
 close_mbuf_manager_session(dci4_mbctl *mbctl)
 {
@@ -208,254 +216,278 @@ close_mbuf_manager_session(dci4_mbctl *mbctl)
 	return _kernel_swi(Mbuf_CloseSession, &r, &r);
 }
 
-// report frame release, unlink it, and free memory
-void
-bounceclaim(claimbuf *cb)
+/**
+ * Report frame release, unlink it, and free memory
+ *
+ * @param cb Pointer to ClaimBuf to release
+ */
+static void
+bounceclaim(ClaimBuf *cb)
 {
-	_kernel_swi_regs rg;
+	_kernel_swi_regs r;
 
-	rg.r[0] = (int) &work->base_dib;
-	rg.r[1] = Service_DCIFrameTypeFree;
-	rg.r[2] = cb->frame | (cb->adtype << 16);;
-	rg.r[3] = cb->addresslevel;
-	rg.r[4] = cb->errorlevel;
-	_kernel_swi(OS_ServiceCall, &rg, &rg); // report its now no longer claimed
-	if (cb->last) {
-		((claimbuf *) (cb->last))->next = cb->next;
+	// Report it's now no longer claimed
+	r.r[0] = (int) &work.base_dib;
+	r.r[1] = Service_DCIFrameTypeFree;
+	r.r[2] = cb->frame_type | (cb->frame_level << 16);;
+	r.r[3] = cb->address_level;
+	r.r[4] = cb->error_level;
+	_kernel_swi(OS_ServiceCall, &r, &r);
+
+	// Unlink from list
+	if (cb->prev != NULL) {
+		cb->prev->next = cb->next;
 	} else {
-		work->claims = cb->next;
+		work.claims = cb->next;
 	}
-	if (cb->next) {
-		((claimbuf *) (cb->next))->last = cb->last; // unlink from chain
+	if (cb->next != NULL) {
+		cb->next->prev = cb->prev;
 	}
+
 	free(cb);
 }
 
-// called at mod finalisation to clean up...
-_kernel_oserror *
-finalise(int fatal, int podule, void *private_word)
-{
-	_kernel_swi_regs sregs;
-
-	// ints off to ensure it stays quiet..
-	_kernel_swi(OS_IntOff, &sregs, &sregs);
-
-	networkirqswi(0);
-	_swix(OS_ReleaseDeviceVector, _INR(0,4), 13, CallEveryVeneer, work, &irqstatus, 1);
-
-	// free any mem owned here
-	if (work) {
-		SendServiceDCIDriverStatus(1, work); // flag we're stopping
-		while (work->claims != NULL) { // work list to free claimbufs
-			bounceclaim(work->claims);
-		}
-		if (work->mbctl) {
-			if (rxhdr_mbuf) {
-				work->mbctl->freem(work->mbctl, rxhdr_mbuf);
-			}
-			if (data_mbuf) {
-				work->mbctl->freem(work->mbctl, data_mbuf);
-			}
-
-			close_mbuf_manager_session(work->mbctl);
-			free(work->mbctl);
-			work->mbctl = NULL;
-		}
-		free(work);
-	}
-	return 0;
-}
-
+/**
+ */
 static void
-InitChip(workspace *work)
+InitChip(void *pw)
 {
-	_kernel_swi_regs sregs;
+	_kernel_swi_regs r;
 
-	work->base_dib.dib_swibase = EtherRPCEm_00;
-	work->base_dib.dib_name = "rpcem";
-	work->base_dib.dib_unit = 0;
-	work->base_dib.dib_address = (unsigned char *) work->dev_addr;
-	work->base_dib.dib_module = "EtherRPCEm";
-	work->base_dib.dib_location = "Emulated";
-	work->base_dib.dib_slot.slotid = 0;
-	work->base_dib.dib_slot.minor = 0;
-	work->base_dib.dib_slot.pcmciaslot = 0;
-	work->base_dib.dib_slot.mbz = 0;
-	work->base_dib.dib_inquire = EYFlagsSupported;
-	work->claims = NULL; // flag no claimbufs
+	work.base_dib.dib_swibase = EtherRPCEm_00;
+	work.base_dib.dib_name = "rpcem";
+	work.base_dib.dib_unit = 0;
+	work.base_dib.dib_address = work.dev_addr;
+	work.base_dib.dib_module = "EtherRPCEm";
+	work.base_dib.dib_location = "Emulated";
+	work.base_dib.dib_slot.sl_slotid = 0;
+	work.base_dib.dib_slot.sl_minor = 0;
+	work.base_dib.dib_slot.sl_pcmciaslot = 0;
+	work.base_dib.dib_slot.sl_mbz = 0;
+	work.base_dib.dib_inquire = INQUIRE_FLAGS;
+	work.claims = NULL; // flag no claimbufs
 
-	sregs.r[0] = (int) "Inet$EtherType";
-	sregs.r[1] = (int) work->base_dib.dib_name;
-	sregs.r[2] = (int) strlen((char *) sregs.r[1]);
-	sregs.r[3] = 0;
-	sregs.r[4] = 4;
+	r.r[0] = (int) "Inet$EtherType";
+	r.r[1] = (int) work.base_dib.dib_name;
+	r.r[2] = (int) strlen((char *) r.r[1]);
+	r.r[3] = 0;
+	r.r[4] = 4;
+	_kernel_swi(OS_SetVarVal, &r, &r);
 
-	_kernel_swi(OS_SetVarVal, &sregs, &sregs);
-
-	sregs.r[0] = (int) CallBkVeneer; // where to call
-	sregs.r[1] = (int) work; // work pointer for this
-	_kernel_swi(OS_AddCallBack, &sregs, &sregs);
+	r.r[0] = (int) initialise_callback; // where to call
+	r.r[1] = (int) pw;
+	_kernel_swi(OS_AddCallBack, &r, &r);
 }
 
+/**
+ * Module initialisation code
+ */
 _kernel_oserror *
-initialise(const char *cmd_tail, int podule_base, void *private_word)
+initialise(const char *cmd_tail, int podule_base, void *pw)
 {
 	_kernel_oserror *err;
-	int ribuff[2] = { 0, 0 };
-	unsigned char *PodMaskAddr;
-	unsigned char PodMask;
+	int ribuff[2];
+	uint8_t *PodMaskAddr;
+	uint8_t PodMask;
 
 	UNUSED(cmd_tail);
-	UNUSED(podule_base);
 
-	work = 0;
+	memset(&work, 0, sizeof(work));
 
-	if (work = calloc(1, sizeof(workspace)), work == NULL) { // ensure all pointers cleared to Null
-		return &ErrorNoBuff;
-	}
+	network_swi_hwaddr(work.dev_addr);
 
-	networkhwaddrswi((unsigned char *) work->dev_addr);
-
-	work->pwp = private_word;
+	work.pwp = pw;
 
 	// claim mbuf manager link
-	if (work->mbctl = calloc(1, sizeof(dci4_mbctl)), work->mbctl == NULL) {
-		return &ErrorNoBuff;
+	if ((work.mbctl = calloc(1, sizeof(dci4_mbctl))) == NULL) {
+		return &ERR_ENOBUFS;
 	}
 
-	if (err = open_mbuf_manager_session(work->mbctl), err != NULL) {
+	if ((err = open_mbuf_manager_session(work.mbctl)) != NULL) {
 		return err;
 	}
 
-	InitChip(work);
+	InitChip(pw);
 
-	err = _swix(Podule_ReadInfo, _INR(0,3), 0x18000, ribuff, sizeof(ribuff), 0);
+	err = _swix(OS_ClaimDeviceVector, _INR(0,4), 13, device_irq, pw, podule_base, 1);
 	if (err) {
 		return err;
 	}
 
-	PodMaskAddr = (unsigned char *) ribuff[0]; // IOC irq reg
-	PodMask = (unsigned char) ribuff[1]; // IOC irq mask for pod
-
-	err = _swix(OS_ClaimDeviceVector, _INR(0,4), 13, CallEveryVeneer, work, &irqstatus, 1);
+	// Enable Podule IRQs
+	err = _swix(Podule_ReadInfo, _INR(0,3), (1 << 16) | (1 << 15), ribuff, sizeof(ribuff), podule_base);
 	if (err) {
 		return err;
 	}
 
-	*PodMaskAddr |= PodMask; // set the pod irq
+	PodMaskAddr = (uint8_t *) ribuff[0]; // Pointer to location to enable Podule IRQs
+	PodMask = (uint8_t) ribuff[1]; // Bit mask to enable Podule IRQs
 
-	networkirqswi(&irqstatus);
+	_kernel_irqs_off();
+	*PodMaskAddr |= PodMask; // Enable podule IRQs
+	_kernel_irqs_on();
+
+	// The value passed here no longer matters, provided it's non-zero
+	network_swi_irq((int *) 1);
 
 	return NULL;
 }
 
+/**
+ * Module finalisation code
+ */
 _kernel_oserror *
-callevery_handler(workspace *work)
+finalise(int fatal, int podule, void *pw)
 {
-	rx_hdr *rxhdr;
+	ClaimBuf *c, *next;
 
+	// ints off to ensure it stays quiet..
+	_kernel_irqs_off();
+
+	network_swi_irq(0);
+	_swix(OS_ReleaseDeviceVector, _INR(0,4), 13, device_irq, pw, podule, 1);
+
+	SendServiceDCIDriverStatus(DCIDRIVER_DYING); // flag we're stopping
+
+	// Free memory of Claims
+	for (c = work.claims; c != NULL; c = next) {
+		next = c->next;
+		free(c);
+	}
+
+	// End Mbuf Manager session
+	if (work.mbctl != NULL) {
+		if (rxhdr_mbuf != NULL) {
+			work.mbctl->freem(work.mbctl, rxhdr_mbuf);
+		}
+		if (data_mbuf != NULL) {
+			work.mbctl->freem(work.mbctl, data_mbuf);
+		}
+
+		close_mbuf_manager_session(work.mbctl);
+		free(work.mbctl);
+	}
+
+	return NULL;
+}
+
+/**
+ * Look for whether a Protocol Module has claimed this particular frame type
+ *
+ * @param frame_type Frame type of received frame (or length if IEEE)
+ * @return Pointer to Claim information, or NULL if not claimed by a Protocol Module
+ */
+static inline const ClaimBuf *
+find_protocol(int frame_type)
+{
+	const ClaimBuf *c;
+
+	if (frame_type <= 1500) {
+		// Interpret as IEEE length field - is IEEE claimed?
+		for (c = work.claims; c != NULL; c = c->next) {
+			if (c->frame_level == FRMLVL_IEEE) {
+				return c;
+			}
+		}
+
+	} else {
+		// Any Protocol Module wants this frame type, or claimed all frame types?
+		for (c = work.claims; c != NULL; c = c->next) {
+			if ((c->frame_type == frame_type) || (c->frame_level == FRMLVL_E2MONITOR)) {
+				return c;
+			}
+		}
+
+		// If no-one wants this frame type, any Protocol Module want unclaimed types?
+		for (c = work.claims; c != NULL; c = c->next) {
+			if (c->frame_level == FRMLVL_E2SINK) {
+				return c;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+/**
+ */
+_kernel_oserror *
+device_irq_handler(_kernel_swi_regs *r, void *pw)
+{
 	static volatile int sema = 0;
+	_kernel_swi_regs rg;
+
+	// Clear interrupt
+	rg.r[0] = 3;
+	rg.r[2] = 0;
+	_kernel_swi(0x56ac4, &rg, &rg);
 
 	if (sema) {
 		return NULL;
 	}
 	sema = 1;
 
-	do {
+	for (;;) {
+		RxHdr *rxhdr;
+		int valid;
+		const ClaimBuf *c;
+
 		if (rxhdr_mbuf == NULL) {
-			rxhdr_mbuf = work->mbctl->alloc_s(work->mbctl, sizeof(rx_hdr), NULL);
+			rxhdr_mbuf = work.mbctl->alloc_s(work.mbctl, sizeof(RxHdr), NULL);
 		}
 		if (data_mbuf == NULL) {
-			data_mbuf = work->mbctl->alloc_s(work->mbctl, 1500, NULL);
+			data_mbuf = work.mbctl->alloc_s(work.mbctl, 1500, NULL);
 		}
-		if (rxhdr_mbuf && data_mbuf) {
-			int valid;
 
-			rxhdr = (rx_hdr *) (((char *) rxhdr_mbuf) + rxhdr_mbuf->m_off);
-			rxhdr_mbuf->m_len = sizeof(rx_hdr);
-			if (networkrxswi(data_mbuf, rxhdr, &valid) || !valid) {
-				// No data
-				sema = 0;
-				return NULL;
-			}
-			// Increment receive frames
-			work->st_rx_frames++;
-
-			if (1) {
-				// do stuff to make a new packet
-				claimbuf *cb;
-				int AddrLevel = AlSpecific;
-				ClaimType Claim = NotClaimed;
-
-				cb = work->claims;
-				while (cb != NULL) {
-					switch (cb->adtype) {
-					case AdSpecific:
-						if ((AddrLevel <= AlNormal) &&
-						    (rxhdr->rx_frame_type == cb->frame) &&
-						    (AddrLevel <= cb->addresslevel))
-						{
-							Claim = ClaimSpecific;
-						}
-						break;
-					case AdMonitor:
-						if ((rxhdr->rx_frame_type > 1500) &&
-						    (AddrLevel <= cb->addresslevel))
-						{
-							Claim = ClaimMonitor;
-						}
-						break;
-					case AdIeee:
-						if (rxhdr->rx_frame_type < 1501) {
-							Claim = ClaimIEEE;
-						}
-						break;
-					case AdSink:
-						if (rxhdr->rx_frame_type > 1500) {
-							Claim = ClaimSink;
-						}
-						break;
-					default:
-						break;
-					}
-
-					if (Claim != NotClaimed) {
-						// someone wants it, so check further
-						rxhdr_mbuf->m_next = data_mbuf; // link them together
-						rxhdr_mbuf->m_list = 0; // this is needed
-						//data_mbuf->m_next = NULL;      // link them together
-						data_mbuf->m_list = 0; // this is needed
-						// at this point we dont need to check for safe mbuf
-						// as we've used the alloc routine that only allocs
-						// mbufs that actually are safe
-
-						// now build the rxhdr structure
-						rxhdr_mbuf->m_type = MT_HEADER;
-
-						_swix(OS_IntOn, 0);
-						callrx(&work->base_dib, rxhdr_mbuf, cb->claimaddress, cb->pwp);
-						// The protocol stack is now responsible for freeing the mbufs
-						rxhdr_mbuf = NULL;
-						data_mbuf = NULL;
-						_swix(OS_IntOff, 0);
-						break;
-					}
-					cb = cb->next; // missed that frame type, so try another
-				}
-			}
-		} else {
+		if (rxhdr_mbuf == NULL || data_mbuf == NULL) {
 			// mbuf exhaustion
 			sema = 0;
 			return NULL;
 		}
-	} while (1);
 
-	sema = 0;
+		rxhdr = (RxHdr *) (((char *) rxhdr_mbuf) + rxhdr_mbuf->m_off);
+		rxhdr_mbuf->m_len = sizeof(RxHdr);
+		if (networkrxswi(data_mbuf, rxhdr, &valid) || !valid) {
+			// No data
+			sema = 0;
+			return NULL;
+		}
 
-	return NULL;
+		// Increment receive frames
+		work.st_rx_frames++;
+
+		// Does any Protocol Module want this frame type?
+		if ((c = find_protocol(rxhdr->rx_frame_type)) == NULL) {
+			// No Protocol Module wants this frame
+			work.st_unwanted_frames++;
+			continue;
+		}
+
+		rxhdr_mbuf->m_next = data_mbuf; // link them together
+		rxhdr_mbuf->m_list = 0; // this is needed
+		//data_mbuf->m_next = NULL;      // link them together
+		data_mbuf->m_list = 0; // this is needed
+		// at this point we dont need to check for safe mbuf
+		// as we've used the alloc routine that only allocs
+		// mbufs that actually are safe
+
+		// now build the rxhdr structure
+		rxhdr_mbuf->m_type = MT_HEADER;
+
+		// Call the Protocol Module
+		_kernel_irqs_on();
+		callrx(&work.base_dib, rxhdr_mbuf, c->handler, c->pwp);
+		_kernel_irqs_off();
+
+		// The Protocol Module is now responsible for freeing the mbufs
+		rxhdr_mbuf = NULL;
+		data_mbuf = NULL;
+	}
 }
 
-// module service call handler
+/**
+ * Module service call handler
+ */
 void
 service_call(int service_number, _kernel_swi_regs *r, void *pw)
 {
@@ -469,11 +501,11 @@ service_call(int service_number, _kernel_swi_regs *r, void *pw)
 
 	case Service_EnumerateNetworkDrivers: // on entry, r0-> chain of dibs
 		rg.r[0] = RMAClaim;
-		rg.r[3] = sizeof(chaindib);
-		if (erp = _kernel_swi(OS_Module, &rg, &rg), erp == NULL) {
+		rg.r[3] = sizeof(ChDib);
+		if ((erp = _kernel_swi(OS_Module, &rg, &rg)) == NULL) {
 			// got extra memory to add chaindib
-			((chaindib *) rg.r[2])->chd_dib = &work->base_dib;
-			((chaindib *) rg.r[2])->chd_next = (chaindib *) r->r[0];
+			((ChDib *) rg.r[2])->chd_dib = &work.base_dib;
+			((ChDib *) rg.r[2])->chd_next = (ChDib *) r->r[0];
 			r->r[0] = rg.r[2]; // link our chaindib into the chain
 		}
 		break;
@@ -484,14 +516,14 @@ service_call(int service_number, _kernel_swi_regs *r, void *pw)
 	case Service_MbufManagerStatus:
 		switch (r->r[0]) {
 		case 0: // Manager started ... better try to restart our stuff
-			if (!work->mbctl) {
-				if (erp = open_mbuf_manager_session(work->mbctl), erp == NULL) {
-					InitChip(work);
+			if (work.mbctl == NULL) {
+				if ((erp = open_mbuf_manager_session(work.mbctl)) == NULL) {
+					InitChip(work.pwp);
 				}
 			}
 			break;
 		case 1: // Manager stopping .. cannot if sessions are active
-			if (work->mbctl) {
+			if (work.mbctl != NULL) {
 				// claim .. we're active
 				r->r[1] = 0;
 			}
@@ -503,49 +535,48 @@ service_call(int service_number, _kernel_swi_regs *r, void *pw)
 	}
 }
 
+/**
+ * Module SWI handler
+ */
 _kernel_oserror *
-swi_handler(int swi_no, _kernel_swi_regs *r, void *private_word)
+swi_handler(int swi_offset, _kernel_swi_regs *r, void *private_word)
 {
-	claimbuf *thism, *next;
+	ClaimBuf *c, *nc;
 	_kernel_oserror *err;
 
 	UNUSED(private_word);
 
-	switch (swi_no) {
+	switch (swi_offset) {
 	// return version num of DCI spec implelmented
 	// on entry:	r0 = flags (all zero)
 	// on exit:	r1 = version (4.03 at present)
-	case SWIDCIVersion:
-		if (r->r[0] == 0) {
-			r->r[1] = DCIVersion;
-			return 0;
-		} else {
-			return &ErrorIllegalFlags;
+	case DCI4Version:
+		if (r->r[0] != 0) {
+			return &ERR_EINVAL;
 		}
+		r->r[1] = DCIVersion;
 		break;
 
 	// return bitmap of supported features
 	// on entry:	r0 = flags (all zero)
 	//		r1 = unit number
 	// on exit:	r2 = info word
-	case SWIInquire:
-		if (r->r[0] == 0) {
-			r->r[2] = EYFlagsSupported;
-		} else {
-			return &ErrorIllegalFlags;
+	case DCI4Inquire:
+		if (r->r[0] != 0) {
+			return &ERR_EINVAL;
 		}
+		r->r[2] = INQUIRE_FLAGS;
 		break;
 
 	// return physical MTU size of supported network
 	// on entry:	r0 = flags (all zero)
 	//		r1 = unit number
 	// on exit:	r2 = MTU size
-	case SWIGetNetworkMTU:
-		if (r->r[0] == 0) {
-			r->r[2] = EY_MTU;
-		} else {
-			return &ErrorIllegalFlags;
+	case DCI4GetNetworkMTU:
+		if (r->r[0] != 0) {
+			return &ERR_EINVAL;
 		}
+		r->r[2] = EY_MTU;
 		break;
 
 	// set physical MTU size of supported network
@@ -554,13 +585,11 @@ swi_handler(int swi_no, _kernel_swi_regs *r, void *private_word)
 	//		r2 = new MTU
 	// if size change not supported, return illegal op error
 	// on exit, illegal op error!
-	case SWISetNetworkMTU:
-		if (r->r[0] == 0) {
-			return &ErrorInvalidMTU;
-		} else {
-			return &ErrorIllegalFlags;
+	case DCI4SetNetworkMTU:
+		if (r->r[0] != 0) {
+			return &ERR_EINVAL;
 		}
-		break;
+		return &ERR_ENOTTY;
 
 	// transmit data
 	// on entry:	r0 = flags (see below)
@@ -575,36 +604,35 @@ swi_handler(int swi_no, _kernel_swi_regs *r, void *private_word)
 	//			1 = use r5 as srce H/W addr
 	//		bit 1:	0 = driver to assume ownership of mbuf chain
 	//			1 = driver does not own mbuf chain
-	case SWITransmit: {
+	case DCI4Transmit: {
 		struct mbuf *mbufchain = (struct mbuf *) r->r[3];
 
 		err = NULL;
 
-		while (mbufchain) {
+		while (mbufchain != NULL) {
 			struct mbuf *next = mbufchain->m_list;
 
 			if (err == NULL) {
 				err = networktxswi(mbufchain, r->r[4], (r->r[0] & 1) ? r->r[5] : 0, r->r[2]);
 				// Increment transmit frames
-				work->st_tx_frames++;
+				work.st_tx_frames++;
 			}
 
 			if ((r->r[0] & 2) == 0) {
-				work->mbctl->freem(work->mbctl, mbufchain);
+				work.mbctl->freem(work.mbctl, mbufchain);
 			}
 			mbufchain = next;
 		}
-		if (err) {
-			return err;
-		}
-		break;
+		return err; // Return error if any
 	}
 
 	// on entry:	r0 = flags (see below)
 	//		r1 = unit number
-	//		r2 = frame type		bottom 16 bits, frame type, top 16.. addr class
-	//			1.. specific        2.. sink
-	//			3.. monitor         4.. ieee
+	//		r2 = frame type/class
+	//			bottom 16 bits: frame type (if 'frame level' is specific)
+	//			top 16 bits: 'frame level':
+	//				1.. specific        2.. sink
+	//				3.. monitor         4.. ieee
 	//		r3 = address level (for write)
 	//		r4 = error level (for write)
 	//		r5 = handlers private word pointer
@@ -616,115 +644,104 @@ swi_handler(int swi_no, _kernel_swi_regs *r, void *private_word)
 	//			1 = release frame type
 	//		bit 1:  0 = drivers can pass unsafe mbuf chains back
 	//			1 = ensure_safe required before mbufs passed back
-	case SWIFilter:
-		if ((r->r[0] & 1) == 1) {
+	case DCI4Filter:
+		if (r->r[1] != 0) {
+			// only unit 0 supported at present
+			return &ERR_ENXIO;
+		}
+		if ((r->r[0] & 1) != 0) {
 			// release frame
-			if (r->r[1] != 0) {
-				// only unit 0 supported at present
-				return &ErrorNoUnit;
-			}
-			thism = work->claims;
-			while (thism != NULL) {
-				if ((thism->unit == r->r[1]) &&
-				    (thism->frame == (r->r[2] & 0xffff)) &&
-				    (thism->adtype == (r->r[2] >> 16)) &&
-				    (thism->addresslevel == r->r[3]) &&
-				    (thism->errorlevel == r->r[4]) &&
-				    (thism->pwp == r->r[5]) &&
-				    (thism->claimaddress == r->r[6]))
+			for (c = work.claims; c != NULL; c = c->next) {
+				if ((c->unit == r->r[1]) &&
+				    (c->frame_type == GET_FRAMETYPE(r->r[2])) &&
+				    (c->frame_level == GET_FRAMELEVEL(r->r[2])) &&
+				    (c->address_level == r->r[3]) &&
+				    (c->error_level == r->r[4]) &&
+				    (c->pwp == (void *) r->r[5]) &&
+				    (c->handler == r->r[6]))
 				{
 					// we've found the claim, unlink it
-					bounceclaim(thism);
+					bounceclaim(c);
 					break;
 				}
-				thism = thism->next;
 			}
 		} else {
 			// claim frame type
-			if (r->r[1] != 0) {
-				// only unit 0 supported at present
-				return &ErrorNoUnit;
-			}
-			thism = next = work->claims;
-			while (next != NULL) {
-				int adtype, used;
+			const int frame_type = GET_FRAMETYPE(r->r[2]);
+			const int frame_level = GET_FRAMELEVEL(r->r[2]);
 
-				adtype = r->r[2] >> 16;
-				thism = next;
-				used = 0;
-				if ((thism->frame == r->r[2] & 0xffff) // already a claimer..
-				    || (adtype == AdMonitor)) // or we're greedy
-				{
-					switch (adtype) {
-					case AdSpecific:
-						return &ErrorAlreadyClaimed;
-						break;
-					case AdSink:
-						if (thism->addresslevel == AdSpecific) {
-							bounceclaim(thism);
-							goto claimframe;
-						} else {
-							return &ErrorAlreadyClaimed;
-						}
-						break;
-					case AdMonitor:
-						if (thism->adtype < AdMonitor) { // bounce anything less
-							next = thism->next;
-							bounceclaim(thism);
-							used = 1;
-							break;
-						}
-						if (thism->adtype != AdIeee) {
-							return &ErrorAlreadyClaimed;
-						}
-						break;
-					case AdIeee:
-						return &ErrorAlreadyClaimed;
-						break;
-					default:
-						return &ErrorBadClaim;
-						break;
-					}
-					if(thism->adtype >adtype) //
-					{
+			// frame_type must be zero if frame_level is not Specific
+			if (frame_level != FRMLVL_E2SPECIFIC && frame_type != 0) {
+				return &ERR_EINVAL;
+			}
+
+			switch (frame_level) {
+			case FRMLVL_E2SPECIFIC:
+				// Make sure this Frame Type hasn't been claimed already
+				for (c = work.claims; c != NULL; c = c->next) {
+					if (c->frame_type == frame_type) {
+						return &ERR_AlreadyClaimed;
 					}
 				}
-				if (!used) {
-					next = next->next;
+				break;
+			case FRMLVL_E2SINK:
+				// Make sure Sink hasn't been claimed already
+				for (c = work.claims; c != NULL; c = c->next) {
+					if (c->frame_level == FRMLVL_E2SINK) {
+						return &ERR_AlreadyClaimed;
+					}
 				}
+				break;
+			case FRMLVL_E2MONITOR:
+				// Make sure there are no Ethernet 2.0 claims already
+				for (c = work.claims; c != NULL; c = c->next) {
+					if (c->frame_level != FRMLVL_IEEE) {
+						return &ERR_AlreadyClaimed;
+					}
+				}
+				break;
+			case FRMLVL_IEEE:
+				// Make sure there is no IEEE claim already
+				for (c = work.claims; c != NULL; c = c->next) {
+					if (c->frame_level == FRMLVL_IEEE) {
+						return &ERR_AlreadyClaimed;
+					}
+				}
+				break;
+			default:
+				return &ERR_EINVAL;
 			}
-			// thism points to first NULL claimbuf ptr
-			if (next = calloc(1, sizeof(claimbuf)), next == NULL) {
-				return &ErrorNoBuff;
+
+			// Allocate and initialise new Claim
+			if ((nc = calloc(1, sizeof(ClaimBuf))) == NULL) {
+				return &ERR_ENOBUFS;
 			}
-			if (thism != NULL) {
-				thism->next = next;
-				next->last = thism;
-			} else {
-				work->claims = next;
-				next->last = NULL;
+			nc->flags = r->r[0] & 1;
+			nc->unit = r->r[1];
+			nc->frame_type = frame_type;
+			nc->frame_level = frame_level;
+			nc->address_level = r->r[3];
+			nc->error_level = r->r[4];
+			nc->pwp = (void *) r->r[5];
+			nc->handler = r->r[6];
+
+			// Link into list
+			nc->next = work.claims;
+			nc->prev = NULL;
+			if (work.claims != NULL) {
+				work.claims->prev = nc;
 			}
-claimframe:
-			next->flags = (char) r->r[0] & 1;
-			next->unit = r->r[1];
-			next->frame = r->r[2] & 0xffff;
-			next->adtype = r->r[2] >> 16;
-			next->addresslevel = r->r[3];
-			next->errorlevel = r->r[4];
-			next->pwp = r->r[5];
-			next->claimaddress = r->r[6];
+			work.claims = nc;
 		}
 		// now check all claims and set multicast or promiscuous as needed
-		next = work->claims;
-		work->flags = 0;
-		while (next) {
-			if (next->addresslevel == AlMulticast) {
-				work->flags |= IFF_ALLMULTI;
+		work.flags = 0;
+		for (c = work.claims; c != NULL; c = c->next) {
+			if (c->address_level == ADDRLVL_MULTICAST) {
+				work.flags |= IFF_ALLMULTI;
 			}
-			if (next->addresslevel == AlPromiscuous) {
-				work->flags |= IFF_PROMISC;
+			if (c->address_level == ADDRLVL_PROMISCUOUS) {
+				work.flags |= IFF_PROMISC;
 			}
-			next = next->next;
 		}
 		break;
 
@@ -736,25 +753,26 @@ claimframe:
 	//
 	// Flags:	bit 0:	0 = indicate which stats are gathered
 	//			1 = return actual stats
-	case SWIStats:
+	case DCI4Stats:
 		if ((r->r[0] & 1) != 0) {
 			// return actual stats
-			eystatsset *stats = (eystatsset *) r->r[2];
+			struct stats *stats = (struct stats *) r->r[2];
 
 			// Set all statistics to zero (including implemented error counters)
-			memset(stats, 0, sizeof(eystatsset));
+			memset(stats, 0, sizeof(struct stats));
 
-			stats->st_interface_type = 3; // 10BaseT
-			stats->st_link_status = (1 << 0) | // OK
-			                        (1 << 1) | // Active
-			                        (3 << 2) | // Promiscuous
-			                        (1 << 4);  // Full duplex
-			stats->st_link_polarity = 1; // Polarity correct
-			stats->st_tx_frames = work->st_tx_frames;
-			stats->st_rx_frames = work->st_rx_frames;
+			stats->st_interface_type = ST_TYPE_10BASET;
+			stats->st_link_status = ST_STATUS_OK |
+			                        ST_STATUS_ACTIVE |
+			                        ST_STATUS_PROMISCUOUS |
+			                        ST_STATUS_FULL_DUPLEX;
+			stats->st_link_polarity = ST_LINK_POLARITY_CORRECT;
+			stats->st_tx_frames = work.st_tx_frames;
+			stats->st_unwanted_frames = work.st_unwanted_frames;
+			stats->st_rx_frames = work.st_rx_frames;
 		} else {
 			// indicate what's supported
-			memcpy((void *) r->r[2], &supported.st_interface_type, sizeof(eystatsset));
+			memcpy((void *) r->r[2], &supported.st_interface_type, sizeof(struct stats));
 		}
 		break;
 
@@ -771,16 +789,51 @@ claimframe:
 	//			1 = release an mc addr
 	//		bit 1:	0 = request/release specific mc addr (in r3 & r4)
 	//			1 = request/release all mc addrs
-	case SWIMulticastreq:
+	case DCI4MulticastRequest:
 		if (r->r[0] && ~3) {
 			printf("\n EYmulticast not fully implemented yet\n");
 		}
 		break;
 
 	default:
-		return &ErrorIllegalSWI;
+		return error_BAD_SWI;
+	}
+
+	return NULL;
+}
+
+/**
+ * Module command handler
+ *
+ * @param arg_string command tail
+ * @param argc       number of parameters
+ * @param cmd_no     command number (value generated by CMHG)
+ * @param pw         private word pointer
+ * @return error pointer or NULL
+ */
+_kernel_oserror *
+command_handler(const char *arg_string, int argc, int cmd_no, void *pw)
+{
+	const ClaimBuf *c;
+
+	switch (cmd_no) {
+	case CMD_ERPCEmInfo:
+		printf("Interface address   : %02x:%02x:%02x:%02x:%02x:%02x\n",
+		    work.dev_addr[0], work.dev_addr[1], work.dev_addr[2],
+		    work.dev_addr[3], work.dev_addr[4], work.dev_addr[5]);
+
+		printf("Packets sent        : %lu\n", work.st_tx_frames);
+		printf("Packets received    : %lu\n", work.st_rx_frames);
+
+		printf("Undelivered packets : %lu\n", work.st_unwanted_frames);
+
+		printf("Filter clients:\n");
+		for (c = work.claims; c != NULL; c = c->next) {
+			printf("    frame_type = %04x, frame_level = %d, address_level = %d, error_level = %d\n",
+			    c->frame_type, c->frame_level, c->address_level, c->error_level);
+		}
 		break;
 	}
 
-	return 0;
+	return NULL;
 }

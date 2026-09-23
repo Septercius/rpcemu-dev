@@ -1,0 +1,41 @@
+DCI4_ERROR_BLOCK	EQU	0x20e00
+
+	AREA	|Asm$$data|, DATA, READONLY
+
+
+	EXPORT	ERR_ENXIO
+ERR_ENXIO
+	DCD	DCI4_ERROR_BLOCK | 0x06
+	DCB	"Device not configured", 0
+	ALIGN
+
+
+	EXPORT	ERR_EINVAL
+ERR_EINVAL
+	DCD	DCI4_ERROR_BLOCK | 0x16
+	DCB	"Invalid argument", 0
+	ALIGN
+
+
+	EXPORT	ERR_ENOTTY
+ERR_ENOTTY
+	DCD	DCI4_ERROR_BLOCK | 0x19
+	DCB	"Inappropriate ioctl for device", 0
+	ALIGN
+
+
+	EXPORT	ERR_ENOBUFS
+ERR_ENOBUFS
+	DCD	DCI4_ERROR_BLOCK | 0x37
+	DCB	"No buffer space available", 0
+	ALIGN
+
+
+	EXPORT	ERR_AlreadyClaimed
+ERR_AlreadyClaimed
+	DCD	DCI4_ERROR_BLOCK | 0x87
+	DCB	"Frame type already claimed", 0
+	ALIGN
+
+
+	END

@@ -18,42 +18,28 @@
 //  The code in this file is (C) 2003 J Ballance as far as
 //  the above GPL permits
 
+#include "dcistructs.h"
 #include "mbuf_c.h"
-#include "DCI.h"
 
+/// Claimed frame type
+typedef struct ClaimBuf ClaimBuf;
+struct ClaimBuf {
+	// Filter
+	int		flags;		///< non-zero if ensure_safe needed on mbuf
+	int		unit;		///< unit this refers to
+	int		frame_type;	///< frame type
+	int		frame_level;	///< frame class/level 1-4
+	int		address_level;	///< address filtering level 0-3
+	int		error_level;	///< error level
 
+	// For calling the Protocol module
+	int		handler;	///< Address of Protocol module's received frame handler
+	void		*pwp;		///< Protocol module's private workspace pointer
 
-
-// frame claims have 2 types of filter.. frametype field of mac (adtype)
-//  and frame dest address filtering (addresslevel)
-
-// adtype values
-#define AdSpecific      1        // only frames equal to frame given
-#define AdSink          2        // all unclaimed non IEEE frames
-#define AdMonitor       3        // ALL non IEEE frames
-#define AdIeee          4        // IEEE frames (frame # <=1500)
-// addresslevel filtering types
-#define AlSpecific      0        // only frames with our h/w address
-#define AlNormal        1        // ours and broadcast frames
-#define AlMulticast     2        // multicast frames too
-#define AlPromiscuous   3        // dont address match
-// useful working value
-typedef enum {NotClaimed,ClaimIEEE,ClaimSpecific,ClaimBC,ClaimMC,ClaimMonitor,ClaimSink } ClaimType;
-// linked list of claimed frame types
-typedef struct {
-int   claimaddress;              // Receiver's address (for assembler access)
-int   pwp;                       // Receiver's PWP     (for assembler access)
-void* next;                      // pointer to next in list, or NULL if end
-void* last;                      // pointer to previous in list, or NULL if start
-unsigned int   frame:16,         // frame type/number claimed
-               adtype:16;        // claim address type
-int   addresslevel;              // addresslevel of claim
-int   errorlevel;                // error level
-char  flags;                     // nz if ensure_safe needed on mbuf
-char  unit;                      // unit this refers to
-char  spare[2];                  // spare
-} claimbuf;
-
+	// List pointers
+	ClaimBuf	*next;		///< pointer to next in list, or NULL if end
+	ClaimBuf	*prev;		///< pointer to previous in list, or NULL if start
+};
 
 // workspace pointer.. holds allsorts..
 // first 3 (or 4 with the test area) entries MUST be there in that sequence.
@@ -61,13 +47,14 @@ char  spare[2];                  // spare
 typedef struct {
 	void		*pwp;		///< Module's PWP for C routine linkage
 	dci4_mbctl	*mbctl;		///< mbuf manager linkage
-	dib		base_dib;	///< device info block
-	char		dev_addr[20];
+	Dib		base_dib;	///< device info block
+	unsigned char	dev_addr[6];	///< Ethernet hardware address
 	int		flags;
-	claimbuf	*claims;	///< linked list of all claims.
+	ClaimBuf	*claims;	///< linked list of all claims.
 
 	// Working copy of network statistics
 	unsigned long	st_tx_frames;
+	unsigned long	st_unwanted_frames;
 	unsigned long	st_rx_frames;
 } workspace;
 
