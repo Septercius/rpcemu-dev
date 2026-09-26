@@ -291,160 +291,166 @@ static void *vidcthreadrunner(void *threadid)
 extern "C"
 {
 
-    /**
-     * Called on program startup. Create a thread for copying video
-     * data from VRAM into a video buffer
-     */
-    void vidcstartthread(void)
+/**
+ * Called on program startup. Create a thread for copying video
+ * data from VRAM into a video buffer
+ */
+void vidcstartthread(void)
+{
+    if (pthread_create(&video_thread, NULL, vidcthreadrunner, NULL))
     {
-        if (pthread_create(&video_thread, NULL, vidcthreadrunner, NULL))
-        {
-            fatal("Couldn't create vidc thread");
-        }
+        fatal("Couldn't create vidc thread");
+    }
 
 #ifdef _GNU_SOURCE
-        if (0 != pthread_setname_np(video_thread, "rpcemu: vidc"))
-        {
-            fatal("Couldn't set vidc thread name");
-        }
+    if (0 != pthread_setname_np(video_thread, "rpcemu: vidc"))
+    {
+        fatal("Couldn't set vidc thread name");
+    }
 #endif // _GNU_SOURCE
+}
+
+/**
+ * Called on program shutdown to tidy up video thread
+ */
+void vidcendthread(void)
+{
+    //	terminating = 1;
+    //	if (pthread_cond_signal(&video_cond)) {
+    //		fatal("Couldn't signal vidc thread");
+    //	}
+    //	pthread_join(video_thread, NULL);
+}
+
+/**
+ * A signal sent to the video thread to let it
+ * know that more data is available to be put in the
+ * output video buffer
+ */
+void vidcwakeupthread(void)
+{
+    if (pthread_cond_signal(&video_cond))
+    {
+        fatal("Couldn't signal vidc thread");
+    }
+}
+
+int vidctrymutex(void)
+{
+    int ret = pthread_mutex_trylock(&video_mutex);
+    if (ret == EBUSY)
+    {
+        return 0;
+    }
+    if (ret)
+    {
+        fatal("Getting vidc mutex failed");
+    }
+    return 1;
+}
+
+void vidcreleasemutex(void)
+{
+    if (pthread_mutex_unlock(&video_mutex))
+    {
+        fatal("Releasing vidc mutex failed");
+    }
+}
+
+/**
+ * Prepare and send a video update message to the GUI.
+ *
+ * @param buffer      Pointer to image buffer
+ * @param xsize       X size of buffer
+ * @param ysize       Y size of buffer
+ * @param yl          Y low range of area to update
+ * @param yh          Y high range of area to update
+ * @param double_size Current state of doubling X/Y values
+ * @param host_xsize  X pixel size of display including any double_size doubling
+ * @param host_ysize  Y pixel size of display including any double_size doubling
+ */
+void rpcemu_video_update(const uint32_t *buffer, int xsize, int ysize, int yl, int yh, int double_size, int host_xsize, int host_ysize)
+{
+    if (terminating)
+    {
+        return;
     }
 
-    /**
-     * Called on program shutdown to tidy up video thread
-     */
-    void vidcendthread(void)
+    VideoUpdate video_update;
+
+    // Prepare update message
+    //   Wrap the buffer in a QImage container:
+    video_update.image = QImage((uchar *) buffer, xsize, ysize, QImage::Format_RGB32);
+    video_update.yl = yl;
+    video_update.yh = yh;
+    video_update.double_size = double_size;
+    video_update.host_xsize = host_xsize;
+    video_update.host_ysize = host_ysize;
+
+    // Send update message to GUI
+    if (!terminating)
     {
-        //	terminating = 1;
-        //	if (pthread_cond_signal(&video_cond)) {
-        //		fatal("Couldn't signal vidc thread");
-        //	}
-        //	pthread_join(video_thread, NULL);
-    }
-
-    /**
-     * A signal sent to the video thread to let it
-     * know that more data is available to be put in the
-     * output video buffer
-     */
-    void vidcwakeupthread(void)
-    {
-        if (pthread_cond_signal(&video_cond))
-        {
-            fatal("Couldn't signal vidc thread");
-        }
-    }
-
-    int vidctrymutex(void)
-    {
-        int ret = pthread_mutex_trylock(&video_mutex);
-        if (ret == EBUSY)
-        {
-            return 0;
-        }
-        if (ret)
-        {
-            fatal("Getting vidc mutex failed");
-        }
-        return 1;
-    }
-
-    void vidcreleasemutex(void)
-    {
-        if (pthread_mutex_unlock(&video_mutex))
-        {
-            fatal("Releasing vidc mutex failed");
-        }
-    }
-
-    /**
-     * Prepare and send a video update message to the GUI.
-     *
-     * @param buffer      Pointer to image buffer
-     * @param xsize       X size of buffer
-     * @param ysize       Y size of buffer
-     * @param yl          Y low range of area to update
-     * @param yh          Y high range of area to update
-     * @param double_size Current state of doubling X/Y values
-     * @param host_xsize  X pixel size of display including any double_size doubling
-     * @param host_ysize  Y pixel size of display including any double_size doubling
-     */
-    void rpcemu_video_update(const uint32_t *buffer, int xsize, int ysize, int yl, int yh, int double_size, int host_xsize, int host_ysize)
-    {
-        if (terminating)
-        {
-            return;
-        }
-
-        VideoUpdate video_update;
-
-        // Prepare update message
-        //   Wrap the buffer in a QImage container:
-        video_update.image = QImage((uchar *) buffer, xsize, ysize, QImage::Format_RGB32);
-        video_update.yl = yl;
-        video_update.yh = yh;
-        video_update.double_size = double_size;
-        video_update.host_xsize = host_xsize;
-        video_update.host_ysize = host_ysize;
-
-        // Send update message to GUI
         emit pMainWin->main_display_signal(video_update);
-
-        // Send flyback message to emulator thread
+    }
+    
+    // Send flyback message to emulator thread
+    if (!terminating)
+    {
         emit emulator->video_flyback_signal();
     }
+}
 
-    /**
-     * Prepare and send a message from the emulator thread to the GUI
-     * thread that we want to move the host OS mouse pointer
-     * Used in Follows host mouse/mousehack
-     *
-     * @param x X coordinate relative to host display widget
-     * @param y Y coordinate relative to host display widget
-     */
-    void rpcemu_move_host_mouse(uint16_t x, uint16_t y)
-    {
-        MouseMoveUpdate mouse_update;
+/**
+ * Prepare and send a message from the emulator thread to the GUI
+ * thread that we want to move the host OS mouse pointer
+ * Used in Follows host mouse/mousehack
+ *
+ * @param x X coordinate relative to host display widget
+ * @param y Y coordinate relative to host display widget
+ */
+void rpcemu_move_host_mouse(uint16_t x, uint16_t y)
+{
+    MouseMoveUpdate mouse_update;
 
-        mouse_update.x = x;
-        mouse_update.y = y;
+    mouse_update.x = x;
+    mouse_update.y = y;
 
-        // Send message to GUI
-        emit pMainWin->move_host_mouse_signal(mouse_update);
-    }
+    // Send message to GUI
+    emit pMainWin->move_host_mouse_signal(mouse_update);
+}
 
 #ifdef FEATURE_NETWORKING
-    /**
-     * Send a NAT port forwarding rule from the emulator to the GUI thread
-     *
-     * Used on program startup to fill in the GUI with details of the NAT rules from
-     * the config file
-     *
-     * @param rule NAT rule details
-     */
-    void rpcemu_send_nat_rule_to_gui(PortForwardRule rule)
-    {
-        // Send message to GUI thread
-        emit pMainWin->send_nat_rule_to_gui_signal(rule);
-    }
+/**
+ * Send a NAT port forwarding rule from the emulator to the GUI thread
+ *
+ * Used on program startup to fill in the GUI with details of the NAT rules from
+ * the config file
+ *
+ * @param rule NAT rule details
+ */
+void rpcemu_send_nat_rule_to_gui(PortForwardRule rule)
+{
+    // Send message to GUI thread
+    emit pMainWin->send_nat_rule_to_gui_signal(rule);
+}
 #endif
 
-    /**
-     * Helper function to call the idle_process_events() method on the
-     * Emulator object from C.
-     */
-    void rpcemu_idle_process_events(void)
-    {
-        emulator->idle_process_events();
-    }
+/**
+ * Helper function to call the idle_process_events() method on the
+ * Emulator object from C.
+ */
+void rpcemu_idle_process_events(void)
+{
+    emulator->idle_process_events();
+}
 
-    /**
-     * Helper function to allow reading of the nanosecond timer
-     */
-    uint64_t rpcemu_nsec_timer_ticks(void)
-    {
-        return (uint64_t) emulator->get_elapsed_timer();
-    }
+/**
+ * Helper function to allow reading of the nanosecond timer
+ */
+uint64_t rpcemu_nsec_timer_ticks(void)
+{
+    return (uint64_t) emulator->get_elapsed_timer();
+}
 
 } // extern "C"
 
@@ -1173,25 +1179,25 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-    /**
-     * On startup log specific details related to QT
-     */
-    void rpcemu_log_platform(void)
+/**
+ * On startup log specific details related to QT
+ */
+void rpcemu_log_platform(void)
+{
+    /* version of qt6 this app is running on */
+    rpclog("QT6: %s\n", qVersion());
+
+    /* Log display information */
+    rpclog("Number of screens: %lld\n", QGuiApplication::screens().size());
+    rpclog("Primary screen: %s\n", QGuiApplication::primaryScreen()->name().toLocal8Bit().constData());
+
+    foreach (QScreen *screen, QGuiApplication::screens())
     {
-        /* version of qt6 this app is running on */
-        rpclog("QT6: %s\n", qVersion());
-
-        /* Log display information */
-        rpclog("Number of screens: %lld\n", QGuiApplication::screens().size());
-        rpclog("Primary screen: %s\n", QGuiApplication::primaryScreen()->name().toLocal8Bit().constData());
-
-        foreach (QScreen *screen, QGuiApplication::screens())
-        {
-            rpclog("Information for screen: %s\n", screen->name().toLocal8Bit().constData());
-            rpclog(" Resolution: %d x %d\n", screen->size().width(), screen->size().height());
-            rpclog(" Colour depth: %d\n", screen->depth());
-        }
+        rpclog("Information for screen: %s\n", screen->name().toLocal8Bit().constData());
+        rpclog(" Resolution: %d x %d\n", screen->size().width(), screen->size().height());
+        rpclog(" Colour depth: %d\n", screen->depth());
     }
+}
 
 #ifdef __cplusplus
 } /* extern "C" */

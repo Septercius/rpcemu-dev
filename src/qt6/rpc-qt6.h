@@ -55,10 +55,10 @@ class Emulator : public QObject
 
     void key_release_signal(unsigned scan_code);
 
-#if defined(Q_OS_MACOS)
+#if defined(RPCEMU_PLATFORM_MACOS)
     void modifier_keys_changed_signal(unsigned long mask);
     void modifier_keys_reset_signal();
-#endif /* Q_OS_MACOS */
+#endif /* RPCEMU_PLATFORM_MACOS */
 
     void mouse_move_signal(int x, int y);
     void mouse_move_relative_signal(int dx, int dy);
@@ -102,10 +102,10 @@ class Emulator : public QObject
 
     void key_release(unsigned scan_code);
 
-#if defined(Q_OS_MACOS)
+#if defined(RPCEMU_PLATFORM_MACOS)
     void modifier_keys_changed(unsigned long mask);
     void modifier_keys_reset();
-#endif /* Q_OS_MACOS */
+#endif /* RPCEMU_PLATFORM_MACOS */
 
     void mouse_move(int x, int y);
     void mouse_move_relative(int dx, int dy);
@@ -122,12 +122,15 @@ class Emulator : public QObject
     void cdrom_disabled();
     void cdrom_empty();
     void cdrom_load_iso(QString discname);
-#if defined(Q_OS_LINUX)
+    
+#if defined(RPCEMU_PLATFORM_LINUX)
     void cdrom_ioctl();
 #endif /* linux */
-#if defined(Q_OS_WIN32)
+    
+#if defined(RPCEMU_PLATFORM_WIN32)
     void cdrom_win_ioctl(char drive_letter);
 #endif /* win32 */
+    
     void mouse_hack();
     void mouse_twobutton();
     void config_updated(Config *new_config, Model new_model);

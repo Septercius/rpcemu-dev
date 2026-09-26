@@ -49,8 +49,6 @@ static struct cp15
     uint32_t domain_access_control; /**< Domain Access Control register */
     uint32_t fault_status;          /**< Fault Status register */
     uint32_t fault_address;         /**< Fault Address register */
-
-    CPUModel cpu_model; /**< CPU model emulated */
 } cp15;
 
 static int icache = 0;
@@ -138,10 +136,9 @@ void cp15_tlb_invalidate_physical(uint32_t addr)
  *
  * @param cpu_model Model of CPU (and associated mmu/cp15) being emulated
  */
-void cp15_reset(CPUModel cpu_model)
+void cp15_reset()
 {
-    cp15.cpu_model = cpu_model;
-    switch (cpu_model)
+    switch (machine.cpu_model)
     {
         case CPUModel_ARM610:
             cp15.ctrl = 0;
@@ -286,44 +283,35 @@ void cp15_write(uint32_t opcode, uint32_t val)
 
         case 5:
         case 6:
-            switch (cp15.cpu_model)
+            if (machine.arm_architecture == ARMArchitecture_V3)
             {
                 /* ARMv3 Architecture */
-                case CPUModel_ARM610:
-                case CPUModel_ARM710:
-                case CPUModel_ARM7500:
-                case CPUModel_ARM7500FE:
-                    switch (crn)
-                    {
-                        case 5: /* TLB Flush */
-                            cp15_tlb_flush_all();
-                            break;
+                switch (crn)
+                {
+                    case 5: /* TLB Flush */
+                        cp15_tlb_flush_all();
+                        break;
 
-                        case 6: /* TLB Purge */
-                            cp15_tlb_flush_all();
-                            break;
-                    }
-                    resetcodeblocks();
-                    return;
-
+                    case 6: /* TLB Purge */
+                        cp15_tlb_flush_all();
+                        break;
+                }
+                resetcodeblocks();
+                return;
+            }
+            else if (machine.arm_architecture == ARMArchitecture_V4)
+            {
                 /* ARMv4 Architecture */
-                case CPUModel_SA110:
-                case CPUModel_ARM810:
-                    switch (crn)
-                    {
-                        case 5: /* Fault Status Register */
-                            cp15.fault_status = val;
-                            return;
+                switch (crn)
+                {
+                    case 5: /* Fault Status Register */
+                        cp15.fault_status = val;
+                        return;
 
-                        case 6: /* Fault Address Register */
-                            cp15.fault_address = val;
-                            return;
-                    }
-                    break;
-
-                default:
-                    fprintf(stderr, "cp15_write(): unknown CPU model %d\n", cp15.cpu_model);
-                    exit(EXIT_FAILURE);
+                    case 6: /* Fault Address Register */
+                        cp15.fault_address = val;
+                        return;
+                }
             }
             break;
 
@@ -336,7 +324,7 @@ void cp15_write(uint32_t opcode, uint32_t val)
             return;
 
         case 8: /* TLB Operations (ARMv4) */
-            if (cp15.cpu_model == CPUModel_SA110 || cp15.cpu_model == CPUModel_ARM810)
+            if (machine.arm_architecture == ARMArchitecture_V4)
             {
                 if (opc2 == 0)
                 {
@@ -357,7 +345,7 @@ void cp15_write(uint32_t opcode, uint32_t val)
             break;
 
         case 15:
-            if (cp15.cpu_model == CPUModel_SA110)
+            if (machine.cpu_model == CPUModel_SA110)
             {
                 /* Test, Clock and Idle control */
                 if (opc2 == 2 && crm == 1)
@@ -385,7 +373,7 @@ uint32_t cp15_read(uint32_t opcode)
     switch (crn)
     {
         case 0: /* ID */
-            switch (cp15.cpu_model)
+            switch (machine.cpu_model)
             {
                 case CPUModel_ARM7500:
                     return 0x41027100;

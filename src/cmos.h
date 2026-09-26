@@ -24,14 +24,10 @@
 extern void cmos_init(void);
 extern void cmos_reset(void);
 extern void savecmos(void);
-extern void reseti2c(uint32_t chosen_i2c_devices);
+extern void reseti2c();
 extern void cmosi2cchange(int nuclock, int nudata);
 
 extern int i2cclock;
 extern int i2cdata;
-
-/** Values used in bitfield of I2C devices */
-#define I2C_PCF8583 (1 << 0)
-#define I2C_SPD_DIMM0 (1 << 1)
 
 #endif

@@ -81,41 +81,6 @@ __declspec(dllimport) void __stdcall Sleep(unsigned long dwMilliseconds);
   bugs*/
 #define mousehack (config.mousehackon)
 
-/** The type of networking configured */
-typedef enum
-{
-    NetworkType_Off,
-    NetworkType_NAT,
-    NetworkType_EthernetBridging,
-    NetworkType_IPTunnelling,
-} NetworkType;
-
-/** Selection of models that the emulator can emulate,
-  must be kept in sync with models[] array in rpcemu.c
-  the size of model_selection gui.c must be Model_MAX */
-typedef enum
-{
-    Model_RPCARM610,
-    Model_RPCARM710,
-    Model_RPCSA110,
-    Model_A7000,
-    Model_A7000plus,
-    Model_RPCARM810,
-    Model_Phoebe,
-    Model_MAX /**< Always last entry */
-} Model;
-
-/** The type of processor configured */
-typedef enum
-{
-    CPUModel_ARM610,
-    CPUModel_ARM710,
-    CPUModel_SA110,
-    CPUModel_ARM7500,
-    CPUModel_ARM7500FE,
-    CPUModel_ARM810
-} CPUModel;
-
 #ifdef FEATURE_MULTI_HOSTFS
 
 /** A drive configuration for HostFS. */
@@ -164,32 +129,6 @@ typedef struct
 } Config;
 
 extern Config config;
-
-/** Structure to hold details about a model that the emulator can emulate */
-typedef struct
-{
-    const char *name_gui;    /**< String used in the GUI */
-    const char *name_config; /**< String used in the Config file to select model */
-    CPUModel cpu_model;      /**< CPU used in this model */
-    IOMDType iomd_type;      /**< IOMD used in this model */
-    SuperIOType super_type;  /**< SuperIO chip used in this model */
-    uint32_t i2c_devices;    /**< Bitfield of devices on the I2C bus */
-} Model_Details;
-
-extern const Model_Details models[]; /**< array of details of models the emulator can emulate */
-
-/** Structure to hold hardware details of the current model being emulated
- (cached values of Model_Details for speed of lookup) */
-typedef struct
-{
-    Model model;            /**< enum value of model */
-    CPUModel cpu_model;     /**< CPU used in this model */
-    IOMDType iomd_type;     /**< IOMD used in this model */
-    SuperIOType super_type; /**< SuperIO chip used in this model */
-    uint32_t i2c_devices;   /**< Bitfield of devices on the I2C bus */
-} Machine;
-
-extern Machine machine; /**< The details of the current model being emulated */
 
 typedef enum
 {

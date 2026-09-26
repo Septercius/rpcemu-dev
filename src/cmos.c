@@ -49,7 +49,6 @@ int i2cdata = 1;  /**< The current value of the I2C data pin */
 #define BIN2BCD(val) ((((val) / 10) << 4) | ((val) % 10))
 
 static unsigned char cmosram[256];
-static uint32_t i2c_devices; /**< Bitfield of devices on the I2C bus */
 
 /****************************************************************************/
 
@@ -133,7 +132,7 @@ static void cmos_update_settings(void)
     /* Automatically configure the mousetype depending on which machine
        model is selected. CMOS location has been verified on 3.50-Select 4
        and 5.17 (*configure mousetype <number>) */
-    if (machine.model == Model_A7000 || machine.model == Model_A7000plus || machine.model == Model_Phoebe)
+    if (machine.mouse_type == MouseType_PS2)
     {
         cmosram[0x5d] = 3; /* PS/2 mouse */
     }
@@ -575,11 +574,11 @@ void cmosi2cchange(int scl, int sda)
                     serdes->address = serdes->inbuf >> 1;
 
                     /* Detect which device is being talked to */
-                    if ((serdes->address == pcf8583->address) && (i2c_devices & I2C_PCF8583))
+                    if ((serdes->address == pcf8583->address) && (machine.i2c_devices & I2CBitField_PCF8583))
                     {
                         slave = pcf8583;
                     }
-                    else if ((serdes->address == spd_i2c->address) && (i2c_devices & I2C_SPD_DIMM0))
+                    else if ((serdes->address == spd_i2c->address) && (machine.i2c_devices & I2CBitField_SPD_DIMM0))
                     {
                         slave = spd_i2c;
                     }
@@ -816,14 +815,11 @@ void cmosi2cchange(int scl, int sda)
 
 /**
  * Reset the I2C emulation and attached Philips PCF8583 RTC
- *
- * @param chosen_i2c_devices Bitfield of devices to attach to I2C bus
  */
-void reseti2c(uint32_t chosen_i2c_devices)
+void reseti2c()
 {
     i2cclock = 1;
     i2cdata = 1;
-    i2c_devices = chosen_i2c_devices;
 
     /* Prepare the Philips Real Time Clock chip slave device */
     pcf8583->devops = &pcf8583_ops;

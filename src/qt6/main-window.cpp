@@ -389,7 +389,7 @@ MainWindow::MainWindow(Emulator &emulator)
 {
     setWindowTitle("RPCEmu v" VERSION);
 
-    // Copy the emulators config to a thread local copy
+    // Copy the emulator's config to a thread local copy
     memcpy(&config_copy, &config, sizeof(Config));
     pconfig_copy = &config_copy;
     model_copy = machine.model;

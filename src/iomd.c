@@ -202,8 +202,6 @@ static const IOMDVariant iomds[] = {
     { 0xe8, 0xd5, 1 }, /* IOMD2 */
 };
 
-static IOMDType iomd_type; /**< The current type of IOMD we're emulating */
-
 static int sndon = 0;
 static int flyback = 0;
 
@@ -293,7 +291,7 @@ void iomd_write(uint32_t addr, uint32_t val)
 {
     uint32_t reg;
 
-    if (iomd_type == IOMDType_IOMD2)
+    if (machine.iomd_type == IOMDType_IOMD2)
     {
         reg = addr & 0x3fc; /* IOMD2 has 256 registers*/
     }
@@ -310,20 +308,20 @@ void iomd_write(uint32_t addr, uint32_t val)
             return;
 
         case IOMD_0x004_KBDDAT: /* Keyboard data */
-            if (iomd_type != IOMDType_IOMD2)
+            if (machine.iomd_type != IOMDType_IOMD2)
             {
                 keyboard_data_write(val);
             }
             return;
         case IOMD_0x008_KBDCR: /* Keyboard control */
-            if (iomd_type != IOMDType_IOMD2)
+            if (machine.iomd_type != IOMDType_IOMD2)
             {
                 keyboard_control_write(val & 8);
             }
             return;
 
         case IOMD_0x00C_IOLINES: /* General Purpose I/O lines (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 /* Connected to pin/bit 0 is the Monitor Id bit */
                 /* All other pin/bit connections are currently unknown */
@@ -345,7 +343,7 @@ void iomd_write(uint32_t addr, uint32_t val)
             return;
 
         case IOMD_0x01C_SUSMODE: /* Enter SUSPEND mode (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 UNIMPLEMENTED("IOMD Register write", "Call to enter SUSPEND mode 0x%x", val);
                 iomd.susmode = val;
@@ -362,7 +360,7 @@ void iomd_write(uint32_t addr, uint32_t val)
             return;
 
         case IOMD_0x03C_CLKCTL: /* Clock divider control (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 iomd.clkctrl = val;
             }
@@ -403,7 +401,7 @@ void iomd_write(uint32_t addr, uint32_t val)
             return;
 
         case IOMD_0x06C_VIDIMUX: /* LCD and IIS control bits (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 iomd.vidimux = val;
             }
@@ -434,26 +432,26 @@ void iomd_write(uint32_t addr, uint32_t val)
             return;
 
         case IOMD_0x0A0_MOUSEX: /* Mouse X position (Quadrature - IOMD) */
-            if (iomd_type == IOMDType_IOMD)
+            if (machine.iomd_type == IOMDType_IOMD)
             {
                 iomd.mousex = val;
             }
             return;
         case IOMD_0x0A4_MOUSEY: /* Mouse Y position (Quadrature - IOMD) */
-            if (iomd_type == IOMDType_IOMD)
+            if (machine.iomd_type == IOMDType_IOMD)
             {
                 iomd.mousey = val;
             }
             return;
 
         case IOMD_0x0A8_MSEDAT: /* Mouse data (PS/2 - ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 mouse_data_write(val);
             }
             return;
         case IOMD_0x0AC_MSECR: /* Mouse control (PS/2 - ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 mouse_control_write(val);
             }
@@ -468,7 +466,7 @@ void iomd_write(uint32_t addr, uint32_t val)
             return;
 
         case IOMD_0x0CC_DMAEXT: /* DMA external control (IOMD) */
-            if (iomd_type == IOMDType_IOMD)
+            if (machine.iomd_type == IOMDType_IOMD)
             {
                 iomd.dmaext = val;
                 return;
@@ -478,14 +476,14 @@ void iomd_write(uint32_t addr, uint32_t val)
             return;
 
         case IOMD_0x0D0_DRAMWID: /* DRAM width control (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 iomd.dramcr = val;
             }
             return;
 
         case IOMD_0x0D4_SELFREF: /* Force CAS/RAS lines low (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 iomd.selfref = val;
             }
@@ -636,7 +634,7 @@ uint32_t iomd_read(uint32_t addr)
 {
     uint32_t reg;
 
-    if (iomd_type == IOMDType_IOMD2)
+    if (machine.iomd_type == IOMDType_IOMD2)
     {
         reg = addr & 0x3fc; /* IOMD2 has 256 registers*/
     }
@@ -650,7 +648,7 @@ uint32_t iomd_read(uint32_t addr)
         case IOMD_0x000_IOCR: /* I/O control */
             return ((i2cclock) ? 2 : 0) | ((i2cdata) ? 1 : 0) | (iomd.ctrl & 0x7C) | 4 | ((flyback) ? 0x80 : 0);
         case IOMD_0x004_KBDDAT: /* Keyboard data */
-            if (iomd_type != IOMDType_IOMD2)
+            if (machine.iomd_type != IOMDType_IOMD2)
             {
                 return keyboard_data_read();
             }
@@ -659,7 +657,7 @@ uint32_t iomd_read(uint32_t addr)
                 return 0;
             }
         case IOMD_0x008_KBDCR: /* Keyboard control */
-            if (iomd_type != IOMDType_IOMD2)
+            if (machine.iomd_type != IOMDType_IOMD2)
             {
                 return keyboard_status_read();
             }
@@ -669,7 +667,7 @@ uint32_t iomd_read(uint32_t addr)
             }
 
         case IOMD_0x00C_IOLINES: /* General Purpose I/O lines (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 /* Connected to pin/bit 0 is the Monitor Id bit, 0 for VGA, 1 for TV res */
                 /* All other pin/bit connections are currently unknown */
@@ -685,7 +683,7 @@ uint32_t iomd_read(uint32_t addr)
             return iomd.irqa.mask;
 
         case IOMD_0x01C_SUSMODE: /* Enter SUSPEND mode (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 return iomd.susmode;
             }
@@ -706,7 +704,7 @@ uint32_t iomd_read(uint32_t addr)
             return iomd.fiq.mask;
 
         case IOMD_0x03C_CLKCTL: /* Clock divider control (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 return iomd.clkctrl;
             }
@@ -730,7 +728,7 @@ uint32_t iomd_read(uint32_t addr)
             return iomd.irqc.mask;
 
         case IOMD_0x06C_VIDIMUX: /* LCD and IIS control bits (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 return iomd.vidimux;
             }
@@ -751,33 +749,33 @@ uint32_t iomd_read(uint32_t addr)
             return iomd.refcr;
 
         case IOMD_0x094_ID0: /* Chip ID no. low byte */
-            return iomds[iomd_type].id_low;
+            return iomds[machine.iomd_type].id_low;
         case IOMD_0x098_ID1: /* Chip ID no. high byte */
-            return iomds[iomd_type].id_high;
+            return iomds[machine.iomd_type].id_high;
         case IOMD_0x09C_VERSION: /* Chip version number */
-            return iomds[iomd_type].id_version;
+            return iomds[machine.iomd_type].id_version;
 
         case IOMD_0x0A0_MOUSEX: /* Mouse X position (Quadrature - IOMD) */
-            if (iomd_type == IOMDType_IOMD)
+            if (machine.iomd_type == IOMDType_IOMD)
             {
                 return iomd.mousex;
             }
             return 0;
         case IOMD_0x0A4_MOUSEY: /* Mouse Y position (Quadrature - IOMD) */
-            if (iomd_type == IOMDType_IOMD)
+            if (machine.iomd_type == IOMDType_IOMD)
             {
                 return iomd.mousey;
             }
             return 0;
 
         case IOMD_0x0A8_MSEDAT: /* Mouse data (PS/2 - ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 return mouse_data_read();
             }
             return 0;
         case IOMD_0x0AC_MSECR: /* Mouse control (PS/2 - ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 return mouse_status_read();
             }
@@ -789,7 +787,7 @@ uint32_t iomd_read(uint32_t addr)
             return iomd.ectcr;
 
         case IOMD_0x0CC_DMAEXT: /* DMA external control     (IOMD) */
-            if (iomd_type != IOMDType_ARM7500 && iomd_type != IOMDType_ARM7500FE)
+            if (machine.iomd_type != IOMDType_ARM7500 && machine.iomd_type != IOMDType_ARM7500FE)
             {
                 return iomd.dmaext;
             }
@@ -798,14 +796,14 @@ uint32_t iomd_read(uint32_t addr)
             return 0;
 
         case IOMD_0x0D0_DRAMWID: /* DRAM width control (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 return iomd.dramcr;
             }
             return 0;
 
         case IOMD_0x0D4_SELFREF: /* Force CAS/RAS lines low (ARM7500/FE) */
-            if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+            if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
             {
                 return iomd.selfref;
             }
@@ -956,16 +954,10 @@ uint32_t iomd_mouse_buttons_read(void)
 /**
  * Initialise the power-on state of the IOMD chip
  *
- * Called on program startup and on program reset when
- * the configuration is changed.
- *
- * @param type Variant of IOMD chip to emulate
+ * Called on program startup and on program reset when the configuration is changed.
  */
-void iomd_reset(IOMDType type)
+void iomd_reset()
 {
-    assert(type == IOMDType_IOMD || type == IOMDType_ARM7500 || type == IOMDType_ARM7500FE || type == IOMDType_IOMD2);
-    iomd_type = type;
-
     iomd.romcr0 = 0x40; /* ROM Control 0, set to 16bit slowest access time */
     iomd.romcr1 = 0x40; /* ROM Control 1, set to 16bit slowest access time */
 
@@ -1000,7 +992,7 @@ void iomd_reset(IOMDType type)
     iomd.t0.in_latch = 0xffff;
     iomd.t1.in_latch = 0xffff;
 
-    if (iomd_type == IOMDType_ARM7500 || iomd_type == IOMDType_ARM7500FE)
+    if (machine.iomd_type == IOMDType_ARM7500 || machine.iomd_type == IOMDType_ARM7500FE)
     {
         /* ARM7500/ARM7500FE only */
         iomd.susmode = 0; /* SUSPEND Mode, not in suspend mode */

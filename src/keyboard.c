@@ -145,7 +145,7 @@ static struct
 
 static inline void keyboard_irq_rx_raise(void)
 {
-    if (machine.model == Model_Phoebe)
+    if (machine.mouse_controller == MouseController_I8042)
     {
         i8042_keyboard_irq_raise();
     }
@@ -158,7 +158,7 @@ static inline void keyboard_irq_rx_raise(void)
 
 static inline void keyboard_irq_rx_lower(void)
 {
-    if (machine.model == Model_Phoebe)
+    if (machine.mouse_controller == MouseController_I8042)
     {
         i8042_keyboard_irq_lower();
     }
@@ -189,7 +189,7 @@ static inline void mouse_irq_tx_lower(void)
 
 static inline void mouse_irq_rx_raise(void)
 {
-    if (machine.model == Model_Phoebe)
+    if (machine.mouse_controller == MouseController_I8042)
     {
         i8042_mouse_irq_raise();
     }
@@ -202,7 +202,7 @@ static inline void mouse_irq_rx_raise(void)
 
 static inline void mouse_irq_rx_lower(void)
 {
-    if (machine.model == Model_Phoebe)
+    if (machine.mouse_controller == MouseController_I8042)
     {
         i8042_mouse_irq_lower();
     }
@@ -738,7 +738,7 @@ static void mouse_process(void)
     iomd.mousey -= y; /* RPC Y axis go in opposite directions */
 
     /* Return if not PS/2 mouse */
-    if (machine.model != Model_A7000 && machine.model != Model_A7000plus && machine.model != Model_Phoebe)
+    if (machine.mouse_type != MouseType_PS2)
     {
         return;
     }

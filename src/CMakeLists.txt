@@ -42,6 +42,7 @@ set(COMMON_HEADERS
 	iomd.h
 	keyboard.h
 	mem.h
+	models.h
 	podulerom.h
 	podules.h
 	romload.h
@@ -74,6 +75,7 @@ set(COMMON_SOURCES
 	iomd.c
 	keyboard.c
 	mem.c
+	models.c
 	podulerom.c
 	podules.c
 	romload.c

@@ -74,7 +74,7 @@ extern int arm_is_dynarec(void);
 extern void arm_dump(void);
 extern void arm_init(void);
 extern int arm_exec(void);
-extern void arm_reset(CPUModel cpu_model);
+extern void arm_reset();
 extern void exception(uint32_t mmode, uint32_t address, uint32_t diff);
 
 extern void set_memory_executable(void *ptr, size_t len);

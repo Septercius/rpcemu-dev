@@ -68,8 +68,6 @@
 
 #define SMI_IRQ2_IRINT 0x04
 
-static SuperIOType super_type; /**< Which variant of SuperIO chip are we emulating */
-
 static int configmode = SUPERIO_MODE_NORMAL;
 static uint8_t configregs665[16];  /**< Internal configuration registers of FDC 37C665GT */
 static uint8_t configregs672[256]; /**< Internal configuration registers of FDC 37C672 */
@@ -166,7 +164,7 @@ static void superio_config_reg_write(uint8_t configreg, uint8_t val)
             break;
     }
 
-    if (super_type == SuperIOType_FDC37C672)
+    if (machine.super_type == SuperIOType_FDC37C672)
     {
         switch (configreg)
         {
@@ -179,11 +177,11 @@ static void superio_config_reg_write(uint8_t configreg, uint8_t val)
         }
     }
 
-    if (super_type == SuperIOType_FDC37C665GT)
+    if (machine.super_type == SuperIOType_FDC37C665GT)
     {
         configregs665[configreg] = val;
     }
-    else if (super_type == SuperIOType_FDC37C672)
+    else if (machine.super_type == SuperIOType_FDC37C672)
     {
         configregs672[configreg] = val;
     }
@@ -193,14 +191,9 @@ static void superio_config_reg_write(uint8_t configreg, uint8_t val)
  * Set the initial state of the SuperIO chip.
  *
  * Called on emulated machine startup and reset.
- *
- * @param chosen_super_type SuperIO type used in the machine
  */
-void superio_reset(SuperIOType chosen_super_type)
+void superio_reset()
 {
-    assert(chosen_super_type == SuperIOType_FDC37C665GT || chosen_super_type == SuperIOType_FDC37C672);
-
-    super_type = chosen_super_type;
     configmode = SUPERIO_MODE_NORMAL;
     printstat = 0;
 
@@ -247,7 +240,7 @@ void superio_write(uint32_t addr, uint32_t val)
         if ((addr == 0x3f0) && (val == 0x55))
         {
             /* Attempting to enter configuration mode */
-            if (super_type == SuperIOType_FDC37C665GT)
+            if (machine.super_type == SuperIOType_FDC37C665GT)
             {
                 if (configmode == SUPERIO_MODE_NORMAL)
                 {
@@ -258,7 +251,7 @@ void superio_write(uint32_t addr, uint32_t val)
                     configmode = SUPERIO_MODE_CONFIGURATION;
                 }
             }
-            else if (super_type == SuperIOType_FDC37C672)
+            else if (machine.super_type == SuperIOType_FDC37C672)
             {
                 configmode = SUPERIO_MODE_CONFIGURATION;
             }
@@ -282,11 +275,11 @@ void superio_write(uint32_t addr, uint32_t val)
             else
             {
                 /* Select a configuration register */
-                if (super_type == SuperIOType_FDC37C665GT)
+                if (machine.super_type == SuperIOType_FDC37C665GT)
                 {
                     configreg = val & 0xf;
                 }
-                else if (super_type == SuperIOType_FDC37C672)
+                else if (machine.super_type == SuperIOType_FDC37C672)
                 {
                     configreg = val & 0xff;
                 }
@@ -300,7 +293,7 @@ void superio_write(uint32_t addr, uint32_t val)
         return;
     }
 
-    if (super_type == SuperIOType_FDC37C672)
+    if (machine.super_type == SuperIOType_FDC37C672)
     {
         /* Embedded Intel 8042 PS/2 keyboard controller */
         if (addr == 0x60)
@@ -330,7 +323,7 @@ void superio_write(uint32_t addr, uint32_t val)
     if ((addr >= 0x1f0 && addr <= 0x1f7) || addr == 0x3f6)
     {
         /* IDE */
-        if (super_type == SuperIOType_FDC37C665GT)
+        if (machine.super_type == SuperIOType_FDC37C665GT)
         {
             writeide(addr, val);
         }
@@ -401,7 +394,7 @@ uint8_t superio_read(uint32_t addr)
     if (configmode == SUPERIO_MODE_CONFIGURATION && addr == 0x3f1)
     {
         /* Read from configuration register */
-        if (super_type == SuperIOType_FDC37C672)
+        if (machine.super_type == SuperIOType_FDC37C672)
         {
             /* Config registers contain a copy of the GP Data Registers */
             switch (configreg)
@@ -417,17 +410,17 @@ uint8_t superio_read(uint32_t addr)
             }
         }
 
-        if (super_type == SuperIOType_FDC37C665GT)
+        if (machine.super_type == SuperIOType_FDC37C665GT)
         {
             return configregs665[configreg];
         }
-        else if (super_type == SuperIOType_FDC37C672)
+        else if (machine.super_type == SuperIOType_FDC37C672)
         {
             return configregs672[configreg];
         }
     }
 
-    if (super_type == SuperIOType_FDC37C672)
+    if (machine.super_type == SuperIOType_FDC37C672)
     {
         /* Embedded Intel 8042 PS/2 keyboard controller */
         if (addr == 0x60)
@@ -453,7 +446,7 @@ uint8_t superio_read(uint32_t addr)
     if ((addr >= 0x1f0 && addr <= 0x1f7) || addr == 0x3f6)
     {
         /* IDE */
-        if (super_type == SuperIOType_FDC37C665GT)
+        if (machine.super_type == SuperIOType_FDC37C665GT)
         {
             return readide(addr);
         }
