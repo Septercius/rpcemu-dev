@@ -25,6 +25,8 @@
 #include "configure-dialog.h"
 #include "main-window.h"
 
+#define LIST_ITEM_ROLE_MODEL 0x100
+
 ConfigureDialog::ConfigureDialog(Emulator &emulator, Config *config_copy, Model *model_copy, QWidget *parent)
   : QDialog(parent)
   , emulator(emulator)
@@ -45,6 +47,7 @@ ConfigureDialog::ConfigureDialog(Emulator &emulator, Config *config_copy, Model 
     while (modeliter < (int) Model_MAX)
     {
         QListWidgetItem *item = new QListWidgetItem(models[modeliter].name_gui);
+        item->setData(LIST_ITEM_ROLE_MODEL, models[modeliter].model);
         hardware_list_items.insert(hardware_list_items.end(), item);
         hardware_listwidget->addItem(item);
         modeliter++;
@@ -173,8 +176,10 @@ void ConfigureDialog::dialog_accepted()
     Model new_model = *model_copy;
 
     // Fill in the choices from the dialog box
+    QListWidgetItem *currentModel = hardware_listwidget->currentItem();
+    
     // Hardware Model
-    new_model = (Model) hardware_listwidget->currentRow();
+    new_model = (Model) currentModel->data(LIST_ITEM_ROLE_MODEL).toInt();
 
     // RAM Size
     if (mem_4->isChecked())

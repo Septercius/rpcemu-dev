@@ -374,12 +374,9 @@ void arm_init(void)
 }
 
 /**
- * Reset the ARM core to initial state. The CPU model must be selected at this
- * point.
- *
- * @param cpu_model CPU model to emulate
+ * Reset the ARM core to initial state. The CPU model must be selected at this point.
  */
-void arm_reset(CPUModel cpu_model)
+void arm_reset()
 {
     memset(&arm, 0, sizeof(arm));
 
@@ -387,13 +384,12 @@ void arm_reset(CPUModel cpu_model)
     pccache = 0xFFFFFFFF;
     updatemode(SUPERVISOR);
     cpsr = 15;
-    //        prog32=1;
 
     arm.reg[15] = 0x0c000008 | 3;
     arm.reg[16] = SUPERVISOR | 0xd0;
     arm.mode = SUPERVISOR;
     pccache = 0xFFFFFFFF;
-    if (cpu_model == CPUModel_SA110 || cpu_model == CPUModel_ARM810)
+    if (machine.arm_architecture == ARMArchitecture_V4)
     {
         arm.r15_diff = 0;
         arm.abort_base_restored = 1;

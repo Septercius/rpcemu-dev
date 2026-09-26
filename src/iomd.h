@@ -21,6 +21,8 @@
 #ifndef IOMD_H
 #define IOMD_H
 
+#include "models.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -81,75 +83,64 @@ extern "C"
 #define IOMD_DMA_STATUS_INTERRUPT 0x02
 #define IOMD_DMA_STATUS_OVERRUN 0x04
 
-    /**
-     * IOMD component supports various types of IOMD hardware
-     */
-    typedef enum
-    {
-        IOMDType_IOMD,
-        IOMDType_ARM7500,
-        IOMDType_ARM7500FE,
-        IOMDType_IOMD2
-    } IOMDType;
+typedef struct
+{
+    uint8_t status;
+    uint8_t mask;
+} iomd_irq;
 
-    typedef struct
-    {
-        uint8_t status;
-        uint8_t mask;
-    } iomd_irq;
+typedef struct
+{
+    uint32_t in_latch;
+    int32_t counter;
+    uint32_t out_latch;
+} iomd_timer;
 
-    typedef struct
-    {
-        uint32_t in_latch;
-        int32_t counter;
-        uint32_t out_latch;
-    } iomd_timer;
+struct iomd
+{
+    iomd_irq irqa;
+    iomd_irq irqb;
+    iomd_irq irqc;
+    iomd_irq irqd;
+    iomd_irq fiq;
+    iomd_irq irqdma;
+    uint8_t romcr0; /**< ROM Control 0 */
+    uint8_t romcr1; /**< ROM Control 1 */
+    uint32_t vidstart, vidend, vidcur, vidinit;
+    iomd_timer t0;
+    iomd_timer t1;
+    uint8_t ctrl; /**< I/O Control */
+    unsigned char vidcr;
+    unsigned char sndstat;
+    uint8_t refcr; /**< IOMD VRAM control, IOMD/7500/FE DRAM refresh speed */
+    uint8_t iotcr; /**< I/O Timing Control */
+    uint8_t ectcr; /**< Expansion card timing */
 
-    struct iomd
-    {
-        iomd_irq irqa;
-        iomd_irq irqb;
-        iomd_irq irqc;
-        iomd_irq irqd;
-        iomd_irq fiq;
-        iomd_irq irqdma;
-        uint8_t romcr0; /**< ROM Control 0 */
-        uint8_t romcr1; /**< ROM Control 1 */
-        uint32_t vidstart, vidend, vidcur, vidinit;
-        iomd_timer t0;
-        iomd_timer t1;
-        uint8_t ctrl; /**< I/O Control */
-        unsigned char vidcr;
-        unsigned char sndstat;
-        uint8_t refcr; /**< IOMD VRAM control, IOMD/7500/FE DRAM refresh speed */
-        uint8_t iotcr; /**< I/O Timing Control */
-        uint8_t ectcr; /**< Expansion card timing */
+    /* IOMD21 only */
+    uint16_t mousex; /**< Quadrature mouse X */
+    uint16_t mousey; /**< Quadrature mouse Y */
+    uint8_t dmaext;  /**< DMA external control */
 
-        /* IOMD21 only */
-        uint16_t mousex; /**< Quadrature mouse X */
-        uint16_t mousey; /**< Quadrature mouse Y */
-        uint8_t dmaext;  /**< DMA external control */
+    /* ARM7500/ARM7500FE only */
+    uint8_t susmode; /**< SUSPEND Mode */
+    uint8_t clkctrl; /**< Clock Control */
+    uint8_t vidimux; /**< LCD and IIS control bits */
+    uint8_t dramcr;  /**< DRAM Control */
+    uint8_t selfref; /**< DRAM Self-Refresh Control */
+};
 
-        /* ARM7500/ARM7500FE only */
-        uint8_t susmode; /**< SUSPEND Mode */
-        uint8_t clkctrl; /**< Clock Control */
-        uint8_t vidimux; /**< LCD and IIS control bits */
-        uint8_t dramcr;  /**< DRAM Control */
-        uint8_t selfref; /**< DRAM Self-Refresh Control */
-    };
+extern struct iomd iomd;
 
-    extern struct iomd iomd;
+extern uint32_t cinit;
 
-    extern uint32_t cinit;
+extern void iomd_reset();
+extern void iomd_end(void);
+extern uint32_t iomd_read(uint32_t addr);
+extern void iomd_write(uint32_t addr, uint32_t val);
+extern uint32_t iomd_mouse_buttons_read(void);
+extern void iomd_flyback(int flyback_new);
 
-    extern void iomd_reset(IOMDType type);
-    extern void iomd_end(void);
-    extern uint32_t iomd_read(uint32_t addr);
-    extern void iomd_write(uint32_t addr, uint32_t val);
-    extern uint32_t iomd_mouse_buttons_read(void);
-    extern void iomd_flyback(int flyback_new);
-
-    extern void gentimerirq(uint64_t nsec_timer);
+extern void gentimerirq(uint64_t nsec_timer);
 
 #ifdef __cplusplus
 } /* extern "C" */

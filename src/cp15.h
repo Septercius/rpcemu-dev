@@ -28,7 +28,7 @@ extern "C"
 
 extern void cp15_tlb_invalidate_physical(uint32_t addr);
 
-extern void cp15_reset(CPUModel cpu_model);
+extern void cp15_reset(void);
 extern void cp15_init(void);
 
 extern void cp15_write(uint32_t opcode, uint32_t val);

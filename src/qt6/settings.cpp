@@ -19,6 +19,7 @@
  */
 #include <QSettings>
 
+#include "models.h"
 #include "rpcemu.h"
 
 #ifdef FEATURE_MULTI_HOSTFS
@@ -283,7 +284,7 @@ void config_load(Config *config)
     {
         config->vram_size = 8;
     }
-
+    
     sText = settings.value("model", "").toString();
     ba = sText.toUtf8();
     p = ba.data();
@@ -294,25 +295,31 @@ void config_load(Config *config)
         {
             if (strcasecmp(p, models[i].name_config) == 0)
             {
-                model = (Model) i;
+                model = models[i].model;
                 break;
             }
         }
     }
 
     rpcemu_model_changed(model);
-
-    /* A7000 and A7000+ have no VRAM */
-    if (model == Model_A7000 || model == Model_A7000plus)
+    
+    // Override main memory.
+    if ((machine.memory_flags & MemoryFlags_RAMFixed) != 0)
     {
-        config->vram_size = 0;
+        // Fixed main memory.
+        config->mem_size = machine.ram_fixed_size;
     }
 
-    /* If Phoebe, override some settings */
-    if (model == Model_Phoebe)
+    // Override VRAM.
+    if ((machine.memory_flags & MemoryFlags_VRAMNone) != 0)
     {
-        config->mem_size = 256;
-        config->vram_size = 4;
+        // No VRAM.
+        config->vram_size = 0;
+    }
+    else if ((machine.memory_flags & MemoryFlags_VRAMFixed) != 0)
+    {
+        // Fixed VRAM.
+        config->vram_size = machine.vram_fixed_size;
     }
 
     config->soundenabled = settings.value("sound_enabled", "1").toInt();
@@ -356,8 +363,7 @@ void config_load(Config *config)
         config->network_type = NetworkType_Off;
     }
 
-    /* Take a copy of the string config values, to allow dynamic alteration
-       later */
+    /* Take a copy of the string config values, to allow dynamic alteration later */
     sText = settings.value("username", "").toString();
     ba = sText.toUtf8();
     if (strlen(ba.data()) != 0)
@@ -451,9 +457,10 @@ void config_save(Config *config)
 
     snprintf(s, 256, "%u", config->mem_size);
     settings.setValue("mem_size", QString(s));
+    
+    const char *model_name = models_get_config_name(machine.model);
 
-    snprintf(s, 256, "%s", models[machine.model].name_config);
-    settings.setValue("model", QString(s));
+    settings.setValue("model", QString(model_name));
 
     if (config->vram_size != 0)
     {

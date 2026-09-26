@@ -240,7 +240,6 @@ static int hostfs_find_drive_from_name(char *discName)
 
         if (STRCASEEQ(drive->driveName, discName))
         {
-            fprintf(stderr, "HostFS: matched disc name '%s' to drive %d.\n", discName, i + HOSTFS_DRIVE_BASE);
             return i;
         }
     }
@@ -261,7 +260,6 @@ static int hostfs_find_drive_from_name(char *discName)
         {
             strcpy(discName, drive->driveName);
 
-            fprintf(stderr, "HostFS: matched disc name '%s' to drive %d.\n", discName, i + HOSTFS_DRIVE_BASE);
             return i;
         }
     }

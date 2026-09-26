@@ -21,16 +21,9 @@
 #ifndef SUPERIO_H
 #define SUPERIO_H
 
-/**
- * SuperIO chip type.
- */
-typedef enum
-{
-    SuperIOType_FDC37C665GT,
-    SuperIOType_FDC37C672
-} SuperIOType;
+#include "models.h"
 
-extern void superio_reset(SuperIOType chosen_super_type);
+extern void superio_reset();
 extern uint8_t superio_read(uint32_t addr);
 extern void superio_write(uint32_t addr, uint32_t val);
 

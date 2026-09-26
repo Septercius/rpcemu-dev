@@ -46,6 +46,7 @@
 #include "iomd.h"
 #include "keyboard.h"
 #include "mem.h"
+#include "models.h"
 #include "podulerom.h"
 #include "podules.h"
 #include "romload.h"
@@ -65,12 +66,6 @@
 #endif /* FEATURE_NETWORKING */
 
 char discname[2][260] = { "boot.adf", "notboot.adf" };
-
-Machine machine; /**< The details of the current machine being emulated */
-
-/** Array of details of models the emulator can emulate, must be kept in sync with
-    Model enum in rpcemu.h */
-const Model_Details models[] = { { "Risc PC - ARM610", "RPC610", CPUModel_ARM610, IOMDType_IOMD, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "Risc PC - ARM710", "RPC710", CPUModel_ARM710, IOMDType_IOMD, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "Risc PC - StrongARM", "RPCSA", CPUModel_SA110, IOMDType_IOMD, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "A7000", "A7000", CPUModel_ARM7500, IOMDType_ARM7500, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "A7000+ (experimental)", "A7000+", CPUModel_ARM7500FE, IOMDType_ARM7500FE, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "Risc PC - ARM810 (experimental)", "RPC810", CPUModel_ARM810, IOMDType_IOMD, SuperIOType_FDC37C665GT, I2C_PCF8583 }, { "Phoebe (RPC2)", "Phoebe", CPUModel_SA110, IOMDType_IOMD2, SuperIOType_FDC37C672, I2C_PCF8583 | I2C_SPD_DIMM0 } };
 
 Config config = { 0, /* mem_size */
     0,               /* vram_size */
@@ -193,14 +188,14 @@ void resetrpc(void)
     rpclog("RPCEmu: Machine reset\n");
 
     mem_reset(config.mem_size, config.vram_size);
-    cp15_reset(machine.cpu_model);
-    arm_reset(machine.cpu_model);
+    cp15_reset();
+    arm_reset();
     keyboard_reset();
-    iomd_reset(machine.iomd_type);
+    iomd_reset();
 
-    reseti2c(machine.i2c_devices);
+    reseti2c();
     resetide();
-    superio_reset(machine.super_type);
+    superio_reset();
     i8042_reset();
     cmos_reset();
     podules_reset();
@@ -527,11 +522,19 @@ void endrpcemu(void)
 void rpcemu_model_changed(Model model)
 {
     /* Cache details from the models[] array into the machine struct for speed of lookup */
-    machine.model = model;
-    machine.cpu_model = models[model].cpu_model;
-    machine.iomd_type = models[model].iomd_type;
-    machine.super_type = models[model].super_type;
-    machine.i2c_devices = models[model].i2c_devices;
+    ModelDetails *details = models_find(model);
+    
+    machine.model = details->model;
+    machine.arm_architecture = details->arm_architecture;
+    machine.cpu_model = details->cpu_model;
+    machine.i2c_devices = details->i2c_devices;
+    machine.iomd_type = details->iomd_type;
+    machine.memory_flags = details->memory_flags;
+    machine.mouse_controller = details->mouse_controller;
+    machine.mouse_type = details->mouse_type;
+    machine.ram_fixed_size = details->ram_fixed_size;
+    machine.super_type = details->super_type;
+    machine.vram_fixed_size = details->vram_fixed_size;
 }
 
 /**
@@ -615,7 +618,7 @@ int rpcemu_config_is_reset_required(const Config *new_config, Model new_model)
     }
 
     /* vram size has changed on a machine without fixed vram size */
-    if (config.vram_size != new_config->vram_size && (machine.model != Model_A7000 && machine.model != Model_A7000plus && machine.model != Model_Phoebe))
+    if ((machine.memory_flags & MemoryFlags_VRAMVariable) != 0 && config.vram_size != new_config->vram_size)
     {
         needs_reset = 1;
     }
@@ -707,18 +710,23 @@ void rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
         rpcemu_model_changed(new_model);
         needs_reset = 1;
     }
-
-    /* If an A7000 or an A7000+ it does not have vram */
-    if (machine.model == Model_A7000 || machine.model == Model_A7000plus)
+    
+    // Override the memory size if it is fixed.
+    if ((machine.memory_flags & MemoryFlags_RAMFixed) != 0)
     {
-        new_config->vram_size = 0;
+        new_config->mem_size = machine.ram_fixed_size;
     }
 
-    /* If Phoebe, override some settings */
-    if (machine.model == Model_Phoebe)
+    // Override the VRAM where it is absent or fixed.
+    if ((machine.memory_flags & MemoryFlags_VRAMNone) != 0)
     {
-        new_config->mem_size = 256;
-        new_config->vram_size = 4;
+        // No VRAM.
+        new_config->vram_size = 0;
+    }
+    else if ((machine.memory_flags & MemoryFlags_VRAMFixed) != 0)
+    {
+        // Fixed level of VRAM.
+        new_config->vram_size = machine.vram_fixed_size;
     }
 
     if (new_config->mem_size != config.mem_size)
@@ -749,8 +757,7 @@ void rpcemu_config_apply_new_settings(Config *new_config, Model new_model)
         }
     }
 
-    /* Reset the machine after the config variables have been set to their
-       new values */
+    /* Reset the machine after the config variables have been set to their new values */
     if (needs_reset)
     {
         resetrpc();

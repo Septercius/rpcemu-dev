@@ -69,7 +69,7 @@ NetworkDialog::NetworkDialog(Emulator &emulator, Config *config_copy, QWidget *p
 	vbox->addLayout(bridge_hbox);
 
 	// IP Tunnelling is linux only
-#if defined(Q_OS_LINUX)
+#if defined(RPCEMU_PLATFORM_LINUX)
 	vbox->addWidget(net_tunnelling);
 	vbox->addLayout(tunnelling_hbox);
 #endif /* linux */

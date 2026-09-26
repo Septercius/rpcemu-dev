@@ -133,7 +133,7 @@ void mem_reset(uint32_t ramsize, uint32_t vram_size)
 
     vraddrlpos = vwaddrlpos = 0;
 
-    if (machine.model == Model_Phoebe)
+    if (machine.iomd_type == IOMDType_IOMD2)
     {
         /* 30 address bits are connected to IOMD2. This results in a
            physical memory map of 1G that repeats in the 4G address space */
@@ -235,7 +235,7 @@ uint32_t mem_phys_read32(uint32_t addr)
                         return podules_read16(((addr >> 14) & 3) + 4, PODULE_IO_TYPE_IOC, addr & 0x3fff);
                 }
             }
-            if ((machine.model == Model_Phoebe) && (addr & 0xcffffc) == 0x8007c0)
+            if (machine.super_type == SuperIOType_FDC37C672 && (addr & 0xcffffc) == 0x8007c0)
             {
                 return readidew();
             }
@@ -347,7 +347,7 @@ static uint32_t mem_phys_read8(uint32_t addr)
                         return podules_read8(((addr >> 14) & 3) + 4, PODULE_IO_TYPE_IOC, addr & 0x3fff);
                 }
             }
-            if ((machine.model == Model_Phoebe) && (addr & 0xcff000) == 0x800000)
+            if (machine.super_type == SuperIOType_FDC37C672 && (addr & 0xcff000) == 0x800000)
             {
                 return readide((addr >> 2) & 0x3ff);
             }
@@ -466,7 +466,7 @@ static void mem_phys_write32(uint32_t addr, uint32_t val)
                 writevidc20(val);
                 return;
             }
-            if ((machine.model == Model_Phoebe) && (addr & 0xcffffc) == 0x8007c0)
+            if (machine.super_type == SuperIOType_FDC37C672 && (addr & 0xcffffc) == 0x8007c0)
             {
                 writeidew(val);
                 return;
@@ -590,7 +590,7 @@ static void mem_phys_write8(uint32_t addr, uint8_t val)
                         break;
                 }
             }
-            if ((machine.model == Model_Phoebe) && (addr & 0xcff000) == 0x800000)
+            if (machine.super_type == SuperIOType_FDC37C672 && (addr & 0xcff000) == 0x800000)
             {
                 writeide((addr >> 2) & 0x3ff, val);
                 return;

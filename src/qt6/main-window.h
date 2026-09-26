@@ -115,9 +115,10 @@ class MainWindow : public QMainWindow
     void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
     void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
     void keyReleaseEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
-#if defined(Q_OS_WIN32) || defined(Q_OS_MACOS)
+    
+#if defined(RPCEMU_PLATFORM_MACOS) || defined(RPCEMU_PLATFORM_WIN32)
     bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) Q_DECL_OVERRIDE;
-#endif /* Q_OS_WIN32 */
+#endif /* RPCEMU_PLATFORM_MACOS || RPCEMU_PLATFORM_WIN32 */
 
   private slots:
     void menu_screenshot();
@@ -226,11 +227,11 @@ class MainWindow : public QMainWindow
     QAction *cdrom_disabled_action;
     QAction *cdrom_empty_action;
 
-#if defined(Q_OS_LINUX)
+#if defined(RPCEMU_PLATFORM_LINUX)
     QAction *cdrom_ioctl_action;
 #endif /* linux */
 
-#if defined(Q_OS_WIN32)
+#if defined(RPCEMU_PLATFORM_WIN32)
     std::vector<QAction *> cdrom_win_ioctl_actions;
 #endif /* win32 */
 
