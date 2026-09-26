@@ -29,7 +29,7 @@ const char *models_get_config_name(Model model)
 }
 
 
-ModelDetails *models_find(Model model)
+const ModelDetails *models_find(Model model)
 {
     for (int i = 0; i < Model_MAX; i += 1)
     {
