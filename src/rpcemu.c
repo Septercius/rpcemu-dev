@@ -522,7 +522,7 @@ void endrpcemu(void)
 void rpcemu_model_changed(Model model)
 {
     /* Cache details from the models[] array into the machine struct for speed of lookup */
-    ModelDetails *details = models_find(model);
+    const ModelDetails *details = models_find(model);
     
     machine.model = details->model;
     machine.arm_architecture = details->arm_architecture;
