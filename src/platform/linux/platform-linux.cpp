@@ -30,6 +30,7 @@
 #include <sys/wait.h>
 
 #include "mem.h"
+#include "platform-common.h"
 #include "rpcemu.h"
 #include "sound.h"
 #include "vidc20.h"

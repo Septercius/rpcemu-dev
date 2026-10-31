@@ -37,6 +37,7 @@
 #include "iomd.h"
 #include "keyboard.h"
 #include "mem.h"
+#include "platform-common.h"
 #include "network.h"
 #include "rpcemu.h"
 #include "sound.h"
