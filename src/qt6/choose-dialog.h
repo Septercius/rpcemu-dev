@@ -28,6 +28,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 
+#include "folder-edit.h"
 #include "rpc-qt6.h"
 #include "rpcemu.h"
 
@@ -45,13 +46,13 @@ class ChooseDialog : public QDialog
 
     void dialog_accepted();
     void dialog_rejected();
-
+    
   private:
     QLabel *preamble_label;
     QLabel *choose_label;
 
     QHBoxLayout *directory_hbox;
-    QLineEdit *directory_edit;
+    FolderEdit *directory_edit;
     QPushButton *directory_button;
 
     QDialogButtonBox *buttons_box;

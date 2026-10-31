@@ -16,12 +16,10 @@
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-*/
+ */
 
 #include <assert.h>
-#include <dirent.h>
 #include <errno.h>
-#include <limits.h>
 #include <signal.h>
 #include <string.h>
 
@@ -36,8 +34,16 @@
 #include "sound.h"
 #include "vidc20.h"
 
-static char datadir[PATH_MAX];
-static char logpath[PATH_MAX];
+static char datadir[PATH_MAX] = "./";
+static char logpath[PATH_MAX] = "";
+
+bool rpcemu_platform_startup(int modifierMask)
+{
+    rpcemu_log_information();
+    config_load(&config);
+    
+    return true;
+}
 
 /**
  * Return disk space information about a file system.
@@ -86,40 +92,6 @@ void rpcemu_log_os(void)
     rpclog("OS: Release = %s\n", u.release);
     rpclog("OS: Version = %s\n", u.version);
     rpclog("OS: Machine = %s\n", u.machine);
-}
-
-/**
- * Set the directory that contains the data required by 
- * the program, e.g. CMOS settings, ROMs, configuration
- *
- * @return 1 if successful, otherwise 0.
- */
-int rpcemu_set_datadir(const char *path)
-{
-    size_t len = strlen(path);
-    if (len == 0)
-    {
-        return 0;
-    }
-    
-    if (path[len - 1] != '/')
-    {
-        snprintf(datadir, sizeof(datadir), "%s/", path);
-    }
-    else
-    {
-        strncpy(datadir, path, sizeof(datadir));
-    }
-    
-    // Check the folder exists.
-    DIR *ptr = opendir(datadir);
-    if (ptr)
-    {
-        closedir(ptr);
-        return 1;
-    }
-    
-    return 0;
 }
 
 /**

@@ -359,7 +359,7 @@ uint32_t network_nat_rx(uint32_t errbuf, uint32_t mbuf, uint32_t rxhdr, uint32_t
         // Copy payload in to the mbuf
         rxb.m_off = rxb.m_inioff;
         memcpyfromhost(mbuf + rxb.m_off, payload, packet_length);
-        rxb.m_len = packet_length;
+        rxb.m_len = (uint32_t) packet_length;
         memcpyfromhost(mbuf, &rxb, sizeof(rxb));
 
         *data_avail = 1;

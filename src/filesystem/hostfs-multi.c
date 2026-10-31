@@ -40,6 +40,7 @@
 #include "hostfs-multi.h"
 #include "mem.h"
 #include "paths.h"
+#include "platform-common.h"
 
 #if defined(RPCEMU_PLATFORM_LINUX)
 #include "hostfs-multi-linux.h"
@@ -59,11 +60,6 @@
 
 #define mkdir(name, mode) _mkdir(name)
 #endif
-
-typedef int bool;
-
-#define true ((bool) 1)
-#define false ((bool) 0)
 
 /** Registration states of HostFS module with backend code */
 typedef enum
@@ -739,7 +735,7 @@ static void hostfs_path_scan(const char *host_dir_path, const char *object, char
             continue;
         }
 
-        path_join(host_dir_path, entry->d_name, entry_path);
+        path_join(entry_path, host_dir_path, entry->d_name);
 
         hostfs_read_object_info(entry_path, ro_leaf, object_info);
 
@@ -1029,7 +1025,7 @@ static void hostfs_open(ARMul_State *state)
 
     /* Find the extent of the file */
     fseek(open_file[idx], 0L, SEEK_END);
-    state->Reg[3] = ftell(open_file[idx]);
+    state->Reg[3] = (uint32_t) ftell(open_file[idx]);
     rewind(open_file[idx]); /* Return to start */
 
     state->Reg[1] = idx;  /* Our filing system's handle */
@@ -1888,7 +1884,7 @@ static void hostfs_cache_dir(const char *directory_name)
             continue;
         }
 
-        path_join(directory_name, entry->d_name, entry_path);
+        path_join(entry_path, directory_name, entry->d_name);
 
         hostfs_read_object_info(entry_path, ro_leaf, &cache_entries[entry_ptr].object_info);
 
@@ -1910,7 +1906,7 @@ static void hostfs_cache_dir(const char *directory_name)
         }
 
         /* Calculate space required to store name (+ terminator) */
-        string_space = strlen(ro_leaf) + 1;
+        string_space = (int) strlen(ro_leaf) + 1;
 
         /* Check whether cache_names[] is large enough; increase if required */
         if (string_space > (cache_names_capacity - name_ptr))
@@ -2137,7 +2133,7 @@ static void hostfs_func_11_read_name_and_boot_option(ARMul_State *state)
             return;
         }
 
-        int len = strlen(drive->driveName);
+        int len = (int) strlen(drive->driveName);
 
         buffer[0] = len;
         strcpy(buffer + 1, drive->driveName);
@@ -2764,7 +2760,7 @@ void hostfs_swi_getdrivename(ARMul_State *state)
         return;
     }
 
-    int length = strlen(drive->driveName);
+    int length = (int) strlen(drive->driveName);
 
     if (state->Reg[1] == 0)
     {
@@ -2838,13 +2834,13 @@ void hostfs_swi_generatecommand(ARMul_State *state)
         case HOSTFS_COMMAND_TYPE_OPENDIR:
             // Generate a 'Filer_OpenDir' string.
             snprintf(buffer, 128, "Filer_OpenDir HostFS::%s.$", drive->driveName);
-            state->Reg[3] = strlen(buffer) + 1;
+            state->Reg[3] = (int) strlen(buffer) + 1;
             break;
 
         case HOSTFS_COMMAND_TYPE_FREE:
             // Generate a 'ShowFree' string.
             snprintf(buffer, 128, "ShowFree -fs HostFS %s", drive->driveName);
-            state->Reg[3] = strlen(buffer) + 1;
+            state->Reg[3] = (int) strlen(buffer) + 1;
             break;
 
         case HOSTFS_COMMAND_TYPE_BOOT:
@@ -2852,17 +2848,17 @@ void hostfs_swi_generatecommand(ARMul_State *state)
             if (drive->bootOption == HOSTFS_BOOT_OPTION_LOAD)
             {
                 snprintf(buffer, 128, "Load HostFS::%s.$.!Boot", drive->driveName);
-                state->Reg[3] = strlen(buffer) + 1;
+                state->Reg[3] = (int) strlen(buffer) + 1;
             }
             else if (drive->bootOption == HOSTFS_BOOT_OPTION_RUN)
             {
                 snprintf(buffer, 128, "Run HostFS::%s.$.!Boot", drive->driveName);
-                state->Reg[3] = strlen(buffer) + 1;
+                state->Reg[3] = (int) strlen(buffer) + 1;
             }
             else if (drive->bootOption == HOSTFS_BOOT_OPTION_EXEC)
             {
                 snprintf(buffer, 128, "Exec HostFS::%s.$.!Boot", drive->driveName);
-                state->Reg[3] = strlen(buffer) + 1;
+                state->Reg[3] = (int) strlen(buffer) + 1;
             }
             else
             {
@@ -2919,7 +2915,7 @@ void hostfs_swi_freeop(ARMul_State *state)
                 drive = &config.hostfs_drive[index];
 
                 put_string(state, state->Reg[2], drive->driveName);
-                state->Reg[0] = strlen(drive->driveName) + 1;
+                state->Reg[0] = (int) strlen(drive->driveName) + 1;
 
                 dbug_hostfs("HostFS: name for '%s' is '%s'.\n", driveName, drive->driveName);
             }

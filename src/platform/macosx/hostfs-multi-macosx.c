@@ -149,7 +149,7 @@ void hostfs_object_set_timestamp_platform(const char *host_path, uint32_t load, 
  */
 int hostfs_is_dotfile_platform(const char *hostPath)
 {
-    const char *fileName = path_extract_filename(hostPath);
+    const char *fileName = path_get_filename(hostPath);
     if (fileName[0] == '.')
     {
         return 1;
@@ -170,7 +170,7 @@ int hostfs_is_systemfile_platform(const char *hostPath)
     const char *leafNames[] = { ".DS_Store", ".fseventsd", "System Volume Information", ".Spotlight-V100", ".Trash" };
     const char *fullPaths[] = { "/bin", "/cores", "/dev", "/etc", "/home", "/net", "/private", "/sbin", "/tmp", "/usr", "/var", "/installer.failurerequests", "/Network", "/Volumes" };
 
-    const char *fileName = path_extract_filename(hostPath);
+    const char *fileName = path_get_filename(hostPath);
     size_t i;
 
     // Check file names.

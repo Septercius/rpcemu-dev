@@ -178,7 +178,6 @@ void fdc_image_load(const char *fn, int drive)
     f = fopen(fn, "rb");
     if (f == NULL)
     {
-        //		error("Unable to open disc image '%s'", fn);
         return;
     }
 

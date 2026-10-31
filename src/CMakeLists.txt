@@ -50,9 +50,12 @@ set(COMMON_HEADERS
 	sound.h
 	superio.h
 	vidc20.h
+	platform/platform-common.h
 	qt6/about-dialog.h
 	qt6/configure-dialog.h
+	qt6/folder-edit.h
 	qt6/main-window.h
+	qt6/paths.h
 	qt6/plt-sound.h
 	qt6/rpc-qt6.h
 )
@@ -85,7 +88,9 @@ set(COMMON_SOURCES
 	vidc20.c
 	qt6/about-dialog.cpp
 	qt6/configure-dialog.cpp
+	qt6/folder-edit.cpp
 	qt6/main-window.cpp
+	qt6/paths.cpp
 	qt6/plt-sound.cpp
 	qt6/rpc-qt6.cpp
 	qt6/settings.cpp
@@ -179,7 +184,7 @@ set(LINUX_RECOMPILER_SOURCES_64
 set(LINUX_SOURCES
 	platform/linux/cdrom-linuxioctl.c
 	platform/linux/keyboard-linux.c
-	platform/linux/rpc-linux.c
+	platform/linux/platform-linux.cpp
 )
 
 # Set macOS-specific header files for standard HostFS.
@@ -207,15 +212,16 @@ set(MACOS_HEADERS
 	platform/macosx/events-macosx.h
 	platform/macosx/hid-macosx.h
 	platform/macosx/keyboard-macosx.h
+	platform/macosx/platform-macosx.h
 	platform/macosx/preferences-macosx.h
 	qt6/choose-dialog.h
 )
 
 # Set macOS-specific source files.
 set(MACOS_SOURCES
-	platform/macosx/rpc-macosx.c
 	platform/macosx/events-macosx.m
 	platform/macosx/hid-macosx.m
+	platform/macosx/platform-macosx.cpp
 	platform/macosx/preferences-macosx.m
 	platform/macosx/keyboard-macosx.c
 	qt6/choose-dialog.cpp
@@ -242,14 +248,12 @@ set(MACOS_RECOMPILER_SOURCES
 set(MULTI_HOSTFS_HEADERS
 	filesystem/hostfs-multi.h
 	qt6/hostfs-dialog.h
-	qt6/paths.h
 )
 
 # Set multiple-drive HostFS sources.
 set(MULTI_HOSTFS_SOURCES
 	filesystem/hostfs-multi.c
 	qt6/hostfs-dialog.cpp
-	qt6/paths.cpp
 )
 
 # Set common headers for networking.
@@ -355,7 +359,7 @@ set(WIN32_RECOMPILER_SOURCES
 set(WIN32_SOURCES
 	platform/win/cdrom-ioctl.c
 	platform/win/keyboard-win.c
-	platform/win/rpc-win.c
+	platform/win/platform-win.cpp
 )
 
 # For multiple-drive HostFS, add its files to the filesystem sources.

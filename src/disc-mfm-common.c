@@ -432,7 +432,7 @@ void mfm_common_poll(mfm_t *mfm)
             }
             else if (mfm->density == 1)
             {
-                new_data = pack_2us(mfm->buffer);
+                new_data = pack_2us((uint32_t) mfm->buffer);
             }
             else
             {

@@ -47,6 +47,14 @@ static char logpath[PATH_MAX] = "";
 
 int handle_sigio; /**< bool to indicate new network data is received */
 
+bool rpcemu_platform_startup(int modifierMask)
+{
+    rpcemu_log_information();
+    config_load(&config);
+    
+    return true;
+}
+
 /**
  * Return disk space information about a file system.
  *

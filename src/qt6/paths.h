@@ -21,16 +21,25 @@
 #ifndef PATHS_H
 #define PATHS_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-extern const char *path_extract_filename(const char *path);
-extern char *path_resolve(const char *path);
-extern int path_validate(const char *path);
-extern void path_join(const char *str1, const char *str2, char *buffer);
-extern void path_append(char *str1, const char *str2);
+extern void path_append(char *buffer, const char *path);
+extern void path_append_data(char *buffer, const char *path);
+
+extern bool path_directory_exists(const char *path);
+
+extern const char *path_get_extension(const char *path);
+extern const char *path_get_filename(const char *path);
+
+extern void path_join(char *buffer, const char *left, const char *right);
+extern void path_join_data(char *buffer, const char *left, const char *right);
+
+extern char *path_make_absolute(const char *path);
 
 #ifdef __cplusplus
 }
