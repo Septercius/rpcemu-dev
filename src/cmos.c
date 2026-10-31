@@ -32,6 +32,7 @@
 #include <time.h>
 
 #include "cmos.h"
+#include "paths.h"
 #include "rpcemu.h"
 
 #if 0
@@ -179,26 +180,25 @@ static void cmos_update_checksum(void)
  */
 void cmos_init(void)
 {
-    char fn[PATH_MAX];
+    char cmospath[PATH_MAX];
     FILE *cmosf;
 
-    /* Append "cmos.ram" to the given executable path */
-    snprintf(fn, sizeof(fn), "%scmos.ram", rpcemu_get_datadir());
-    cmosf = fopen(fn, "rb");
+    path_append_data(cmospath, "cmos.ram");
+    cmosf = fopen(cmospath, "rb");
 
     if (cmosf)
     {
         /* File open suceeded, load CMOS data */
         if (fread(cmosram, 1, 256, cmosf) != 256)
         {
-            fatal("Unable to read from CMOS file '%s', %s", fn, strerror(errno));
+            fatal("Unable to read from CMOS file '%s', %s", cmospath, strerror(errno));
         }
         fclose(cmosf);
     }
     else
     {
         /* Report failure and initialise the array */
-        fprintf(stderr, "Could not open CMOS file '%s': %s\n", fn, strerror(errno));
+        fprintf(stderr, "Could not open CMOS file '%s': %s\n", cmospath, strerror(errno));
         memset(cmosram, 0, 256);
     }
 }
@@ -224,24 +224,24 @@ void cmos_reset(void)
  */
 void savecmos(void)
 {
-    char fn[PATH_MAX];
+    char cmospath[PATH_MAX];
     FILE *cmosf;
 
-    snprintf(fn, sizeof(fn), "%scmos.ram", rpcemu_get_datadir());
-    cmosf = fopen(fn, "wb");
+    path_append_data(cmospath, "cmos.ram");
+    cmosf = fopen(cmospath, "wb");
 
     if (cmosf)
     {
         if (fwrite(cmosram, 256, 1, cmosf) != 1)
         {
-            fatal("Unable to write CMOS file '%s': %s", fn, strerror(errno));
+            fatal("Unable to write CMOS file '%s': %s", cmospath, strerror(errno));
             // TODO does it have to be fatal?
         }
         fclose(cmosf);
     }
     else
     {
-        fprintf(stderr, "Could not open CMOS file '%s' for writing: %s\n", fn, strerror(errno));
+        fprintf(stderr, "Could not open CMOS file '%s' for writing: %s\n", cmospath, strerror(errno));
     }
 }
 

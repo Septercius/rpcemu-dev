@@ -42,14 +42,13 @@
 #include "mem.h"
 #include "network-nat.h"
 #include "network.h"
+#include "platform-common.h"
 #include "rpcemu.h"
 #include "sound.h"
 #include "vidc20.h"
 
 #ifdef RPCEMU_PLATFORM_MACOS
-#include "choose-dialog.h"
 #include "hid-macosx.h"
-#include "preferences-macosx.h"
 #include "keyboard-macosx.h"
 #endif /* RPCEMU_PLATFORM_MACOS */
 
@@ -419,6 +418,37 @@ void rpcemu_move_host_mouse(uint16_t x, uint16_t y)
     emit pMainWin->move_host_mouse_signal(mouse_update);
 }
 
+/**
+ * Determine which modifier keys are being held down at start-up.
+ */
+int rpcemu_get_startup_modifiers()
+{
+    int result = 0;
+    
+    Qt::KeyboardModifiers modifiers = QApplication::queryKeyboardModifiers();
+    if ((modifiers && Qt::AltModifier) != 0)
+    {
+        result |= StartupModifierKey_Alt;
+    }
+    
+    if ((modifiers && Qt::ControlModifier) != 0)
+    {
+        result |= StartupModifierKey_Control;
+    }
+    
+    if ((modifiers && Qt::MetaModifier) != 0)
+    {
+        result |= StartupModifierKey_Meta;
+    }
+    
+    if ((modifiers && Qt::ShiftModifier) != 0)
+    {
+        result |= StartupModifierKey_Shift;
+    }
+    
+    return result;
+}
+
 #ifdef FEATURE_NETWORKING
 /**
  * Send a NAT port forwarding rule from the emulator to the GUI thread
@@ -454,23 +484,6 @@ uint64_t rpcemu_nsec_timer_ticks(void)
 
 } // extern "C"
 
-#ifdef RPCEMU_PLATFORM_MACOS
-
-int rpcemu_choose_datadirectory()
-{
-    ChooseDialog dialog;
-    if (dialog.exec() == QDialog::Accepted)
-    {
-        const char *path = preferences_get_data_directory();
-
-        return rpcemu_set_datadir(path);
-    }
-
-    return 0;
-}
-
-#endif /* RPCEMU_PLATFORM_MACOS */
-
 /**
  * Program entry point
  *
@@ -479,36 +492,23 @@ int rpcemu_choose_datadirectory()
  */
 int main(int argc, char **argv)
 {
-    //	if (argc != 1) {
-    //		fprintf(stderr, "No command line options supported.\n");
-    //		return 1;
-    //	}
-
     // Initialise QT app
     QApplication app(argc, argv);
 
     // Add a program icon
     QApplication::setWindowIcon(QIcon(":/rpcemu-icon.png"));
-
-#ifdef RPCEMU_PLATFORM_MACOS
-    init_preferences();
-
-    // If there is not a data directory in the application preferences, prompt for one.
-    // This will also prompt if the "Shift" key is held down while the application loads.
-    if (promptForDataDirectory || (QApplication::queryKeyboardModifiers() & Qt::ShiftModifier) != 0)
-    {
-        if (!rpcemu_choose_datadirectory())
-        {
-            return 0;
-        }
-    }
-#endif /* RPCEMU_PLATFORM_MACOS */
+    
+    // Are there any modifier keys pressed that can alter start-up behaviour?
+    int modifierMask = rpcemu_get_startup_modifiers();
 
     // start enough of the emulator system to allow
     // the GUI to initialise (e.g. load the config to init
     // the configure window)
-    rpcemu_prestart();
-
+    if (!rpcemu_platform_startup(modifierMask))
+    {
+        exit(EXIT_FAILURE);
+    }
+    
     // Allow additional types to be passed in slots and signals
     qRegisterMetaType<Model>("Model");
     qRegisterMetaType<VideoUpdate>("VideoUpdate");

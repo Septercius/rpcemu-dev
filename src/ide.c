@@ -37,6 +37,7 @@ void callbackide(void);
 #include "ide.h"
 #include "iomd.h"
 #include "mem.h"
+#include "paths.h"
 #include "rpcemu.h"
 #include "vidc20.h"
 
@@ -389,14 +390,14 @@ static void ide_image_set_spt_hpc_skip512(FILE *fh, int d)
  */
 static void loadhd(int d, const char *filename)
 {
-    char pathname[512];
-
-    snprintf(pathname, sizeof(pathname), "%s%s", rpcemu_get_datadir(), filename);
+    char imagepath[PATH_MAX];
+    
+    path_append_data(imagepath, filename);
 
     if (ide.hdfile[d] == NULL)
     {
         /* Try to open existing hard disk image */
-        ide.hdfile[d] = fopen64(pathname, "rb+");
+        ide.hdfile[d] = fopen64(imagepath, "rb+");
         if (ide.hdfile[d] == NULL)
         {
             /* Failed to open existing hard disk image */
@@ -404,16 +405,16 @@ static void loadhd(int d, const char *filename)
             {
                 /* Failed because it does not exist,
                    so try to create new file */
-                ide.hdfile[d] = fopen64(pathname, "wb+");
+                ide.hdfile[d] = fopen64(imagepath, "wb+");
                 if (ide.hdfile[d] == NULL)
                 {
-                    fatal("Cannot create file '%s': %s", pathname, strerror(errno));
+                    fatal("Cannot create file '%s': %s", imagepath, strerror(errno));
                 }
             }
             else
             {
                 /* Failed for another reason */
-                fatal("Cannot open file '%s': %s", pathname, strerror(errno));
+                fatal("Cannot open file '%s': %s", imagepath, strerror(errno));
             }
         }
     }

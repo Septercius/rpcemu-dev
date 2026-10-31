@@ -16,26 +16,73 @@
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
+*/
 
 #include <assert.h>
+#include <dirent.h>
 #include <errno.h>
+#include <limits.h>
+#include <pthread.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <string.h>
 
-#include <pthread.h>
 #include <sys/statvfs.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
 
+#include "choose-dialog.h"
 #include "mem.h"
+#include "paths.h"
+#include "platform-common.h"
+#include "preferences-macosx.h"
 #include "rpcemu.h"
 #include "sound.h"
 #include "vidc20.h"
 
-static char datadir[PATH_MAX] = "./";
-static char logpath[PATH_MAX] = "";
+static char datadir[PATH_MAX];
+static char logpath[PATH_MAX];
+
+int rpcemu_set_datadir(const char *path);
+
+bool rpcemu_platform_startup(int modifierMask)
+{
+    char folderPath[PATH_MAX];
+    
+    // Look for the location of the data folder in the macOS preferences.
+    // If this cannot be found, or the user holds down the SHIFT key as the application starts, 
+    // they will be prompted to select a folder.
+    bool initialised = preferences_init(folderPath);
+    if (!initialised || (modifierMask && StartupModifierKey_Shift) != 0)
+    {
+        // Prompt the user to select a folder for storing the data.
+        ChooseDialog dialog;
+        if (dialog.exec() == QDialog::Accepted)
+        {
+            const char *path = preferences_get_data_directory();
+            
+            if (!rpcemu_set_datadir(path))
+            {
+                return false;
+            }
+        }
+        else
+        {
+            // If the user cancelled, do not continue.
+            return false;
+        }
+    }
+    else
+    {
+        rpcemu_set_datadir(folderPath);
+    }
+
+    rpcemu_log_information();
+    config_load(&config);
+    
+    return true;
+}
 
 /**
  * Return disk space information about a file system.
@@ -106,9 +153,28 @@ const char *rpcemu_get_log_path(void)
 {
     if (logpath[0] == '\0')
     {
-        strcpy(logpath, rpcemu_get_datadir());
-        strcat(logpath, "rpclog.txt");
+        path_append_data(logpath, "rpclog.txt");
     }
 
     return logpath;
 }
+
+/**
+ * Set the directory that contains the data required by
+ * the program, e.g. CMOS settings, ROMs, configuration
+ *
+ * @return 1 if successful, otherwise 0.
+ */
+int rpcemu_set_datadir(const char *path)
+{
+    size_t len = strlen(path);
+    if (len == 0 || !path_directory_exists(path))
+    {
+        return 0;
+    }
+    
+    strncpy(datadir, path, PATH_MAX);
+    
+    return 1;
+}
+

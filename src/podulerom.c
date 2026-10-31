@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "paths.h"
 #include "podulerom.h"
 #include "podules.h"
 #include "rpcemu.h"
@@ -160,7 +161,7 @@ void initpodulerom(void)
     const struct dirent *d;
 
     /* Build podulerom directory path */
-    snprintf(romdirectory, sizeof(romdirectory), "%spoduleroms/", rpcemu_get_datadir());
+    path_append_data(romdirectory, "poduleroms");
 
     if (podulerom != NULL)
     {
@@ -174,16 +175,22 @@ void initpodulerom(void)
     {
         while ((d = readdir(dir)) != NULL && file < MAXROMS)
         {
-            const char *ext = rpcemu_file_get_extension(d->d_name);
+            // Skip anything starting with a "." (e.g. "." or "..").
+            if (d->d_name[0] == '.')
+            {
+                continue;
+            }
+            
+            const char *ext = path_get_extension(d->d_name);
             char filepath[PATH_MAX];
             struct stat buf;
-
-            snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, d->d_name);
+            
+            path_join(filepath, romdirectory, d->d_name);
 
             if (stat(filepath, &buf) == 0)
             {
-                /* Skip directories or files with a .txt extension or starting with '.' */
-                if (S_ISREG(buf.st_mode) && (strcasecmp(ext, "txt") != 0) && d->d_name[0] != '.')
+                /* Skip directories or files with a .txt extension. */
+                if (S_ISREG(buf.st_mode) && (strcasecmp(ext, "txt") != 0))
                 {
                     strcpy(romfns[file++], d->d_name);
                 }
@@ -227,8 +234,8 @@ void initpodulerom(void)
         FILE *f;
         char filepath[PATH_MAX];
         long len;
-
-        snprintf(filepath, sizeof(filepath), "%s%s", romdirectory, romfns[i]);
+        
+        path_join(filepath, romdirectory, romfns[i]);
 
         f = fopen(filepath, "rb");
         if (f == NULL)
@@ -263,7 +270,7 @@ void initpodulerom(void)
         }
         fclose(f);
         rpclog("initpodulerom: Successfully loaded '%s' into podulerom\n", romfns[i]);
-        makechunk(0x81, filebase, len); /* 8 = Mandatory, Acorn Operating System #0 (RISC OS), 1 = BBC ROM */
+        makechunk(0x81, filebase, (int) len); /* 8 = Mandatory, Acorn Operating System #0 (RISC OS), 1 = BBC ROM */
         filebase += ((uint32_t) len + 3) & ~3u;
     }
 }

@@ -140,7 +140,7 @@ void HostFSDialog::done(int r)
     QString str;
     QByteArray ba;
     char path[PATH_MAX];
-    char message[1024], *resolvedPath;
+    char message[1024], *absolutePath;
     struct stat info;
 
     if (r == QDialog::Accepted)
@@ -178,12 +178,12 @@ void HostFSDialog::done(int r)
             ba = str.toUtf8();
             strcpy(path, ba.data());
 
-            resolvedPath = path_resolve(path);
+            absolutePath = path_make_absolute(path);
 
             // Does the path exist?
-            if (stat(resolvedPath, &info) != 0)
+            if (stat(absolutePath, &info) != 0)
             {
-                snprintf(message, 1024, "The path for drive %d does not exist or is inaccessible %s.", config_copy->hostfs_drive[i].id, resolvedPath);
+                snprintf(message, 1024, "The path for drive %d does not exist or is inaccessible %s.", config_copy->hostfs_drive[i].id, absolutePath);
                 QMessageBox::information(this, "HostFS", message);
 
                 driveHostPathEdit[i]->setFocus();
@@ -244,7 +244,7 @@ void HostFSDialog::dialogAccepted()
             }
             drive->hostPath = strdup(ba.data());
 
-            drive->resolvedHostPath = path_resolve(drive->hostPath);
+            drive->resolvedHostPath = path_make_absolute(drive->hostPath);
         }
     }
 

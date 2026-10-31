@@ -47,6 +47,7 @@
 #include "keyboard.h"
 #include "mem.h"
 #include "models.h"
+#include "platform-common.h"
 #include "podulerom.h"
 #include "podules.h"
 #include "romload.h"
@@ -54,6 +55,10 @@
 #include "sound.h"
 #include "superio.h"
 #include "vidc20.h"
+
+#ifdef RPCEMU_PLATFORM_MACOS
+#include "preferences-macosx.h"
+#endif /* RPCEMU_PLATFORM_MACOS */
 
 #ifdef FEATURE_MULTI_HOSTFS
 #include "hostfs-multi.h"
@@ -279,21 +284,6 @@ void rpcemu_log_information(void)
     {
         rpclog("Working Directory: %s\n", cwd);
     }
-}
-
-/**
- * Start enough of the emulator system to allow
- * the GUI to initialise (e.g. load the config to init
- * the configure window)
- *
- * Called from each platform's code on program startup.
- */
-void rpcemu_prestart(void)
-{
-    /* On startup log additional information about the build and environment */
-    rpcemu_log_information();
-
-    config_load(&config);
 }
 
 /**
@@ -561,32 +551,6 @@ void rpcemu_floppy_load(int drive, const char *filename)
     {
         strcpy(discname[drive], filename);
         fdc_image_load(discname[drive], drive);
-    }
-}
-
-/**
- * Find a filename's extension (bit after the .)
- *
- * @param filename string to check
- * @returns pointer to first char in extension, or pointer to
- *          null terminator (empty string) if no extension found
- */
-const char *rpcemu_file_get_extension(const char *filename)
-{
-    const char *position;
-
-    assert(filename);
-
-    position = strrchr(filename, '.');
-    if (position == NULL)
-    {
-        /* No extension, return empty string */
-        return &filename[strlen(filename)];
-    }
-    else
-    {
-        /* Found extension */
-        return position + 1;
     }
 }
 

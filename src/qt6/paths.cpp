@@ -19,6 +19,7 @@
  */
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,20 +29,57 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "paths.h"
-#include "rpcemu.h"
-
-#ifdef _MSC_VER
-#define PATH_MAX 1024
-#else
-#include <unistd.h>
-#endif
-
-#include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
 
-const char *path_extract_filename(const char *path)
+#ifdef _MSC_VER
+#define PATH_MAX 1024
+#endif
+
+#include "paths.h"
+#include "platform-common.h"
+#include "rpcemu.h"
+
+void path_append(char *buffer, const char *path)
+{
+    QDir dir(buffer);
+    QString fullPath = dir.absoluteFilePath(path);
+    
+    QByteArray ba = fullPath.toUtf8();
+    char *data = ba.data();
+
+    strcpy(buffer, data);
+}
+
+void path_append_data(char *buffer, const char *path)
+{
+    QDir dataDir = QDir(rpcemu_get_datadir());
+    QString fullPath = dataDir.absoluteFilePath(path);
+ 
+    QByteArray ba = fullPath.toUtf8();
+    char *data = ba.data();
+ 
+    strcpy(buffer, data);
+}
+
+bool path_directory_exists(const char *path)
+{
+    QDir dir(path);
+    return dir.exists();
+}
+
+const char *path_get_extension(const char *path)
+{
+    QFileInfo info(path);
+    
+    QString extension = info.suffix();
+    QByteArray ba = extension.toUtf8();
+    
+    char *buffer = strdup(ba.data());
+    return buffer;
+}
+
+const char *path_get_filename(const char *path)
 {
     QFileInfo info(path);
 
@@ -52,12 +90,10 @@ const char *path_extract_filename(const char *path)
     return buffer;
 }
 
-void path_join(const char *str1, const char *str2, char *buffer)
+void path_join(char *buffer, const char *left, const char *right)
 {
-    QString first = str1;
-    QString second = str2;
-
-    QString fullPath = QDir::cleanPath(first + QDir::separator() + second);
+    QDir dir(left);
+    QString fullPath = dir.absoluteFilePath(right);
 
     QByteArray ba = fullPath.toUtf8();
     char *data = ba.data();
@@ -65,20 +101,20 @@ void path_join(const char *str1, const char *str2, char *buffer)
     strcpy(buffer, data);
 }
 
-void path_append(char *str1, const char *str2)
+void path_join_data(char *buffer, const char *left, const char *right)
 {
-    QString first = str1;
-    QString second = str2;
+    QDir dataDir = QDir(rpcemu_get_datadir());
+    QDir interim = QDir(dataDir.absoluteFilePath(left));
 
-    QString fullPath = QDir::cleanPath(first + QDir::separator() + second);
-
+    QString fullPath = interim.absoluteFilePath(right);
+    
     QByteArray ba = fullPath.toUtf8();
     char *data = ba.data();
-
-    strcpy(str1, data);
+ 
+    strcpy(buffer, data);
 }
 
-char *path_resolve(const char *path)
+char *path_make_absolute(const char *path)
 {
     QString p = QDir::fromNativeSeparators(path);
     QDir dir(p);
@@ -109,10 +145,4 @@ char *path_resolve(const char *path)
     char *buffer = strdup(ba.data());
 
     return buffer;
-}
-
-int path_validate(const char *path)
-{
-    QDir dir(path);
-    return dir.exists();
 }

@@ -20,11 +20,11 @@
 #include <QSettings>
 
 #include "models.h"
+#include "paths.h"
 #include "rpcemu.h"
 
 #ifdef FEATURE_MULTI_HOSTFS
 #include "hostfs-multi.h"
-#include "paths.h"
 #endif /* FEATURE_MULTI_HOSTFS */
 
 #ifdef FEATURE_MULTI_HOSTFS
@@ -85,10 +85,10 @@ static void config_hostfs_load(QSettings &settings, Config *config)
         else
         {
             drive->hostPath = strdup(ba.data());
-            drive->resolvedHostPath = path_resolve(drive->hostPath);
+            drive->resolvedHostPath = path_make_absolute(drive->hostPath);
 
             // Ensure the path is valid.
-            if (!path_validate(drive->resolvedHostPath))
+            if (!path_directory_exists(drive->resolvedHostPath))
             {
                 drive->enabled = 0;
             }
@@ -220,16 +220,16 @@ static void config_nat_rules_save(QSettings &settings)
  */
 void config_load(Config *config)
 {
-    char filename[PATH_MAX];
+    char configpath[PATH_MAX];
     const char *p;
     Model model;
     int i;
     QString sText;
     QByteArray ba;
 
-    snprintf(filename, sizeof(filename), "%srpc.cfg", rpcemu_get_datadir());
+    path_append_data(configpath, "rpc.cfg");
 
-    QSettings settings(filename, QSettings::IniFormat);
+    QSettings settings(configpath, QSettings::IniFormat);
 
     /* Copy the contents of the configfile to the log */
     QStringList keys = settings.childKeys();
@@ -445,12 +445,12 @@ void config_load(Config *config)
  */
 void config_save(Config *config)
 {
-    char filename[PATH_MAX];
+    char configpath[PATH_MAX];
     QString sText;
 
-    snprintf(filename, sizeof(filename), "%srpc.cfg", rpcemu_get_datadir());
+    path_append_data(configpath, "rpc.cfg");
 
-    QSettings settings(filename, QSettings::IniFormat);
+    QSettings settings(configpath, QSettings::IniFormat);
     settings.clear();
 
     char s[256];

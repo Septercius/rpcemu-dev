@@ -116,8 +116,10 @@ extern ModelDetails machine; /**< The details of the current model being emulate
 extern "C"
 {
 #endif /* __cplusplus */
+
 extern const char *models_get_config_name(Model model);
 extern const ModelDetails *models_find(Model model);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

@@ -21,6 +21,8 @@
 #include <QFileDialog>
 
 #include "choose-dialog.h"
+#include "paths.h"
+#include "platform-common.h"
 #include "preferences-macosx.h"
 
 ChooseDialog::ChooseDialog(QWidget *parent)
@@ -44,7 +46,8 @@ ChooseDialog::ChooseDialog(QWidget *parent)
     choose_label->setText("Please choose a directory below:");
 
     // Create directory line edit.
-    directory_edit = new QLineEdit();
+    directory_edit = new FolderEdit();
+    directory_edit->setAcceptDrops(true);
     directory_edit->setMaxLength(511);
     directory_edit->setReadOnly(true);
 
@@ -71,18 +74,36 @@ ChooseDialog::ChooseDialog(QWidget *parent)
 
     connect(this, &QDialog::accepted, this, &ChooseDialog::dialog_accepted);
     connect(this, &QDialog::accepted, this, &ChooseDialog::dialog_rejected);
-
+    
     this->setFixedSize(this->sizeHint());
+    
+    // If there is a folder already, fill it in.
+    const char *existing = preferences_get_data_directory();
+    
+    if (strlen(existing) > 0 || path_directory_exists(existing))
+    {
+        directory_edit->setText(existing);
+    }
 }
 
-ChooseDialog::~ChooseDialog() {}
+ChooseDialog::~ChooseDialog() 
+{
+}
 
 void ChooseDialog::directory_button_pressed()
 {
     QFileDialog folderDialog;
     folderDialog.setWindowTitle("Choose Data Directory");
     folderDialog.setFileMode(QFileDialog::Directory);
-
+    
+    QString selected = directory_edit->text();
+    
+    QDir dir(selected);
+    if (selected.length() > 0 && dir.exists(selected))
+    {
+        folderDialog.setDirectory(selected);
+    }
+    
     if (folderDialog.exec())
     {
         QStringList selection = folderDialog.selectedFiles();
@@ -101,4 +122,7 @@ void ChooseDialog::dialog_accepted()
     preferences_set_data_directory(ptr);
 }
 
-void ChooseDialog::dialog_rejected() {}
+void ChooseDialog::dialog_rejected()
+{
+}
+

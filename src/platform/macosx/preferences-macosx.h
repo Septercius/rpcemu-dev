@@ -26,7 +26,10 @@ extern "C"
 {
 #endif
 
-extern void init_preferences(void);
+#include <stdbool.h>
+
+bool preferences_init(char *folderPath);
+
 extern void preferences_set_data_directory(const char *path);
 extern const char *preferences_get_data_directory();
 

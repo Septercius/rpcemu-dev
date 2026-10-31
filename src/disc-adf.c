@@ -72,7 +72,7 @@ void adf_load(int drive, const char *fn, int sectors, int size, int sides, int d
     adf[drive].dblside = sides;
     adf[drive].dblstep = dblstep;
     adf[drive].density = density;
-    adf[drive].maxsector = (ftell(adf[drive].f) + 1) / size;
+    adf[drive].maxsector = ((int) ftell(adf[drive].f) + 1) / size;
     adf[drive].skew = skew;
 
     drive_funcs[drive] = &adf_disc_funcs;

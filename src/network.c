@@ -28,6 +28,7 @@
 #include "mem.h"
 #include "network-nat.h"
 #include "network.h"
+#include "paths.h"
 #include "podules.h"
 #include "rpcemu.h"
 
@@ -77,7 +78,7 @@ static void network_rom_init(void)
     filebase = chunkbase + (8 * 2) + 4;                           // required size for two entries
     poduleromsize = filebase + ((sizeof(description) + 3) & ~3u); // Word align description string
 
-    snprintf(filename, sizeof(filename), "%snetroms/EtherRPCEm,ffa", rpcemu_get_datadir());
+    path_join_data(filename, "netroms", "EtherRPCEm,ffa");
     rpclog("network_rom_init: Attempting to load Ethernet ROM from '%s'\n", filename);
 
     // Add on size for driver module if it can be opened successfully
@@ -204,7 +205,7 @@ void network_irq_lower(void)
  * @param src  Memory address in emulated memory map
  * @param len  Amount in bytes to copy
  */
-void memcpytohost(void *dest, uint32_t src, uint32_t len)
+void memcpytohost(void *dest, uint32_t src, size_t len)
 {
     char *dst = dest;
 
@@ -222,7 +223,7 @@ void memcpytohost(void *dest, uint32_t src, uint32_t len)
  * @param source Pointer to storage in host memory
  * @param len    Amount in bytes to copy
  */
-void memcpyfromhost(uint32_t dest, const void *source, uint32_t len)
+void memcpyfromhost(uint32_t dest, const void *source, size_t len)
 {
     const char *src = source;
 

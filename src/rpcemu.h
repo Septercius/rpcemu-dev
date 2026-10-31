@@ -154,26 +154,8 @@ extern void rpcemu_nat_forward_remove(PortForwardRule rule);
 
 extern uint32_t inscount;
 
-#ifdef RPCEMU_PLATFORM_MACOS
-extern int rpcemu_set_datadir(const char *path);
-#endif /* RPCEMU_PLATFORM_MACOS */
-
-/* These functions can optionally be overridden by a platform. If not
-   needed to be overridden, there is a generic version in rpc-machdep.c */
-extern const char *rpcemu_get_datadir(void);
-extern const char *rpcemu_get_log_path(void);
-
-/* rpc-[linux|win].c */
-typedef struct
-{
-    uint64_t size; /**< Size of disk */
-    uint64_t free; /**< Free space on disk */
-} disk_info;
-
 extern void fatal(const char *format, ...) __attribute__((format(printf, 1, 2))) __attribute__((noreturn));
 extern void error(const char *format, ...) __attribute__((format(printf, 1, 2)));
-
-extern int path_disk_info(const char *path, disk_info *d);
 
 extern void updateirqs(void);
 
@@ -182,7 +164,6 @@ extern void sound_thread_start(void);
 extern void sound_thread_close(void);
 
 /* Additional logging functions (optional) */
-extern void rpcemu_log_os(void);
 extern void rpcemu_log_platform(void);
 
 /* rpcemu.c */
@@ -195,9 +176,10 @@ extern void resetrpc(void);
 extern void rpcemu_floppy_load(int drive, const char *filename);
 extern void rpclog(const char *format, ...) __attribute__((format(printf, 1, 2)));
 extern void rpcemu_model_changed(Model model);
-extern const char *rpcemu_file_get_extension(const char *filename);
 extern int rpcemu_config_is_reset_required(const Config *new_config, Model new_model);
 extern void rpcemu_config_apply_new_settings(Config *new_config, Model new_model);
+
+extern void rpcemu_log_information();
 
 #ifdef FEATURE_MULTI_HOSTFS
 extern int rpcemu_hostfs_is_reset_required(const Config *new_config);

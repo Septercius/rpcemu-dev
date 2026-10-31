@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +39,8 @@
 #include "arm.h"
 #include "hostfs-standard.h"
 #include "mem.h"
+#include "paths.h"
+#include "platform-common.h"
 
 #if defined(RPCEMU_PLATFORM_LINUX)
 #include "hostfs-linux.h"
@@ -57,11 +60,6 @@
 
 #define mkdir(name, mode) _mkdir(name)
 #endif
-
-typedef int bool;
-
-#define true ((bool) 1)
-#define false ((bool) 0)
 
 /** Registration states of HostFS module with backend code */
 typedef enum
@@ -869,7 +867,7 @@ static void hostfs_open(ARMul_State *state)
 
     /* Find the extent of the file */
     fseek(open_file[idx], 0L, SEEK_END);
-    state->Reg[3] = ftell(open_file[idx]);
+    state->Reg[3] = (uint32_t) ftell(open_file[idx]);
     rewind(open_file[idx]); /* Return to start */
 
     state->Reg[1] = idx;  /* Our filing system's handle */
@@ -1718,7 +1716,7 @@ static void hostfs_cache_dir(const char *directory_name)
         }
 
         /* Calculate space required to store name (+ terminator) */
-        string_space = strlen(ro_leaf) + 1;
+        string_space = (unsigned) strlen(ro_leaf) + 1;
 
         /* Check whether cache_names[] is large enough; increase if required */
         if (string_space > (cache_names_capacity - name_ptr))
@@ -2157,16 +2155,7 @@ static void hostfs_register(ARMul_State *state)
  */
 void hostfs_init(void)
 {
-    int c;
-
-    snprintf(HOSTFS_ROOT, sizeof(HOSTFS_ROOT), "%shostfs", rpcemu_get_datadir());
-    for (c = 0; c < 511; c++)
-    {
-        if (HOSTFS_ROOT[c] == '\\')
-        {
-            HOSTFS_ROOT[c] = '/';
-        }
-    }
+    path_append_data(HOSTFS_ROOT, "hostfs");
 }
 
 /**

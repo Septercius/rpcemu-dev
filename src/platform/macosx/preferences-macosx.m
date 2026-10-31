@@ -21,6 +21,7 @@
 #define UNUSED(x) (void) (x)
 
 #include <dirent.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -28,12 +29,13 @@
 #include <Cocoa/Cocoa.h>
 #include <IOKit/hid/IOHIDLib.h>
 
+#include "paths.h"
+#include "platform-macosx.h"
 #include "rpcemu.h"
 
-bool promptForDataDirectory;
 NSString *const KeyDataDirectory = @"DataDirectory";
 
-void init_preferences(void)
+bool preferences_init(char *folderPath)
 {
     NSMutableDictionary *defaultValues = [NSMutableDictionary dictionary];
     [defaultValues setObject:@"" forKey:KeyDataDirectory];
@@ -47,25 +49,21 @@ void init_preferences(void)
     NSString *dataDirectory = [defaults stringForKey:KeyDataDirectory];
     if (dataDirectory == nil || [dataDirectory length] == 0)
     {
-        promptForDataDirectory = true;
+        return false;
     }
     else
     {
         const char *str = [dataDirectory UTF8String];
-
+        
         // Check the folder exists.
-        DIR *ptr = opendir(str);
-        if (ptr)
+        if (path_directory_exists(str))
         {
-            closedir(ptr);
-            rpcemu_set_datadir(str);
-
-            promptForDataDirectory = false;
+            strcpy(folderPath, str);
+            return true;
         }
-        else
-        {
-            promptForDataDirectory = true;
-        }
+        
+        folderPath = NULL;
+        return false;
     }
 }
 
