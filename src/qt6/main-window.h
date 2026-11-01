@@ -27,6 +27,7 @@
 
 #include "about-dialog.h"
 #include "configure-dialog.h"
+#include "main-display.h"
 #include "nat-list-dialog.h"
 #include "network-dialog.h"
 #include "rpc-qt6.h"
@@ -60,41 +61,6 @@ struct MouseMoveUpdate
 {
     int16_t x;
     int16_t y;
-};
-
-class MainDisplay : public QWidget
-{
-    Q_OBJECT
-
-  public:
-    MainDisplay(Emulator &emulator, QWidget *parent = 0);
-
-    void get_host_size(int &host_xsize, int &host_ysize) const;
-    void set_full_screen(bool full_screen);
-    void update_image(const QImage &img, int yl, int yh, int double_size);
-    int get_double_size();
-    bool save_screenshot(QString filename);
-
-  protected:
-    void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
-    void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
-    void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
-    void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE;
-    void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
-    void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
-
-  private:
-    void calculate_scaling();
-
-    Emulator &emulator;
-
-    QImage *image;
-    int double_size;
-
-    bool full_screen;
-    int host_xsize, host_ysize;
-    int scaled_x, scaled_y;
-    int offset_x, offset_y;
 };
 
 class MainWindow : public QMainWindow

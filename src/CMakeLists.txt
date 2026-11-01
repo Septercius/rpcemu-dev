@@ -54,6 +54,7 @@ set(COMMON_HEADERS
 	qt6/about-dialog.h
 	qt6/configure-dialog.h
 	qt6/folder-edit.h
+	qt6/main-display.h
 	qt6/main-window.h
 	qt6/paths.h
 	qt6/plt-sound.h
@@ -89,6 +90,7 @@ set(COMMON_SOURCES
 	qt6/about-dialog.cpp
 	qt6/configure-dialog.cpp
 	qt6/folder-edit.cpp
+	qt6/main-display.cpp
 	qt6/main-window.cpp
 	qt6/paths.cpp
 	qt6/plt-sound.cpp
