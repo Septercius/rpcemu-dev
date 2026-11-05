@@ -492,7 +492,7 @@ void MainWindow::update_last_directory(QFileInfo fileInfo, char **buffer)
     
     if (buffer != NULL)
     {
-        free(buffer);
+        free(*buffer);
     }
     
     *buffer = strdup(ba.constData());
