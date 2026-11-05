@@ -35,7 +35,7 @@ class MainDisplay : public QWidget
     void set_full_screen(bool full_screen);
     void update_image(const QImage &img, int yl, int yh, int double_size);
     int get_double_size();
-    bool save_screenshot(QString filename);
+    bool save_screenshot(QString filename, QString format);
 
   protected:
     void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;

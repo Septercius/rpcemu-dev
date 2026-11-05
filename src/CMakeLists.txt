@@ -53,12 +53,15 @@ set(COMMON_HEADERS
 	platform/platform-common.h
 	qt6/about-dialog.h
 	qt6/configure-dialog.h
+	qt6/file-dialog.h
 	qt6/folder-edit.h
 	qt6/main-display.h
 	qt6/main-window.h
+	qt6/open-file-dialog.h
 	qt6/paths.h
 	qt6/plt-sound.h
 	qt6/rpc-qt6.h
+	qt6/save-file-dialog.h
 )
 
 # Set source files common to all builds.
@@ -74,7 +77,6 @@ set(COMMON_SOURCES
 	fdc.c
 	fpa.c
 	i8042.c
-	icside.c
 	ide.c
 	iomd.c
 	keyboard.c
@@ -89,12 +91,15 @@ set(COMMON_SOURCES
 	vidc20.c
 	qt6/about-dialog.cpp
 	qt6/configure-dialog.cpp
+	qt6/file-dialog.cpp
 	qt6/folder-edit.cpp
 	qt6/main-display.cpp
 	qt6/main-window.cpp
+	qt6/open-file-dialog.cpp
 	qt6/paths.cpp
 	qt6/plt-sound.cpp
 	qt6/rpc-qt6.cpp
+	qt6/save-file-dialog.cpp
 	qt6/settings.cpp
 )
 

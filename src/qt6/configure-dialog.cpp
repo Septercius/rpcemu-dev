@@ -46,7 +46,8 @@ ConfigureDialog::ConfigureDialog(Emulator &emulator, Config *config_copy, Model 
     int modeliter = 0;
     while (modeliter < (int) Model_MAX)
     {
-        QListWidgetItem *item = new QListWidgetItem(models[modeliter].name_gui);
+        QListWidgetItem *item = new QListWidgetItem(models[modeliter].display_name
+                                                    );
         item->setData(LIST_ITEM_ROLE_MODEL, models[modeliter].model);
         hardware_list_items.insert(hardware_list_items.end(), item);
         hardware_listwidget->addItem(item);

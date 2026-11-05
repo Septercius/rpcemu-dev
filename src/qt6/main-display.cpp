@@ -348,10 +348,16 @@ int MainDisplay::get_double_size()
  * Dump the current display to the file specified.
  *
  * @param filename Filename to save display image to
+ * @param format Format to use when saving the image
  *
  * @return bool of success or failure
  */
-bool MainDisplay::save_screenshot(QString filename)
+bool MainDisplay::save_screenshot(QString filename, QString format)
 {
-    return this->image->save(filename, "png");
+    QByteArray ba;
+    ba = format.toUtf8();
+    
+    const char *fmt = ba.constData();
+    
+    return this->image->save(filename, fmt);
 }

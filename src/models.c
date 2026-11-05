@@ -16,17 +16,30 @@ const ModelDetails models[] = {
     { Model_Phoebe, "Phoebe (Risc PC2)", "Phoebe", ARMArchitecture_V4, CPUModel_SA110, IOMDType_IOMD2, MouseController_I8042, MouseType_PS2, SuperIOType_FDC37C672, I2CBitField_PCF8583 | I2CBitField_SPD_DIMM0, MemoryFlags_RAMFixed | MemoryFlags_VRAMFixed, 256, 4 }
 };
 
-const char *models_get_config_name(Model model)
+const char *models_get_name(Model model)
 {
     for (int i = 0; i < Model_MAX; i += 1)
     {
         if (models[i].model == model)
         {
-            return models[i].name_config;
+            return models[i].name;
         }
     }
     
     return NULL;
+}
+
+Model models_find_type(const char *name, Model defaultModel)
+{
+    for (int i = 0; i < Model_MAX; i += 1)
+    {
+        if (strcasecmp(models[i].name, name) == 0)
+        {
+            return models[i].model;
+        }
+    }
+    
+    return defaultModel;
 }
 
 

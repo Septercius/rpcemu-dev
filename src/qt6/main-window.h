@@ -163,6 +163,8 @@ class MainWindow : public QMainWindow
 
     void load_disc(int drive);
     void create_disc(int drive);
+    
+    void update_last_directory(QFileInfo fileInfo, char **buffer);
 
     bool full_screen;
     bool reenable_mousehack; ///< Did we disable mousehack entering fullscreen and have to reenable it on leaving fullscreen?

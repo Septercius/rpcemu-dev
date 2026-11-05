@@ -93,9 +93,9 @@ typedef enum
 /** Structure to hold details about a model that the emulator can emulate */
 typedef struct
 {
-    Model model;                            /**< Model code */
-    const char *name_gui;                   /**< String used in the GUI */
-    const char *name_config;                /**< String used in the Config file to select model */
+    Model model;                        /**< Model code */
+    const char *display_name;               /**< String displayed in the UI */
+    const char *name;                       /**< String used in the Config file to select model */
     ARMArchitecture arm_architecture;       /**< ARM architecture version */
     CPUModel cpu_model;                     /**< CPU used in this model */
     IOMDType iomd_type;                     /**< IOMD used in this model */
@@ -117,7 +117,8 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-extern const char *models_get_config_name(Model model);
+extern const char *models_get_name(Model model);
+extern Model models_find_type(const char *name, Model defaultModel);
 extern const ModelDetails *models_find(Model model);
 
 #ifdef __cplusplus

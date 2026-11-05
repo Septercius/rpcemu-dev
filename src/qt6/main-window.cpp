@@ -39,8 +39,10 @@
 
 #include "keyboard.h"
 #include "main-window.h"
+#include "open-file-dialog.h"
 #include "rpc-qt6.h"
 #include "rpcemu.h"
+#include "save-file-dialog.h"
 #include "vidc20.h"
 
 #define URL_MANUAL "http://www.marutan.net/rpcemu/manual/"
@@ -410,13 +412,23 @@ void MainWindow::native_keyrelease_event(unsigned scan_code, unsigned modifiers)
 
 void MainWindow::menu_screenshot()
 {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save Screenshot"), "screenshot.png", tr("PNG (*.png)"));
-
-    // fileName is NULL if user hit cancel
-    if (!fileName.isNull())
+    SaveFileDialog dialog;
+    dialog.setWindowTitle(tr("Save Screenshot"));
+    dialog.setInitialDirectory(config.last_screenshot_directory);
+    dialog.setInitialFileName("Screenshot.png");
+    dialog.addFilter("jpg", "JPEG");
+    dialog.addDefaultFilter("png", "PNG");
+    
+    if (dialog.exec() == QDialog::Accepted)
     {
-        bool result = this->display->save_screenshot(fileName);
-
+        QFileInfo info = dialog.selection();
+        
+        QString filePath = info.absoluteFilePath();
+        QString extension = dialog.selectedFileExtension();
+        
+        this->update_last_directory(info, &config.last_screenshot_directory);
+        
+        bool result = this->display->save_screenshot(filePath, extension);
         if (result == false)
         {
             QMessageBox msgBox(this);
@@ -446,23 +458,44 @@ void MainWindow::menu_reset()
 
 void MainWindow::load_disc(int drive)
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open Disc Image"), "", tr("All disc images (*.adf *.adl *.hfe *.img);;ADFS D/E/F Disc Image (*.adf);;ADFS L Disc Image (*.adl);;DOS Disc Image (*.img);;HFE Disc Image (*.hfe)"));
+    OpenFileDialog dialog(this);
+    dialog.setWindowTitle(tr("Open Disc Image"));
+    dialog.setInitialDirectory(config.last_floppy_directory);
+    dialog.addDefaultFilter("adf", "ADFS D/E/F Disc Image");
+    dialog.addFilter("adl", "ADFS L Disc Image");
+    dialog.addFilter("hfe", "HDF Disc Image");
+    dialog.addFilter("img", "DOS Disc Image");
+    
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        QFileInfo info = dialog.selection();
+        QString filePath = info.absoluteFilePath();
 
-    // fileName is Null and Empty if user hit Cancel
-    if (fileName.isEmpty())
-    {
-        return;
+        this->update_last_directory(info, &config.last_floppy_directory);
+       
+        // Inform Emulator thread of disc change
+        if (drive == 0)
+        {
+            emit this->emulator.load_disc_0_signal(filePath);
+        }
+        else if (drive == 1)
+        {
+            emit this->emulator.load_disc_1_signal(filePath);
+        }
     }
+}
 
-    // Inform Emulator thread of disc change
-    if (drive == 0)
+void MainWindow::update_last_directory(QFileInfo fileInfo, char **buffer)
+{
+    QString directory = fileInfo.absolutePath();
+    QByteArray ba = directory.toUtf8();
+    
+    if (buffer != NULL)
     {
-        emit this->emulator.load_disc_0_signal(fileName);
+        free(buffer);
     }
-    else if (drive == 1)
-    {
-        emit this->emulator.load_disc_1_signal(fileName);
-    }
+    
+    *buffer = strdup(ba.constData());
 }
 
 void MainWindow::menu_loaddisc0()
@@ -475,63 +508,6 @@ void MainWindow::menu_loaddisc1()
     load_disc(1);
 }
 
-static const struct discTypeFileMap
-{
-    QString displayName;
-    QString extension;
-    QString blankFileName;
-} discTypeFileMaps[] = {
-    { "ADFS E 800k Disc Image (*.adf)", ".adf", ":resources/blank-e-800.adf" },
-    { "ADFS F 1600k Disc Image (*.adf)", ".adf", ":resources/blank-f-1600.adf" },
-    { "ADFS L 640k Disc Image (*.adl)", ".adl", ":resources/blank-l-640.adl" },
-    { "DOS 720k Disc Image (*.img)", ".img", ":resources/blank-pc-720.img" },
-    { "DOS 1440k Disc Image (*.img)", ".img", ":resources/blank-pc-1440.img" },
-};
-
-/**
- * Return a 'filter' list, suitable for use in QFileDialog::getSaveFileName
- * which represents all of the blank disc image types we can create
- *
- * @return filter list
- */
-static QString getCreateBlankDiscFilters()
-{
-    QString filterList = "";
-
-    for (size_t i = 0; i < sizeof(discTypeFileMaps) / sizeof(discTypeFileMap); i++)
-    {
-        if (i != 0)
-        { // We do not add a separator before first entry
-            filterList += ";;";
-        }
-        filterList += discTypeFileMaps[i].displayName;
-    }
-
-    return filterList;
-}
-
-/**
- * Given a human readable blank disc type filter name, what extension should it
- * have, and what filename is the blank formatted disc image in the Resources.
- *
- * @param filterName human readable filter name
- * @return Pointer to row of discTypeFileMaps, with relevant extension and
- *         blank disc Resource file, or NULL if not found
- */
-static const discTypeFileMap *filter_to_disc_type_file(QString filterName)
-{
-    for (size_t i = 0; i < sizeof(discTypeFileMaps) / sizeof(discTypeFileMap); i++)
-    {
-        if (filterName == discTypeFileMaps[i].displayName)
-        {
-            return &discTypeFileMaps[i];
-        }
-    }
-
-    // Not in list
-    return NULL;
-}
-
 /**
  * Pop up a Save Dialog so the user can create a blank disk image.
  * Once a filename has been given, create a blank disk image, and 'insert' it
@@ -541,79 +517,53 @@ static const discTypeFileMap *filter_to_disc_type_file(QString filterName)
  */
 void MainWindow::create_disc(int drive)
 {
-    const QString filterList = getCreateBlankDiscFilters();
+    SaveFileDialog dialog;
+    dialog.setWindowTitle(tr("Create Blank Disc Image"));
+    dialog.setInitialDirectory(config.last_floppy_directory);
+    dialog.addFilter("adf", "ADFS E 800k Disc Image", ":resources/blank-e-800.adf");
+    dialog.addDefaultFilter("adf", "ADFS F 1600k Disc Image (*.adf)", ":resources/blank-f-1600.adf");
+    dialog.addFilter("adl", "ADFS L 640k Disc Image (*.adl)", ":resources/blank-l-640.adl");
+    dialog.addFilter("img", "DOS 720k Disc Image (*.img)", ":resources/blank-pc-720.img");
+    dialog.addFilter("img", "DOS 1440k Disc Image (*.img)", ":resources/blank-pc-1440.img");
 
-    QString selectedFilter;
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Create Blank Disc Image"), "", filterList, &selectedFilter);
-
-    // fileName is Null and Empty if user hit Cancel
-    if (fileName.isEmpty() || selectedFilter.isEmpty())
+    if (dialog.exec() == QDialog::Accepted)
     {
-        return;
-    }
+        QFileInfo info = dialog.selection();
+        QString blankDiscFileName = dialog.selectedTag();
 
-    // Find the blank disc file in resources to copy
-    // (this should never fail)
-    const discTypeFileMap *d = filter_to_disc_type_file(selectedFilter);
-    if (d == NULL)
-    {
-        ::error("Filter name '%s' not in discTypeFileMaps, failing", selectedFilter.toStdString().c_str());
-        return;
-    }
-    const QString &extension = d->extension;
-    const QString &blankDiscFileName = d->blankFileName;
-
-    // Check the file extension of the filename received is present and of
-    // the expected value
-    if (!fileName.endsWith(extension, Qt::CaseInsensitive))
-    {
-        // The extension is either missing or not what was expected.
-        // Append the expected extension:
-        fileName += extension;
-
-        // The Save Dialog sought permission to overwrite file, but the
-        // filename has now been changed. If a file exists with this
-        // modified filename, don't overwrite it, and report an error.
-        if (QFile::exists(fileName))
+        QString filePath = info.absoluteFilePath();
+        
+        this->update_last_directory(info, &config.last_floppy_directory);
+        
+        // Copy the file
+        bool copySuccess = QFile::copy(blankDiscFileName, filePath);
+        if (!copySuccess)
         {
-            ::error("Not overwriting existing file '%s'", fileName.toStdString().c_str());
+            QByteArray ba = filePath.toUtf8();
+            
+            ::error("Failed to create blank image file '%s'", ba.constData());
             return;
         }
-    }
 
-    // The Save Dialog sought permission to overwrite file, but
-    // QFile::copy() won't overwrite existing files, so remove the
-    // destination file instead
-    if (QFile::exists(fileName) && !QFile::remove(fileName))
-    {
-        ::error("Failed to remove existing file '%s' before overwriting", fileName.toStdString().c_str());
-        return;
-    }
+        // Make sure the new file is set to read/write
+        bool permissionsSuccess = QFile::setPermissions(filePath, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadUser | QFileDevice::WriteUser);
+        if (!permissionsSuccess)
+        {
+            QByteArray ba = filePath.toUtf8();
+            
+            ::error("Failed to set permissions on file '%s'", ba.constData());
+            return;
+        }
 
-    // Copy the file
-    bool copySuccess = QFile::copy(blankDiscFileName, fileName);
-    if (!copySuccess)
-    {
-        ::error("Failed to create blank image file '%s'", fileName.toStdString().c_str());
-        return;
-    }
-
-    // Make sure the new file is set to read/write
-    bool permissionsSuccess = QFile::setPermissions(fileName, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadUser | QFileDevice::WriteUser);
-    if (!permissionsSuccess)
-    {
-        ::error("Failed to set permissions on file '%s'", fileName.toStdString().c_str());
-        return;
-    }
-
-    // Inform Emulator thread of disc change
-    if (drive == 0)
-    {
-        emit this->emulator.load_disc_0_signal(fileName);
-    }
-    else if (drive == 1)
-    {
-        emit this->emulator.load_disc_1_signal(fileName);
+        // Inform Emulator thread of disc change
+        if (drive == 0)
+        {
+            emit this->emulator.load_disc_0_signal(filePath);
+        }
+        else if (drive == 1)
+        {
+            emit this->emulator.load_disc_1_signal(filePath);
+        }
     }
 }
 
@@ -811,11 +761,19 @@ void MainWindow::menu_cdrom_empty()
 
 void MainWindow::menu_cdrom_iso()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open ISO Image"), "", tr("ISO CD-ROM Image (*.iso);;All Files (*.*)"));
-
-    /* fileName is NULL if user hit cancel */
-    if (!fileName.isNull())
+    OpenFileDialog dialog(this);
+    dialog.setWindowTitle(tr("Open ISO Image"));
+    dialog.setInitialDirectory(config.last_cdrom_directory);
+    dialog.addDefaultFilter("iso", "ISO CD-ROM Image");
+    dialog.addFilter("*", "All Files");
+    
+    if (dialog.exec() == QDialog::Accepted)
     {
+        QFileInfo info = dialog.selection();
+        QString filePath = info.absoluteFilePath();
+        
+        this->update_last_directory(info, &config.last_cdrom_directory);
+        
         if (!config_copy.cdromenabled)
         {
             int ret = MainWindow::reset_question(this);
@@ -835,8 +793,7 @@ void MainWindow::menu_cdrom_iso()
         }
 
         /* we now have either no need to reboot or an agreement to reboot */
-
-        emit this->emulator.cdrom_load_iso_signal(fileName);
+        emit this->emulator.cdrom_load_iso_signal(filePath);
         config_copy.cdromenabled = 1;
 
         cdrom_menu_selection_update(cdrom_iso_action);
@@ -1004,7 +961,7 @@ void MainWindow::create_actions()
     cdrom_empty_action->setCheckable(true);
     connect(cdrom_empty_action, &QAction::triggered, this, &MainWindow::menu_cdrom_empty);
 
-    cdrom_iso_action = new QAction(tr("Iso Image..."), this);
+    cdrom_iso_action = new QAction(tr("ISO Image..."), this);
     cdrom_iso_action->setCheckable(true);
     connect(cdrom_iso_action, &QAction::triggered, this, &MainWindow::menu_cdrom_iso);
 

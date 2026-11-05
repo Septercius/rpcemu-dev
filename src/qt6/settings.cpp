@@ -27,7 +27,35 @@
 #include "hostfs-multi.h"
 #endif /* FEATURE_MULTI_HOSTFS */
 
+#define MEMORY_ARRAYSIZE 7
+#define VIDEO_ARRAYSIZE 2
+
+static unsigned memoryValues[MEMORY_ARRAYSIZE] = {4, 8, 16, 32, 64, 128, 256};
+static unsigned videoValues[VIDEO_ARRAYSIZE] = {0, 2};
+
+char *config_get_string(QSettings &settings, QAnyStringView key, const QVariant &defaultValue)
+{
+    QString value = settings.value(key, defaultValue).toString();
+
+    QByteArray ba = value.toUtf8();
+    
+    return strdup(ba.constData());
+}
+
+void config_set_string(QSettings &settings, QAnyStringView key, const char *value)
+{
+    if (value == NULL)
+    {
+        settings.setValue(key, "");
+    }
+    else
+    {
+        settings.setValue(key, QString(value));
+    }
+}
+
 #ifdef FEATURE_MULTI_HOSTFS
+
 
 /**
  * Parse and load HostFS configuration
@@ -223,9 +251,10 @@ void config_load(Config *config)
     char configpath[PATH_MAX];
     const char *p;
     Model model;
-    int i;
+    int size;
     QString sText;
     QByteArray ba;
+    bool valid;
 
     path_append_data(configpath, "rpc.cfg");
 
@@ -238,79 +267,47 @@ void config_load(Config *config)
         sText = QString("config_load: %1 = \"%2\"\n").arg(key, settings.value(key).toString());
         rpclog("%s", sText.toLocal8Bit().constData());
     }
-
-    sText = settings.value("mem_size", "16").toString();
-    ba = sText.toUtf8();
-    p = ba.data();
-    if (!strcmp(p, "4"))
-    {
-        config->mem_size = 4;
-    }
-    else if (!strcmp(p, "8"))
-    {
-        config->mem_size = 8;
-    }
-    else if (!strcmp(p, "32"))
-    {
-        config->mem_size = 32;
-    }
-    else if (!strcmp(p, "64"))
-    {
-        config->mem_size = 64;
-    }
-    else if (!strcmp(p, "128"))
-    {
-        config->mem_size = 128;
-    }
-    else if (!strcmp(p, "256"))
-    {
-        config->mem_size = 256;
-    }
-    else
-    {
-        config->mem_size = 16;
-    }
-
-    sText = settings.value("vram_size", "").toString();
-    if (!QString::compare(sText, "", Qt::CaseInsensitive))
-    {
-        config->vram_size = 8;
-    }
-    else if (!QString::compare(sText, "0", Qt::CaseInsensitive))
-    {
-        config->vram_size = 0;
-    }
-    else
-    {
-        config->vram_size = 8;
-    }
     
     sText = settings.value("model", "").toString();
     ba = sText.toUtf8();
     p = ba.data();
-    model = Model_RPCARM710;
-    if (p != NULL)
-    {
-        for (i = 0; i < Model_MAX; i++)
-        {
-            if (strcasecmp(p, models[i].name_config) == 0)
-            {
-                model = models[i].model;
-                break;
-            }
-        }
-    }
-
+    
+    model = models_find_type(p, Model_RPCARM710);
     rpcemu_model_changed(model);
     
-    // Override main memory.
+    // Set main memory.
     if ((machine.memory_flags & MemoryFlags_RAMFixed) != 0)
     {
         // Fixed main memory.
         config->mem_size = machine.ram_fixed_size;
     }
+    else
+    {
+        // Configurable main memory.
+        size = settings.value("mem_size", "16").toInt(&valid);
+        if (valid)
+        {
+            valid = false;
+            
+            for (int i = 0; i < MEMORY_ARRAYSIZE; i += 1)
+            {
+                if (memoryValues[i] == size)
+                {
+                    config->mem_size = size;
+                    
+                    valid = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!valid)
+        {
+            config->mem_size = 16;
+        }
+    }
 
-    // Override VRAM.
+    // Set video memory.
     if ((machine.memory_flags & MemoryFlags_VRAMNone) != 0)
     {
         // No VRAM.
@@ -320,6 +317,20 @@ void config_load(Config *config)
     {
         // Fixed VRAM.
         config->vram_size = machine.vram_fixed_size;
+    }
+    else
+    {
+        // Configurable VRAM.
+        size = settings.value("vram_size", "8").toInt(&valid);
+        
+        if (valid)
+        {
+            config->vram_size = (size == 0 ? 0 : 8);
+        }
+        else
+        {
+            config->vram_size = 8;
+        }
     }
 
     config->soundenabled = settings.value("sound_enabled", "1").toInt();
@@ -363,66 +374,16 @@ void config_load(Config *config)
         config->network_type = NetworkType_Off;
     }
 
-    /* Take a copy of the string config values, to allow dynamic alteration later */
-    sText = settings.value("username", "").toString();
-    ba = sText.toUtf8();
-    if (strlen(ba.data()) != 0)
-    {
-        config->username = strdup(ba.data());
-    }
-    else
-    {
-        config->username = NULL;
-    }
+    config->username = config_get_string(settings, "username", "");
+    config->ipaddress = config_get_string(settings, "ipaddress", "");
+    config->macaddress = config_get_string(settings, "macaddress", "");
+    config->bridgename = config_get_string(settings, "bridgename", "");
+    config->network_capture = config_get_string(settings, "network_capture", "");
 
-    sText = settings.value("ipaddress", "").toString();
-    ba = sText.toUtf8();
-    if (strlen(ba.data()) != 0)
-    {
-        config->ipaddress = strdup(ba.data());
-    }
-    else
-    {
-        config->ipaddress = NULL;
-    }
-
-    sText = settings.value("macaddress", "").toString();
-    ba = sText.toUtf8();
-    if (strlen(ba.data()) != 0)
-    {
-        config->macaddress = strdup(ba.data());
-    }
-    else
-    {
-        config->macaddress = NULL;
-    }
-
-    sText = settings.value("bridgename", "").toString();
-    ba = sText.toUtf8();
-    if (strlen(ba.data()) != 0)
-    {
-        config->bridgename = strdup(ba.data());
-    }
-    else
-    {
-        config->bridgename = NULL;
-    }
-
-    config->cpu_idle = 0;
     config->cpu_idle = settings.value("cpu_idle", "0").toInt();
 
     config->show_fullscreen_message = settings.value("show_fullscreen_message", "1").toInt();
 
-    sText = settings.value("network_capture", "").toString();
-    if (sText != "")
-    {
-        ba = sText.toUtf8();
-        config->network_capture = strdup(ba.constData());
-    }
-    else
-    {
-        config->network_capture = NULL;
-    }
 
 #ifdef FEATURE_MULTI_HOSTFS
     config->confirm_reset = settings.value("confirm_reset", "1").toInt();
@@ -433,6 +394,14 @@ void config_load(Config *config)
 
     config_hostfs_load(settings, config);
 #endif /* FEATURE_MULTI_HOSTFS */
+    
+    settings.beginGroup("lastDirectory");
+    
+    config->last_cdrom_directory = config_get_string(settings, "cdrom", "");
+    config->last_floppy_directory = config_get_string(settings, "floppy", "");
+    config->last_screenshot_directory = config_get_string(settings, "screenshot", "");
+    
+    settings.endGroup();
 
     config_nat_rules_load(settings);
 }
@@ -446,31 +415,17 @@ void config_load(Config *config)
 void config_save(Config *config)
 {
     char configpath[PATH_MAX];
-    QString sText;
 
     path_append_data(configpath, "rpc.cfg");
 
     QSettings settings(configpath, QSettings::IniFormat);
     settings.clear();
 
-    char s[256];
-
-    snprintf(s, 256, "%u", config->mem_size);
-    settings.setValue("mem_size", QString(s));
+    const char *model_name = models_get_name(machine.model);
+    config_set_string(settings, "model", model_name);
     
-    const char *model_name = models_get_config_name(machine.model);
-
-    settings.setValue("model", QString(model_name));
-
-    if (config->vram_size != 0)
-    {
-        settings.setValue("vram_size", "2");
-    }
-    else
-    {
-        settings.setValue("vram_size", "0");
-    }
-
+    settings.setValue("mem_size", config->mem_size);
+    settings.setValue("vram_size", (config->vram_size != 0 ? 2 : 0));
     settings.setValue("sound_enabled", config->soundenabled);
     settings.setValue("refresh_rate", config->refresh);
     settings.setValue("cdrom_enabled", config->cdromenabled);
@@ -482,55 +437,26 @@ void config_save(Config *config)
     switch (config->network_type)
     {
         case NetworkType_Off:
-            snprintf(s, 256, "off");
+            config_set_string(settings, "network_type", "off");
             break;
 
         case NetworkType_NAT:
-            snprintf(s, 256, "nat");
+            config_set_string(settings, "network_type", "nat");
             break;
 
         case NetworkType_EthernetBridging:
-            snprintf(s, 256, "ethernetbridging");
+            config_set_string(settings, "network_type", "ethernetbridging");
             break;
 
         case NetworkType_IPTunnelling:
-            snprintf(s, 256, "iptunnelling");
+            config_set_string(settings, "network_type", "iptunnelling");
             break;
     }
-    settings.setValue("network_type", QString(s));
-
-    if (config->username)
-    {
-        settings.setValue("username", QString(config->username));
-    }
-    else
-    {
-        settings.setValue("username", "");
-    }
-    if (config->ipaddress)
-    {
-        settings.setValue("ipaddress", QString(config->ipaddress));
-    }
-    else
-    {
-        settings.setValue("ipaddress", "");
-    }
-    if (config->macaddress)
-    {
-        settings.setValue("macaddress", QString(config->macaddress));
-    }
-    else
-    {
-        settings.setValue("macaddress", "");
-    }
-    if (config->bridgename)
-    {
-        settings.setValue("bridgename", QString(config->bridgename));
-    }
-    else
-    {
-        settings.setValue("bridgename", "");
-    }
+    
+    config_set_string(settings, "username", config->username);
+    config_set_string(settings, "ipaddress", config->ipaddress);
+    config_set_string(settings, "macaddress", config->macaddress);
+    config_set_string(settings, "bridgename", config->bridgename);
 
     settings.setValue("cpu_idle", config->cpu_idle);
     settings.setValue("show_fullscreen_message", config->show_fullscreen_message);
@@ -539,6 +465,14 @@ void config_save(Config *config)
     {
         settings.setValue("network_capture", QString(config->network_capture));
     }
+    
+    settings.beginGroup("lastDirectory");
+
+    config_set_string(settings, "cdrom", config->last_cdrom_directory);
+    config_set_string(settings, "floppy", config->last_floppy_directory);
+    config_set_string(settings, "screenshot", config->last_screenshot_directory);
+    
+    settings.endGroup();
 
 #ifdef FEATURE_MULTI_HOSTFS
     settings.setValue("confirm_quit", config->confirm_quit);

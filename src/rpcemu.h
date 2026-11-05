@@ -116,6 +116,10 @@ typedef struct
     int cpu_idle;                /**< Attempt to reduce CPU usage */
     int show_fullscreen_message; /**< Show explanation of how to leave fullscreen, on entering fullscreen */
     char *network_capture;       ///< Path to capture network traffic file, or NULL to disable
+    
+    char *last_cdrom_directory;
+    char *last_floppy_directory;
+    char *last_screenshot_directory;
 
 #ifdef FEATURE_MULTI_HOSTFS
     int confirm_quit;
