@@ -108,7 +108,7 @@ void FileDialog::setInitialFileName(QString fileName)
 
 void FileDialog::setSelection()
 {
-    QDir home = QDir::homePath();
+    QDir home = QDir::home();
     
     if (this->initialDirectory.length() > 0 && this->initialFileName.length() > 0)
     {

@@ -79,8 +79,7 @@ ChooseDialog::ChooseDialog(QWidget *parent)
     
     // If there is a folder already, fill it in.
     const char *existing = preferences_get_data_directory();
-    
-    if (strlen(existing) > 0 || path_directory_exists(existing))
+    if (existing != NULL && strlen(existing) > 0 && path_directory_exists(existing))
     {
         directory_edit->setText(existing);
     }
@@ -102,6 +101,11 @@ void ChooseDialog::directory_button_pressed()
     if (selected.length() > 0 && dir.exists(selected))
     {
         folderDialog.setDirectory(selected);
+    }
+    else
+    {
+        QString homePath = QDir::homePath();
+        folderDialog.setDirectory(homePath);
     }
     
     if (folderDialog.exec())
